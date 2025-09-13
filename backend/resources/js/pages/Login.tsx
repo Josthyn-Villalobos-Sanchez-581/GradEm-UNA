@@ -40,7 +40,7 @@ const Login: React.FC = () => {
     <div style={{ backgroundColor: "#FFFFFF", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <div style={{ width: "650px", height: "850px", backgroundColor: "#F6F6F6", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px", boxSizing: "border-box", borderRadius: "10px" }}>
         <img src={unaLogo} alt="Logo UNA" width="220" height="120" style={{ marginBottom: "40px" }} />
-        <h1 style={{ fontFamily: "'Goudy Old Style', serif", fontSize: "54px", color: "#00ff00ff", marginBottom: "50px" }}>Iniciar Sesión</h1>
+        <h1 style={{ fontFamily: "'Goudy Old Style', serif", fontSize: "54px", color: "#000000", marginBottom: "50px" }}>Iniciar Sesión</h1>
 
         <div style={{ width: "100%" }}>
           <label htmlFor="correo" style={labelStyle}>Correo Electrónico</label>
