@@ -7,6 +7,11 @@ use App\Http\Controllers\RolController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RegistroController;
 
+Route::middleware('auth')->get('/app', function () {
+    return Inertia::render('app-layout'); // nombre del componente React
+})->name('app');
+
+
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
