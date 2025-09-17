@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     alignItems: "center",
     padding: "20px", // asegura márgenes en celular
   };
-
+  
   const cardStyle: React.CSSProperties = {
     width: "100%",
     maxWidth: "650px", // límite en pantallas grandes
@@ -156,7 +156,7 @@ const Login: React.FC = () => {
           <a href="/recuperar-contrasena" style={{ color: "#034991" }}>
             ¿Olvidó su contraseña?
           </a>
-          <a href="/crear-cuenta" style={{ color: "#034991" }}>
+          <a href="/registro" style={{ color: "#034991" }}>
             Crear Cuenta
           </a>
         </div>

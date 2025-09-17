@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\PermisoController;
+use App\Http\Controllers\RegistroController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -41,3 +42,11 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
     Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
 });
+
+
+//Route::post('/registro', [RegistroController::class, 'store'])->name('registro.store');
+Route::get('/registro', [RegistroController::class, 'mostrarFormulario'])->name('registro.form');
+Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo']);
+Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
+Route::post('/registro', [RegistroController::class, 'registrar']);
+
