@@ -7,6 +7,8 @@ use App\Models\Rol;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PermisoController extends Controller
 {
@@ -16,9 +18,17 @@ class PermisoController extends Controller
         $roles = Rol::with('permisos')->get();
         $permisos = Permiso::all();
 
+        // Permisos del usuario autenticado para el layout
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
         return Inertia::render('Roles_Permisos/Index', [
             'roles' => $roles,
             'permisos' => $permisos,
+            'userPermisos' => $userPermisos,
             'flash' => session('success') ? ['success' => session('success')] : null,
         ]);
     }
@@ -26,14 +36,32 @@ class PermisoController extends Controller
     // Mostrar formulario para crear permiso
     public function create()
     {
-        return Inertia::render('Roles_Permisos/Permisos/Create');
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        return Inertia::render('Roles_Permisos/Permisos/Create', [
+            'userPermisos' => $userPermisos,
+        ]);
     }
 
     // Mostrar formulario para editar permiso
     public function edit($id)
     {
         $permiso = Permiso::findOrFail($id);
-        return Inertia::render('Roles_Permisos/Permisos/Edit', ['permiso' => $permiso]);
+
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        return Inertia::render('Roles_Permisos/Permisos/Edit', [
+            'permiso' => $permiso,
+            'userPermisos' => $userPermisos,
+        ]);
     }
 
     // Crear permiso
@@ -45,7 +73,7 @@ class PermisoController extends Controller
 
         Permiso::create($data);
 
-        return redirect()->route('permisos.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Permiso creado correctamente');
     }
 
@@ -65,7 +93,7 @@ class PermisoController extends Controller
 
         $permiso->update($data);
 
-        return redirect()->route('permisos.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Permiso actualizado correctamente');
     }
 
@@ -75,7 +103,7 @@ class PermisoController extends Controller
         $permiso = Permiso::findOrFail($id);
         $permiso->delete();
 
-        return redirect()->route('permisos.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Permiso eliminado correctamente');
     }
 }

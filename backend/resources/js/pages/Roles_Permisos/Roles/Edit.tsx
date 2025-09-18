@@ -19,7 +19,7 @@ export default function Edit({ rol, userPermisos }: Props) {
   return (
     <>
       <Head title="Editar Rol" />
-      <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6">
+      <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6 text-black">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Editar Rol</h2>
           <Link

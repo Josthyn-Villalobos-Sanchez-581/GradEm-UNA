@@ -18,7 +18,7 @@ export default function Create({ userPermisos }: Props) {
   return (
     <>
       <Head title="Crear Permiso" />
-      <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6">
+      <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6 text-black">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Crear Permiso</h2>
           <Link

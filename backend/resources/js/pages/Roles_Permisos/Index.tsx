@@ -57,7 +57,7 @@ export default function Index({
     <>
       <Head title="Roles y Permisos" />
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-black">
         {successMessage && (
           <div className="bg-green-100 text-green-800 px-4 py-2 rounded shadow transition-opacity duration-500">
             {successMessage}

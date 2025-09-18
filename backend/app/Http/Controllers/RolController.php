@@ -7,6 +7,8 @@ use App\Models\Permiso;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RolController extends Controller
 {
@@ -16,9 +18,17 @@ class RolController extends Controller
         $roles = Rol::with('permisos')->get();
         $permisos = Permiso::all();
 
+        // Permisos del usuario autenticado para el layout
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
         return Inertia::render('Roles_Permisos/Index', [
             'roles' => $roles,
             'permisos' => $permisos,
+            'userPermisos' => $userPermisos,
             'flash' => session('success') ? ['success' => session('success')] : null,
         ]);
     }
@@ -26,14 +36,32 @@ class RolController extends Controller
     // Mostrar formulario para crear rol
     public function create()
     {
-        return Inertia::render('Roles_Permisos/Roles/Create');
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        return Inertia::render('Roles_Permisos/Roles/Create', [
+            'userPermisos' => $userPermisos,
+        ]);
     }
 
     // Mostrar formulario para editar rol
     public function edit($id)
     {
         $rol = Rol::findOrFail($id);
-        return Inertia::render('Roles_Permisos/Roles/Edit', ['rol' => $rol]);
+
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        return Inertia::render('Roles_Permisos/Roles/Edit', [
+            'rol' => $rol,
+            'userPermisos' => $userPermisos,
+        ]);
     }
 
     // Crear rol
@@ -45,7 +73,7 @@ class RolController extends Controller
 
         Rol::create($data);
 
-        return redirect()->route('roles.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Rol creado correctamente');
     }
 
@@ -65,7 +93,7 @@ class RolController extends Controller
 
         $rol->update($data);
 
-        return redirect()->route('roles.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Rol actualizado correctamente');
     }
 
@@ -75,7 +103,7 @@ class RolController extends Controller
         $rol = Rol::findOrFail($id);
         $rol->delete();
 
-        return redirect()->route('roles.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Rol eliminado correctamente');
     }
 
@@ -86,7 +114,7 @@ class RolController extends Controller
         $permisos = $request->get('permisos', []);
         $rol->permisos()->sync($permisos);
 
-        return redirect()->route('roles.index')
+        return redirect()->route('roles_permisos.index')
             ->with('success', 'Permisos del rol actualizados correctamente');
     }
 }

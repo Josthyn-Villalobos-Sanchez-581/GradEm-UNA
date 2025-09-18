@@ -1,8 +1,9 @@
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode, useState } from 'react';
 import { Link } from '@inertiajs/react';
+import axios from 'axios';
 
-interface TopbarLayoutProps {
+interface PpLayoutProps {
   children: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   userPermisos: number[];
@@ -15,7 +16,7 @@ interface MenuItem {
   subMenu?: MenuItem[];
 }
 
-export default function TopbarLayout({ children, breadcrumbs, userPermisos }: TopbarLayoutProps) {
+export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayoutProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const toggleMenu = (menu: string) => setOpenMenu(openMenu === menu ? null : menu);
 
@@ -24,7 +25,6 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
     {
       title: 'Administración',
       subMenu: [
-        // Redirige al index general de Roles y Permisos
         { title: 'Roles y Permisos', route: '/roles_permisos', permisoId: 12 },
         { title: 'Usuarios', route: '/usuarios', permisoId: 12 },
         { title: 'Catálogos', route: '/catalogos', permisoId: 13 },
@@ -87,20 +87,47 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
   // Logo UNA
   const logoUrl = new URL('../assets/logoUNATopBar.png', import.meta.url).href;
 
+  // Función para cerrar sesión usando axios
+  const handleLogout = async () => {
+    try {
+      const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
+
+      const res = await axios.post(
+        '/logout',
+        {},
+        {
+          headers: { 'X-CSRF-TOKEN': csrfToken || '' },
+          withCredentials: true,
+        }
+      );
+
+      if (res.data.redirect) {
+        window.location.href = res.data.redirect;
+      }
+    } catch (err) {
+      console.error('Error al cerrar sesión', err);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Topbar */}
       <header className="bg-red-700 shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4 md:p-6">
+          {/* Logo */}
           <div className="flex items-center">
             <img src={logoUrl} alt="Logo UNA" className="h-14 w-auto object-contain" />
           </div>
 
+          {/* Menú */}
           <nav className="flex gap-6 items-center text-white ml-auto">
             {filteredMenu.map((item) =>
               item.subMenu ? (
                 <div key={item.title} className="relative group">
                   <button
+                    type="button"
                     onClick={() => toggleMenu(item.title)}
                     className="font-medium hover:text-gray-200 transition"
                   >
@@ -132,14 +159,25 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
                 </Link>
               )
             )}
+
+            {/* Botón de Cerrar Sesión usando axios */}
+            <button
+              onClick={handleLogout}
+              className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition"
+            >
+              Cerrar Sesión
+            </button>
           </nav>
         </div>
 
+        {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
           <div className="bg-red-800 px-6 py-2 text-sm text-white">
             {breadcrumbs.map((item, idx) => (
               <span key={idx}>
-                <Link href={item.href} className="hover:text-gray-200">{item.title}</Link>
+                <Link href={item.href} className="hover:text-gray-200">
+                  {item.title}
+                </Link>
                 {idx < breadcrumbs.length - 1 && ' / '}
               </span>
             ))}
@@ -147,10 +185,12 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
         )}
       </header>
 
+      {/* Contenido */}
       <main className="flex-1 max-w-7xl mx-auto p-6">
         <div className="bg-white shadow rounded-xl p-6">{children}</div>
       </main>
 
+      {/* Footer */}
       <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
         Sistema de Gestión © 2025 - Universidad Nacional
       </footer>

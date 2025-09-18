@@ -59,6 +59,9 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('dashboard');
 
+    // Logout
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
     // ==========================================
     // Rutas de Roles
     // ==========================================
