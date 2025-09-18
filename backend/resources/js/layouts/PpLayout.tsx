@@ -24,8 +24,8 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
     {
       title: 'Administración',
       subMenu: [
-        { title: 'Roles', route: '/roles', permisoId: 12 },
-        { title: 'Permisos', route: '/permisos', permisoId: 12 },
+        // Redirige al index general de Roles y Permisos
+        { title: 'Roles y Permisos', route: '/roles_permisos', permisoId: 12 },
         { title: 'Usuarios', route: '/usuarios', permisoId: 12 },
         { title: 'Catálogos', route: '/catalogos', permisoId: 13 },
         { title: 'Auditoría', route: '/auditoria', permisoId: 16 },
@@ -92,12 +92,10 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
       {/* Topbar */}
       <header className="bg-red-700 shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4 md:p-6">
-          {/* Logo (a la izquierda, más grande) */}
           <div className="flex items-center">
             <img src={logoUrl} alt="Logo UNA" className="h-14 w-auto object-contain" />
           </div>
 
-          {/* Menú (alineado a la derecha) */}
           <nav className="flex gap-6 items-center text-white ml-auto">
             {filteredMenu.map((item) =>
               item.subMenu ? (
@@ -108,8 +106,6 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
                   >
                     {item.title} ▾
                   </button>
-
-                  {/* Submenu animado */}
                   <div
                     className={`absolute right-0 mt-2 bg-white text-gray-800 rounded shadow-lg overflow-hidden transition-all duration-300 ${
                       openMenu === item.title ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
@@ -139,7 +135,6 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
           </nav>
         </div>
 
-        {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
           <div className="bg-red-800 px-6 py-2 text-sm text-white">
             {breadcrumbs.map((item, idx) => (
@@ -152,12 +147,10 @@ export default function TopbarLayout({ children, breadcrumbs, userPermisos }: To
         )}
       </header>
 
-      {/* Contenido principal */}
       <main className="flex-1 max-w-7xl mx-auto p-6">
         <div className="bg-white shadow rounded-xl p-6">{children}</div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
         Sistema de Gestión © 2025 - Universidad Nacional
       </footer>

@@ -1,33 +1,54 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import AppLayout from "@/layouts/app-layout";
+import { Link, Head } from "@inertiajs/react";
+import PpLayout from "@/layouts/PpLayout";
 
-export default function Create() {
-  const [nombre, setNombre] = useState("");
+interface Props {
+  userPermisos: number[];
+}
+
+export default function Create({ userPermisos }: Props) {
+  const [nombreRol, setNombreRol] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    Inertia.post("/roles", { nombre_rol: nombre });
+    Inertia.post("/roles", { nombre_rol: nombreRol });
   };
 
   return (
-    <AppLayout breadcrumbs={[{ title: "Roles", href: "/roles" }, { title: "Crear", href: "#" }]}>
-      <h1 className="text-xl font-bold mb-6">Crear Rol</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow w-full md:w-1/2">
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Nombre del Rol</label>
+    <>
+      <Head title="Crear Rol" />
+      <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Crear Rol</h2>
+          <Link
+            href="/roles_permisos"
+            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+          >
+            Volver
+          </Link>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            required
+            value={nombreRol}
+            onChange={(e) => setNombreRol(e.target.value)}
+            placeholder="Nombre del rol"
+            className="border p-2 rounded w-full"
           />
-        </div>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          Guardar
-        </button>
-      </form>
-    </AppLayout>
+          <button
+            type="submit"
+            className="bg-[#2E7D32] hover:bg-green-800 text-white px-4 py-2 rounded"
+          >
+            Crear
+          </button>
+        </form>
+      </div>
+    </>
   );
 }
+
+Create.layout = (page: React.ReactNode & { props: Props }) => {
+  const permisos = page.props?.userPermisos ?? [];
+  return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
+};

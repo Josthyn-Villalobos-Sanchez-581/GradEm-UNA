@@ -3,40 +3,70 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permiso;
+use App\Models\Rol;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class PermisoController extends Controller
 {
-    // Listar permisos
+    // Listar permisos y roles
     public function index()
     {
+        $roles = Rol::with('permisos')->get();
         $permisos = Permiso::all();
-        return Inertia::render('Permisos/Index', ['permisos' => $permisos]);
+
+        return Inertia::render('Roles_Permisos/Index', [
+            'roles' => $roles,
+            'permisos' => $permisos,
+            'flash' => session('success') ? ['success' => session('success')] : null,
+        ]);
+    }
+
+    // Mostrar formulario para crear permiso
+    public function create()
+    {
+        return Inertia::render('Roles_Permisos/Permisos/Create');
+    }
+
+    // Mostrar formulario para editar permiso
+    public function edit($id)
+    {
+        $permiso = Permiso::findOrFail($id);
+        return Inertia::render('Roles_Permisos/Permisos/Edit', ['permiso' => $permiso]);
     }
 
     // Crear permiso
     public function store(Request $request)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:100|unique:permisos,nombre'
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:100', Rule::unique('permisos', 'nombre')],
         ]);
 
-        Permiso::create($request->all());
-        return redirect()->back()->with('success', 'Permiso creado correctamente');
+        Permiso::create($data);
+
+        return redirect()->route('permisos.index')
+            ->with('success', 'Permiso creado correctamente');
     }
 
-    // Editar permiso
+    // Actualizar permiso
     public function update(Request $request, $id)
     {
         $permiso = Permiso::findOrFail($id);
 
-        $request->validate([
-            'nombre' => 'required|string|max:100|unique:permisos,nombre,' . $permiso->id_permiso
+        $data = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('permisos', 'nombre')->ignore($permiso->id_permiso, 'id_permiso'),
+            ],
         ]);
 
-        $permiso->update($request->all());
-        return redirect()->back()->with('success', 'Permiso actualizado correctamente');
+        $permiso->update($data);
+
+        return redirect()->route('permisos.index')
+            ->with('success', 'Permiso actualizado correctamente');
     }
 
     // Eliminar permiso
@@ -44,6 +74,10 @@ class PermisoController extends Controller
     {
         $permiso = Permiso::findOrFail($id);
         $permiso->delete();
-        return redirect()->back()->with('success', 'Permiso eliminado correctamente');
+
+        return redirect()->route('permisos.index')
+            ->with('success', 'Permiso eliminado correctamente');
     }
 }
+
+
