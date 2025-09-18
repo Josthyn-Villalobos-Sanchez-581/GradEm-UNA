@@ -30,6 +30,16 @@ class Usuario extends Authenticatable
         'id_universidad',
         'id_carrera',
         'estado_id',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
     ];
 
     /**

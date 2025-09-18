@@ -1,251 +1,261 @@
 import React, { useState, FormEvent } from "react";
-import axios from "axios"; // 👈 usamos axios en lugar de Inertia
+import axios from "axios";
+import { router } from "@inertiajs/react"; // 👈 Inertia router
+import logoUNA from "../assets/logoUNA.png";
+
+// Estilos personalizados de Tailwind
+const tailwindStyles = `
+    .font-open-sans { font-family: 'Open Sans', sans-serif; }
+    .text-una-red { color: #CD1719; }
+    .bg-una-red { background-color: #CD1719; }
+    .border-una-red { border-color: #CD1719; }
+    .text-una-blue { color: #034991; }
+    .bg-una-blue { background-color: #034991; }
+    .text-una-gray { color: #A7A7A9; }
+    .bg-una-gray { background-color: #A7A7A9; }
+    .border-una-gray { border-color: #A7A7A9; }
+    .text-black { color: #000000; }
+    .text-una-dark-gray { color: #4B5563; }
+`;
 
 const Registro: React.FC = () => {
-  const [tipoCuenta, setTipoCuenta] = useState<string>("estudiante");
-  const [correo, setCorreo] = useState<string>("");
-  const [codigo, setCodigo] = useState<string>("");
-  const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
-  const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
-  const [nombreCompleto, setNombreCompleto] = useState<string>("");
+    const [tipoCuenta, setTipoCuenta] = useState<string>("estudiante");
+    const [correo, setCorreo] = useState<string>("");
+    const [codigo, setCodigo] = useState<string>("");
+    const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
+    const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "10px",
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    boxSizing: "border-box",
-  };
+    // Datos del formulario
+    const [password, setPassword] = useState<string>("");
+    const [confirmPassword, setConfirmPassword] = useState<string>("");
+    const [nombreCompleto, setNombreCompleto] = useState<string>("");
+    const [anoGraduacion, setAnoGraduacion] = useState<string>("");
+    const [empresaActual, setEmpresaActual] = useState<string>("");
+    const [numeroIdentificacion, setNumeroIdentificacion] = useState<string>("");
+    const [telefono, setTelefono] = useState<string>("");
+    const [direccion, setDireccion] = useState<string>("");
+    const [fechaNacimiento, setFechaNacimiento] = useState<string>("");
+    const [genero, setGenero] = useState<string>("");
+    const [estadoEmpleo, setEstadoEmpleo] = useState<string>("");
+    const [estadoEstudios, setEstadoEstudios] = useState<string>("");
 
-  const labelStyle: React.CSSProperties = {
-    color: "#000000",
-    fontWeight: "bold",
-    display: "block",
-    marginBottom: "5px",
-  };
+    const handleEnviarCodigo = async () => {
+        try {
+            await axios.post("/registro/enviar-codigo", { correo });
+            setCodigoEnviado(true);
+            alert("Código enviado al correo");
+        } catch (error: any) {
+            alert(error.response?.data?.message || "Error al enviar el código");
+        }
+    };
 
-  // Enviar código
-  const handleEnviarCodigo = async () => {
-    try {
-      await axios.post("/registro/enviar-codigo", { correo });
-      setCodigoEnviado(true);
-      alert("Código enviado al correo");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Error al enviar el código");
-    }
-  };
+    const handleValidarCodigo = async () => {
+        try {
+            await axios.post("/registro/validar-codigo", { correo, codigo });
+            setCodigoValidado(true);
+            alert("Correo verificado correctamente");
+        } catch (error: any) {
+            alert(error.response?.data?.message || "Código incorrecto o expirado");
+        }
+    };
 
-  // Validar código
-  const handleValidarCodigo = async () => {
-    try {
-      await axios.post("/registro/validar-codigo", { correo, codigo });
-      setCodigoValidado(true);
-      alert("Correo verificado correctamente");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Código incorrecto o expirado");
-    }
-  };
+    const handleRegistro = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!codigoValidado) {
+            alert("Primero debes validar tu correo");
+            return;
+        }
 
-  // Registro final
-  const handleRegistro = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!codigoValidado) {
-      alert("Primero debes validar tu correo");
-      return;
-    }
-    try {
-      await axios.post("/registro", {
-        nombre_completo: nombreCompleto,
-        correo,
-        password,
-        password_confirmation: confirmPassword,
-        tipoCuenta,
-      });
-      alert("Registro exitoso");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Error en el registro");
-    }
-  };
+        try {
+            const userData = {
+                nombre_completo: nombreCompleto,
+                correo,
+                password,
+                password_confirmation: confirmPassword,
+                tipoCuenta,
+                numeroIdentificacion,
+                telefono,
+                direccion,
+                fechaNacimiento,
+                genero,
+                estadoEmpleo,
+                estadoEstudios,
+                ...(tipoCuenta === "egresado"
+                    ? { ano_graduacion: anoGraduacion, empresa_actual: empresaActual }
+                    : {}),
+            };
 
-  return (
-    <div
-      style={{
-        backgroundColor: "#FFFFFF",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "700px",
-          backgroundColor: "#F6F6F6",
-          padding: "40px",
-          borderRadius: "10px",
-        }}
-      >
-        <h1 style={{ fontSize: "36px", marginBottom: "20px", color: "#000000" }}>
-          Crear Cuenta
-        </h1>
+            await axios.post("/registro", userData);
+            alert("Registro exitoso");
+        } catch (error: any) {
+            alert(error.response?.data?.message || "Error en el registro");
+        }
+    };
 
-        {/* Selección tipo de cuenta */}
-        <div style={{ marginBottom: "20px", color: "#000000" }}>
-          <label>
-            <input
-              type="radio"
-              value="estudiante"
-              checked={tipoCuenta === "estudiante"}
-              onChange={(e) => setTipoCuenta(e.target.value)}
-            />
-            Estudiante
-          </label>
-          <label style={{ marginLeft: "20px" }}>
-            <input
-              type="radio"
-              value="egresado"
-              checked={tipoCuenta === "egresado"}
-              onChange={(e) => setTipoCuenta(e.target.value)}
-            />
-            Egresado
-          </label>
-        </div>
+    return (
+        <>
+            <style>{tailwindStyles}</style>
+            <div className="min-h-screen flex flex-col bg-white font-open-sans">
+                {/* Header */}
+                <header className="bg-white shadow-md w-full py-4 px-8">
+                    <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
+                        <img alt="Logo UNA" className="h-16" src={logoUNA} />
+                    </a>
+                </header>
 
-        {/* Correo y validación */}
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="email"
-            placeholder="Correo Electrónico"
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
-            style={inputStyle}
-          />
+                {/* Main */}
+                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-xl w-full space-y-8 bg-white p-10 rounded-lg border border-una-gray">
+                        <div>
+                            <h1 className="text-center text-4xl font-bold text-una-red font-open-sans">
+                                Crear Cuenta
+                            </h1>
+                            <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
+                                Complete la información a continuación para crear su cuenta.
+                            </p>
+                        </div>
 
-          {!codigoEnviado && (
-            <button
-              onClick={handleEnviarCodigo}
-              style={{
-                padding: "10px 20px",
-                marginTop: "10px",
-                backgroundColor: "#CD1719",
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Enviar código
-            </button>
-          )}
-        </div>
+                        {/* Selección de tipo de cuenta */}
+                        <div className="flex justify-center space-x-6 mb-6">
+                            {["estudiante", "egresado", "empresa"].map((tipo) => (
+                                <label key={tipo} className="inline-flex items-center">
+                                    <input
+                                        type="radio"
+                                        className="form-radio text-una-red"
+                                        value={tipo}
+                                        checked={tipoCuenta === tipo}
+                                        onChange={(e) => setTipoCuenta(e.target.value)}
+                                    />
+                                    <span className="ml-2 font-open-sans text-black capitalize">{tipo}</span>
+                                </label>
+                            ))}
+                        </div>
 
-        {codigoEnviado && !codigoValidado && (
-          <div>
-            <input
-              type="text"
-              placeholder="Ingrese el código"
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-              style={inputStyle}
-            />
-            <button
-              onClick={handleValidarCodigo}
-              style={{
-                padding: "10px 20px",
-                marginTop: "10px",
-                backgroundColor: "#CD1719",
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Validar código
-            </button>
-          </div>
-        )}
+                        {/* Formulario */}
+                        <form className="mt-8 space-y-6" onSubmit={handleRegistro}>
+                            {/* Email + Código */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-bold text-black font-open-sans">
+                                    Correo electrónico institucional
+                                </label>
+                                <div className="mt-1 flex gap-2">
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        required
+                                        value={correo}
+                                        onChange={(e) => setCorreo(e.target.value)}
+                                        className="appearance-none rounded-md w-full px-3 py-2 border border-una-gray text-gray-900 focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        placeholder="ejemplo@est.una.ac.cr"
+                                        disabled={codigoValidado}
+                                    />
+                                    {!codigoEnviado && (
+                                        <button
+                                            type="button"
+                                            onClick={handleEnviarCodigo}
+                                            className="py-2 px-4 rounded-md text-white bg-una-red hover:bg-red-800 font-open-sans"
+                                        >
+                                            Enviar código
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
 
-        {/* Si el correo ya fue validado */}
-        {codigoValidado && (
-          <form onSubmit={handleRegistro}>
-            <label style={labelStyle}>Nombre completo</label>
-            <input
-              type="text"
-              placeholder="Nombre completo"
-              value={nombreCompleto}
-              onChange={(e) => setNombreCompleto(e.target.value)}
-              style={inputStyle}
-            />
+                            {codigoEnviado && !codigoValidado && (
+                                <div>
+                                    <label htmlFor="code" className="block text-sm font-bold text-black font-open-sans">
+                                        Código de Verificación
+                                    </label>
+                                    <div className="mt-1 flex gap-2">
+                                        <input
+                                            id="code"
+                                            type="text"
+                                            required
+                                            value={codigo}
+                                            onChange={(e) => setCodigo(e.target.value)}
+                                            className="appearance-none rounded-md w-full px-3 py-2 border border-una-gray text-gray-900 focus:ring-una-blue focus:border-una-blue sm:text-sm"
+                                            placeholder="Ingrese el código"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleValidarCodigo}
+                                            className="py-2 px-4 rounded-md text-white bg-una-blue hover:bg-blue-800 font-open-sans"
+                                        >
+                                            Validar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
-            <label style={labelStyle}>Contraseña</label>
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={inputStyle}
-            />
+                            {/* Formulario Estudiante/Egresado con el formato original */}
+                            {codigoValidado && tipoCuenta !== "empresa" && (
+                                <div className="rounded-md -space-y-px mt-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Campos normales */}
+                                        {/* ... aquí van exactamente los que ya tenías en tu versión original ... */}
+                                        {/* 👇 Te los copié igual al snippet que mandaste */}
+                                        <div>
+                                            <label htmlFor="nombreCompleto" className="block text-sm font-bold text-black font-open-sans">
+                                                Nombre completo
+                                            </label>
+                                            <input
+                                                id="nombreCompleto"
+                                                type="text"
+                                                required
+                                                value={nombreCompleto}
+                                                onChange={(e) => setNombreCompleto(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: Juan Pérez González"
+                                            />
+                                        </div>
+                                        <div> <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans"> Número de identificación </label> <input id="numeroIdentificacion" type="text" required value={numeroIdentificacion} onChange={(e) => setNumeroIdentificacion(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Ej: 1-1234-5678" /> </div> <div> <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans"> Teléfono de contacto </label> <input id="telefono" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Ej: 8888-8888" /> </div> <div> <label htmlFor="fechaNacimiento" className="block text-sm font-bold text-black font-open-sans"> Fecha de nacimiento </label> <input id="fechaNacimiento" type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" /> </div> <div> <label htmlFor="genero" className="block text-sm font-bold text-black font-open-sans"> Género </label> <select id="genero" value={genero} onChange={(e) => setGenero(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="femenino">Femenino</option> <option value="masculino">Masculino</option> <option value="otro">Otro</option> </select> </div> <div> <label htmlFor="estadoEmpleo" className="block text-sm font-bold text-black font-open-sans"> Estado de empleo </label> <select id="estadoEmpleo" value={estadoEmpleo} onChange={(e) => setEstadoEmpleo(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="empleado">Empleado</option> <option value="desempleado">Desempleado</option> </select> </div> <div> <label htmlFor="estadoEstudios" className="block text-sm font-bold text-black font-open-sans"> Estado de estudios </label> <select id="estadoEstudios" value={estadoEstudios} onChange={(e) => setEstadoEstudios(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="activo">Activo</option> <option value="pausado">Pausado</option> <option value="finalizado">Finalizado</option> </select> </div> <div className="md:col-span-2"> <label htmlFor="direccion" className="block text-sm font-bold text-black font-open-sans"> Dirección </label> <textarea id="direccion" rows={3} value={direccion} onChange={(e) => setDireccion(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray placeholder-gray-400 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Provincia, Cantón, Distrito y señas exactas" /> </div> {tipoCuenta === "egresado" && ( <> <div> <label htmlFor="anoGraduacion" className="block text-sm font-bold text-black font-open-sans"> Año de graduación </label> <input id="anoGraduacion" type="text" value={anoGraduacion} onChange={(e) => setAnoGraduacion(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Año de graduación" /> </div> <div> <label htmlFor="empresaActual" className="block text-sm font-bold text-black font-open-sans"> Empresa actual </label> <input id="empresaActual" type="text" value={empresaActual} onChange={(e) => setEmpresaActual(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Empresa actual" /> </div> </> )} <div> <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans"> Contraseña </label> <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Contraseña" /> </div> <div> <label htmlFor="confirmPassword" className="block text-sm font-bold text-black font-open-sans"> Confirmar contraseña </label> <input id="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Confirmar contraseña" /> </div>
+                                    </div>
+                                    <div className="mt-6">
+                                        <button
+                                            type="submit"
+                                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
+                                        >
+                                            Registrarse
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
-            <label style={labelStyle}>Confirmar contraseña</label>
-            <input
-              type="password"
-              placeholder="Confirmar contraseña"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              style={inputStyle}
-            />
+                            {/* Empresa */}
+                            {codigoValidado && tipoCuenta === "empresa" && (
+                                <div className="mt-6 text-center text-lg font-bold text-una-blue">
+                                    ¡Correo verificado!
+                                    <br />
+                                    <button
+                                        type="button"
+                                        onClick={() => router.get("/registro-empresa")}
+                                        className="text-una-red hover:underline"
+                                    >
+                                        Continuar al formulario de registro de empresa
+                                    </button>
+                                </div>
+                            )}
 
-            {/* Campos específicos */}
-            {tipoCuenta === "estudiante" ? (
-              <div>
-                <input
-                  type="text"
-                  placeholder="Carné estudiantil"
-                  style={inputStyle}
-                />
-                <input type="text" placeholder="Carrera" style={inputStyle} />
-              </div>
-            ) : (
-              <div>
-                <input
-                  type="text"
-                  placeholder="Año de graduación"
-                  style={inputStyle}
-                />
-                <input
-                  type="text"
-                  placeholder="Empresa actual"
-                  style={inputStyle}
-                />
-              </div>
-            )}
+                            {/* Login link */}
+                            <div className="text-center">
+                                <p className="text-md text-gray-800 font-open-sans">
+                                    ¿Ya tiene una cuenta?
+                                    <a className="font-medium text-una-blue hover:text-blue-700 ml-1" href="#">
+                                        Iniciar sesión
+                                    </a>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
+                </main>
 
-            <button
-              type="submit"
-              style={{
-                width: "100%",
-                padding: "15px",
-                backgroundColor: "#CD1719",
-                color: "#fff",
-                border: "none",
-                borderRadius: "5px",
-                fontSize: "18px",
-                marginTop: "10px",
-                cursor: "pointer",
-              }}
-            >
-              Registrarse
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  );
+                {/* Footer */}
+                <footer className="bg-una-blue text-white text-center py-4 text-sm font-open-sans">
+                    © 2024 Universidad Nacional de Costa Rica. Todos los derechos reservados.
+                </footer>
+            </div>
+        </>
+    );
 };
 
 export default Registro;

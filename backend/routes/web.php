@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RegistroController;
+use App\Http\Controllers\EmpresaController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -50,3 +51,10 @@ Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
 
+
+// Rutas para el registro de empresa
+Route::get('/registro-empresa', function () {
+    return Inertia::render('RegistroEmpresa'); // Apunta a la vista de React
+})->name('registro-empresa.form');
+
+Route::post('/registro-empresa', [EmpresaController::class, 'store'])->name('registro-empresa.store');
