@@ -1,36 +1,51 @@
+// resources/js/pages/Dashboard.tsx
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import AppLayout from '@/layouts/app-layout';
+import PpLayout from '@/layouts/PpLayout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
+import React from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard().url,
-    },
+  { title: 'Dashboard', href: dashboard().url },
 ];
 
-export default function Dashboard() {
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
-            </div>
-        </AppLayout>
-    );
+interface DashboardProps {
+  userPermisos: number[]; // Permisos del usuario enviados desde backend
 }
+
+export default function Dashboard({ userPermisos }: DashboardProps) {
+  return (
+    <>
+      <Head title="Dashboard" />
+
+      {/* Contenedor principal */}
+      <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+        {/* Sección superior: indicadores / estadísticas */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Bloques de ejemplo, reemplazar con widgets reales */}
+          <div className="relative aspect-video overflow-hidden rounded-xl border border-gray-300">
+            <PlaceholderPattern className="absolute inset-0 w-full h-full stroke-gray-300" />
+          </div>
+          <div className="relative aspect-video overflow-hidden rounded-xl border border-gray-300">
+            <PlaceholderPattern className="absolute inset-0 w-full h-full stroke-gray-300" />
+          </div>
+          <div className="relative aspect-video overflow-hidden rounded-xl border border-gray-300">
+            <PlaceholderPattern className="absolute inset-0 w-full h-full stroke-gray-300" />
+          </div>
+        </div>
+
+        {/* Sección inferior: contenido amplio, reportes o gráficos */}
+        <div className="relative min-h-[60vh] flex-1 overflow-hidden rounded-xl border border-gray-300">
+          <PlaceholderPattern className="absolute inset-0 w-full h-full stroke-gray-300" />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Layout dinámico: envía los permisos al layout
+Dashboard.layout = (page: React.ReactNode & { props: DashboardProps }) => {
+  const permisos = page.props?.userPermisos ?? [];
+  return <PpLayout breadcrumbs={breadcrumbs} userPermisos={permisos}>{page}</PpLayout>;
+};

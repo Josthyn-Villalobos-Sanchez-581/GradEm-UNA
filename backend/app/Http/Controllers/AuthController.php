@@ -8,6 +8,7 @@ use App\Models\Credencial;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -30,17 +31,11 @@ class AuthController extends Controller
 
         Auth::login($usuario);
 
-        // Redirigir según el rol
-        switch ($usuario->id_rol) {
-            case 1: // Admin
-                return response()->json(['redirect' => '/app']);
-            case 2: // Estudiante/Egresado
-                return response()->json(['redirect' => '/dashboard']);
-            case 3: // Empresa
-                return response()->json(['redirect' => '/dashboard']);
-            default:
-                return response()->json(['redirect' => '/dashboard']);
-        }
+        // Redirigir al Dashboard protegido
+        return response()->json([
+            'redirect' => route('dashboard')
+        ]);
     }
 }
+
 
