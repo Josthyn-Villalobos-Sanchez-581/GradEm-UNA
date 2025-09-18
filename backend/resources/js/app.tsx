@@ -5,20 +5,27 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'GradEm-UNA';
 
+// Creamos la aplicación Inertia
 createInertiaApp({
-    title: (title) => title ? `${title} - ${appName}` : appName,
-    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
+    title: (title) => (title ? `${title} - ${appName}` : appName),
+
+    // Solo resolvemos las páginas dentro de resources/js/pages
+    resolve: (name) =>
+        resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
+
     setup({ el, App, props }) {
         const root = createRoot(el);
 
+        // Renderizamos la app con el layout definido en cada página
         root.render(<App {...props} />);
     },
+
     progress: {
-        color: '#4B5563',
+        color: '#CD1719', // Rojo UNA según estándar ER02
     },
 });
 
-// This will set light / dark mode on load...
+// Inicializamos tema claro/oscuro
 initializeTheme();

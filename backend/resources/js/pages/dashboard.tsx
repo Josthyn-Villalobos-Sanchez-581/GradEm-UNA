@@ -1,36 +1,30 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
+import React from 'react';
+import PpLayout from '@/layouts/PpLayout';
 import { Head } from '@inertiajs/react';
+import { type BreadcrumbItem } from '@/types';
+import { dashboard } from '@/routes';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard().url,
-    },
+  { title: 'Dashboard', href: dashboard().url },
 ];
 
 export default function Dashboard() {
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
-            </div>
-        </AppLayout>
-    );
+  return (
+    <>
+      <Head title="Dashboard" />
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white shadow rounded-lg p-8 text-center border-l-4 border-[#0D47A1]">
+          <h1 className="text-3xl font-bold text-[#0D47A1]">
+            Bienvenido al sistema GradEm-UNA-SIUA
+          </h1>
+        </div>
+      </div>
+    </>
+  );
 }
+
+// Layout dinámico
+Dashboard.layout = (page: React.ReactNode & { props: { userPermisos: number[] } }) => {
+  const { userPermisos } = (page as any).props;
+  return <PpLayout breadcrumbs={breadcrumbs} userPermisos={userPermisos}>{page}</PpLayout>;
+};

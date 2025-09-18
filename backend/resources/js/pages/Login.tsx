@@ -1,5 +1,5 @@
 import React, { useState, FormEvent } from "react";
-import { Inertia } from "@inertiajs/inertia";
+import axios from "axios";
 import unaLogo from "../assets/logoUNA.png";
 
 const Login: React.FC = () => {
@@ -7,29 +7,34 @@ const Login: React.FC = () => {
   const [contrasena, setContrasena] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const handleLogin = (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
 
-    Inertia.post("/login", { correo, password: contrasena }, {
-      onError: (errors: any) =>
-        setError(errors?.message || "Correo o contraseña incorrecta"),
-      onSuccess: () => console.log("Login exitoso"),
-    });
+    try {
+      const res = await axios.post("/login", { correo, password: contrasena });
+
+      if (res.data.redirect) {
+        window.location.href = res.data.redirect; // Redirige según rol
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error al iniciar sesión");
+    }
   };
 
+  // ==== estilos ====
   const containerStyle: React.CSSProperties = {
     backgroundColor: "#FFFFFF",
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: "20px", // asegura márgenes en celular
+    padding: "20px",
   };
-  
+
   const cardStyle: React.CSSProperties = {
     width: "100%",
-    maxWidth: "650px", // límite en pantallas grandes
+    maxWidth: "650px",
     backgroundColor: "#F6F6F6",
     display: "flex",
     flexDirection: "column",
@@ -49,6 +54,7 @@ const Login: React.FC = () => {
     border: "1px solid #ccc",
     backgroundColor: "#FFFFFF",
     boxSizing: "border-box",
+    color: "#000000",
   };
 
   const labelStyle: React.CSSProperties = {
@@ -67,7 +73,7 @@ const Login: React.FC = () => {
           src={unaLogo}
           alt="Logo UNA"
           style={{
-            width: "50%", // escala proporcional
+            width: "50%",
             maxWidth: "220px",
             height: "auto",
             marginBottom: "30px",
@@ -78,7 +84,7 @@ const Login: React.FC = () => {
         <h1
           style={{
             fontFamily: "'Goudy Old Style', serif",
-            fontSize: "clamp(24px, 5vw, 48px)", // responsivo
+            fontSize: "clamp(24px, 5vw, 48px)",
             color: "#000000",
             marginBottom: "30px",
             textAlign: "center",
@@ -147,7 +153,7 @@ const Login: React.FC = () => {
         <div
           style={{
             display: "flex",
-            flexDirection: "column", // en móvil quedan uno bajo otro
+            flexDirection: "column",
             gap: "10px",
             fontSize: "16px",
             textAlign: "center",
