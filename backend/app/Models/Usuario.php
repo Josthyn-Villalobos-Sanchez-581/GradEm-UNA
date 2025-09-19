@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+//backend/app/Models/Usuario.php
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -30,6 +30,16 @@ class Usuario extends Authenticatable
         'id_universidad',
         'id_carrera',
         'estado_id',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
     ];
 
     /**
@@ -39,4 +49,13 @@ class Usuario extends Authenticatable
     {
         return $this->hasOne(Credencial::class, 'id_usuario', 'id_usuario');
     }
+
+    // Relación con Rol (belongsTo)
+public function rol()
+{
+    // foreign key en usuarios: id_rol
+    // primary key en roles: id_rol
+    return $this->belongsTo(Rol::class, 'id_rol', 'id_rol');
+}
+
 }

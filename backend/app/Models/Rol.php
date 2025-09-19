@@ -1,5 +1,5 @@
 <?php
-
+//backend/app/Models/Rol.php 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;

@@ -7,8 +7,6 @@ use App\Models\Usuario;
 use App\Models\Credencial;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -31,11 +29,26 @@ class AuthController extends Controller
 
         Auth::login($usuario);
 
-        // Redirigir al Dashboard protegido
+        // Regenerar sesión para seguridad
+        $request->session()->regenerate();
+
         return response()->json([
             'redirect' => route('dashboard')
         ]);
     }
+
+    public function logout(Request $request)
+    {
+        // Cerrar sesión
+        Auth::logout();
+
+        // Invalidar sesión y regenerar token CSRF
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Devolver JSON para que axios pueda redirigir
+        return response()->json([
+            'redirect' => route('login')
+        ]);
+    }
 }
-
-

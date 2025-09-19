@@ -2,9 +2,9 @@
 import React from "react";
 import { useForm } from "@inertiajs/react";
 
-type Rol = "Administrador" | "Dirección" | "Subdirección";
+type Rol = "Administrador del sistema" | "Dirección" | "Subdirección";
 
-/* tu parche de clases "tailwindStyles" (colores, fonts) */
+/* tu parche de clases "tailwindStyles" (colores, fonts) */  
 const tailwindStyles = `
     .font-open-sans { font-family: 'Open Sans', sans-serif; }
     .text-una-red { color: #CD1719; }
