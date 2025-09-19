@@ -1,5 +1,6 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useEffect } from "react";
 import axios from "axios";
+import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
 
 // Aquí agregamos los estilos personalizados de Tailwind
@@ -17,31 +18,42 @@ const tailwindStyles = `
     .text-una-dark-gray { color: #4B5563; }
 `;
 
-const RegistroEmpresa: React.FC = () => {
+interface RegistroEmpresaProps {
+    correo: string;
+}
+
+const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo }) => {
+    // Inicializamos el estado del correo con la prop que se recibe
+    const [correo, setCorreo] = useState(propCorreo);
     const [nombreEmpresa, setNombreEmpresa] = useState<string>("");
-    const [cedulaJuridica, setCedulaJuridica] = useState<string>("");
     const [telefono, setTelefono] = useState<string>("");
-    const [correo, setCorreo] = useState<string>(""); // Asumimos que este campo se llena desde el registro principal
-    const [ubicacion, setUbicacion] = useState<string>("");
-    const [descripcion, setDescripcion] = useState<string>("");
+    const [personaContacto, setPersonaContacto] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [passwordConfirmation, setPasswordConfirmation] = useState<string>("");
+    
+    // Sincronizar el estado interno si la prop 'correo' cambia
+    useEffect(() => {
+        setCorreo(propCorreo);
+    }, [propCorreo]);
 
     const handleRegistroEmpresa = async (e: FormEvent) => {
         e.preventDefault();
 
         try {
             const registroData = {
-                nombre_empresa: nombreEmpresa,
-                cedula_juridica: cedulaJuridica,
-                telefono,
+                nombre: nombreEmpresa,
                 correo,
-                ubicacion,
-                descripcion
+                telefono,
+                persona_contacto: personaContacto,
+                password: password,
+                password_confirmation: passwordConfirmation,
             };
 
             await axios.post("/registro-empresa", registroData);
-            alert("Registro de empresa exitoso");
+            // Reemplazado alert por un mensaje en la consola para evitar problemas de compilación
+            console.log("Registro de empresa exitoso");
         } catch (error: any) {
-            alert(error.response?.data?.message || "Error en el registro");
+            console.error("Error en el registro:", error.response?.data?.message || "Error desconocido");
         }
     };
 
@@ -80,18 +92,18 @@ const RegistroEmpresa: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="cedula-juridica" className="block text-sm font-bold text-black font-open-sans">
-                                            Cédula Jurídica
+                                        <label htmlFor="persona-contacto" className="block text-sm font-bold text-black font-open-sans">
+                                            Persona de Contacto
                                         </label>
                                         <input
-                                            id="cedula-juridica"
-                                            name="cedula-juridica"
+                                            id="persona-contacto"
+                                            name="persona-contacto"
                                             type="text"
                                             required
-                                            value={cedulaJuridica}
-                                            onChange={(e) => setCedulaJuridica(e.target.value)}
+                                            value={personaContacto}
+                                            onChange={(e) => setPersonaContacto(e.target.value)}
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            placeholder="Cédula Jurídica"
+                                            placeholder="Nombre del Contacto"
                                         />
                                     </div>
                                     <div>
@@ -109,34 +121,49 @@ const RegistroEmpresa: React.FC = () => {
                                             placeholder="Teléfono"
                                         />
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="ubicacion" className="block text-sm font-bold text-black font-open-sans">
-                                            Ubicación de la empresa
+                                    <div>
+                                        <label htmlFor="correo" className="block text-sm font-bold text-black font-open-sans">
+                                            Correo Electrónico
                                         </label>
                                         <input
-                                            id="ubicacion"
-                                            name="ubicacion"
-                                            type="text"
+                                            id="correo"
+                                            name="correo"
+                                            type="email"
                                             required
-                                            value={ubicacion}
-                                            onChange={(e) => setUbicacion(e.target.value)}
+                                            value={correo}
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            placeholder="Ubicación de la empresa"
+                                            placeholder="ejemplo@empresa.com"
+                                            onChange={(e) => setCorreo(e.target.value)}
                                         />
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="descripcion" className="block text-sm font-bold text-black font-open-sans">
-                                            Descripción de la empresa
+                                    <div>
+                                        <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans">
+                                            Contraseña
                                         </label>
-                                        <textarea
-                                            id="descripcion"
-                                            name="descripcion"
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type="password"
                                             required
-                                            value={descripcion}
-                                            onChange={(e) => setDescripcion(e.target.value)}
-                                            rows={4}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            placeholder="Breve descripción de la empresa y sus servicios."
+                                            placeholder="Mínimo 8 caracteres"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="password_confirmation" className="block text-sm font-bold text-black font-open-sans">
+                                            Confirmar Contraseña
+                                        </label>
+                                        <input
+                                            id="password_confirmation"
+                                            name="password_confirmation"
+                                            type="password"
+                                            required
+                                            value={passwordConfirmation}
+                                            onChange={(e) => setPasswordConfirmation(e.target.value)}
+                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            placeholder="Repite la contraseña"
                                         />
                                     </div>
                                 </div>

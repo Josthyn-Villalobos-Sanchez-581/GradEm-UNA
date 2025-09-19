@@ -20,7 +20,6 @@ class Usuario extends Authenticatable
         'correo',
         'identificacion',
         'telefono',
-        'direccion',
         'fecha_nacimiento',
         'genero',
         'estado_empleo',
