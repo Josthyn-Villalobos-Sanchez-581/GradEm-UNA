@@ -175,6 +175,13 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                 </Link>
               )
             )}
+            
+            <Link
+              href="/perfil"
+              className="font-medium hover:text-gray-200 transition"
+            >
+              Mi Perfil
+            </Link>
 
             {/* Botón de Cerrar Sesión usando axios */}
             <button
