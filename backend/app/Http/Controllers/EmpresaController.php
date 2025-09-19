@@ -3,40 +3,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\Empresa;
+use App\Models\Usuario;
+use App\Models\Credencial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class EmpresaController extends Controller
 {
-    /**
-     * Store a newly created company in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function store(Request $request)
     {
-        // Validación de datos
+        // Validación
         $request->validate([
             'nombre'           => 'required|string|max:100',
-            'correo'           => 'required|email|unique:empresas,correo',
+            'correo'           => 'required|email|unique:empresas,correo|unique:usuarios,correo',
             'telefono'         => 'required|string|max:20',
             'persona_contacto' => 'required|string|max:100',
-            'password' => 'required|string|min:8|confirmed', // 'confirmed' verifica 'password_confirmation'
+            'password'         => 'required|string|min:8|confirmed',
         ]);
 
-        // Crear la empresa en la base de datos
+        // 1. Crear usuario encargado
+        $usuario = Usuario::create([
+            'nombre_completo' => $request->persona_contacto,
+            'correo'          => $request->correo,
+            'identificacion'  => $request->identificacion,
+            'id_rol'          => 5, // Rol Empresa
+        ]);
+
+        // 2. Crear credenciales del usuario
+        Credencial::create([
+            'id_usuario'       => $usuario->id_usuario,
+            'hash_contrasena'  => Hash::make($request->password),
+        ]);
+
+        // 3. Crear empresa
         $empresa = Empresa::create([
             'nombre'           => $request->nombre,
             'correo'           => $request->correo,
             'telefono'         => $request->telefono,
             'persona_contacto' => $request->persona_contacto,
-            'password' => Hash::make($request->password),
-            'rol_id' => 5, // Asigna el rol de empresa
+            'id_usuario'       => $usuario->id_usuario,
         ]);
 
-        // Puedes retornar una respuesta JSON
         return response()->json([
             'message' => 'Registro de empresa exitoso',
             'empresa' => $empresa
