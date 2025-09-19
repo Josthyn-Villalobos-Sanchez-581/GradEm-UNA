@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Credencial;
+use App\Models\Usuario;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -46,9 +47,13 @@ class RecuperarContrasenaController extends Controller
             return response()->json(['message' => 'Código inválido o expirado'], 422);
         }
 
-        // Cambiar la contraseña en la tabla de credenciales
-        $credencial = Credencial::where('correo', $request->correo)->firstOrFail();
+        // Buscar usuario por correo
+        $usuario = Usuario::where('correo', $request->correo)->firstOrFail();
+
+        // Cambiar contraseña en credenciales
+        $credencial = Credencial::where('id_usuario', $usuario->id_usuario)->firstOrFail();
         $credencial->hash_contrasena = Hash::make($request->password);
+        $credencial->fecha_ultimo_cambio = now();
         $credencial->save();
 
         // Limpiar la sesión OTP
