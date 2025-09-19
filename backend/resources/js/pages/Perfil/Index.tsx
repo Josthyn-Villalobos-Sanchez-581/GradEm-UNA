@@ -171,9 +171,9 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
               className="border p-2 rounded w-full"
             >
               <option value="">Seleccione género</option>
-              <option value="M">Masculino</option>
-              <option value="F">Femenino</option>
-              <option value="O">Otro</option>
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+              <option value="otro">Otro</option>
             </select>
 
             <input
@@ -219,11 +219,11 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
               className="border p-2 rounded w-full"
             >
               <option value="">Seleccione estado de empleo</option>
-              <option value="Empleado">Empleado</option>
-              <option value="Desempleado">Desempleado</option>
+              <option value="empleado">Empleado</option>
+              <option value="desempleado">Desempleado</option>
             </select>
 
-            {formData.estado_empleo === "Empleado" && (
+            {formData.estado_empleo?.toLowerCase() === "empleado" && (
               <>
                 <input
                   type="number"
