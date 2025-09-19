@@ -11,7 +11,7 @@ use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\RecuperarContrasenaController; // 🔹 Import necesario
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
+use App\Http\Controllers\PerfilController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -96,6 +96,13 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])
         ->name('roles_permisos.index');
+
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
+        Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
+    });
+
 });
 
 // ==========================================
