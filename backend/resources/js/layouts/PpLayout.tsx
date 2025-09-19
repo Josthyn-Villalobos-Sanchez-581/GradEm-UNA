@@ -18,7 +18,19 @@ interface MenuItem {
 
 export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayoutProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const toggleMenu = (menu: string) => setOpenMenu(openMenu === menu ? null : menu);
+  const [menuTimeout, setMenuTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (menu: string) => {
+    if (menuTimeout) clearTimeout(menuTimeout);
+    setOpenMenu(menu);
+  };
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setOpenMenu(null);
+    }, 500); // medio segundo de delay
+    setMenuTimeout(timeout);
+  };
 
   const menu: MenuItem[] = [
     { title: 'Dashboard', route: '/dashboard', permisoId: 1 },
@@ -125,10 +137,14 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
           <nav className="flex gap-6 items-center text-white ml-auto">
             {filteredMenu.map((item) =>
               item.subMenu ? (
-                <div key={item.title} className="relative group">
+                <div
+                  key={item.title}
+                  className="relative group"
+                  onMouseEnter={() => handleMouseEnter(item.title)}
+                  onMouseLeave={handleMouseLeave}
+                >
                   <button
                     type="button"
-                    onClick={() => toggleMenu(item.title)}
                     className="font-medium hover:text-gray-200 transition"
                   >
                     {item.title} ▾
