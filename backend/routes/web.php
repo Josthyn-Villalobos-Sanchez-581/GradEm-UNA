@@ -8,6 +8,7 @@ use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RolesPermisosController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\RecuperarContrasenaController; // 🔹 Import necesario
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,12 +32,20 @@ Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
 
-// Rutas para el registro de empresa
+// Registro de empresa
 Route::get('/registro-empresa', function () {
-    return Inertia::render('RegistroEmpresa'); // Apunta a la vista de React
+    return Inertia::render('RegistroEmpresa');
 })->name('registro-empresa.form');
-
 Route::post('/registro-empresa', [EmpresaController::class, 'store'])->name('registro-empresa.store');
+
+// Recuperar contraseña
+Route::get('/recuperar', function () {
+    return Inertia::render('RecuperarContrasena');
+})->name('recuperar.form');
+
+Route::post('/recuperar/enviar-codigo', [RecuperarContrasenaController::class, 'enviarCodigo']);
+Route::post('/recuperar/validar-codigo', [RecuperarContrasenaController::class, 'validarCodigo']);
+Route::post('/recuperar/cambiar-contrasena', [RecuperarContrasenaController::class, 'cambiarContrasena']);
 
 // ==========================================
 // Rutas protegidas (requieren autenticación)
@@ -48,7 +57,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         $usuario = Auth::user();
 
-        // Obtener permisos según el rol del usuario
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->pluck('id_permiso')
@@ -66,7 +74,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de Roles
     // ==========================================
     Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
-    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
+    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create'); // 🔹 Ruta fija antes de {id}
     Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
     Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
     Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
@@ -77,7 +85,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de Permisos
     // ==========================================
     Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
-    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
+    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create'); // 🔹 Ruta fija antes de {id}
     Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
     Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
     Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');

@@ -1,5 +1,6 @@
 import React, { useState, FormEvent } from "react";
 import axios from "axios";
+import { router } from "@inertiajs/react"; // 🔹 Import de Inertia para redirección
 import unaLogo from "../assets/logoUNA.png";
 
 const Login: React.FC = () => {
@@ -159,12 +160,20 @@ const Login: React.FC = () => {
             textAlign: "center",
           }}
         >
-          <a href="/recuperar-contrasena" style={{ color: "#034991" }}>
+          {/* 🔹 Link de recuperar contraseña usando Inertia */}
+          <span
+            onClick={() => router.get("/recuperar")}
+            style={{ color: "#034991", cursor: "pointer", textDecoration: "underline" }}
+          >
             ¿Olvidó su contraseña?
-          </a>
-          <a href="/registro" style={{ color: "#034991" }}>
+          </span>
+
+          <span
+            onClick={() => router.get("/registro")}
+            style={{ color: "#034991", cursor: "pointer", textDecoration: "underline" }}
+          >
             Crear Cuenta
-          </a>
+          </span>
         </div>
       </div>
     </div>
