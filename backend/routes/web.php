@@ -1,72 +1,61 @@
 <?php
-
+// backend/routes/web.php
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RegistroController;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-
-// ==========================================
-// Rutas públicas
-// ==========================================
-
+use App\Http\Controllers\AdminRegistroController; // Importa el controlador para el registro de admins/dirección
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('welcome');
 })->name('home');
 
 Route::get('/login', function () {
-    return Inertia::render('Login'); // resources/js/pages/Login.tsx
+    return Inertia::render('Login'); // apunta a resources/js/pages/Login.tsx
 })->name('login');
 
 Route::post('/login', [AuthController::class, 'login']);
 
-// ==========================================
-// Rutas protegidas (requieren autenticación)
-// ==========================================
-
-Route::middleware('auth')->group(function () {
-
-    // Dashboard dinámico con permisos
-    Route::get('/dashboard', function () {
-        $usuario = Auth::user();
-
-        // Obtener permisos según el rol del usuario
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
-
-        return Inertia::render('Dashboard', [
-            'userPermisos' => $userPermisos
-        ]);
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', function () {
+        return Inertia::render('dashboard');
     })->name('dashboard');
+});
 
-    // Rutas de Roles
+require __DIR__.'/settings.php';
+//require __DIR__.'/auth.php';
+
+//Rutas de Roles
+Route::middleware(['auth'])->group(function () {
     Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
     Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
     Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
     Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
     Route::post('/roles/{id}/permisos', [RolController::class, 'asignarPermisos'])->name('roles.asignar');
+});
 
-    // Rutas de Permisos
+//Rutas de Permisos
+Route::middleware(['auth'])->group(function () {
     Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
     Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
     Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
     Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
-
-    // Registro (puede mantenerse protegido o público según lógica)
-    Route::get('/registro', [RegistroController::class, 'mostrarFormulario'])->name('registro.form');
-    Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo']);
-    Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
-    Route::post('/registro', [RegistroController::class, 'registrar']);
 });
 
-// ==========================================
-// Archivos de configuración adicionales
-// ==========================================
 
-require __DIR__.'/settings.php';
-// require __DIR__.'/auth.php';
+//Route::post('/registro', [RegistroController::class, 'store'])->name('registro.store');
+Route::get('/registro', [RegistroController::class, 'mostrarFormulario'])->name('registro.form');
+Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo']);
+Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
+Route::post('/registro', [RegistroController::class, 'registrar']);
+
+
+// Ruta pública para ver el formulario de registro de admins/dirección
+Route::get('/registro-admin', function () {
+    return Inertia::render('RegistroAdminPage'); 
+})->name('registro.admin');
+
+// Ruta para manejar el envío del formulario de registro de admins/dirección
+Route::post('/registro-admin', [AdminRegistroController::class, 'store'])
+    ->name('registro.admin.store');
