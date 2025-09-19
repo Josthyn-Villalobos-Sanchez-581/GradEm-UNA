@@ -73,8 +73,8 @@ class RolController extends Controller
 
         Rol::create($data);
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Rol creado correctamente');
+        // Redireccionar usando Inertia
+        return Inertia::location(route('roles_permisos.index'));
     }
 
     // Actualizar rol
@@ -93,8 +93,7 @@ class RolController extends Controller
 
         $rol->update($data);
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Rol actualizado correctamente');
+        return Inertia::location(route('roles_permisos.index'));
     }
 
     // Eliminar rol
@@ -103,8 +102,7 @@ class RolController extends Controller
         $rol = Rol::findOrFail($id);
         $rol->delete();
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Rol eliminado correctamente');
+        return Inertia::location(route('roles_permisos.index'));
     }
 
     // Asignar permisos a un rol
@@ -114,7 +112,6 @@ class RolController extends Controller
         $permisos = $request->get('permisos', []);
         $rol->permisos()->sync($permisos);
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Permisos del rol actualizados correctamente');
+        return Inertia::location(route('roles_permisos.index'));
     }
 }

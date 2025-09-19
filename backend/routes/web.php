@@ -12,7 +12,6 @@ use App\Http\Controllers\RolesPermisosController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\AdminRegistroController;
 use App\Http\Controllers\EmpresaController;
-
 // ==========================================
 // Rutas públicas
 // ==========================================

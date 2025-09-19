@@ -14,7 +14,7 @@ interface UserItem {
   universidad?: string | null;
   carrera?: string | null;
   fecha_registro?: string;
-  // other fields...
+
 }
 
 interface UsuariosIndexProps {

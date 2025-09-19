@@ -20,7 +20,6 @@ class Usuario extends Authenticatable
         'correo',
         'identificacion',
         'telefono',
-        'direccion',
         'fecha_nacimiento',
         'genero',
         'estado_empleo',
@@ -31,6 +30,14 @@ class Usuario extends Authenticatable
         'id_carrera',
         'estado_id',
         'password',
+        // ¡Estos son los campos que faltaban!
+        'anio_graduacion',
+        'nivel_academico',
+        'tiempo_conseguir_empleo',
+        'area_laboral_id',
+        'id_canton',
+        'salario_promedio',
+        'tipo_empleo',
     ];
 
     /**
