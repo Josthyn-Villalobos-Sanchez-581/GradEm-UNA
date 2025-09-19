@@ -236,12 +236,16 @@ const Registro: React.FC = () => {
 
                             {/* Login link */}
                             <div className="text-center">
-                                <p className="text-md text-gray-800 font-open-sans">
-                                    ¿Ya tiene una cuenta?
-                                    <a className="font-medium text-una-blue hover:text-blue-700 ml-1" href="#">
-                                        Iniciar sesión
-                                    </a>
-                                </p>
+                            <p className="text-md text-gray-800 font-open-sans">
+                                ¿Ya tiene una cuenta?
+                                <button
+                                    type="button"
+                                    onClick={() => router.visit("/login")}
+                                    className="font-medium text-una-blue hover:text-blue-700 ml-1"
+                                >
+                                    Iniciar sesión
+                                </button>
+                            </p>
                             </div>
                         </form>
                     </div>
