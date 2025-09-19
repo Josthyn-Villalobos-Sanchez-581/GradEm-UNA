@@ -19,25 +19,21 @@ class EmpresaController extends Controller
     {
         // Validación de datos
         $request->validate([
-            'nombre_empresa' => 'required|string|max:255',
-            'cedula_juridica' => 'required|string|max:255|unique:empresas,cedula_juridica',
-            'correo' => 'required|email|max:255|unique:empresas,correo',
-            'telefono' => 'required|string|max:255',
-            'direccion' => 'nullable|string',
-            'descripcion' => 'required|string',
+            'nombre'           => 'required|string|max:100',
+            'correo'           => 'required|email|unique:empresas,correo',
+            'telefono'         => 'required|string|max:20',
+            'persona_contacto' => 'required|string|max:100',
             'password' => 'required|string|min:8|confirmed', // 'confirmed' verifica 'password_confirmation'
         ]);
 
         // Crear la empresa en la base de datos
         $empresa = Empresa::create([
-            'nombre_empresa' => $request->nombre_empresa,
-            'cedula_juridica' => $request->cedula_juridica,
-            'correo' => $request->correo,
-            'telefono' => $request->telefono,
-            'direccion' => $request->direccion,
-            'descripcion' => $request->descripcion,
+            'nombre'           => $request->nombre,
+            'correo'           => $request->correo,
+            'telefono'         => $request->telefono,
+            'persona_contacto' => $request->persona_contacto,
             'password' => Hash::make($request->password),
-            'rol_id' => 3, // Asigna el rol de empresa
+            'rol_id' => 5, // Asigna el rol de empresa
         ]);
 
         // Puedes retornar una respuesta JSON

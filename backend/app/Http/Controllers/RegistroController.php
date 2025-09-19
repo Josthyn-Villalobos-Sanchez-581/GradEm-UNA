@@ -62,6 +62,14 @@ class RegistroController extends Controller
             'correo' => 'required|email',
             'password' => 'required|confirmed|min:6',
             'nombre_completo' => 'required|string|max:100',
+            'identificacion' => 'required|string|max:20|unique:usuarios,identificacion',
+            'telefono' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'genero' => 'nullable|string|max:20',
+            'estado_empleo' => 'nullable|string|max:50',
+            'estado_estudios' => 'nullable|string|max:50',
+            'ano_graduacion' => 'nullable|string|max:4',
+            'empresa_actual' => 'nullable|string|max:100',
             'tipoCuenta' => 'required|in:estudiante,egresado'
         ]);
 
@@ -72,7 +80,15 @@ class RegistroController extends Controller
         $usuario = Usuario::create([
             'nombre_completo' => $request->nombre_completo,
             'correo' => $request->correo,
-            'id_rol' => $request->tipoCuenta === 'estudiante' ? 2 : 3, // ejemplo de roles
+            'identificacion' => $request->identificacion,
+            'telefono' => $request->telefono,
+            'fecha_nacimiento' => $request->fecha_nacimiento,
+            'genero' => $request->genero,
+            'estado_empleo' => $request->estado_empleo,
+            'estado_estudios' => $request->estado_estudios,
+            'ano_graduacion' => $request->tipoCuenta === 'egresado' ? $request->ano_graduacion : null,
+            'empresa_actual' => $request->tipoCuenta === 'egresado' ? $request->empresa_actual : null,
+            'id_rol' => 6, // ejemplo de roles
         ]);
 
         Credencial::create([

@@ -24,12 +24,10 @@ class Empresa extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'nombre_empresa',
-        'cedula_juridica',
+        'nombre',
         'correo',
         'telefono',
-        'direccion',
-        'descripcion',
+        'persona_contacto',
         'password',
         'rol_id'
     ];
