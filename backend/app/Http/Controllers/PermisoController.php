@@ -73,8 +73,8 @@ class PermisoController extends Controller
 
         Permiso::create($data);
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Permiso creado correctamente');
+        // Redireccionar usando Inertia
+        return Inertia::location(route('roles_permisos.index'));
     }
 
     // Actualizar permiso
@@ -93,8 +93,7 @@ class PermisoController extends Controller
 
         $permiso->update($data);
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Permiso actualizado correctamente');
+        return Inertia::location(route('roles_permisos.index'));
     }
 
     // Eliminar permiso
@@ -103,9 +102,6 @@ class PermisoController extends Controller
         $permiso = Permiso::findOrFail($id);
         $permiso->delete();
 
-        return redirect()->route('roles_permisos.index')
-            ->with('success', 'Permiso eliminado correctamente');
+        return Inertia::location(route('roles_permisos.index'));
     }
 }
-
-
