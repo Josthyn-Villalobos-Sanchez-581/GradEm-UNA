@@ -19,31 +19,36 @@ class PerfilController extends Controller
             ->pluck('id_permiso')
             ->toArray();
 
-        // Traer áreas laborales
+        // Áreas laborales
         $areasLaborales = DB::table('areas_laborales')
             ->select('id_area_laboral as id', 'nombre')
             ->get();
 
-        // Traer ubicaciones
-        $ubicaciones = DB::table('cantones as c')
-        ->join('provincias as p', 'c.id_provincia', '=', 'p.id_provincia')
-        ->join('paises as pa', 'p.id_pais', '=', 'pa.id_pais')
-        ->select(
-            'c.id_canton as id',
-            'pa.nombre as pais',
-            'p.nombre as provincia',
-            'c.nombre as canton'
-        )
-        ->get();
+        // Paises
+        $paises = DB::table('paises')
+            ->select('id_pais as id', 'nombre')
+            ->get();
 
+        // Provincias
+        $provincias = DB::table('provincias')
+            ->select('id_provincia as id', 'nombre', 'id_pais')
+            ->get();
+
+        // Cantones
+        $cantones = DB::table('cantones')
+            ->select('id_canton as id', 'nombre', 'id_provincia')
+            ->get();
 
         return Inertia::render('Perfil/Index', [
             'usuario' => $usuario,
             'userPermisos' => $userPermisos,
             'areaLaborales' => $areasLaborales,
-            'ubicaciones' => $ubicaciones,
+            'paises' => $paises,
+            'provincias' => $provincias,
+            'cantones' => $cantones,
         ]);
     }
+
 
 
     public function update(Request $request, $id)

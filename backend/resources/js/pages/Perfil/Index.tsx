@@ -27,37 +27,51 @@ interface AreaLaboral {
   nombre: string;
 }
 
-interface Ubicacion {
+interface Pais {
   id: number;
-  pais: string;
-  provincia: string;
-  canton: string;
+  nombre: string;
+}
+
+interface Provincia {
+  id: number;
+  nombre: string;
+  id_pais: number;
+}
+
+interface Canton {
+  id: number;
+  nombre: string;
+  id_provincia: number;
 }
 
 interface Props {
   usuario: Usuario;
   areaLaborales: AreaLaboral[];
-  ubicaciones: Ubicacion[];
+  paises: Pais[];
+  provincias: Provincia[];
+  cantones: Canton[];
   userPermisos: number[];
 }
 
-export default function Index({ usuario, areaLaborales, ubicaciones, userPermisos }: Props) {
+export default function Index({ usuario, areaLaborales, paises, provincias, cantones, userPermisos }: Props) {
   const [formData, setFormData] = useState<Usuario>(usuario);
   const [editando, setEditando] = useState(false);
+
+  // --- Derivar país y provincia actuales en base al id_canton ---
+  const cantonActual = cantones.find(c => c.id === usuario.id_canton);
+  const provinciaActual = cantonActual ? provincias.find(p => p.id === cantonActual.id_provincia) : null;
+  const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
+
+  const [selectedPais, setSelectedPais] = useState<number | null>(paisActual?.id ?? null);
+  const [selectedProvincia, setSelectedProvincia] = useState<number | null>(provinciaActual?.id ?? null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     let newValue: string | number | null = value;
 
-    if (
-      name === "anio_graduacion" ||
-      name === "tiempo_conseguir_empleo" ||
-      name === "area_laboral_id" ||
-      name === "id_canton"
-    ) {
+    if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton"].includes(name)) {
       newValue = value === "" ? null : Number(value);
     }
-
     if (newValue === "") {
       newValue = null;
     }
@@ -103,8 +117,8 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
             <p><strong>Tiempo para conseguir empleo:</strong> {usuario.tiempo_conseguir_empleo ?? "N/A"}</p>
             <p><strong>Área Laboral:</strong> {areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre ?? "N/A"}</p>
             <p><strong>Ubicación:</strong> {
-              ubicaciones.find(u => u.id === usuario.id_canton)
-                ? `${ubicaciones.find(u => u.id === usuario.id_canton)!.pais} - ${ubicaciones.find(u => u.id === usuario.id_canton)!.provincia} - ${ubicaciones.find(u => u.id === usuario.id_canton)!.canton}`
+              paisActual && provinciaActual && cantonActual
+                ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
                 : "N/A"
             }</p>
             <p><strong>Salario Promedio:</strong> {usuario.salario_promedio ?? "N/A"}</p>
@@ -171,9 +185,9 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
               className="border p-2 rounded w-full"
             >
               <option value="">Seleccione género</option>
-              <option value="M">Masculino</option>
-              <option value="F">Femenino</option>
-              <option value="O">Otro</option>
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+              <option value="otro">Otro</option>
             </select>
 
             <input
@@ -219,11 +233,11 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
               className="border p-2 rounded w-full"
             >
               <option value="">Seleccione estado de empleo</option>
-              <option value="Empleado">Empleado</option>
-              <option value="Desempleado">Desempleado</option>
+              <option value="empleado">Empleado</option>
+              <option value="desempleado">Desempleado</option>
             </select>
 
-            {formData.estado_empleo === "Empleado" && (
+            {formData.estado_empleo?.toLowerCase() === "empleado" && (
               <>
                 <input
                   type="number"
@@ -277,20 +291,65 @@ export default function Index({ usuario, areaLaborales, ubicaciones, userPermiso
               </>
             )}
 
+  {/* Select país */}
             <select
-              name="id_canton"
-              value={formData.id_canton ?? ""}
-              onChange={handleChange}
+              value={selectedPais ?? ""}
+              onChange={(e) => {
+                const paisId = e.target.value ? Number(e.target.value) : null;
+                setSelectedPais(paisId);
+                setSelectedProvincia(null);
+                setFormData({ ...formData, id_canton: null });
+              }}
               className="border p-2 rounded w-full"
             >
-              <option value="">Seleccione ubicación</option>
-              {ubicaciones.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.pais} - {u.provincia} - {u.canton}
+              <option value="">Seleccione país</option>
+              {paises.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
                 </option>
               ))}
             </select>
 
+            {/* Select provincia */}
+            <select
+              value={selectedProvincia ?? ""}
+              onChange={(e) => {
+                const provinciaId = e.target.value ? Number(e.target.value) : null;
+                setSelectedProvincia(provinciaId);
+                setFormData({ ...formData, id_canton: null });
+              }}
+              disabled={!selectedPais}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Seleccione provincia</option>
+              {provincias
+                .filter((p) => p.id_pais === selectedPais)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+            </select>
+
+            {/* Select cantón */}
+            <select
+              name="id_canton"
+              value={formData.id_canton ?? ""}
+              onChange={handleChange}
+              disabled={!selectedProvincia}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Seleccione cantón</option>
+              {cantones
+                .filter((c) => c.id_provincia === selectedProvincia)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+            </select>
+
+            {/* Botones */}
             <button
               type="submit"
               className="bg-green-600 hover:bg-green-800 text-white px-4 py-2 rounded col-span-2"
