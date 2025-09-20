@@ -12,6 +12,7 @@ use App\Http\Controllers\RolesPermisosController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\AdminRegistroController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\PerfilController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -109,6 +110,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])
         ->name('admin.crear');
 });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
+        Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
+    });
 
 // ==========================================
 // Archivos de configuración adicionales
