@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useMemo } from "react"; // MOD: useMemo para validaciones
 import axios from "axios";
 import unaLogo from "../assets/logoUNA.png";
 
@@ -9,6 +9,34 @@ const RecuperarContrasena: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  // MOD: Regex idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)
+  const regexContrasena = useMemo(
+    () =>
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%?&])([A-Za-z\d$@$!%?&]|[^ ]){8,15}$/,
+    []
+  );
+
+  // MOD: Validadores en español
+  const validarContrasena = (v: string): string | undefined => {
+    if (!v) return "La contraseña es obligatoria.";
+    if (v.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+    if (v.length > 15) return "La contraseña no puede superar los 15 caracteres.";
+    if (!regexContrasena.test(v))
+      return "Debe incluir minúscula, mayúscula, número, un carácter especial ($ @ $ ! % ? &) y no contener espacios.";
+    return undefined;
+  };
+
+  // MOD: Validación de confirmación
+  const validarConfirmacion = (p: string, c: string): string | undefined => {
+    if (!c) return "Debe confirmar la contraseña.";
+    if (p !== c) return "Las contraseñas no coinciden.";
+    return undefined;
+    };
+
+  // MOD: Errores calculados en tiempo real
+  const errorPassword = useMemo(() => validarContrasena(password), [password]);
+  const errorConfirm  = useMemo(() => validarConfirmacion(password, confirmPassword), [password, confirmPassword]);
 
   // Enviar código
   const handleEnviarCodigo = async () => {
@@ -27,12 +55,18 @@ const RecuperarContrasena: React.FC = () => {
     e.preventDefault();
     setError("");
 
+    // MOD: Cortafuegos de validación en cliente antes de enviar
+    if (errorPassword || errorConfirm) {
+      setError(errorPassword || errorConfirm || "Revise los campos.");
+      return;
+    }
+
     try {
       await axios.post("/recuperar/cambiar-contrasena", {
         correo,
         codigo,
         password,
-        password_confirmation: confirmPassword,
+        password_confirmation: confirmPassword, // MOD: nombre compatible con 'confirmed' en backend
       });
       alert("Contraseña cambiada con éxito");
       window.location.href = "/login";
@@ -66,7 +100,7 @@ const RecuperarContrasena: React.FC = () => {
   const inputStyle: React.CSSProperties = {
     width: "100%",
     height: "50px",
-    marginBottom: "20px",
+    marginBottom: "8px", // MOD: espacio más corto para mostrar mensaje de error debajo
     padding: "10px",
     fontSize: "16px",
     borderRadius: "5px",
@@ -83,6 +117,19 @@ const RecuperarContrasena: React.FC = () => {
     color: "#000000",
     fontWeight: "bold",
   };
+
+  // MOD: estilos para ayuda y error de campo
+  const helpStyle: React.CSSProperties = { fontSize: "12px", color: "#4B5563", marginBottom: "12px" };
+  const fieldErrorStyle: React.CSSProperties = { color: "red", fontSize: "12px", marginBottom: "12px" };
+
+  // MOD: desactivar submit si hay errores o campos vacíos
+  const submitDisabled =
+    !codigoEnviado ||
+    !!errorPassword ||
+    !!errorConfirm ||
+    !password ||
+    !confirmPassword ||
+    !codigo;
 
   return (
     <div style={containerStyle}>
@@ -121,7 +168,7 @@ const RecuperarContrasena: React.FC = () => {
             color: "#000000",
           }}
         >
-          Ingrese su correo institucional para recibir un código de recuperación.
+          Ingrese su correo para recibir un código de recuperación.
         </p>
 
         <form
@@ -195,6 +242,12 @@ const RecuperarContrasena: React.FC = () => {
                   style={inputStyle}
                   required
                 />
+                {/* MOD: texto guía de la política */}
+                <p style={helpStyle}>
+                  8–15 caracteres, incluir minúscula, mayúscula, número y uno de: $ @ $ ! % ? &. Sin espacios.
+                </p>
+                {/* MOD: error de contraseña */}
+                {errorPassword && <p style={fieldErrorStyle}>{errorPassword}</p>}
               </div>
 
               <div style={{ width: "100%" }}>
@@ -210,19 +263,23 @@ const RecuperarContrasena: React.FC = () => {
                   style={inputStyle}
                   required
                 />
+                {/* MOD: error de confirmación */}
+                {errorConfirm && <p style={fieldErrorStyle}>{errorConfirm}</p>}
               </div>
 
               <button
                 type="submit"
+                // MOD: deshabilitar si la validación no pasa
+                disabled={submitDisabled}
                 style={{
                   width: "100%",
                   height: "50px",
-                  backgroundColor: "#CD1719",
+                  backgroundColor: submitDisabled ? "#c7c7c7" : "#CD1719", // MOD: feedback visual
                   color: "#FFFFFF",
                   border: "none",
                   borderRadius: "5px",
                   fontSize: "18px",
-                  cursor: "pointer",
+                  cursor: submitDisabled ? "not-allowed" : "pointer",
                   marginBottom: "20px",
                 }}
               >
@@ -232,7 +289,7 @@ const RecuperarContrasena: React.FC = () => {
           )}
         </form>
 
-        {/* Errores */}
+        {/* Errores globales */}
         {error && (
           <p style={{ color: "red", fontSize: "14px", marginTop: "10px" }}>
             {error}

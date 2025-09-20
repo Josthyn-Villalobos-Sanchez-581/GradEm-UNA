@@ -24,17 +24,18 @@ interface RegistroEmpresaProps {
 
 const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo }) => {
     // Inicializamos el estado del correo con la prop que se recibe
-    const [correo, setCorreo] = useState(propCorreo);
+    const [correo, setCorreo] = useState<string>("");
     const [nombreEmpresa, setNombreEmpresa] = useState<string>("");
     const [telefono, setTelefono] = useState<string>("");
     const [personaContacto, setPersonaContacto] = useState<string>("");
+    const [identificacion, setIdentificacion] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [passwordConfirmation, setPasswordConfirmation] = useState<string>("");
     
     // Sincronizar el estado interno si la prop 'correo' cambia
     useEffect(() => {
-        setCorreo(propCorreo);
-    }, [propCorreo]);
+    setCorreo(propCorreo || "");
+}, [propCorreo]);
 
     const handleRegistroEmpresa = async (e: FormEvent) => {
         e.preventDefault();
@@ -45,6 +46,7 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                 correo,
                 telefono,
                 persona_contacto: personaContacto,
+                identificacion,
                 password: password,
                 password_confirmation: passwordConfirmation,
             };
@@ -105,6 +107,24 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             placeholder="Nombre del Contacto"
                                         />
+                                    </div>
+                                    <div>
+                                    <label
+                                        htmlFor="identificacion"
+                                        className="block text-sm font-bold text-black font-open-sans"
+                                    >
+                                        Identificación del Encargado
+                                    </label>
+                                    <input
+                                        id="identificacion"
+                                        name="identificacion"
+                                        type="text"
+                                        required
+                                        value={identificacion}
+                                        onChange={(e) => setIdentificacion(e.target.value)}
+                                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        placeholder="Ej: 1-1234-5678"
+                                    />
                                     </div>
                                     <div>
                                         <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans">
@@ -174,6 +194,18 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                     >
                                         Registrar Empresa
                                     </button>
+                                </div>
+                                <div className="text-center mt-6">
+                                <p className="text-md text-gray-800 font-open-sans">
+                                    ¿Ya tiene una cuenta?
+                                    <button
+                                        type="button"
+                                        onClick={() => router.visit("/login")}
+                                        className="font-medium text-una-blue hover:text-blue-700 ml-1"
+                                    >
+                                        Iniciar sesión
+                                    </button>
+                                </p>
                                 </div>
                             </div>
                         </form>

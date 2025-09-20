@@ -3,27 +3,46 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
-// Esta clase valida los datos enviados para registrar un nuevo usuario.
 class RegistroRequest extends FormRequest
 {
     // Permite que cualquier usuario realice la solicitud.
-    public function authorize(): bool { return true; }
+    public function authorize(): bool 
+    { 
+        return true; 
+    }
 
     // Define las reglas de validación para los campos del formulario de registro.
     public function rules(): array
     {
         return [
-            // 'nombre' es requerido, debe ser texto y máximo 100 caracteres.
             'nombre'      => ['required','string','max:100'],
-            // 'apellido' es requerido, debe ser texto y máximo 100 caracteres.
             'apellido'    => ['required','string','max:100'],
-            // 'correo' es requerido, debe ser email, máximo 150 caracteres y único en la tabla 'usuarios'.
             'correo'      => ['required','email','max:150','unique:usuarios,correo'],
-            // 'contrasena' es requerido y debe cumplir las reglas por defecto de seguridad.
-            // (mínimo 8 caracteres, mayúscula, número, etc.)
-            'contrasena'  => ['required', Password::defaults()], // min 8, mayúscula, número, etc. (ajustable)
+            'contrasena'  => [
+                'required',
+                'string',
+                'min:8',
+                'max:15',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%?&])([A-Za-z\d$@$!%?&]|[^ ]){8,15}$/'
+            ],
+        ];
+    }
+
+    // Mensajes personalizados de error en español.
+    public function messages(): array
+    {
+        return [
+            'nombre.required'      => 'El nombre es obligatorio.',
+            'apellido.required'    => 'El apellido es obligatorio.',
+            'correo.required'      => 'El correo es obligatorio.',
+            'correo.email'         => 'El formato del correo no es válido.',
+            'correo.unique'        => 'Este correo ya está registrado.',
+            'contrasena.required'  => 'La contraseña es obligatoria.',
+            'contrasena.min'       => 'La contraseña debe tener al menos 8 caracteres.',
+            'contrasena.max'       => 'La contraseña no puede superar los 15 caracteres.',
+            'contrasena.regex'     => 'La contraseña debe incluir al menos una letra minúscula, una mayúscula, un número, un carácter especial ($ @ $ ! % ? &) y no contener espacios.',
         ];
     }
 }
+

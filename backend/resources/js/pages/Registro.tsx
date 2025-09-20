@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useMemo } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
@@ -38,6 +38,44 @@ const Registro: React.FC = () => {
     const [estadoEmpleo, setEstadoEmpleo] = useState<string>("");
     const [estadoEstudios, setEstadoEstudios] = useState<string>("");
 
+    // MOD: Regex de contraseña idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)
+    const regexContrasena = useMemo(
+        () =>
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%?&])([A-Za-z\d$@$!%?&]|[^ ]){8,15}$/,
+        []
+    );
+
+    // MOD: Validadores en español
+    function validarContrasena(valor: string): string | undefined {
+        if (!valor) return "La contraseña es obligatoria.";
+        if (valor.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+        if (valor.length > 15) return "La contraseña no puede superar los 15 caracteres.";
+        if (!regexContrasena.test(valor))
+            return "Debe incluir minúscula, mayúscula, número, un carácter especial ($ @ $ ! % ? &) y no contener espacios.";
+        return undefined;
+    }
+
+    // MOD: Validación de confirmación
+    function validarConfirmacion(pass: string, confirm: string): string | undefined {
+        if (!confirm) return "Debe confirmar la contraseña.";
+        if (pass !== confirm) return "Las contraseñas no coinciden.";
+        return undefined;
+    }
+
+    // MOD: Errores calculados en tiempo real
+    const errorPassword = useMemo(() => validarContrasena(password), [password]);
+    const errorConfirm = useMemo(() => validarConfirmacion(password, confirmPassword), [password, confirmPassword]);
+
+    // MOD: Formulario válido (para deshabilitar submit)
+    const formularioValido =
+        codigoValidado &&
+        !errorPassword &&
+        !errorConfirm &&
+        password.length > 0 &&
+        confirmPassword.length > 0 &&
+        nombreCompleto.length > 0 &&
+        numeroIdentificacion.length > 0;
+
     const handleEnviarCodigo = async () => {
         try {
             await axios.post("/registro/enviar-codigo", { correo });
@@ -62,6 +100,12 @@ const Registro: React.FC = () => {
         e.preventDefault();
         if (!codigoValidado) {
             alert("Primero debes validar tu correo");
+            return;
+        }
+
+        // MOD: Cortafuegos de validación en cliente antes de enviar
+        if (errorPassword || errorConfirm) {
+            alert(errorPassword || errorConfirm);
             return;
         }
 
@@ -134,7 +178,7 @@ const Registro: React.FC = () => {
                             {/* Email + Código */}
                             <div>
                                 <label htmlFor="email" className="block text-sm font-bold text-black font-open-sans">
-                                    Correo electrónico institucional
+                                    Correo electrónico
                                 </label>
                                 <div className="mt-1 flex gap-2">
                                     <input
@@ -189,9 +233,7 @@ const Registro: React.FC = () => {
                             {codigoValidado && tipoCuenta !== "empresa" && (
                                 <div className="rounded-md -space-y-px mt-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Campos normales */}
-                                        {/* ... aquí van exactamente los que ya tenías en tu versión original ... */}
-                                        {/* 👇 Te los copié igual al snippet que mandaste */}
+                                        {/* Campos normales (sin cambios de tu snippet) */}
                                         <div>
                                             <label htmlFor="nombreCompleto" className="block text-sm font-bold text-black font-open-sans">
                                                 Nombre completo
@@ -206,12 +248,181 @@ const Registro: React.FC = () => {
                                                 placeholder="Ej: Juan Pérez González"
                                             />
                                         </div>
-                                        <div> <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans"> Número de identificación </label> <input id="numeroIdentificacion" type="text" required value={numeroIdentificacion} onChange={(e) => setNumeroIdentificacion(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Ej: 1-1234-5678" /> </div> <div> <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans"> Teléfono de contacto </label> <input id="telefono" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Ej: 8888-8888" /> </div> <div> <label htmlFor="fechaNacimiento" className="block text-sm font-bold text-black font-open-sans"> Fecha de nacimiento </label> <input id="fechaNacimiento" type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" /> </div> <div> <label htmlFor="genero" className="block text-sm font-bold text-black font-open-sans"> Género </label> <select id="genero" value={genero} onChange={(e) => setGenero(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="femenino">Femenino</option> <option value="masculino">Masculino</option> <option value="otro">Otro</option> </select> </div> <div> <label htmlFor="estadoEmpleo" className="block text-sm font-bold text-black font-open-sans"> Estado de empleo </label> <select id="estadoEmpleo" value={estadoEmpleo} onChange={(e) => setEstadoEmpleo(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="empleado">Empleado</option> <option value="desempleado">Desempleado</option> </select> </div> <div> <label htmlFor="estadoEstudios" className="block text-sm font-bold text-black font-open-sans"> Estado de estudios </label> <select id="estadoEstudios" value={estadoEstudios} onChange={(e) => setEstadoEstudios(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" > <option value="">Seleccione...</option> <option value="activo">Activo</option> <option value="pausado">Pausado</option> <option value="finalizado">Finalizado</option> </select> </div> <div className="md:col-span-2"> </div> {tipoCuenta === "egresado" && ( <> <div> <label htmlFor="anoGraduacion" className="block text-sm font-bold text-black font-open-sans"> Año de graduación </label> <input id="anoGraduacion" type="text" value={anoGraduacion} onChange={(e) => setAnoGraduacion(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Año de graduación" /> </div> <div> <label htmlFor="empresaActual" className="block text-sm font-bold text-black font-open-sans"> Empresa actual </label> <input id="empresaActual" type="text" value={empresaActual} onChange={(e) => setEmpresaActual(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Empresa actual" /> </div> </> )} <div> <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans"> Contraseña </label> <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Contraseña" /> </div> <div> <label htmlFor="confirmPassword" className="block text-sm font-bold text-black font-open-sans"> Confirmar contraseña </label> <input id="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm" placeholder="Confirmar contraseña" /> </div>
+                                        <div>
+                                            <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans">
+                                                Número de identificación
+                                            </label>
+                                            <input
+                                                id="numeroIdentificacion"
+                                                type="text"
+                                                required
+                                                value={numeroIdentificacion}
+                                                onChange={(e) => setNumeroIdentificacion(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: 1-1234-5678"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans">
+                                                Teléfono de contacto
+                                            </label>
+                                            <input
+                                                id="telefono"
+                                                type="tel"
+                                                value={telefono}
+                                                onChange={(e) => setTelefono(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: 8888-8888"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="fechaNacimiento" className="block text-sm font-bold text-black font-open-sans">
+                                                Fecha de nacimiento
+                                            </label>
+                                            <input
+                                                id="fechaNacimiento"
+                                                type="date"
+                                                value={fechaNacimiento}
+                                                onChange={(e) => setFechaNacimiento(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="genero" className="block text-sm font-bold text-black font-open-sans">
+                                                Género
+                                            </label>
+                                            <select
+                                                id="genero"
+                                                value={genero}
+                                                onChange={(e) => setGenero(e.target.value)}
+                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            >
+                                                <option value="">Seleccione...</option>
+                                                <option value="femenino">Femenino</option>
+                                                <option value="masculino">Masculino</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="estadoEmpleo" className="block text-sm font-bold text-black font-open-sans">
+                                                Estado de empleo
+                                            </label>
+                                            <select
+                                                id="estadoEmpleo"
+                                                value={estadoEmpleo}
+                                                onChange={(e) => setEstadoEmpleo(e.target.value)}
+                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            >
+                                                <option value="">Seleccione...</option>
+                                                <option value="empleado">Empleado</option>
+                                                <option value="desempleado">Desempleado</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="estadoEstudios" className="block text-sm font-bold text-black font-open-sans">
+                                                Estado de estudios
+                                            </label>
+                                            <select
+                                                id="estadoEstudios"
+                                                value={estadoEstudios}
+                                                onChange={(e) => setEstadoEstudios(e.target.value)}
+                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            >
+                                                <option value="">Seleccione...</option>
+                                                <option value="activo">Activo</option>
+                                                <option value="pausado">Pausado</option>
+                                                <option value="finalizado">Finalizado</option>
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-2"></div>
+
+                                        {tipoCuenta === "egresado" && (
+                                            <>
+                                                <div>
+                                                    <label htmlFor="anoGraduacion" className="block text-sm font-bold text-black font-open-sans">
+                                                        Año de graduación
+                                                    </label>
+                                                    <input
+                                                        id="anoGraduacion"
+                                                        type="text"
+                                                        value={anoGraduacion}
+                                                        onChange={(e) => setAnoGraduacion(e.target.value)}
+                                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                        placeholder="Año de graduación"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="empresaActual" className="block text-sm font-bold text-black font-open-sans">
+                                                        Empresa actual
+                                                    </label>
+                                                    <input
+                                                        id="empresaActual"
+                                                        type="text"
+                                                        value={empresaActual}
+                                                        onChange={(e) => setEmpresaActual(e.target.value)}
+                                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                        placeholder="Empresa actual"
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* MOD: Campo Contraseña con ayuda y error */}
+                                        <div>
+                                            <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans">
+                                                Contraseña
+                                            </label>
+                                            <input
+                                                id="password"
+                                                type="password"
+                                                required
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Contraseña"
+                                            />
+                                            <p className="mt-1 text-xs text-black">
+                                                {/* MOD: Texto guía de política */}
+                                                Debe tener 8–15 caracteres, incluir minúscula, mayúscula, número y uno
+                                                de estos caracteres: $ @ $ ! % ? &. Sin espacios.
+                                            </p>
+                                            {errorPassword && (
+                                                <p className="mt-1 text-sm text-black">
+                                                    {/* MOD: Mensaje de error de contraseña */}
+                                                    {errorPassword}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* MOD: Confirmación de contraseña con error */}
+                                        <div>
+                                            <label htmlFor="confirmPassword" className="block text-sm font-bold text-black font-open-sans">
+                                                Confirmar contraseña
+                                            </label>
+                                            <input
+                                                id="confirmPassword"
+                                                type="password"
+                                                required
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Confirmar contraseña"
+                                            />
+                                            {errorConfirm && (
+                                                <p className="mt-1 text-sm text-black">
+                                                    {/* MOD: Mensaje de error de confirmación */}
+                                                    {errorConfirm}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
+
                                     <div className="mt-6">
                                         <button
                                             type="submit"
-                                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
+                                            // MOD: Deshabilitar envío si el formulario no es válido
+                                            disabled={!formularioValido}
+                                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
                                         >
                                             Registrarse
                                         </button>
@@ -238,9 +449,13 @@ const Registro: React.FC = () => {
                             <div className="text-center">
                                 <p className="text-md text-gray-800 font-open-sans">
                                     ¿Ya tiene una cuenta?
-                                    <a className="font-medium text-una-blue hover:text-blue-700 ml-1" href="#">
+                                    <button
+                                        type="button"
+                                        onClick={() => router.visit("/login")}
+                                        className="font-medium text-una-blue hover:text-blue-700 ml-1"
+                                    >
                                         Iniciar sesión
-                                    </a>
+                                    </button>
                                 </p>
                             </div>
                         </form>
