@@ -168,7 +168,7 @@ const RecuperarContrasena: React.FC = () => {
             color: "#000000",
           }}
         >
-          Ingrese su correo institucional para recibir un código de recuperación.
+          Ingrese su correo para recibir un código de recuperación.
         </p>
 
         <form
