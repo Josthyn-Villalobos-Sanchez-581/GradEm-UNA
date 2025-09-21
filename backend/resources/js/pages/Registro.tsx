@@ -250,7 +250,7 @@ const Registro: React.FC = () => {
                             {/* Email + Código */}
                             <div>
                                 <label htmlFor="email" className="block text-sm font-bold text-black font-open-sans">
-                                    Correo electrónico institucional
+                                    Correo electrónico
                                 </label>
                                 <div className="mt-1 flex gap-2">
                                     <input
