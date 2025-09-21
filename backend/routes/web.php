@@ -12,6 +12,8 @@ use App\Http\Controllers\RecuperarContrasenaController; // 🔹 Import necesario
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\UniversidadController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -31,6 +33,13 @@ Route::get('/registro', [RegistroController::class, 'mostrarFormulario'])->name(
 Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo']);
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
+
+Route::get('/ubicaciones/paises', [UbicacionController::class, 'getPaises']);
+Route::get('/ubicaciones/provincias/{id_pais}', [UbicacionController::class, 'getProvincias']);
+Route::get('/ubicaciones/cantones/{id_provincia}', [UbicacionController::class, 'getCantones']);
+
+Route::get('/universidades', [UniversidadController::class, 'getUniversidades']);
+Route::get('/universidades/{id}/carreras', [UniversidadController::class, 'getCarreras']);
 
 // Registro de empresa
 Route::get('/registro-empresa', function () {
