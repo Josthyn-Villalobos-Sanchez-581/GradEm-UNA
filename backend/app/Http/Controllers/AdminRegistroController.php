@@ -85,126 +85,99 @@ class AdminRegistroController extends Controller
      * Store: crear un nuevo usuario administrador/dirección/subdirección.
      * Mantiene las validaciones del código anterior y mapea rol textual a id.
      */
-    public function store(Request $request)
-    {
-        // Validación (nota: 'contrasena' usa 'confirmed' -> espera 'contrasena_confirmation')
-        $validated = $request->validate([
-            'nombre_completo' => 'required|string|max:100',
-            'correo'          => 'required|email|max:100|unique:usuarios,correo',
-            'identificacion'  => 'required|string|max:20|unique:usuarios,identificacion',
-            'telefono'        => 'nullable|string|max:20',
-            'rol'             => ['required','string', Rule::in(['Administrador','Dirección','Subdirección'])],
-            'universidad'     => 'nullable|string|max:100',
-            'carrera'         => 'nullable|string|max:100',
-            'contrasena'      => 'required|string|min:8|confirmed',
+   public function store(Request $request)
+{
+    $validated = $request->validate([
+        'nombre_completo' => 'required|string|max:100',
+        'correo'          => 'required|email|max:100|unique:usuarios,correo',
+        'identificacion'  => 'required|string|max:20|unique:usuarios,identificacion',
+        'telefono'        => 'nullable|string|max:20',
+        'rol'             => ['required','string', Rule::in(['Administrador','Dirección','Subdirección'])],
+        'universidad'     => 'nullable|string|max:100',
+        'carrera'         => 'nullable|string|max:100',
+        'contrasena'      => 'required|string|min:8|confirmed',
+    ]);
+
+    Log::info('RegistroAdmin - datos recibidos', $validated);
+
+    DB::beginTransaction();
+    try {
+        // Resolver rol (tabla roles)
+        $rolModel = Rol::where('nombre_rol', $validated['rol'])->first();
+        $rolId = $rolModel?->id_rol ?? null;
+
+        // fallback a mapping estático si no lo encontró
+        if (!$rolId) {
+            $rolesMapStatic = [
+                'Administrador' => 2,
+                'Dirección'     => 3,
+                'Subdirección'  => 4,
+            ];
+            $rolId = $rolesMapStatic[$validated['rol']] ?? null;
+        }
+
+        if (!$rolId) {
+            return back()->withErrors(['rol' => 'No se pudo resolver el rol seleccionado.'])->withInput();
+        }
+
+        // Universidad (buscar o crear)
+        $idUniversidad = null;
+        if (!empty($validated['universidad'])) {
+            $idUniversidad = DB::table('universidades')->where('nombre', $validated['universidad'])->value('id_universidad');
+            if (!$idUniversidad) {
+                $idUniversidad = DB::table('universidades')->insertGetId([
+                    'nombre' => $validated['universidad'],
+                    'sigla'  => substr($validated['universidad'], 0, 10),
+                ]);
+            }
+        }
+
+        // Carrera (buscar o crear)
+        $idCarrera = null;
+        if (!empty($validated['carrera'])) {
+            $idCarrera = DB::table('carreras')->where('nombre', $validated['carrera'])->value('id_carrera');
+            if (!$idCarrera) {
+                $idCarrera = DB::table('carreras')->insertGetId([
+                    'nombre'         => $validated['carrera'],
+                    'id_universidad' => $idUniversidad,
+                ]);
+            }
+        }
+
+        // Insertar usuario
+        $usuarioId = DB::table('usuarios')->insertGetId([
+            'nombre_completo' => $validated['nombre_completo'],
+            'correo'          => $validated['correo'],
+            'identificacion'  => $validated['identificacion'],
+            'telefono'        => $validated['telefono'] ?? null,
+            'id_rol'          => $rolId,
+            'id_universidad'  => $idUniversidad,
+            'id_carrera'      => $idCarrera,
+            'fecha_registro'  => now(),
+            'estado_id'       => 1,
         ]);
 
-        Log::info('RegistroAdmin - datos recibidos', $validated);
+        // Insertar credencial
+        DB::table('credenciales')->insert([
+            'id_usuario'       => $usuarioId,
+            'hash_contrasena'  => Hash::make($validated['contrasena']),
+            'fecha_ultimo_login' => null,
+            'intentos_fallidos'  => 0,
+        ]);
 
-        // Mapear el rol textual a id_rol. Si tu BD tiene otros ids, ajusta el mapping.
-        // Alternativa: buscar en tabla roles por nombre_rol (más robusto) — lo hacemos abajo con fallback.
-        $rolesMapStatic = [
-            'Administrador' => 2,
-            'Dirección'     => 3,
-            'Subdirección'  => 4,
-        ];
+        DB::commit();
+        Log::info("RegistroAdmin - usuario creado", ['id_usuario' => $usuarioId]);
 
-        DB::beginTransaction();
-        try {
-            // Intentar obtener id_rol buscando en la tabla roles por nombre (más seguro)
-            $rolModel = Rol::where('nombre_rol', $validated['rol'])->first();
-            if ($rolModel) {
-                $rolId = $rolModel->id_rol;
-            } else {
-                // fallback al mapping estático (útil en entornos de dev)
-                $rolId = $rolesMapStatic[$validated['rol']] ?? null;
-            }
+        // <-- Aquí: redirigir siempre a la lista (Inertia seguirá la redirección)
+        return redirect()->route('usuarios.index')->with('success', 'Usuario registrado correctamente');
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('RegistroAdmin - error al crear usuario', ['error' => $e->getMessage()]);
 
-            if (!$rolId) {
-                // Si no encontramos id_rol, no continuar
-                return back()->withErrors(['rol' => 'No se pudo resolver el rol seleccionado.'])->withInput();
-            }
-
-            // universidad: buscar por nombre, si no existe crearla (dev)
-            $idUniversidad = null;
-            if (!empty($validated['universidad'])) {
-                $idUniversidad = DB::table('universidades')
-                    ->where('nombre', $validated['universidad'])
-                    ->value('id_universidad');
-
-                if (!$idUniversidad) {
-                    $idUniversidad = DB::table('universidades')->insertGetId([
-                        'nombre' => $validated['universidad'],
-                        'sigla'  => substr($validated['universidad'], 0, 10),
-                    ]);
-                }
-            }
-
-            // carrera: buscar por nombre, si no existe crearla (dev)
-            $idCarrera = null;
-            if (!empty($validated['carrera'])) {
-                $idCarrera = DB::table('carreras')
-                    ->where('nombre', $validated['carrera'])
-                    ->value('id_carrera');
-
-                if (!$idCarrera) {
-                    $idCarrera = DB::table('carreras')->insertGetId([
-                        'nombre'         => $validated['carrera'],
-                        'id_universidad' => $idUniversidad,
-                    ]);
-                }
-            }
-
-            // Insertar usuario en tabla 'usuarios'
-            $usuarioId = DB::table('usuarios')->insertGetId([
-                'nombre_completo' => $validated['nombre_completo'],
-                'correo'          => $validated['correo'],
-                'identificacion'  => $validated['identificacion'],
-                'telefono'        => $validated['telefono'] ?? null,
-                'id_rol'          => $rolId,
-                'id_universidad'  => $idUniversidad,
-                'id_carrera'      => $idCarrera,
-                'fecha_registro'  => now(),
-                'estado_id'       => 1,
-            ]);
-
-            // Insertar credencial con hash (tabla 'credenciales')
-            DB::table('credenciales')->insert([
-                'id_usuario'         => $usuarioId,
-                'hash_contrasena'    => Hash::make($validated['contrasena']),
-                'fecha_ultimo_login' => null,
-                'intentos_fallidos'  => 0,
-            ]);
-
-            DB::commit();
-            Log::info("RegistroAdmin - usuario creado", ['id_usuario' => $usuarioId]);
-
-            // Respuestas: AJAX/JSON o redirect con flash
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Usuario registrado correctamente',
-                    'id_usuario' => $usuarioId
-                ], 200);
-            }
-
-            return redirect()->route('usuarios.index')->with('success', 'Usuario registrado correctamente');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('RegistroAdmin - error al crear usuario', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-
-            // Puedes personalizar el manejo según entorno (dev/prod)
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error al crear el usuario',
-                    'error' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()->with('error', 'Ocurrió un error al crear el usuario.')->withInput();
-        }
+        return back()->with('error', 'Ocurrió un error al crear el usuario.')->withInput();
     }
+}
+
 
 // Mostrar formulario de edición
 public function edit($id)

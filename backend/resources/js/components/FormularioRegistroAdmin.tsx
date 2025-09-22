@@ -1,7 +1,7 @@
 // resources/js/components/FormularioRegistroAdmin.tsx
 import React from "react";
 import { useForm } from "@inertiajs/react";
-
+import {route} from 'ziggy-js';
 type Rol = "Administrador del sistema" | "Dirección" | "Subdirección";
 
 /* tu parche de clases "tailwindStyles" (colores, fonts) */  
@@ -123,8 +123,8 @@ const FormularioRegistroAdmin: React.FC = () => {
       // no debería ocurrir si botón está deshabilitado correctamente, pero guardamos la comprobación
       return;
     }
-
-    form.post("/registro-admin", {
+    
+form.post(route('usuarios.store'), {
       preserveScroll: true,
       onSuccess: () => {
         form.reset(

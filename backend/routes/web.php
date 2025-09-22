@@ -111,11 +111,18 @@ Route::middleware(['auth'])->group(function () {
         ->name('admin.crear');
 });
 
+// Ruta para manejar el envío del formulario de creación de usuario administrador/dirección/subdirección
+Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])
+    ->name('admin.store')->middleware('auth');
+
+
     Route::middleware('auth')->group(function () {
         Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
         Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
     });
 
+
+   
 // ==========================================
 // Archivos de configuración adicionales
 // ==========================================
