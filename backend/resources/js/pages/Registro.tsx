@@ -2,6 +2,10 @@ import React, { useState, useEffect, FormEvent, useMemo } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
+import { useModal } from "../hooks/useModal";
+
+
+
 
 // Estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -60,6 +64,8 @@ const Registro: React.FC = () => {
     const [areaLaboral, setAreaLaboral] = useState<string>("");
     const [salarioPromedio, setSalarioPromedio] = useState<string>("");
     const [tipoEmpleo, setTipoEmpleo] = useState<string>("");
+
+    const modal = useModal();
 
     useEffect(() => {
     axios.get("/ubicaciones/paises").then((res) => setPaises(res.data));
@@ -142,9 +148,9 @@ const Registro: React.FC = () => {
         try {
             await axios.post("/registro/enviar-codigo", { correo });
             setCodigoEnviado(true);
-            alert("Código enviado al correo");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Código enviado al correo" });
         } catch (error: any) {
-            alert(error.response?.data?.message || "Error al enviar el código");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error al enviar el código" });
         }
     };
 
@@ -152,22 +158,21 @@ const Registro: React.FC = () => {
         try {
             await axios.post("/registro/validar-codigo", { correo, codigo });
             setCodigoValidado(true);
-            alert("Correo verificado correctamente");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Correo verificado correctamente" });
         } catch (error: any) {
-            alert(error.response?.data?.message || "Código incorrecto o expirado");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Código incorrecto o expirado" });
         }
     };
 
     const handleRegistro = async (e: FormEvent) => {
         e.preventDefault();
         if (!codigoValidado) {
-            alert("Primero debes validar tu correo");
+            await modal.alerta({ titulo: "Advertencia", mensaje: "Primero debes validar tu correo" });
             return;
         }
 
-        // MOD: Cortafuegos de validación en cliente antes de enviar
         if (errorPassword || errorConfirm) {
-            alert(errorPassword || errorConfirm);
+            await modal.alerta({ titulo: "Advertencia", mensaje: errorPassword || errorConfirm });
             return;
         }
 
@@ -200,9 +205,9 @@ const Registro: React.FC = () => {
             };
 
             await axios.post("/registro", userData);
-            alert("Registro exitoso");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Registro exitoso" });
         } catch (error: any) {
-            alert(error.response?.data?.message || "Error en el registro");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error en el registro" });
         }
     };
 
