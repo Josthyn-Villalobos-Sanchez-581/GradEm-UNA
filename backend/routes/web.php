@@ -13,6 +13,8 @@ use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\AdminRegistroController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\UniversidadController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -30,6 +32,14 @@ Route::post('/registro', [RegistroController::class, 'registrar']);
 Route::get('/registro-admin', fn() => Inertia::render('RegistroAdminPage'))->name('registro.admin');
 Route::post('/registro-admin', [AdminRegistroController::class, 'store'])->name('registro.admin.store');
 
+Route::get('/ubicaciones/paises', [UbicacionController::class, 'getPaises']);
+Route::get('/ubicaciones/provincias/{id_pais}', [UbicacionController::class, 'getProvincias']);
+Route::get('/ubicaciones/cantones/{id_provincia}', [UbicacionController::class, 'getCantones']);
+
+Route::get('/universidades', [UniversidadController::class, 'getUniversidades']);
+Route::get('/universidades/{id}/carreras', [UniversidadController::class, 'getCarreras']);
+
+// Registro de empresa
 Route::get('/registro-empresa', fn() => Inertia::render('RegistroEmpresa'))->name('registro-empresa.form');
 Route::post('/registro-empresa', [EmpresaController::class, 'store'])->name('registro-empresa.store');
 

@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, useMemo } from "react";
+import React, { useState, useEffect, FormEvent, useMemo } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
@@ -37,6 +37,68 @@ const Registro: React.FC = () => {
     const [genero, setGenero] = useState<string>("");
     const [estadoEmpleo, setEstadoEmpleo] = useState<string>("");
     const [estadoEstudios, setEstadoEstudios] = useState<string>("");
+    // Campos nuevos
+    const [nivelAcademico, setNivelAcademico] = useState<string>("");
+    const [anioGraduacion, setAnioGraduacion] = useState<string>("");
+
+    // Ubicación
+    const [paises, setPaises] = useState<any[]>([]);
+    const [provincias, setProvincias] = useState<any[]>([]);
+    const [cantones, setCantones] = useState<any[]>([]);
+
+    const [pais, setPais] = useState<string>("");
+    const [provincia, setProvincia] = useState<string>("");
+    const [canton, setCanton] = useState<string>("");
+
+    const [universidades, setUniversidades] = useState<any[]>([]);
+    const [carreras, setCarreras] = useState<any[]>([]);
+    const [universidad, setUniversidad] = useState('');
+    const [carrera, setCarrera] = useState('');
+
+    // Datos de empleo (si es empleado)
+    const [tiempoConseguirEmpleo, setTiempoConseguirEmpleo] = useState<string>("");
+    const [areaLaboral, setAreaLaboral] = useState<string>("");
+    const [salarioPromedio, setSalarioPromedio] = useState<string>("");
+    const [tipoEmpleo, setTipoEmpleo] = useState<string>("");
+
+    useEffect(() => {
+    axios.get("/ubicaciones/paises").then((res) => setPaises(res.data));
+    }, []);
+
+    useEffect(() => {
+    if (pais) {
+        axios.get(`/ubicaciones/provincias/${pais}`).then((res) => setProvincias(res.data));
+    } else {
+        setProvincias([]);
+        setProvincia("");
+    }
+    }, [pais]);
+
+    useEffect(() => {
+    if (provincia) {
+        axios.get(`/ubicaciones/cantones/${provincia}`).then((res) => setCantones(res.data));
+    } else {
+        setCantones([]);
+        setCanton("");
+    }
+    }, [provincia]);
+
+
+    useEffect(() => {
+    fetch("/universidades")
+        .then((res) => res.json())
+        .then((data) => setUniversidades(data));
+    }, []);
+
+    useEffect(() => {
+    if (universidad) {
+        fetch(`/universidades/${universidad}/carreras`)
+        .then((res) => res.json())
+        .then((data) => setCarreras(data));
+    } else {
+        setCarreras([]);
+    }
+    }, [universidad]);
 
     // MOD: Regex de contraseña idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)
     const regexContrasena = useMemo(
@@ -120,10 +182,20 @@ const Registro: React.FC = () => {
                 telefono,
                 fecha_nacimiento: fechaNacimiento,
                 genero,
+                id_universidad: universidad,
+                id_carrera: carrera,
                 estado_empleo: estadoEmpleo,
                 estado_estudios: estadoEstudios,
-                ...(tipoCuenta === "egresado"
-                    ? { ano_graduacion: anoGraduacion, empresa_actual: empresaActual }
+                nivel_academico: nivelAcademico,
+                anio_graduacion: anioGraduacion ? parseInt(anioGraduacion, 10) : null,
+                id_canton: canton || null,
+                ...(estadoEmpleo === "empleado"
+                    ? {
+                        tiempo_conseguir_empleo: tiempoConseguirEmpleo,
+                        area_laboral_id: areaLaboral,
+                        salario_promedio: salarioPromedio,
+                        tipo_empleo: tipoEmpleo,
+                    }
                     : {}),
             };
 
@@ -158,20 +230,20 @@ const Registro: React.FC = () => {
                         </div>
 
                         {/* Selección de tipo de cuenta */}
-                        <div className="flex justify-center space-x-6 mb-6">
-                            {["estudiante", "egresado", "empresa"].map((tipo) => (
-                                <label key={tipo} className="inline-flex items-center">
-                                    <input
-                                        type="radio"
-                                        className="form-radio text-una-red"
-                                        value={tipo}
-                                        checked={tipoCuenta === tipo}
-                                        onChange={(e) => setTipoCuenta(e.target.value)}
-                                    />
-                                    <span className="ml-2 font-open-sans text-black capitalize">{tipo}</span>
-                                </label>
-                            ))}
-                        </div>
+                        {["estudiante_egresado", "empresa"].map((tipo) => (
+                        <label key={tipo} className="inline-flex items-center">
+                            <input
+                            type="radio"
+                            className="form-radio text-una-red"
+                            value={tipo}
+                            checked={tipoCuenta === tipo}
+                            onChange={(e) => setTipoCuenta(e.target.value)}
+                            />
+                            <span className="ml-2 font-open-sans text-black">
+                            {tipo === "estudiante_egresado" ? "Estudiante/Egresado" : "Empresa"}
+                            </span>
+                        </label>
+                        ))}
 
                         {/* Formulario */}
                         <form className="mt-8 space-y-6" onSubmit={handleRegistro}>
@@ -303,68 +375,286 @@ const Registro: React.FC = () => {
                                                 <option value="otro">Otro</option>
                                             </select>
                                         </div>
+                                        {/* Ubicación */}
                                         <div>
-                                            <label htmlFor="estadoEmpleo" className="block text-sm font-bold text-black font-open-sans">
-                                                Estado de empleo
-                                            </label>
-                                            <select
-                                                id="estadoEmpleo"
-                                                value={estadoEmpleo}
-                                                onChange={(e) => setEstadoEmpleo(e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            >
-                                                <option value="">Seleccione...</option>
-                                                <option value="empleado">Empleado</option>
-                                                <option value="desempleado">Desempleado</option>
-                                            </select>
+                                        <label htmlFor="pais" className="block text-sm font-bold text-black font-open-sans">
+                                            País
+                                        </label>
+                                        <select
+                                            id="pais"
+                                            value={pais}
+                                            onChange={(e) => setPais(e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {paises.map((p) => (
+                                            <option key={p.id_pais} value={p.id_pais}>
+                                                {p.nombre}
+                                            </option>
+                                            ))}
+                                        </select>
                                         </div>
-                                        <div>
-                                            <label htmlFor="estadoEstudios" className="block text-sm font-bold text-black font-open-sans">
-                                                Estado de estudios
-                                            </label>
-                                            <select
-                                                id="estadoEstudios"
-                                                value={estadoEstudios}
-                                                onChange={(e) => setEstadoEstudios(e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            >
-                                                <option value="">Seleccione...</option>
-                                                <option value="activo">Activo</option>
-                                                <option value="pausado">Pausado</option>
-                                                <option value="finalizado">Finalizado</option>
-                                            </select>
-                                        </div>
-                                        <div className="md:col-span-2"></div>
 
-                                        {tipoCuenta === "egresado" && (
-                                            <>
-                                                <div>
-                                                    <label htmlFor="anoGraduacion" className="block text-sm font-bold text-black font-open-sans">
-                                                        Año de graduación
-                                                    </label>
-                                                    <input
-                                                        id="anoGraduacion"
-                                                        type="text"
-                                                        value={anoGraduacion}
-                                                        onChange={(e) => setAnoGraduacion(e.target.value)}
-                                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                        placeholder="Año de graduación"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label htmlFor="empresaActual" className="block text-sm font-bold text-black font-open-sans">
-                                                        Empresa actual
-                                                    </label>
-                                                    <input
-                                                        id="empresaActual"
-                                                        type="text"
-                                                        value={empresaActual}
-                                                        onChange={(e) => setEmpresaActual(e.target.value)}
-                                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                        placeholder="Empresa actual"
-                                                    />
-                                                </div>
-                                            </>
+                                        <div>
+                                        <label htmlFor="provincia" className="block text-sm font-bold text-black font-open-sans">
+                                            Provincia
+                                        </label>
+                                        <select
+                                            id="provincia"
+                                            value={provincia}
+                                            onChange={(e) => setProvincia(e.target.value)}
+                                            disabled={!pais}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm disabled:bg-gray-100"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {provincias.map((pr) => (
+                                            <option key={pr.id_provincia} value={pr.id_provincia}>
+                                                {pr.nombre}
+                                            </option>
+                                            ))}
+                                        </select>
+                                        </div>
+
+                                        <div>
+                                        <label htmlFor="canton" className="block text-sm font-bold text-black font-open-sans">
+                                            Cantón
+                                        </label>
+                                        <select
+                                            id="canton"
+                                            value={canton}
+                                            onChange={(e) => setCanton(e.target.value)}
+                                            disabled={!provincia}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm disabled:bg-gray-100"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {cantones.map((c) => (
+                                            <option key={c.id_canton} value={c.id_canton}>
+                                                {c.nombre}
+                                            </option>
+                                            ))}
+                                        </select>
+                                        </div>
+                                        {/* Universidad */}
+                                        <div>
+                                        <label htmlFor="universidad" className="block text-sm font-bold text-black font-open-sans">
+                                            Universidad
+                                        </label>
+                                        <select
+                                            id="universidad"
+                                            value={universidad}
+                                            onChange={(e) => setUniversidad(e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray 
+                                                    focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {universidades.map((u) => (
+                                            <option key={u.id_universidad} value={u.id_universidad}>
+                                                {u.nombre}
+                                            </option>
+                                            ))}
+                                        </select>
+                                        </div>
+
+                                        {/* Carrera */}
+                                        <div>
+                                        <label htmlFor="carrera" className="block text-sm font-bold text-black font-open-sans">
+                                            Carrera
+                                        </label>
+                                        <select
+                                            id="carrera"
+                                            value={carrera}
+                                            onChange={(e) => setCarrera(e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray 
+                                                    focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {carreras.map((c) => (
+                                            <option key={c.id_carrera} value={c.id_carrera}>
+                                                {c.nombre}
+                                            </option>
+                                            ))}
+                                        </select>
+                                        </div>
+                                        {/* Estado de empleo */}
+                                        <div>
+                                        <label
+                                            htmlFor="estadoEmpleo"
+                                            className="block text-sm font-bold text-black font-open-sans"
+                                        >
+                                            Estado de empleo
+                                        </label>
+                                        <select
+                                            id="estadoEmpleo"
+                                            value={estadoEmpleo}
+                                            onChange={(e) => setEstadoEmpleo(e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            <option value="empleado">Empleado</option>
+                                            <option value="desempleado">Desempleado</option>
+                                        </select>
+                                        </div>
+
+                                        {/* 👇 Campos extra solo si el usuario selecciona "empleado" */}
+                                        {estadoEmpleo === "empleado" && (
+                                        <>
+                                            <div>
+                                            <label
+                                                htmlFor="tiempoConseguirEmpleo"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Meses para conseguir trabajo
+                                            </label>
+                                            <input
+                                                id="tiempoConseguirEmpleo"
+                                                type="number"
+                                                value={tiempoConseguirEmpleo}
+                                                onChange={(e) => setTiempoConseguirEmpleo(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: 6"
+                                            />
+                                            </div>
+
+                                            <div>
+                                            <label
+                                                htmlFor="areaLaboral"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Área laboral
+                                            </label>
+                                            <select
+                                                id="areaLaboral"
+                                                value={areaLaboral}
+                                                onChange={(e) => setAreaLaboral(e.target.value)}
+                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            >
+                                                <option value="">Seleccione...</option>
+                                                <option value="1">Tecnología</option>
+                                                <option value="2">Educación</option>
+                                                <option value="3">Salud</option>
+                                                <option value="4">Industria</option>
+                                                <option value="5">Administración</option>
+                                                <option value="6">Idiomas</option>
+                                                <option value="7">Otra</option>
+                                            </select>
+                                            </div>
+
+                                            <div>
+                                            <label
+                                                htmlFor="salarioPromedio"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Salario promedio
+                                            </label>
+                                            <input
+                                                id="salarioPromedio"
+                                                type="text"
+                                                value={salarioPromedio}
+                                                onChange={(e) => setSalarioPromedio(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: ₡500,000"
+                                            />
+                                            </div>
+
+                                            <div>
+                                            <label
+                                                htmlFor="tipoEmpleo"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Tipo de empleo
+                                            </label>
+                                            <input
+                                                id="tipoEmpleo"
+                                                type="text"
+                                                value={tipoEmpleo}
+                                                onChange={(e) => setTipoEmpleo(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Tiempo completo / Medio tiempo"
+                                            />
+                                            </div>
+                                        </>
+                                        )}
+                                        {/* Estado de estudios */}
+                                        <div>
+                                        <label
+                                            htmlFor="estadoEstudios"
+                                            className="block text-sm font-bold text-black font-open-sans"
+                                        >
+                                            Estado de estudios
+                                        </label>
+                                        <select
+                                            id="estadoEstudios"
+                                            value={estadoEstudios}
+                                            onChange={(e) => setEstadoEstudios(e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            <option value="activo">Activo</option>
+                                            <option value="pausado">Pausado</option>
+                                            <option value="finalizado">Finalizado</option>
+                                        </select>
+                                        </div>
+
+                                        {/* 👇 Campos extra si selecciona "finalizado" */}
+                                        {estadoEstudios === "finalizado" && (
+                                        <>
+                                            <div>
+                                            <label
+                                                htmlFor="nivelAcademico"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Nivel académico
+                                            </label>
+                                            <select
+                                                id="nivelAcademico"
+                                                value={nivelAcademico}
+                                                onChange={(e) => setNivelAcademico(e.target.value)}
+                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            >
+                                                <option value="">Seleccione...</option>
+                                                <option value="Diplomado">Diplomado</option>
+                                                <option value="Bachillerato">Bachillerato</option>
+                                                <option value="Licenciatura">Licenciatura</option>
+                                                <option value="Maestria">Maestría</option>
+                                                <option value="Doctorado">Doctorado</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                            </div>
+
+                                            <div>
+                                            <label
+                                                htmlFor="anioGraduacion"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Año de graduación
+                                            </label>
+                                            <input
+                                                id="anioGraduacion"
+                                                type="number"
+                                                value={anioGraduacion}
+                                                onChange={(e) => setAnioGraduacion(e.target.value)}
+                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                placeholder="Ej: 2024"
+                                            />
+                                            </div>
+                                        </>
+                                        )}
+
+                                        {/* Año de graduación solo si aplica */}
+                                        {["Diplomado", "Licenciatura", "Otra"].includes(nivelAcademico) && (
+                                        <div>
+                                            <label htmlFor="anioGraduacion" className="block text-sm font-bold text-black font-open-sans">
+                                            Año de graduación
+                                            </label>
+                                            <input
+                                            id="anioGraduacion"
+                                            type="text"
+                                            value={anioGraduacion}
+                                            onChange={(e) => setAnioGraduacion(e.target.value)}
+                                            className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            placeholder="Ej: 2024"
+                                            />
+                                        </div>
                                         )}
 
                                         {/* MOD: Campo Contraseña con ayuda y error */}

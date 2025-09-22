@@ -22,6 +22,8 @@ class Usuario extends Authenticatable
         'telefono',
         'fecha_nacimiento',
         'genero',
+        'id_universidad',
+        'id_carrera',
         'estado_empleo',
         'estado_estudios',
         'fecha_registro',
@@ -29,7 +31,6 @@ class Usuario extends Authenticatable
         'id_universidad',
         'id_carrera',
         'estado_id',
-        'password',
         // ¡Estos son los campos que faltaban!
         'anio_graduacion',
         'nivel_academico',
@@ -47,6 +48,10 @@ class Usuario extends Authenticatable
      */
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'anio_graduacion' => 'integer',
     ];
 
     /**

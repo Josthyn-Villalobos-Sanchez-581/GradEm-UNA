@@ -59,7 +59,7 @@ class RegistroController extends Controller
     public function registrar(Request $request)
     {
         $request->validate([
-            'correo' => 'required|email',
+            'correo' => 'required|email|unique:usuarios,correo',
             'password' => 'required|confirmed|min:6',
             'nombre_completo' => 'required|string|max:100',
             'identificacion' => 'required|string|max:20|unique:usuarios,identificacion',
@@ -68,9 +68,14 @@ class RegistroController extends Controller
             'genero' => 'nullable|string|max:20',
             'estado_empleo' => 'nullable|string|max:50',
             'estado_estudios' => 'nullable|string|max:50',
-            'ano_graduacion' => 'nullable|string|max:4',
-            'empresa_actual' => 'nullable|string|max:100',
-            'tipoCuenta' => 'required|in:estudiante,egresado'
+            'nivel_academico' => 'nullable|string|max:50',
+            'anio_graduacion' => 'nullable|integer',
+            'tiempo_conseguir_empleo' => 'nullable|integer',
+            'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
+            'id_canton' => 'nullable|integer|exists:cantones,id_canton',
+            'salario_promedio' => 'nullable|string|max:50',
+            'tipo_empleo' => 'nullable|string|max:50',
+            'tipoCuenta' => 'required|in:estudiante_egresado,empresa',
         ]);
 
         if (!session('otp_validado') || $request->correo !== session('otp_correo')) {
@@ -84,11 +89,18 @@ class RegistroController extends Controller
             'telefono' => $request->telefono,
             'fecha_nacimiento' => $request->fecha_nacimiento,
             'genero' => $request->genero,
+            'id_universidad' => $request->id_universidad,
+            'id_carrera' => $request->id_carrera, 
             'estado_empleo' => $request->estado_empleo,
             'estado_estudios' => $request->estado_estudios,
-            'ano_graduacion' => $request->tipoCuenta === 'egresado' ? $request->ano_graduacion : null,
-            'empresa_actual' => $request->tipoCuenta === 'egresado' ? $request->empresa_actual : null,
-            'id_rol' => 6, // ejemplo de roles
+            'nivel_academico' => $request->nivel_academico,
+            'anio_graduacion' => $request->anio_graduacion ? (int) $request->anio_graduacion : null,
+            'tiempo_conseguir_empleo' => $request->estado_empleo === 'empleado' ? $request->tiempo_conseguir_empleo : null,
+            'area_laboral_id' => $request->estado_empleo === 'empleado' ? $request->area_laboral_id : null,
+            'id_canton' => $request->id_canton,
+            'salario_promedio' => $request->estado_empleo === 'empleado' ? $request->salario_promedio : null,
+            'tipo_empleo' => $request->estado_empleo === 'empleado' ? $request->tipo_empleo : null,
+            'id_rol' => $request->tipoCuenta === 'empresa' ? 5 : 6,
         ]);
 
         Credencial::create([
