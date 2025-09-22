@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
+import { useModal } from "@/hooks/useModal"; // MOD: importar el modal
 
 interface Props {
   permiso: { id_permiso: number; nombre: string };
@@ -10,9 +11,17 @@ interface Props {
 
 export default function Edit({ permiso, userPermisos }: Props) {
   const [nombre, setNombre] = useState(permiso.nombre);
+  const modal = useModal(); // MOD: usar el modal
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // MOD: Confirmación antes de actualizar el permiso
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar actualización",
+      mensaje: "¿Está seguro que desea actualizar este permiso?",
+    });
+    if (!ok) return;
+
     Inertia.put(`/permisos/${permiso.id_permiso}`, { nombre });
   };
 
