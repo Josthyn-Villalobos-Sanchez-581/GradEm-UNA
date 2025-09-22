@@ -61,6 +61,8 @@ const Registro: React.FC = () => {
     const [salarioPromedio, setSalarioPromedio] = useState<string>("");
     const [tipoEmpleo, setTipoEmpleo] = useState<string>("");
 
+    const [errors, setErrors] = useState<any>({});
+
     useEffect(() => {
     axios.get("/ubicaciones/paises").then((res) => setPaises(res.data));
     }, []);
@@ -160,6 +162,7 @@ const Registro: React.FC = () => {
 
     const handleRegistro = async (e: FormEvent) => {
         e.preventDefault();
+         setErrors({});
         if (!codigoValidado) {
             alert("Primero debes validar tu correo");
             return;
@@ -200,9 +203,14 @@ const Registro: React.FC = () => {
             };
 
             await axios.post("/registro", userData);
-            alert("Registro exitoso");
+            alert("Registro exitoso ✅");
         } catch (error: any) {
-            alert(error.response?.data?.message || "Error en el registro");
+            if (error.response?.status === 422) {
+                // Laravel devolvió errores de validación
+                setErrors(error.response.data.errors);
+            } else {
+                alert(error.response?.data?.message || "Error en el registro");
+            }
         }
     };
 
@@ -273,6 +281,9 @@ const Registro: React.FC = () => {
                                         </button>
                                     )}
                                 </div>
+                                {errors.correo && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.correo[0]}</p>
+                                )}
                             </div>
 
                             {codigoEnviado && !codigoValidado && (
@@ -319,6 +330,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: Juan Pérez González"
                                             />
+                                            {errors.nombre_completo && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.nombre_completo[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans">
@@ -333,6 +347,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 1-1234-5678"
                                             />
+                                            {errors.identificacion && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.identificacion[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans">
@@ -346,6 +363,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 8888-8888"
                                             />
+                                            {errors.telefono && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.telefono[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="fechaNacimiento" className="block text-sm font-bold text-black font-open-sans">
@@ -358,6 +378,9 @@ const Registro: React.FC = () => {
                                                 onChange={(e) => setFechaNacimiento(e.target.value)}
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             />
+                                            {errors.fecha_nacimiento && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.fecha_nacimiento[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="genero" className="block text-sm font-bold text-black font-open-sans">
@@ -513,6 +536,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 6"
                                             />
+                                            {errors.tiempo_conseguir_empleo && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.tiempo_conseguir_empleo[0]}</p>
+                                            )}
                                             </div>
 
                                             <div>
@@ -636,6 +662,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 2024"
                                             />
+                                            {errors.anio_graduacion && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.anio_graduacion[0]}</p>
+                                            )}
                                             </div>
                                         </>
                                         )}

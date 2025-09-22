@@ -59,23 +59,34 @@ class RegistroController extends Controller
     public function registrar(Request $request)
     {
         $request->validate([
-            'correo' => 'required|email|unique:usuarios,correo',
+            'correo' => 'required|email|max:150|unique:usuarios,correo',
             'password' => 'required|confirmed|min:6',
-            'nombre_completo' => 'required|string|max:100',
-            'identificacion' => 'required|string|max:20|unique:usuarios,identificacion',
-            'telefono' => 'nullable|string|max:20',
-            'fecha_nacimiento' => 'nullable|date',
+            'nombre_completo' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
+            'identificacion' => 'required|numeric|digits_between:8,12|unique:usuarios,identificacion',
+            'telefono' => 'nullable|numeric|digits_between:8,15',
+            'fecha_nacimiento' => 'nullable|date|before:today',
             'genero' => 'nullable|string|max:20',
             'estado_empleo' => 'nullable|string|max:50',
             'estado_estudios' => 'nullable|string|max:50',
             'nivel_academico' => 'nullable|string|max:50',
-            'anio_graduacion' => 'nullable|integer',
-            'tiempo_conseguir_empleo' => 'nullable|integer',
+            'anio_graduacion' => 'nullable|digits:4|integer|min:1950|max:' . date('Y'),
+            'tiempo_conseguir_empleo' => 'nullable|integer|min:0|max:120',
             'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
             'salario_promedio' => 'nullable|string|max:50',
             'tipo_empleo' => 'nullable|string|max:50',
             'tipoCuenta' => 'required|in:estudiante_egresado,empresa',
+        ], [
+        // ⚡ Mensajes personalizados
+        'nombre_completo.regex' => 'El nombre solo puede contener letras y espacios.',
+        'correo.unique' => 'El correo ya está registrado.',
+        'identificacion.numeric' => 'La identificación debe ser un número.',
+        'identificacion.digits_between' => 'La identificación debe tener entre 8 y 12 dígitos.',
+        'telefono.numeric' => 'El teléfono debe contener solo números.',
+        'telefono.digits_between' => 'El teléfono debe tener entre 8 y 15 dígitos.',
+        'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+        'anio_graduacion.digits' => 'El año de graduación debe tener 4 dígitos.',
+        'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros.',
         ]);
 
         if (!session('otp_validado') || $request->correo !== session('otp_correo')) {

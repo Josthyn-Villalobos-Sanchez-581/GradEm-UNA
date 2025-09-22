@@ -31,6 +31,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
     const [identificacion, setIdentificacion] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [passwordConfirmation, setPasswordConfirmation] = useState<string>("");
+
+    const [errors, setErrors] = useState<any>({});
+    const [successMessage, setSuccessMessage] = useState<string>("");
     
     // Sincronizar el estado interno si la prop 'correo' cambia
     useEffect(() => {
@@ -39,6 +42,8 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
 
     const handleRegistroEmpresa = async (e: FormEvent) => {
         e.preventDefault();
+        setErrors({});
+        setSuccessMessage("");
 
         try {
             const registroData = {
@@ -51,11 +56,17 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                 password_confirmation: passwordConfirmation,
             };
 
-            await axios.post("/registro-empresa", registroData);
-            // Reemplazado alert por un mensaje en la consola para evitar problemas de compilación
-            console.log("Registro de empresa exitoso");
+            const response = await axios.post("/registro-empresa", registroData);
+
+            // Mostrar mensaje desde backend
+            alert(response.data.message || "Registro de empresa exitoso");
         } catch (error: any) {
-            console.error("Error en el registro:", error.response?.data?.message || "Error desconocido");
+            if (error.response?.status === 422) {
+                // Errores de validación
+                setErrors(error.response.data.errors);
+            } else {
+                alert(error.response?.data?.message || "Error en el registro");
+            }
         }
     };
 
@@ -92,6 +103,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             placeholder="Nombre de la Empresa"
                                         />
+                                        {errors.nombre && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.nombre[0]}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="persona-contacto" className="block text-sm font-bold text-black font-open-sans">
@@ -107,6 +121,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             placeholder="Nombre del Contacto"
                                         />
+                                        {errors.persona_contacto && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.persona_contacto[0]}</p>
+                                        )}
                                     </div>
                                     <div>
                                     <label
@@ -140,6 +157,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             placeholder="Teléfono"
                                         />
+                                        {errors.telefono && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.telefono[0]}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="correo" className="block text-sm font-bold text-black font-open-sans">
@@ -155,6 +175,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             placeholder="ejemplo@empresa.com"
                                             onChange={(e) => setCorreo(e.target.value)}
                                         />
+                                        {errors.correo && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.correo[0]}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans">
