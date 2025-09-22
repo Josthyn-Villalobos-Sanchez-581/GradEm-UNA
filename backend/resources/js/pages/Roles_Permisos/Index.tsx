@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, Head, usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
+import { useModal } from "@/hooks/useModal"; // MOD: importar el modal
 
 interface RolesPermisosIndexProps {
   roles: {
@@ -32,6 +33,8 @@ export default function Index({
     flash?.success ?? null
   );
 
+  const modal = useModal(); // MOD: usar el modal
+
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => setSuccessMessage(null), 3000);
@@ -49,14 +52,20 @@ export default function Index({
     });
   };
 
-  const guardarPermisos = (rolId: number) => {
+  const guardarPermisos = async (rolId: number) => {
+    // MOD: Confirmación antes de guardar permisos
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar cambios",
+      mensaje: "¿Está seguro que desea guardar los permisos para este rol?"
+    });
+    if (!ok) return;
+
     Inertia.post(`/roles/${rolId}/permisos`, { permisos: rolPermisos[rolId] });
   };
 
   return (
     <>
       <Head title="Roles y Permisos" />
-
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-black">
         {successMessage && (
           <div className="bg-green-100 text-green-800 px-4 py-2 rounded shadow transition-opacity duration-500">
@@ -97,7 +106,14 @@ export default function Index({
                         Actualizar
                       </Link>
                       <button
-                        onClick={() => Inertia.delete(`/roles/${rol.id_rol}`)}
+                        onClick={async () => {
+                          // MOD: Confirmación antes de eliminar rol
+                          const ok = await modal.confirmacion({
+                            titulo: "Confirmar eliminación",
+                            mensaje: "¿Está seguro que desea eliminar este rol?"
+                          });
+                          if (ok) Inertia.delete(`/roles/${rol.id_rol}`);
+                        }}
                         className="bg-[#B71C1C] hover:bg-red-800 text-white px-3 py-1 rounded"
                       >
                         Eliminar
@@ -143,9 +159,14 @@ export default function Index({
                         Actualizar
                       </Link>
                       <button
-                        onClick={() =>
-                          Inertia.delete(`/permisos/${permiso.id_permiso}`)
-                        }
+                        onClick={async () => {
+                          // MOD: Confirmación antes de eliminar permiso
+                          const ok = await modal.confirmacion({
+                            titulo: "Confirmar eliminación",
+                            mensaje: "¿Está seguro que desea eliminar este permiso?"
+                          });
+                          if (ok) Inertia.delete(`/permisos/${permiso.id_permiso}`);
+                        }}
                         className="bg-[#B71C1C] hover:bg-red-800 text-white px-3 py-1 rounded"
                       >
                         Eliminar

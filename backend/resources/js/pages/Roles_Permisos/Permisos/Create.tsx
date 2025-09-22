@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
+import { useModal } from "@/hooks/useModal";
 
 interface Props {
   userPermisos: number[];
@@ -9,9 +10,16 @@ interface Props {
 
 export default function Create({ userPermisos }: Props) {
   const [nombre, setNombre] = useState("");
+  const modal = useModal();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar creación",
+      mensaje: "¿Está seguro que desea crear este permiso?",
+    });
+    if (!ok) return;
+
     Inertia.post("/permisos", { nombre });
   };
 

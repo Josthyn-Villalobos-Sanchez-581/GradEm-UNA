@@ -2,6 +2,7 @@ import React, { useState, FormEvent, useEffect } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
+import { useModal } from "../hooks/useModal";
 
 // Aquí agregamos los estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -32,6 +33,8 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
     const [password, setPassword] = useState<string>("");
     const [passwordConfirmation, setPasswordConfirmation] = useState<string>("");
     
+    const modal = useModal(); // MOD: usar el modal
+
     // Sincronizar el estado interno si la prop 'correo' cambia
     useEffect(() => {
     setCorreo(propCorreo || "");
@@ -52,10 +55,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
             };
 
             await axios.post("/registro-empresa", registroData);
-            // Reemplazado alert por un mensaje en la consola para evitar problemas de compilación
-            console.log("Registro de empresa exitoso");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Registro de empresa exitoso" }); // MOD
         } catch (error: any) {
-            console.error("Error en el registro:", error.response?.data?.message || "Error desconocido");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error desconocido" }); // MOD
         }
     };
 

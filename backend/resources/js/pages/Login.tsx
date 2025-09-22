@@ -3,6 +3,7 @@ import axios from "axios";
 import { router } from "@inertiajs/react"; // 🔹 Import de Inertia para redirección
 import unaLogo from "../assets/logoUNA.png";
 
+
 const Login: React.FC = () => {
   const [correo, setCorreo] = useState<string>("");
   const [contrasena, setContrasena] = useState<string>("");

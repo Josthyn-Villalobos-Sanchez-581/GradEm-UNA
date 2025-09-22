@@ -1,6 +1,7 @@
-import React, { useState, FormEvent, useMemo } from "react"; // MOD: useMemo para validaciones
+import React, { useState, FormEvent, useMemo } from "react";
 import axios from "axios";
 import unaLogo from "../assets/logoUNA.png";
+import { useModal } from "../hooks/useModal";
 
 const RecuperarContrasena: React.FC = () => {
   const [correo, setCorreo] = useState<string>("");
@@ -9,6 +10,8 @@ const RecuperarContrasena: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  const modal = useModal(); // MOD: usar el modal
 
   // MOD: Regex idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)
   const regexContrasena = useMemo(
@@ -44,8 +47,9 @@ const RecuperarContrasena: React.FC = () => {
     try {
       await axios.post("/recuperar/enviar-codigo", { correo });
       setCodigoEnviado(true);
-      alert("Código enviado al correo");
+      await modal.alerta({ titulo: "Éxito", mensaje: "Código enviado al correo" }); // MOD
     } catch (err: any) {
+      await modal.alerta({ titulo: "Error", mensaje: err.response?.data?.message || "Error al enviar el código" }); // MOD
       setError(err.response?.data?.message || "Error al enviar el código");
     }
   };
@@ -57,9 +61,17 @@ const RecuperarContrasena: React.FC = () => {
 
     // MOD: Cortafuegos de validación en cliente antes de enviar
     if (errorPassword || errorConfirm) {
+      await modal.alerta({ titulo: "Advertencia", mensaje: errorPassword || errorConfirm || "Revise los campos." });
       setError(errorPassword || errorConfirm || "Revise los campos.");
       return;
     }
+
+    // MOD: Confirmación antes de cambiar la contraseña
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar cambio",
+      mensaje: "¿Está seguro que desea cambiar la contraseña?"
+    });
+    if (!ok) return;
 
     try {
       await axios.post("/recuperar/cambiar-contrasena", {
@@ -68,9 +80,10 @@ const RecuperarContrasena: React.FC = () => {
         password,
         password_confirmation: confirmPassword, // MOD: nombre compatible con 'confirmed' en backend
       });
-      alert("Contraseña cambiada con éxito");
+      await modal.alerta({ titulo: "Éxito", mensaje: "Contraseña cambiada con éxito" }); // MOD
       window.location.href = "/login";
     } catch (err: any) {
+      await modal.alerta({ titulo: "Error", mensaje: err.response?.data?.message || "Error al cambiar la contraseña" }); // MOD
       setError(err.response?.data?.message || "Error al cambiar la contraseña");
     }
   };

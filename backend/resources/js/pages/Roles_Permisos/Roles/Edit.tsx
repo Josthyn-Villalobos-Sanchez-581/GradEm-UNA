@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
+import { useModal } from "@/hooks/useModal"; // MOD: importar el modal
 
 interface Props {
   rol: { id_rol: number; nombre_rol: string };
@@ -10,9 +11,17 @@ interface Props {
 
 export default function Edit({ rol, userPermisos }: Props) {
   const [nombreRol, setNombreRol] = useState(rol.nombre_rol);
+  const modal = useModal(); // MOD: usar el modal
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // MOD: Confirmación antes de actualizar el rol
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar actualización",
+      mensaje: "¿Está seguro que desea actualizar este rol?",
+    });
+    if (!ok) return;
+
     Inertia.put(`/roles/${rol.id_rol}`, { nombre_rol: nombreRol });
   };
 
