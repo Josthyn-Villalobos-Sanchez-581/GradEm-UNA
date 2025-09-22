@@ -9,9 +9,7 @@ declare module 'ziggy-js' {
     "registro.admin.store": [],
     "registro-empresa.form": [],
     "registro-empresa.store": [],
-    "usuarios.index": [],
-    "usuarios.create": [],
-    "usuarios.store": [],
+    "recuperar.form": [],
     "dashboard": [],
     "logout": [],
     "roles.index": [],
@@ -63,6 +61,9 @@ declare module 'ziggy-js' {
         }
     ],
     "roles_permisos.index": [],
+    "usuarios.index": [],
+    "usuarios.create": [],
+    "usuarios.store": [],
     "admin.actualizar": [
         {
             "name": "id",
@@ -70,6 +71,21 @@ declare module 'ziggy-js' {
         }
     ],
     "admin.editar": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "admin.eliminar": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "admin.crear": [],
+    "admin.store": [],
+    "perfil.index": [],
+    "perfil.update": [
         {
             "name": "id",
             "required": true
