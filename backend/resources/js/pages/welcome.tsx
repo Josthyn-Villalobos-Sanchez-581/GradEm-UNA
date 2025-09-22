@@ -1,4 +1,4 @@
-import { dashboard, login, register } from '@/routes';
+/*import { dashboard, login, register } from '@/routes';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -219,7 +219,7 @@ export default function Welcome() {
                                     />
                                 </g>
                                 <g
-                                    /** @ts-expect-error 'plus-darker' doesn't seem to be defined in the 'csstype' module */
+                                    /** @ts-expect-error 'plus-darker' doesn't seem to be defined in the 'csstype' module 
                                     style={{ mixBlendMode: 'plus-darker' }}
                                     className="translate-y-0 opacity-100 transition-all delay-300 duration-750 starting:translate-y-4 starting:opacity-0"
                                 >
@@ -789,4 +789,4 @@ export default function Welcome() {
             </div>
         </>
     );
-}
+}*/
