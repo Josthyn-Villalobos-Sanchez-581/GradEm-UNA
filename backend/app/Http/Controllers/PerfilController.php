@@ -39,6 +39,17 @@ class PerfilController extends Controller
             ->select('id_canton as id', 'nombre', 'id_provincia')
             ->get();
 
+        // Universidades
+        $universidades = DB::table('universidades')
+            ->select('id_universidad as id', 'nombre', 'sigla')
+            ->get();
+
+        // Carreras
+        $carreras = DB::table('carreras')
+            ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
+            ->get();
+
+
         return Inertia::render('Perfil/Index', [
             'usuario' => $usuario,
             'userPermisos' => $userPermisos,
@@ -46,7 +57,10 @@ class PerfilController extends Controller
             'paises' => $paises,
             'provincias' => $provincias,
             'cantones' => $cantones,
+            'universidades' => $universidades,
+            'carreras' => $carreras,
         ]);
+
     }
 
 
@@ -80,6 +94,9 @@ class PerfilController extends Controller
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
             'salario_promedio' => 'nullable|string|max:50',
             'tipo_empleo' => 'nullable|string|max:50',
+            'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
+            'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
+
         ])->validate();
 
 
