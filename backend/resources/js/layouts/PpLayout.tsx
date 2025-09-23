@@ -1,7 +1,6 @@
 // backend/resources/js/layouts/PpLayout.tsx 
 
 
-
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode, useState } from 'react';
 import { Link } from '@inertiajs/react';

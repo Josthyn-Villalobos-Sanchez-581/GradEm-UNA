@@ -6,7 +6,6 @@ import { useModal } from "../hooks/useModal";
 
 
 
-
 // Estilos personalizados de Tailwind
 const tailwindStyles = `
     .font-open-sans { font-family: 'Open Sans', sans-serif; }
@@ -23,7 +22,7 @@ const tailwindStyles = `
 `;
 
 const Registro: React.FC = () => {
-    const [tipoCuenta, setTipoCuenta] = useState<string>("estudiante");
+    const [tipoCuenta, setTipoCuenta] = useState<string>("");
     const [correo, setCorreo] = useState<string>("");
     const [codigo, setCodigo] = useState<string>("");
     const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
@@ -65,6 +64,7 @@ const Registro: React.FC = () => {
     const [salarioPromedio, setSalarioPromedio] = useState<string>("");
     const [tipoEmpleo, setTipoEmpleo] = useState<string>("");
 
+    const [errors, setErrors] = useState<any>({});
     const modal = useModal();
 
     useEffect(() => {
@@ -155,6 +155,11 @@ const Registro: React.FC = () => {
     };
 
     const handleValidarCodigo = async () => {
+        // Validar que se haya seleccionado tipoCuenta
+        if (!tipoCuenta) {
+            await modal.alerta({ titulo: "Advertencia", mensaje: "Debes seleccionar una opción de tipo de cuenta antes de validar el correo." });
+            return;
+        }
         try {
             await axios.post("/registro/validar-codigo", { correo, codigo });
             setCodigoValidado(true);
@@ -166,6 +171,7 @@ const Registro: React.FC = () => {
 
     const handleRegistro = async (e: FormEvent) => {
         e.preventDefault();
+         setErrors({});
         if (!codigoValidado) {
             await modal.alerta({ titulo: "Advertencia", mensaje: "Primero debes validar tu correo" });
             return;
@@ -204,12 +210,24 @@ const Registro: React.FC = () => {
                     : {}),
             };
 
-            await axios.post("/registro", userData);
-            await modal.alerta({ titulo: "Éxito", mensaje: "Registro exitoso" });
-        } catch (error: any) {
-            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error en el registro" });
+        // Solo mostrar modal si todo salió bien
+        const response = await axios.post("/registro", userData);
+        await modal.alerta({
+            titulo: "Éxito",
+            mensaje: response.data.message || "Registro exitoso",
+        });
+    } catch (error: any) {
+        if (error.response?.status === 422) {
+            // Laravel devolvió errores de validación
+            setErrors(error.response.data.errors);
+        } else {
+            await modal.alerta({
+                titulo: "Error",
+                mensaje: error.response?.data?.message || "Error en el registro",
+            });
         }
-    };
+    }
+};
 
     return (
         <>
@@ -223,8 +241,13 @@ const Registro: React.FC = () => {
                 </header>
 
                 {/* Main */}
-                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-xl w-full space-y-8 bg-white p-10 rounded-lg border border-una-gray">
+                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+                    <div className="w-full max-w-2xl flex flex-col items-center p-8 rounded-lg"
+                        style={{
+                        backgroundColor: "#F6F6F6",
+                        borderRadius: "10px",
+                        padding: "30px 20px",
+                        }}>
                         <div>
                             <h1 className="text-center text-4xl font-bold text-una-red font-open-sans">
                                 Crear Cuenta
@@ -243,6 +266,8 @@ const Registro: React.FC = () => {
                             value={tipo}
                             checked={tipoCuenta === tipo}
                             onChange={(e) => setTipoCuenta(e.target.value)}
+                            disabled={codigoValidado}
+                            required={tipoCuenta === ""} // Obliga a seleccionar una opción
                             />
                             <span className="ml-2 font-open-sans text-black">
                             {tipo === "estudiante_egresado" ? "Estudiante/Egresado" : "Empresa"}
@@ -278,6 +303,9 @@ const Registro: React.FC = () => {
                                         </button>
                                     )}
                                 </div>
+                                {errors.correo && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.correo[0]}</p>
+                                )}
                             </div>
 
                             {codigoEnviado && !codigoValidado && (
@@ -324,6 +352,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: Juan Pérez González"
                                             />
+                                            {errors.nombre_completo && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.nombre_completo[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans">
@@ -338,6 +369,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 1-1234-5678"
                                             />
+                                            {errors.identificacion && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.identificacion[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans">
@@ -351,6 +385,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 8888-8888"
                                             />
+                                            {errors.telefono && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.telefono[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="fechaNacimiento" className="block text-sm font-bold text-black font-open-sans">
@@ -363,6 +400,9 @@ const Registro: React.FC = () => {
                                                 onChange={(e) => setFechaNacimiento(e.target.value)}
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                             />
+                                            {errors.fecha_nacimiento && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.fecha_nacimiento[0]}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="genero" className="block text-sm font-bold text-black font-open-sans">
@@ -518,6 +558,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 6"
                                             />
+                                            {errors.tiempo_conseguir_empleo && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.tiempo_conseguir_empleo[0]}</p>
+                                            )}
                                             </div>
 
                                             <div>
@@ -641,6 +684,9 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Ej: 2024"
                                             />
+                                            {errors.anio_graduacion && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.anio_graduacion[0]}</p>
+                                            )}
                                             </div>
                                         </>
                                         )}
@@ -758,9 +804,9 @@ const Registro: React.FC = () => {
                 </main>
 
                 {/* Footer */}
-                <footer className="bg-una-blue text-white text-center py-4 text-sm font-open-sans">
-                    © 2024 Universidad Nacional de Costa Rica. Todos los derechos reservados.
-                </footer>
+            <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
+                Sistema de Gestión © 2025 - Universidad Nacional
+            </footer>
             </div>
         </>
     );
