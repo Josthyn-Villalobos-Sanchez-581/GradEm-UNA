@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from "react";
 import axios from "axios";
-import { router } from "@inertiajs/react"; // 🔹 Import de Inertia para redirección
+import { router } from "@inertiajs/react"; // Import de Inertia para redirección
 import unaLogo from "../assets/logoUNA.png";
 
 
