@@ -1,27 +1,10 @@
 // backend/resources/js/pages/Usuarios/ActualizarAdmin.tsx
-// backend/resources/js/pages/Usuarios/ActualizarAdmin.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Head, useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
-import Ziggy from '@/ziggy';
 import PpLayout from "@/layouts/PpLayout";
-import ZiggyConfig from '@/ziggy';
-type Rol = "Administrador del sistema" | "Dirección" | "Subdirección";
-
-interface Props {
-  usuario: {
-    id: number;
-    nombre_completo: string;
-    correo: string;
-    identificacion: string;
-    telefono?: string;
-    rol: string;
-    universidad?: string;
-    carrera?: string;
-  };
-  userPermisos?: number[];
-}
-
+import { Link } from "@inertiajs/react";
+type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 const tailwindStyles = `
   .font-open-sans { font-family: 'Open Sans', sans-serif; }
   .text-una-red { color: #CD1719; }
@@ -86,26 +69,229 @@ const localStyles = `
   .mt-6 { margin-top: 1.5rem; }
 `;
 
+interface Universidad {
+  id_universidad: number;
+  nombre: string;
+  sigla?: string;
+}
+
+interface Carrera {
+  id_carrera: number;
+  nombre: string;
+  id_universidad?: number;
+}
+
+const allowedCarreras = [
+  "Ingeniería en Sistemas de Información",
+  "Química Industrial",
+  "Administración",
+  "Inglés"
+];
+
+interface Props {
+  usuario: {
+    id: number;
+    nombre_completo: string;
+    correo: string;
+    identificacion: string;
+    telefono?: string;
+    rol: string;
+    universidad?: string;
+    carrera?: string;
+  };
+  userPermisos?: number[];
+}
+
 export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
   const { data, setData, put, processing, errors } = useForm({
     nombre_completo: usuario.nombre_completo,
     correo: usuario.correo,
     identificacion: usuario.identificacion,
     telefono: usuario.telefono ?? "",
-    rol: usuario.rol as Rol,
+    rol: (usuario.rol as Rol) ?? ("Administrador del Sistema" as Rol),
     universidad: usuario.universidad ?? "",
     carrera: usuario.carrera ?? "",
     contrasena: "",
     contrasena_confirmation: "",
   });
 
-  const fieldError = (field: keyof typeof data) => errors[field] || "";
+  const [universidades, setUniversidades] = useState<Universidad[]>([]);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [loadingUnis, setLoadingUnis] = useState(false);
+  const [loadingCarreras, setLoadingCarreras] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-   put(route('admin.actualizar', { id: usuario.id }));
+  const fieldError = (field: keyof typeof data) => {
+    const v = (errors as Record<string, any>)[String(field)];
+    if (!v) return "";
+    return Array.isArray(v) ? v.join(", ") : String(v);
   };
 
+  const labelFromNombre = (nombre: string) => {
+    if (nombre === "Ingeniería en Sistemas") return "Ing. Sistemas";
+    return nombre;
+  };
+
+  const loadCarrerasForUni = async (id_universidad: number) => {
+    setLoadingCarreras(true);
+    try {
+      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("Error cargando carreras");
+      const dataRes = await res.json();
+      const filtered = Array.isArray(dataRes) ? dataRes.filter(c => allowedCarreras.includes(c.nombre)) : [];
+      setCarreras(filtered);
+    } catch (err) {
+      console.error(err);
+      setCarreras([]);
+    } finally {
+      setLoadingCarreras(false);
+    }
+  };
+
+useEffect(() => {
+  let mounted = true;
+
+  const normalize = (str?: string) =>
+    str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() : "";
+
+  const loadUnis = async () => {
+    setLoadingUnis(true);
+    try {
+      const res = await fetch("/universidades", { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("Error cargando universidades");
+      const dataRes = await res.json();
+      if (!mounted) return;
+
+      const listaUnis = Array.isArray(dataRes) ? dataRes : [];
+      setUniversidades(listaUnis);
+
+      // Buscar por nombre o sigla normalizados
+      let uniActual = listaUnis.find(
+        (u) =>
+          normalize(u.nombre) === normalize(usuario.universidad) ||
+          normalize(u.sigla) === normalize(usuario.universidad)
+      );
+
+      if (!uniActual && listaUnis.length > 0) {
+        uniActual = listaUnis[0];
+      }
+
+      if (uniActual) {
+        // Guardar nombre completo para backend
+        setData("universidad", uniActual.nombre);
+        await loadCarrerasForUni(uniActual.id_universidad);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      if (mounted) setLoadingUnis(false);
+    }
+  };
+
+  loadUnis();
+  return () => {
+    mounted = false;
+  };
+}, [usuario.universidad]);
+
+  const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectedId = Number(e.target.value);
+  const selected = universidades.find((u) => u.id_universidad === selectedId);
+  if (!selected) {
+    setData("universidad", e.target.value);
+    setCarreras([]);
+    setData("carrera", "");
+    return;
+  }
+  // Guardar el nombre completo para el backend
+  setData("universidad", selected.nombre);
+  await loadCarrerasForUni(selectedId);
+  setData("carrera", "");
+};
+
+
+  const handleCarreraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === "") {
+      setData("carrera", "");
+      return;
+    }
+    const selectedId = Number(val);
+    const selected = carreras.find((c) => c.id_carrera === selectedId);
+    if (selected) setData("carrera", selected.nombre);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    put(route("admin.actualizar", { id: usuario.id }), {
+      preserveScroll: true,
+    });
+  };
+
+const renderUniversidadField = () => {
+  if (loadingUnis) return <div>Cargando universidades...</div>;
+  if (universidades.length === 0) {
+    return (
+      <input
+        className="input"
+        value={data.universidad}
+        onChange={(e) => setData("universidad", e.target.value)}
+        placeholder="Ej: Universidad Nacional"
+      />
+    );
+  }
+
+  // Buscar por nombre o sigla para seleccionar la opción correcta
+  const found = universidades.find(
+    (u) =>
+      u.nombre === data.universidad ||
+      u.sigla === data.universidad
+  );
+
+  const value = found ? String(found.id_universidad) : "";
+
+  return (
+    <select
+      className="select input"
+      value={value}
+      onChange={handleUniChange}
+    >
+      {universidades.map((u) => (
+        <option key={u.id_universidad} value={u.id_universidad}>
+          {u.sigla ? `${u.sigla} — ${u.nombre}` : u.nombre}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+  const renderCarreraField = () => {
+    if (loadingCarreras) return <div>Cargando carreras...</div>;
+    if (carreras.length === 0) {
+      return (
+        <input
+          className="input"
+          value={data.carrera}
+          onChange={(e) => setData("carrera", e.target.value)}
+          placeholder="Ej: Ingeniería en Sistemas"
+        />
+      );
+    }
+    const selectedOptionValue = (() => {
+      const found = carreras.find((c) => c.nombre === data.carrera);
+      return found ? String(found.id_carrera) : "";
+    })();
+
+    return (
+      <select className="select input" value={selectedOptionValue} onChange={handleCarreraChange}>
+        <option value="">Ninguna</option>
+        {carreras.map((c) => (
+          <option key={c.id_carrera} value={c.id_carrera}>
+            {labelFromNombre(c.nombre)}
+          </option>
+        ))}
+      </select>
+    );
+  };
 
   return (
     <>
@@ -113,11 +299,21 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
       <div className="form-section">
         <style>{tailwindStyles}</style>
         <style>{localStyles}</style>
+<div className="mb-4 flex justify-between items-center">
+  <div>
+    <h2 className="section-title text-una-red font-open-sans">
+      Actualizar — Administrador / Dirección / Subdirección
+    </h2>
+    <p className="section-sub">Modifique los datos y guarde los cambios.</p>
+  </div>
 
-        <div className="mb-4">
-          <h2 className="section-title text-una-red font-open-sans">Actualizar — Administrador / Dirección</h2>
-          <p className="section-sub">Modifique los datos y guarde los cambios.</p>
-        </div>
+  <Link
+    href={route('usuarios.index')}
+    className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+  >
+    Volver
+  </Link>
+</div>
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-grid">
@@ -135,12 +331,13 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
             {/* Correo */}
             <div className="field">
               <label className="label">Correo institucional</label>
-              <input
-                type="email"
-                className={`input ${fieldError("correo") ? "border-una-red" : ""}`}
-                value={data.correo}
-                onChange={(e) => setData("correo", e.target.value)}
-              />
+          <input
+  type="email"
+  className={`input ${fieldError("correo") ? "border-una-red" : ""}`}
+  value={data.correo}
+  onChange={(e) => setData("correo", e.target.value)}
+/>
+<div className="error-text">{fieldError("correo")}</div>         
               <div className="error-text">{fieldError("correo")}</div>
             </div>
 
@@ -174,7 +371,7 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
                 value={data.rol}
                 onChange={(e) => setData("rol", e.target.value as Rol)}
               >
-                <option value="Administrador del sistema">Administrador</option>
+                <option value="Administrador del Sistema">Administrador del Sistema</option>
                 <option value="Dirección">Dirección</option>
                 <option value="Subdirección">Subdirección</option>
               </select>
@@ -184,46 +381,14 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
             {/* Universidad */}
             <div className="field">
               <label className="label">Universidad asociada</label>
-              <input
-                className="input"
-                value={data.universidad}
-                onChange={(e) => setData("universidad", e.target.value)}
-              />
+              {renderUniversidadField()}
               <div className="error-text">{fieldError("universidad")}</div>
             </div>
 
             {/* Carrera */}
             <div className="field">
               <label className="label">Carrera asociada</label>
-              <input
-                className={`input ${fieldError("carrera") ? "border-una-red" : ""}`}
-                value={data.carrera}
-                onChange={(e) => setData("carrera", e.target.value)}
-              />
-              <div className="error-text">{fieldError("carrera")}</div>
-            </div>
-
-            {/* Contraseña (opcional) */}
-            <div className="field">
-              <label className="label">Contraseña (opcional)</label>
-              <input
-                type="password"
-                className={`input ${fieldError("contrasena") ? "border-una-red" : ""}`}
-                value={data.contrasena}
-                onChange={(e) => setData("contrasena", e.target.value)}
-                placeholder="Dejar en blanco para no cambiar"
-              />
-              <div className="error-text">{fieldError("contrasena")}</div>
-            </div>
-
-            {/* Confirmar contraseña (opcional) */}
-            <div className="field">
-              <label className="label">Carrera asociada</label>
-              <input
-                className={`input ${fieldError("carrera") ? "border-una-red" : ""}`}
-                value={data.carrera}
-                onChange={(e) => setData("carrera", e.target.value)}
-              />
+              {renderCarreraField()}
               <div className="error-text">{fieldError("carrera")}</div>
             </div>
 

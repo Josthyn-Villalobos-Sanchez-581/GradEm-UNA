@@ -1,10 +1,10 @@
-// resources/js/components/FormularioRegistroAdmin.tsx
-import React from "react";
+// backend/resources/js/components/FormularioRegistroAdmin.tsx
+import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
-import {route} from 'ziggy-js';
-type Rol = "Administrador del sistema" | "Dirección" | "Subdirección";
+import { route } from "ziggy-js";
+import { Link } from "@inertiajs/react";
+type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
-/* tu parche de clases "tailwindStyles" (colores, fonts) */  
 const tailwindStyles = `
     .font-open-sans { font-family: 'Open Sans', sans-serif; }
     .text-una-red { color: #CD1719; }
@@ -79,37 +79,125 @@ const localStyles = `
 `;
 
 
+interface Universidad {
+  id_universidad: number;
+  nombre: string;
+  sigla?: string;
+}
+
+interface Carrera {
+  id_carrera: number;
+  nombre: string;
+  id_universidad?: number;
+}
+
+const allowedCarreras = [
+  "Ingeniería en Sistemas",
+  "Química Industrial",
+  "Administración",
+  "Inglés"
+];
+
 const FormularioRegistroAdmin: React.FC = () => {
   const form = useForm({
     nombre_completo: "",
     correo: "",
     identificacion: "",
     telefono: "",
-    rol: "Administrador" as Rol,
+    rol: "Administrador del Sistema" as Rol,
     universidad: "",
     carrera: "",
     contrasena: "",
     contrasena_confirmation: "",
   });
 
-  const fieldError = (field: string) => (form.errors as Record<string, string>)[field] || "";
+  const [universidades, setUniversidades] = useState<Universidad[]>([]);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [loadingUnis, setLoadingUnis] = useState(false);
+  const [loadingCarreras, setLoadingCarreras] = useState(false);
 
-  // Validación local que determina si el formulario es "válido" para habilitar el botón
+  const fieldError = (field: string) => (form.errors as Record<string, any>)[field] || "";
+
+  const labelFromNombre = (nombre: string) => {
+    if (nombre === "Ingeniería en Sistemas") return "Ing. Sistemas";
+    return nombre;
+  };
+
+  const loadCarrerasForUni = async (id_universidad: number) => {
+    setLoadingCarreras(true);
+    try {
+      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("Error cargando carreras");
+      const data = await res.json();
+      const filtered = Array.isArray(data) ? data.filter(c => allowedCarreras.includes(c.nombre)) : [];
+      setCarreras(filtered);
+      form.setData("carrera", "");
+    } catch (err) {
+      console.error(err);
+      setCarreras([]);
+      form.setData("carrera", "");
+    } finally {
+      setLoadingCarreras(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const loadUnis = async () => {
+      setLoadingUnis(true);
+      try {
+        const res = await fetch("/universidades", { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error("Error cargando universidades");
+        const data = await res.json();
+        if (!mounted) return;
+        setUniversidades(Array.isArray(data) ? data : []);
+        if (Array.isArray(data) && data.length > 0) {
+          form.setData("universidad", data[0].nombre);
+          await loadCarrerasForUni(data[0].id_universidad);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (mounted) setLoadingUnis(false);
+      }
+    };
+    loadUnis();
+    return () => { mounted = false; };
+  }, []);
+
+  const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = Number(e.target.value);
+    const selected = universidades.find((u) => u.id_universidad === selectedId);
+    if (!selected) {
+      form.setData("universidad", e.target.value);
+      setCarreras([]);
+      form.setData("carrera", "");
+      return;
+    }
+    form.setData("universidad", selected.nombre);
+    await loadCarrerasForUni(selectedId);
+  };
+
+  const handleCarreraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === "") {
+      form.setData("carrera", "");
+      return;
+    }
+    const selectedId = Number(val);
+    const selected = carreras.find((c) => c.id_carrera === selectedId);
+    if (selected) form.setData("carrera", selected.nombre);
+  };
+
   const isFormValid = (): boolean => {
-    const data = form.data;
-    // nombre
-    if (!data.nombre_completo || !data.nombre_completo.toString().trim()) return false;
-    // correo
+    const data = form.data as Record<string, any>;
+    if (!data.nombre_completo || !String(data.nombre_completo).trim()) return false;
     if (!data.correo || !/^\S+@\S+\.\S+$/.test(String(data.correo))) return false;
-    // identificacion: solo dígitos (permite guiones/spaces pero los elimina para validar)
     const idClean = String(data.identificacion || "").replace(/[-\s]/g, "");
     if (!idClean || !/^\d+$/.test(idClean)) return false;
-    // telefono: opcional, pero si existe debe ser 8 dígitos
     const tel = String(data.telefono || "").replace(/[-\s]/g, "");
     if (tel && !/^\d{8}$/.test(tel)) return false;
-    // rol y carrera
     if (data.rol === "Dirección" && !String(data.carrera || "").trim()) return false;
-    // contrasena mínimo 8 y confirmación coincidente
     if (!data.contrasena || String(data.contrasena).length < 8) return false;
     if (String(data.contrasena) !== String(data.contrasena_confirmation)) return false;
     return true;
@@ -117,14 +205,8 @@ const FormularioRegistroAdmin: React.FC = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // duplicado de validaciones UX por seguridad (server también validará)
-    if (!isFormValid()) {
-      // no debería ocurrir si botón está deshabilitado correctamente, pero guardamos la comprobación
-      return;
-    }
-    
-form.post(route('usuarios.store'), {
+    if (!isFormValid()) return;
+    form.post(route("usuarios.store"), {
       preserveScroll: true,
       onSuccess: () => {
         form.reset(
@@ -141,6 +223,61 @@ form.post(route('usuarios.store'), {
     });
   };
 
+  const renderUniversidadField = () => {
+    if (loadingUnis) return <div>Cargando universidades...</div>;
+    if (universidades.length === 0) {
+      return (
+        <input
+          className="input"
+          value={form.data.universidad}
+          onChange={(e) => form.setData("universidad", e.target.value)}
+          placeholder="Ej: Universidad Nacional"
+        />
+      );
+    }
+    const found = universidades.find((u) => u.nombre === form.data.universidad);
+    const value = found ? String(found.id_universidad) : String(universidades[0].id_universidad);
+
+    return (
+      <select className="select input" value={value} onChange={handleUniChange}>
+        {universidades.map((u) => (
+          <option key={u.id_universidad} value={u.id_universidad}>
+            {u.sigla ? `${u.sigla} — ${u.nombre}` : u.nombre}
+          </option>
+        ))}
+      </select>
+    );
+  };
+
+  const renderCarreraField = () => {
+    if (loadingCarreras) return <div>Cargando carreras...</div>;
+    if (carreras.length === 0) {
+      return (
+        <input
+          className="input"
+          value={form.data.carrera}
+          onChange={(e) => form.setData("carrera", e.target.value)}
+          placeholder="Ej: Ingeniería en Sistemas"
+        />
+      );
+    }
+    const selectedOptionValue = (() => {
+      const found = carreras.find((c) => c.nombre === form.data.carrera);
+      return found ? String(found.id_carrera) : "";
+    })();
+
+    return (
+      <select className="select input" value={selectedOptionValue} onChange={handleCarreraChange}>
+        <option value="">Ninguna</option>
+        {carreras.map((c) => (
+          <option key={c.id_carrera} value={c.id_carrera}>
+            {labelFromNombre(c.nombre)}
+          </option>
+        ))}
+      </select>
+    );
+  };
+
   const valid = isFormValid();
 
   return (
@@ -148,10 +285,21 @@ form.post(route('usuarios.store'), {
       <style>{tailwindStyles}</style>
       <style>{localStyles}</style>
 
-      <div className="mb-4">
-        <h2 className="section-title text-una-red font-open-sans">Registro — Administrador / Dirección</h2>
-        <p className="section-sub">Complete los datos para crear la cuenta.</p>
-      </div>
+   <div className="mb-4 flex justify-between items-center">
+  <div>
+    <h2 className="section-title text-una-red font-open-sans">
+      Registro — Administrador / Dirección / Subdirección 
+    </h2>
+    <p className="section-sub">Complete los datos para crear la cuenta.</p>
+  </div>
+
+  <Link
+    href={route('usuarios.index')}
+    className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+  >
+    Volver
+  </Link>
+</div>
 
       <form onSubmit={submit} noValidate>
         <div className="form-grid">
@@ -212,38 +360,26 @@ form.post(route('usuarios.store'), {
               value={form.data.rol}
               onChange={(e) => form.setData("rol", e.target.value as Rol)}
             >
-              <option value="Administrador">Administrador</option>
+              <option value="Administrador del Sistema">Administrador del Sistema</option>
               <option value="Dirección">Dirección</option>
               <option value="Subdirección">Subdirección</option>
             </select>
             <div className="error-text">{fieldError("rol")}</div>
           </div>
-
           {/* Universidad */}
           <div className="field">
             <label className="label">Universidad asociada</label>
-            <input
-              className="input"
-              value={form.data.universidad}
-              onChange={(e) => form.setData("universidad", e.target.value)}
-              placeholder="Ej: Universidad Nacional"
-            />
+            {renderUniversidadField()}
             <div className="error-text">{fieldError("universidad")}</div>
           </div>
 
-          {/* Carrera */}
           <div className="field">
             <label className="label">
-              Carrera asociada {form.data.rol === "Dirección" && <span style={{ color: "#CD1719", fontSize: ".9rem" }}>(requerida)</span>}
+              Carrera asociada {form.data.rol === "Dirección" && <span style={{ color: "#CD1719" }}>(requerida)</span>}
             </label>
-            <input
-              className={`input ${fieldError("carrera") ? "border-una-red" : ""}`}
-              value={form.data.carrera}
-              onChange={(e) => form.setData("carrera", e.target.value)}
-              placeholder="Ej: Ingeniería en Sistemas"
-            />
+            {renderCarreraField()}
             <div className="error-text">{fieldError("carrera")}</div>
-          </div>
+                 </div>
 
           {/* Contraseña */}
           <div className="field">
@@ -279,8 +415,7 @@ form.post(route('usuarios.store'), {
             type="submit"
             disabled={form.processing || !valid}
             className="btn-primary"
-            aria-disabled={form.processing || !valid}
-            title={valid ? "Registrar" : "Complete todos los campos correctamente"}
+                          title={valid ? "Registrar" : "Complete todos los campos correctamente"}
           >
             {form.processing ? "Enviando..." : "Registrar"}
           </button>
