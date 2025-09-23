@@ -2,6 +2,7 @@ import React, { useState, FormEvent, useEffect } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
+import { useModal } from "../hooks/useModal";
 
 // Aquí agregamos los estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -35,6 +36,8 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
     const [errors, setErrors] = useState<any>({});
     const [successMessage, setSuccessMessage] = useState<string>("");
     
+    const modal = useModal(); // MOD: usar el modal
+
     // Sincronizar el estado interno si la prop 'correo' cambia
     useEffect(() => {
     setCorreo(propCorreo || "");
@@ -58,14 +61,20 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
 
             const response = await axios.post("/registro-empresa", registroData);
 
-            // Mostrar mensaje desde backend
-            alert(response.data.message || "Registro de empresa exitoso");
+            // Solo mostrar modal si no hubo error
+            await modal.alerta({
+                titulo: "Éxito",
+                mensaje: response.data.message || "Registro de empresa exitoso",
+            });
         } catch (error: any) {
             if (error.response?.status === 422) {
                 // Errores de validación
                 setErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || "Error en el registro");
+                await modal.alerta({
+                    titulo: "Error",
+                    mensaje: error.response?.data?.message || "Error en el registro",
+                });
             }
         }
     };
@@ -234,9 +243,10 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                         </form>
                     </div>
                 </main>
-                <footer className="bg-una-blue text-white text-center py-4">
-                    © 2024 Universidad Nacional de Costa Rica. Todos los derechos reservados.
-                </footer>
+                {/* Footer */}
+            <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
+                Sistema de Gestión © 2025 - Universidad Nacional
+            </footer>
             </div>
         </>
     );

@@ -2,6 +2,9 @@ import React, { useState, useEffect, FormEvent, useMemo } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
+import { useModal } from "../hooks/useModal";
+
+
 
 // Estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -19,7 +22,7 @@ const tailwindStyles = `
 `;
 
 const Registro: React.FC = () => {
-    const [tipoCuenta, setTipoCuenta] = useState<string>("estudiante");
+    const [tipoCuenta, setTipoCuenta] = useState<string>("");
     const [correo, setCorreo] = useState<string>("");
     const [codigo, setCodigo] = useState<string>("");
     const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
@@ -62,6 +65,7 @@ const Registro: React.FC = () => {
     const [tipoEmpleo, setTipoEmpleo] = useState<string>("");
 
     const [errors, setErrors] = useState<any>({});
+    const modal = useModal();
 
     useEffect(() => {
     axios.get("/ubicaciones/paises").then((res) => setPaises(res.data));
@@ -144,19 +148,24 @@ const Registro: React.FC = () => {
         try {
             await axios.post("/registro/enviar-codigo", { correo });
             setCodigoEnviado(true);
-            alert("Código enviado al correo");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Código enviado al correo" });
         } catch (error: any) {
-            alert(error.response?.data?.message || "Error al enviar el código");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error al enviar el código" });
         }
     };
 
     const handleValidarCodigo = async () => {
+        // Validar que se haya seleccionado tipoCuenta
+        if (!tipoCuenta) {
+            await modal.alerta({ titulo: "Advertencia", mensaje: "Debes seleccionar una opción de tipo de cuenta antes de validar el correo." });
+            return;
+        }
         try {
             await axios.post("/registro/validar-codigo", { correo, codigo });
             setCodigoValidado(true);
-            alert("Correo verificado correctamente");
+            await modal.alerta({ titulo: "Éxito", mensaje: "Correo verificado correctamente" });
         } catch (error: any) {
-            alert(error.response?.data?.message || "Código incorrecto o expirado");
+            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Código incorrecto o expirado" });
         }
     };
 
@@ -164,13 +173,12 @@ const Registro: React.FC = () => {
         e.preventDefault();
          setErrors({});
         if (!codigoValidado) {
-            alert("Primero debes validar tu correo");
+            await modal.alerta({ titulo: "Advertencia", mensaje: "Primero debes validar tu correo" });
             return;
         }
 
-        // MOD: Cortafuegos de validación en cliente antes de enviar
         if (errorPassword || errorConfirm) {
-            alert(errorPassword || errorConfirm);
+            await modal.alerta({ titulo: "Advertencia", mensaje: errorPassword || errorConfirm });
             return;
         }
 
@@ -202,17 +210,24 @@ const Registro: React.FC = () => {
                     : {}),
             };
 
-            await axios.post("/registro", userData);
-            alert("Registro exitoso ✅");
-        } catch (error: any) {
-            if (error.response?.status === 422) {
-                // Laravel devolvió errores de validación
-                setErrors(error.response.data.errors);
-            } else {
-                alert(error.response?.data?.message || "Error en el registro");
-            }
+        // Solo mostrar modal si todo salió bien
+        const response = await axios.post("/registro", userData);
+        await modal.alerta({
+            titulo: "Éxito",
+            mensaje: response.data.message || "Registro exitoso",
+        });
+    } catch (error: any) {
+        if (error.response?.status === 422) {
+            // Laravel devolvió errores de validación
+            setErrors(error.response.data.errors);
+        } else {
+            await modal.alerta({
+                titulo: "Error",
+                mensaje: error.response?.data?.message || "Error en el registro",
+            });
         }
-    };
+    }
+};
 
     return (
         <>
@@ -226,8 +241,13 @@ const Registro: React.FC = () => {
                 </header>
 
                 {/* Main */}
-                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-xl w-full space-y-8 bg-white p-10 rounded-lg border border-una-gray">
+                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+                    <div className="w-full max-w-2xl flex flex-col items-center p-8 rounded-lg"
+                        style={{
+                        backgroundColor: "#F6F6F6",
+                        borderRadius: "10px",
+                        padding: "30px 20px",
+                        }}>
                         <div>
                             <h1 className="text-center text-4xl font-bold text-una-red font-open-sans">
                                 Crear Cuenta
@@ -246,6 +266,8 @@ const Registro: React.FC = () => {
                             value={tipo}
                             checked={tipoCuenta === tipo}
                             onChange={(e) => setTipoCuenta(e.target.value)}
+                            disabled={codigoValidado}
+                            required={tipoCuenta === ""} // Obliga a seleccionar una opción
                             />
                             <span className="ml-2 font-open-sans text-black">
                             {tipo === "estudiante_egresado" ? "Estudiante/Egresado" : "Empresa"}
@@ -782,9 +804,9 @@ const Registro: React.FC = () => {
                 </main>
 
                 {/* Footer */}
-                <footer className="bg-una-blue text-white text-center py-4 text-sm font-open-sans">
-                    © 2024 Universidad Nacional de Costa Rica. Todos los derechos reservados.
-                </footer>
+            <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
+                Sistema de Gestión © 2025 - Universidad Nacional
+            </footer>
             </div>
         </>
     );

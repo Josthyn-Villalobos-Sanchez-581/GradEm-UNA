@@ -1,9 +1,11 @@
 import '../css/app.css';
 
+
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
+import ModalProvider from './providers/ModalProvider'; // ⬅️ agregado
 
 const appName = import.meta.env.VITE_APP_NAME || 'GradEm-UNA';
 
@@ -19,7 +21,11 @@ createInertiaApp({
         const root = createRoot(el);
 
         // Renderizamos la app con el layout definido en cada página
-        root.render(<App {...props} />);
+        root.render(
+            <ModalProvider>
+                <App {...props} />
+            </ModalProvider>
+        );
     },
 
     progress: {
@@ -29,3 +35,4 @@ createInertiaApp({
 
 // Inicializamos tema claro/oscuro
 initializeTheme();
+

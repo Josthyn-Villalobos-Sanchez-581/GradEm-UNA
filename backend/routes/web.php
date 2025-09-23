@@ -7,13 +7,15 @@ use App\Http\Controllers\RolController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RolesPermisosController;
 use App\Http\Controllers\RegistroController;
+use App\Http\Controllers\AdminRegistroController;
 use App\Http\Controllers\EmpresaController;
-use App\Http\Controllers\RecuperarContrasenaController; // 🔹 Import necesario
+use App\Http\Controllers\RecuperarContrasenaController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UniversidadController;
+
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -34,10 +36,18 @@ Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
 
+// Registro de admin
+Route::get('/registro-admin', function () {
+    return Inertia::render('RegistroAdminPage');
+})->name('registro.admin');
+Route::post('/registro-admin', [AdminRegistroController::class, 'store'])->name('registro.admin.store');
+
+// Ubicaciones
 Route::get('/ubicaciones/paises', [UbicacionController::class, 'getPaises']);
 Route::get('/ubicaciones/provincias/{id_pais}', [UbicacionController::class, 'getProvincias']);
 Route::get('/ubicaciones/cantones/{id_provincia}', [UbicacionController::class, 'getCantones']);
 
+// Universidades
 Route::get('/universidades', [UniversidadController::class, 'getUniversidades']);
 Route::get('/universidades/{id}/carreras', [UniversidadController::class, 'getCarreras']);
 
@@ -51,7 +61,6 @@ Route::post('/registro-empresa', [EmpresaController::class, 'store'])->name('reg
 Route::get('/recuperar', function () {
     return Inertia::render('RecuperarContrasena');
 })->name('recuperar.form');
-
 Route::post('/recuperar/enviar-codigo', [RecuperarContrasenaController::class, 'enviarCodigo']);
 Route::post('/recuperar/validar-codigo', [RecuperarContrasenaController::class, 'validarCodigo']);
 Route::post('/recuperar/cambiar-contrasena', [RecuperarContrasenaController::class, 'cambiarContrasena']);
@@ -83,7 +92,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de Roles
     // ==========================================
     Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
-    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create'); // 🔹 Ruta fija antes de {id}
+    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
     Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
     Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
     Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
@@ -94,7 +103,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de Permisos
     // ==========================================
     Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
-    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create'); // 🔹 Ruta fija antes de {id}
+    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
     Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
     Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
     Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
@@ -106,12 +115,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])
         ->name('roles_permisos.index');
 
+    // ==========================================
+    // Rutas de Usuarios Administradores/Dirección/Subdirección
+    // ==========================================
+    Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios/crear', function () {
+        return Inertia::render('Usuarios/CrearAdmin');
+    })->name('usuarios.create');
+    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+    Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+    Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+    Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+    Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+    Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
 
-    Route::middleware('auth')->group(function () {
-        Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
-        Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
-    });
-
+    // ==========================================
+    // Perfil
+    // ==========================================
+    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
+    Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
 });
 
 // ==========================================
