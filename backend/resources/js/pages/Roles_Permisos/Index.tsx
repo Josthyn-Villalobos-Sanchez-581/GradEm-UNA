@@ -85,7 +85,7 @@ export default function Index({
             </Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-gray-200">
+            <table className="w-full table-auto border border-gray-200 text-black">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-4 py-2 border">ID</th>
@@ -95,7 +95,7 @@ export default function Index({
               </thead>
               <tbody>
                 {roles.map((rol) => (
-                  <tr key={rol.id_rol} className="hover:bg-gray-50">
+                  <tr key={rol.id_rol} className="hover:bg-gray-50 text-black">
                     <td className="px-4 py-2 border">{rol.id_rol}</td>
                     <td className="px-4 py-2 border">{rol.nombre_rol}</td>
                     <td className="px-4 py-2 border flex gap-2">
@@ -138,7 +138,7 @@ export default function Index({
             </Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-gray-200">
+            <table className="w-full table-auto border border-gray-200 text-black">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-4 py-2 border">ID</th>

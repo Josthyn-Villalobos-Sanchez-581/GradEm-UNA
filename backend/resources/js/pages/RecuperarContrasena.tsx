@@ -257,7 +257,7 @@ const RecuperarContrasena: React.FC = () => {
                 />
                 {/* MOD: texto guía de la política */}
                 <p style={helpStyle}>
-                  8–15 caracteres, incluir minúscula, mayúscula, número y uno de: $ @ $ ! % ? &. Sin espacios.
+                  8–15 caracteres, incluir minúscula, mayúscula, número y un caracter especial ($@$!%?&). Sin espacios.
                 </p>
                 {/* MOD: error de contraseña */}
                 {errorPassword && <p style={fieldErrorStyle}>{errorPassword}</p>}

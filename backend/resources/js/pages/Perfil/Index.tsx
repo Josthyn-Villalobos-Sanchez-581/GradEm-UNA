@@ -93,18 +93,37 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
   const [selectedProvincia, setSelectedProvincia] = useState<number | null>(provinciaActual?.id ?? null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let newValue: string | number | null = value;
+  const { name, value } = e.target;
+  let newValue: string | number | null = value;
 
-    if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(name)) { 
-      newValue = value === "" ? null : Number(value);
-    }
-    if (newValue === "") {
-      newValue = null;
-    }
+  // Validaciones personalizadas
+  if (name === "identificacion") {
+    if (!/^\d{0,9}$/.test(value)) return; // máximo 8 dígitos
+  }
 
-    setFormData({ ...formData, [name]: newValue });
-  };
+  if (name === "nombre_completo") {
+    if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]*$/.test(value)) return; // solo letras y espacios
+  }
+
+  if (name === "telefono") {
+    if (!/^\d{0,8}$/.test(value)) return; // máximo 8 dígitos
+  }
+
+  if (name === "anio_graduacion") {
+    const year = Number(value);
+    const currentYear = new Date().getFullYear();
+    if (year && (year < 2007 || year > currentYear)) return;
+  }
+
+  if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(name)) { 
+    newValue = value === "" ? null : Number(value);
+  }
+
+  if (newValue === "") newValue = null;
+
+  setFormData({ ...formData, [name]: newValue });
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +195,8 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               value={formData.nombre_completo ?? ""}
               onChange={handleChange}
               placeholder="Nombre completo"
+              pattern="^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$"
+              title="El nombre solo puede contener letras y espacios"
               className="border p-2 rounded w-full"
             />
 
@@ -194,15 +215,20 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               value={formData.identificacion ?? ""}
               onChange={handleChange}
               placeholder="Identificación"
+              pattern="^\d{9}$"
+              title="La identificación debe tener exactamente 9 dígitos"
               className="border p-2 rounded w-full"
             />
 
+            
             <input
               type="text"
               name="telefono"
               value={formData.telefono ?? ""}
               onChange={handleChange}
               placeholder="Teléfono"
+              pattern="^\d{8}$"
+              title="El teléfono debe tener exactamente 8 dígitos"
               className="border p-2 rounded w-full"
             />
 
@@ -232,6 +258,8 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               value={formData.anio_graduacion ?? ""}
               onChange={handleChange}
               placeholder="Año de graduación"
+              min={2007}
+              max={new Date().getFullYear()}
               className="border p-2 rounded w-full"
             />
 
@@ -318,6 +346,7 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
                   value={formData.tiempo_conseguir_empleo ?? ""}
                   onChange={handleChange}
                   placeholder="Meses para conseguir empleo"
+                  min={0}
                   className="border p-2 rounded w-full"
                 />
 
