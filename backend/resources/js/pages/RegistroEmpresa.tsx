@@ -168,6 +168,9 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                         className="appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                         placeholder="Ej: 1-1234-5678"
                                     />
+                                    {errors.identificacion && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.identificacion[0]}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="telefono" className="block text-sm font-bold text-black font-open-sans">

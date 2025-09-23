@@ -18,6 +18,7 @@ class EmpresaController extends Controller
             'correo'           => 'required|email|unique:empresas,correo|unique:usuarios,correo',
             'telefono'         => 'required|string|max:20|regex:/^[0-9]{8,20}$/',
             'persona_contacto' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
+            'identificacion'   => 'required|string|min:8|regex:/^[0-9]{8,20}$/|unique:usuarios,identificacion',
             'password'         => 'required|string|min:8|confirmed',
         ], [
         'nombre.required' => 'El nombre de la empresa es obligatorio.',
@@ -29,6 +30,10 @@ class EmpresaController extends Controller
         'telefono.regex' => 'El teléfono debe contener entre 8 y 20 dígitos numéricos.',
         'persona_contacto.required' => 'Debe ingresar el nombre de la persona de contacto.',
         'persona_contacto.regex' => 'El nombre solo puede contener letras y espacios.',
+        'identificacion.required' => 'La identificación es obligatoria.',
+        'identificacion.unique' => 'La identificación ya está en uso.',
+        'identificacion.min' => 'La identificación debe tener al menos 8 caracteres.',
+        'identificacion.regex' => 'La identificación debe contener entre 8 y 20 dígitos numéricos.',
         'password.required' => 'Debe ingresar una contraseña.',
         'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
         'password.confirmed' => 'Las contraseñas no coinciden.',
