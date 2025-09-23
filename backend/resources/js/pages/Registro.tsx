@@ -233,13 +233,6 @@ const Registro: React.FC = () => {
         <>
             <style>{tailwindStyles}</style>
             <div className="min-h-screen flex flex-col bg-white font-open-sans">
-                {/* Header */}
-                <header className="bg-white shadow-md w-full py-4 px-8">
-                    <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
-                        <img alt="Logo UNA" className="h-16" src={logoUNA} />
-                    </a>
-                </header>
-
                 {/* Main */}
                 <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
                     <div className="w-full max-w-2xl flex flex-col items-center p-8 rounded-lg"
@@ -248,9 +241,23 @@ const Registro: React.FC = () => {
                         borderRadius: "10px",
                         padding: "30px 20px",
                         }}>
+                            {/* Logo UNA centrado */}
+                            <div className="flex justify-center mb-6">
+                                <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
+                                    <img alt="Logo UNA" className="h-20" src={logoUNA} />
+                                </a>
+                            </div>
                         <div>
-                            <h1 className="text-center text-4xl font-bold text-una-red font-open-sans">
-                                Crear Cuenta
+                            <h1
+                            style={{
+                                fontFamily: "'Goudy Old Style', serif",
+                                fontSize: "clamp(24px, 5vw, 48px)",
+                                color: "#000000",
+                                marginBottom: "30px",
+                                textAlign: "center",
+                            }}
+                            >
+                            Crear Cuenta
                             </h1>
                             <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
                                 Complete la información a continuación para crear su cuenta.

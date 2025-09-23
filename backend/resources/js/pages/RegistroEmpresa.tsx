@@ -83,17 +83,34 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
         <>
             <style>{tailwindStyles}</style>
             <div className="min-h-screen flex flex-col bg-white font-open-sans">
-                <header className="bg-white shadow-md w-full py-4 px-8">
-                    <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
-                        <img alt="Logo UNA" className="h-16" src={logoUNA} />
-                    </a>
-                </header>
-                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-xl w-full space-y-8 bg-white p-10 rounded-lg border border-una-gray">
+                <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+                    <div className="w-full max-w-2xl flex flex-col items-center p-8 rounded-lg"
+                        style={{
+                        backgroundColor: "#F6F6F6",
+                        borderRadius: "10px",
+                        padding: "30px 20px",
+                        }}>
+                            {/* Logo UNA centrado */}
+                            <div className="flex justify-center mb-6">
+                                <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
+                                    <img alt="Logo UNA" className="h-20" src={logoUNA} />
+                                </a>
+                            </div>
                         <div>
-                            <h1 className="text-center text-4xl font-bold text-una-red font-open-sans">
+                            <h1
+                                style={{
+                                    fontFamily: "'Goudy Old Style', serif",
+                                    fontSize: "clamp(24px, 5vw, 48px)",
+                                    color: "#000000",
+                                    marginBottom: "30px",
+                                    textAlign: "center",
+                                }}
+                            >
                                 Registro de Empresa
                             </h1>
+                            <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
+                                Complete la información de su empresa para crear la cuenta.
+                            </p>
                         </div>
                         <form className="mt-8 space-y-6" onSubmit={handleRegistroEmpresa}>
                             <div className="rounded-md -space-y-px">
