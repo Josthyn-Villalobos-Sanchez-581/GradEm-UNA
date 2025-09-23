@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { route } from 'ziggy-js';
-import Ziggy from '@/ziggy';
+//import Ziggy from '@/ziggy';
 interface UserItem {
   id: number;
   nombre_completo?: string;
