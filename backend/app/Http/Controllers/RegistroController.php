@@ -69,7 +69,7 @@ class RegistroController extends Controller
             'estado_empleo' => 'nullable|string|max:50',
             'estado_estudios' => 'nullable|string|max:50',
             'nivel_academico' => 'nullable|string|max:50',
-            'anio_graduacion' => 'nullable|digits:4|integer|min:1950|max:' . date('Y'),
+            'anio_graduacion' => 'nullable|digits:4|integer|min:2007|max:' . date('Y'),
             'tiempo_conseguir_empleo' => 'nullable|integer|min:0|max:120',
             'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
@@ -86,6 +86,7 @@ class RegistroController extends Controller
         'telefono.digits_between' => 'El teléfono debe tener entre 8 y 15 dígitos.',
         'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
         'anio_graduacion.digits' => 'El año de graduación debe tener 4 dígitos.',
+        'anio_graduacion.min' => 'El año de graduación no puede ser antes de 2007.',
         'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros.',
         ]);
 
