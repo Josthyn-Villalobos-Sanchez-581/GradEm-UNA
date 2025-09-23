@@ -102,6 +102,7 @@ class PerfilController extends Controller
 
         $usuario->update($data);
 
-        return redirect()->route('perfil.index')->with('success', 'Perfil actualizado correctamente');
+        return back()->with('success', 'Perfil actualizado correctamente');
+
     }
 }
