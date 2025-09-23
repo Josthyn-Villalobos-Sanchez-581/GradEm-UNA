@@ -1,6 +1,4 @@
-// backend/resources/js/layouts/PpLayout.tsx 
-
-
+// backend/resources/js/layouts/AdminPpLayout.tsx
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode, useState } from 'react';
 import { Link } from '@inertiajs/react';
@@ -252,8 +250,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       </header>
 
       {/* Contenido principal */}
-      <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
-        <div className="bg-white shadow rounded-xl p-6 text">{children}</div>
+    <main className="flex-1 max-w-none w-full p-6">
+        <div className="bg-white shadow rounded-xl p-6 w-full">{children}</div>
       </main>
 
       {/* Footer */}

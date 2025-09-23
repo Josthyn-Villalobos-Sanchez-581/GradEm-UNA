@@ -21,18 +21,13 @@ class AdminRegistroController extends Controller
      */
    public function index(Request $request)
 {
-    // Nombres reales de roles que queremos mostrar (ajusta si cambian en la BD)
     $buscar = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
 
-    // Obtener los ids correspondientes de la tabla roles (dinámico, robusto)
     $roleIds = Rol::whereIn('nombre_rol', $buscar)->pluck('id_rol')->toArray();
-
-    // Si no hay roles que coincidan, forzamos un array con 0 para no romper la consulta
     if (empty($roleIds)) {
         $roleIds = [0];
     }
 
-    // Query: usuarios cuyo id_rol está dentro de los ids encontrados
     $query = Usuario::with('rol')
         ->whereIn('id_rol', $roleIds)
         ->select([
@@ -48,11 +43,17 @@ class AdminRegistroController extends Controller
         ])
         ->orderByDesc('fecha_registro');
 
-    // Paginación: 15 por página
     $users = $query->paginate(15)->withQueryString();
 
-    // Transformar colección para enviar campos simples al frontend
     $users->getCollection()->transform(function ($u) {
+        $uni = $u->id_universidad
+            ? DB::table('universidades')->where('id_universidad', $u->id_universidad)->first()
+            : null;
+
+        $carrera = $u->id_carrera
+            ? DB::table('carreras')->where('id_carrera', $u->id_carrera)->value('nombre')
+            : null;
+
         return [
             'id' => $u->id_usuario,
             'nombre_completo' => $u->nombre_completo,
@@ -60,13 +61,15 @@ class AdminRegistroController extends Controller
             'identificacion' => $u->identificacion,
             'telefono' => $u->telefono,
             'rol' => $u->rol?->nombre_rol ?? null,
-            'universidad' => $u->id_universidad ?? null,
-            'carrera' => $u->id_carrera ?? null,
+            'universidad' => $uni?->sigla ?? $uni?->nombre ?? null,
+            'carrera' => $carrera ? $this->shortCarreraName($carrera) : null,
             'fecha_registro' => $u->fecha_registro ?? null,
         ];
     });
 
-    // Permisos del usuario autenticado para el layout (si lo usas)
+    // Consumir el flash para que solo se muestre una vez
+    $flashSuccess = session()->pull('success');
+
     $usuario = Auth::user();
     $userPermisos = DB::table('roles_permisos')
         ->where('id_rol', $usuario->id_rol)
@@ -76,9 +79,20 @@ class AdminRegistroController extends Controller
     return Inertia::render('Usuarios/Index', [
         'users' => $users,
         'userPermisos' => $userPermisos,
-        'flash' => session('success') ? ['success' => session('success')] : null,
+        'flash' => $flashSuccess ? ['success' => $flashSuccess] : null,
     ]);
 }
+    /**
+     * Helper para acortar nombres de carrera.
+     */
+    private function shortCarreraName(string $nombre): string
+    {
+        return match ($nombre) {
+            'Ingeniería en Sistemas' => 'Ing. Sistemas',
+            default => $nombre,
+        };
+    }
+
 
 
     /**
@@ -92,7 +106,7 @@ class AdminRegistroController extends Controller
         'correo'          => 'required|email|max:100|unique:usuarios,correo',
         'identificacion'  => 'required|string|max:20|unique:usuarios,identificacion',
         'telefono'        => 'nullable|string|max:20',
-        'rol'             => ['required','string', Rule::in(['Administrador','Dirección','Subdirección'])],
+        'rol'             => ['required','string', Rule::in(['Administrador del Sistema','Dirección','Subdirección'])],
         'universidad'     => 'nullable|string|max:100',
         'carrera'         => 'nullable|string|max:100',
         'contrasena'      => 'required|string|min:8|confirmed',
@@ -185,18 +199,15 @@ public function edit($id)
     $usuario = Usuario::with('rol')->findOrFail($id);
 
     // Normalizar el nombre del rol para que coincida con la validación
-    $rolNombre = $usuario->rol?->nombre_rol ?? 'Administrador';
+    $rolNombre = $usuario->rol?->nombre_rol ?? 'Administrador del Sistema';
 
-    // Mapeo de nombres reales en BD a los valores que espera Rule::in()
-    $mapaRoles = [
-        'Administrador del Sistema' => 'Administrador',
-        'Administrador'             => 'Administrador',
-        'Dirección'                  => 'Dirección',
-        'Subdirección'               => 'Subdirección',
-    ];
+    // Si el rol en BD no está en el mapa, por defecto "Administrador del Sistema"
+    $rolNormalizado = $rolNombre; // puedes mapear si lo necesitas
 
-    // Si el rol en BD no está en el mapa, por defecto "Administrador"
-    $rolNormalizado = $mapaRoles[$rolNombre] ?? 'Administrador';
+    // Obtener universidad con sigla si existe
+    $uni = $usuario->id_universidad
+        ? DB::table('universidades')->where('id_universidad', $usuario->id_universidad)->first()
+        : null;
 
     $usuarioData = [
         'id'              => $usuario->id_usuario,
@@ -205,9 +216,7 @@ public function edit($id)
         'identificacion'  => $usuario->identificacion,
         'telefono'        => $usuario->telefono,
         'rol'             => $rolNormalizado,
-        'universidad'     => $usuario->id_universidad
-            ? DB::table('universidades')->where('id_universidad', $usuario->id_universidad)->value('nombre')
-            : '',
+        'universidad'     => $uni?->sigla ?? $uni?->nombre ?? '',
         'carrera'         => $usuario->id_carrera
             ? DB::table('carreras')->where('id_carrera', $usuario->id_carrera)->value('nombre')
             : '',
@@ -223,19 +232,18 @@ public function edit($id)
         'userPermisos' => $userPermisos,
     ]);
 }
-// Actualizar usuario
+
 public function actualizar(Request $request, $id)
 {
-    // Validación: igual que en store, pero unique ignora el usuario actual
     $validated = $request->validate([
         'nombre_completo' => 'required|string|max:100',
         'correo'          => 'required|email|max:100|unique:usuarios,correo,' . $id . ',id_usuario',
         'identificacion'  => 'required|string|max:20|unique:usuarios,identificacion,' . $id . ',id_usuario',
         'telefono'        => 'nullable|string|max:20',
-        'rol'             => ['required','string', Rule::in(['Administrador del sistema','Dirección','Subdirección'])],
+        'rol'             => ['required','string', Rule::in(['Administrador del Sistema','Dirección','Subdirección'])],
         'universidad'     => 'nullable|string|max:100',
         'carrera'         => 'nullable|string|max:100',
-        'contrasena'      => 'nullable|string|min:8|confirmed', // opcional
+        'contrasena'      => 'nullable|string|min:8|confirmed',
     ]);
 
     DB::beginTransaction();
@@ -247,11 +255,12 @@ public function actualizar(Request $request, $id)
             return back()->withErrors(['rol' => 'No se pudo resolver el rol seleccionado.'])->withInput();
         }
 
-        // Universidad: buscar o crear
+        // Universidad: buscar por nombre o sigla, o crear
         $idUniversidad = null;
         if (!empty($validated['universidad'])) {
             $idUniversidad = DB::table('universidades')
                 ->where('nombre', $validated['universidad'])
+                ->orWhere('sigla', $validated['universidad'])
                 ->value('id_universidad');
 
             if (!$idUniversidad) {
@@ -311,7 +320,6 @@ public function actualizar(Request $request, $id)
         return back()->with('error', 'Ocurrió un error al actualizar el usuario.')->withInput();
     }
 }
-
 // Eliminar administrador/dirección/subdirección
 public function destroy($id)
 {

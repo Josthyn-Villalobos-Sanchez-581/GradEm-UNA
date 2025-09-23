@@ -28,8 +28,8 @@ class Usuario extends Authenticatable
         'estado_estudios',
         'fecha_registro',
         'id_rol',
-        'id_universidad',
-        'id_carrera',
+        //'id_universidad',
+        //'id_carrera',
         'estado_id',
         // ¡Estos son los campos que faltaban!
         'anio_graduacion',
