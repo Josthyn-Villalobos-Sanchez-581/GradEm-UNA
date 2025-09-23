@@ -4,7 +4,6 @@ import { Link, Head } from "@inertiajs/react";
 import AdminPpLayout from "@/layouts/AdminPpLayout";
 import { route } from 'ziggy-js';
 //import Ziggy from '@/ziggy';
-import { useModal } from "../../hooks/useModal";    // REVISAR ESTO DE KEVIN
 interface UserItem {
   id: number;
   nombre_completo?: string;

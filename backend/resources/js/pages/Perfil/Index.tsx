@@ -21,6 +21,8 @@ interface Usuario {
   id_canton: number | null;
   salario_promedio: string | null;
   tipo_empleo: string | null;
+  id_universidad: number | null;
+  id_carrera: number | null;
 }
 
 interface AreaLaboral {
@@ -45,16 +47,33 @@ interface Canton {
   id_provincia: number;
 }
 
+interface Universidad {
+  id: number;
+  nombre: string;
+  sigla: string;
+}
+
+interface Carrera {
+  id: number;
+  nombre: string;
+  id_universidad: number;
+  area_conocimiento: string;
+}
+
+
 interface Props {
   usuario: Usuario;
   areaLaborales: AreaLaboral[];
   paises: Pais[];
   provincias: Provincia[];
   cantones: Canton[];
+  universidades: Universidad[];
+  carreras: Carrera[];
   userPermisos: number[];
 }
 
-export default function Index({ usuario, areaLaborales, paises, provincias, cantones, userPermisos }: Props) {
+
+export default function Index({ usuario, areaLaborales, paises, provincias, cantones, universidades, carreras, userPermisos }: Props) {
   const [formData, setFormData] = useState<Usuario>(usuario);
   const [editando, setEditando] = useState(false);
   const modal = useModal(); // MOD: usar el modal
@@ -64,22 +83,47 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
   const provinciaActual = cantonActual ? provincias.find(p => p.id === cantonActual.id_provincia) : null;
   const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
 
+  const universidadActual = universidades.find(u => u.id === usuario.id_universidad);
+  const carreraActual = carreras.find(c => c.id === usuario.id_carrera);
+
+  const [selectedUniversidad, setSelectedUniversidad] = useState<number | null>(universidadActual?.id ?? null);
+
+
   const [selectedPais, setSelectedPais] = useState<number | null>(paisActual?.id ?? null);
   const [selectedProvincia, setSelectedProvincia] = useState<number | null>(provinciaActual?.id ?? null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let newValue: string | number | null = value;
+  const { name, value } = e.target;
+  let newValue: string | number | null = value;
 
-    if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton"].includes(name)) {
-      newValue = value === "" ? null : Number(value);
-    }
-    if (newValue === "") {
-      newValue = null;
-    }
+  // Validaciones personalizadas
+  if (name === "identificacion") {
+    if (!/^\d{0,9}$/.test(value)) return; // máximo 8 dígitos
+  }
 
-    setFormData({ ...formData, [name]: newValue });
-  };
+  if (name === "nombre_completo") {
+    if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]*$/.test(value)) return; // solo letras y espacios
+  }
+
+  if (name === "telefono") {
+    if (!/^\d{0,8}$/.test(value)) return; // máximo 8 dígitos
+  }
+
+  if (name === "anio_graduacion") {
+    const year = Number(value);
+    const currentYear = new Date().getFullYear();
+    if (year && (year < 2007 || year > currentYear)) return;
+  }
+
+  if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(name)) { 
+    newValue = value === "" ? null : Number(value);
+  }
+
+  if (newValue === "") newValue = null;
+
+  setFormData({ ...formData, [name]: newValue });
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +155,7 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
         </div>
 
         {!editando ? (
-          // Vista solo lectura
+          // Vista solo lectura, aca mostramos la informacion del perfil y opcion para poder editar
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <p><strong>Nombre:</strong> {usuario.nombre_completo}</p>
             <p><strong>Correo:</strong> {usuario.correo}</p>
@@ -119,10 +163,12 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
             <p><strong>Teléfono:</strong> {usuario.telefono ?? "N/A"}</p>
             <p><strong>Fecha Nacimiento:</strong> {usuario.fecha_nacimiento ?? "N/A"}</p>
             <p><strong>Género:</strong> {usuario.genero ?? "N/A"}</p>
-            <p><strong>Estado Empleo:</strong> {usuario.estado_empleo ?? "N/A"}</p>
+            <p><strong>Universidad:</strong> {universidadActual?.nombre ?? "N/A"}</p>
+            <p><strong>Carrera:</strong> {carreraActual?.nombre ?? "N/A"}</p>
             <p><strong>Estado Estudios:</strong> {usuario.estado_estudios ?? "N/A"}</p>
             <p><strong>Año Graduación:</strong> {usuario.anio_graduacion ?? "N/A"}</p>
             <p><strong>Nivel Académico:</strong> {usuario.nivel_academico ?? "N/A"}</p>
+            <p><strong>Estado Empleo:</strong> {usuario.estado_empleo ?? "N/A"}</p>
             <p><strong>Tiempo para conseguir empleo:</strong> {usuario.tiempo_conseguir_empleo ?? "N/A"}</p>
             <p><strong>Área Laboral:</strong> {areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre ?? "N/A"}</p>
             <p><strong>Ubicación:</strong> {
@@ -146,16 +192,18 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
             <input
               type="text"
               name="nombre_completo"
-              value={formData.nombre_completo}
+              value={formData.nombre_completo ?? ""}
               onChange={handleChange}
               placeholder="Nombre completo"
+              pattern="^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$"
+              title="El nombre solo puede contener letras y espacios"
               className="border p-2 rounded w-full"
             />
 
             <input
               type="email"
               name="correo"
-              value={formData.correo}
+              value={formData.correo ?? ""}
               onChange={handleChange}
               placeholder="Correo"
               className="border p-2 rounded w-full"
@@ -164,18 +212,23 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
             <input
               type="text"
               name="identificacion"
-              value={formData.identificacion}
+              value={formData.identificacion ?? ""}
               onChange={handleChange}
               placeholder="Identificación"
+              pattern="^\d{9}$"
+              title="La identificación debe tener exactamente 9 dígitos"
               className="border p-2 rounded w-full"
             />
 
+            
             <input
               type="text"
               name="telefono"
               value={formData.telefono ?? ""}
               onChange={handleChange}
               placeholder="Teléfono"
+              pattern="^\d{8}$"
+              title="El teléfono debe tener exactamente 8 dígitos"
               className="border p-2 rounded w-full"
             />
 
@@ -205,6 +258,8 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               value={formData.anio_graduacion ?? ""}
               onChange={handleChange}
               placeholder="Año de graduación"
+              min={2007}
+              max={new Date().getFullYear()}
               className="border p-2 rounded w-full"
             />
 
@@ -235,6 +290,43 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               <option value="Doctorado">Doctorado</option>
             </select>
 
+            {/* Select universidad */}
+            <select
+              value={selectedUniversidad ?? ""}
+              onChange={(e) => {
+                const uniId = e.target.value ? Number(e.target.value) : null;
+                setSelectedUniversidad(uniId);
+                setFormData({ ...formData, id_carrera: null, id_universidad: uniId });
+              }}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Seleccione universidad</option>
+              {universidades.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre} ({u.sigla})
+                </option>
+              ))}
+            </select>
+
+            {/* Select carrera */}
+            <select
+              name="id_carrera"
+              value={formData.id_carrera ?? ""}
+              onChange={handleChange}
+              disabled={!selectedUniversidad}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Seleccione carrera</option>
+              {carreras
+                .filter((c) => c.id_universidad === selectedUniversidad)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre} - {c.area_conocimiento}
+                  </option>
+                ))}
+            </select>
+
+
             <select
               name="estado_empleo"
               value={formData.estado_empleo ?? ""}
@@ -254,6 +346,7 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
                   value={formData.tiempo_conseguir_empleo ?? ""}
                   onChange={handleChange}
                   placeholder="Meses para conseguir empleo"
+                  min={0}
                   className="border p-2 rounded w-full"
                 />
 
