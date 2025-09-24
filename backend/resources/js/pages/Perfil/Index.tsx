@@ -454,7 +454,7 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
             {/* Botones */}
             <button
               type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2"
+              className="bg-[#034991] hover:bg-[#0563c1]   text-white px-4 py-2 rounded col-span-2"
             >
               Guardar cambios
             </button>
