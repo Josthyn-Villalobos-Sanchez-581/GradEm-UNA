@@ -455,10 +455,14 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
             <button
               type="submit"
 <<<<<<< HEAD
+<<<<<<< HEAD
               className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2"
 =======
               className="bg-[#034991] hover:bg-[#0563c1]   text-white px-4 py-2 rounded col-span-2"
 >>>>>>> 5360097938ea894cd5517a5a3f519ac99cb7d2ab
+=======
+              className="bg-green-600 hover:bg-green-800 text-white px-4 py-2 rounded col-span-2"
+>>>>>>> 305f0f60ab0ac409cf9bacab5f3728256340b58a
             >
               Guardar cambios
             </button>
