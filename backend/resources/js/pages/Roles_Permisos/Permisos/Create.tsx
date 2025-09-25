@@ -46,7 +46,7 @@ export default function Create({ userPermisos }: Props) {
           />
           <button
             type="submit"
-            className="bg-[#2E7D32] hover:bg-green-800 text-white px-4 py-2 rounded"
+            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
           >
             Crear
           </button>

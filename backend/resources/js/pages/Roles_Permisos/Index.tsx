@@ -79,7 +79,7 @@ export default function Index({
             <h2 className="text-xl font-bold">Roles</h2>
             <Link
               href="/roles/create"
-              className="bg-[#2E7D32] hover:bg-green-800 text-white px-4 py-2 rounded"
+              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
             >
               Agregar Rol
             </Link>
@@ -132,7 +132,7 @@ export default function Index({
             <h2 className="text-xl font-bold">Permisos</h2>
             <Link
               href="/permisos/create"
-              className="bg-[#2E7D32] hover:bg-green-800 text-white px-4 py-2 rounded"
+              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
             >
               Agregar Permiso
             </Link>
