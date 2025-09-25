@@ -83,7 +83,7 @@ export default function Index(props: UsuariosIndexProps) {
             </h2>
             <Link
               href={route("admin.crear")}
-              className="bg-[#2E7D32] hover:bg-green-800 text-white px-4 py-2 rounded"
+              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
             >
               Crear Usuario
             </Link>

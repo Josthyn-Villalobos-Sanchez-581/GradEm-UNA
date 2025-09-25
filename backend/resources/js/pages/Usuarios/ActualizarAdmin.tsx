@@ -4,6 +4,7 @@ import { Head, useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import PpLayout from "@/layouts/PpLayout";
 import { Link } from "@inertiajs/react";
+
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 const tailwindStyles = `
   .font-open-sans { font-family: 'Open Sans', sans-serif; }

@@ -60,7 +60,6 @@ interface Carrera {
   area_conocimiento: string;
 }
 
-
 interface Props {
   usuario: Usuario;
   areaLaborales: AreaLaboral[];
@@ -72,65 +71,83 @@ interface Props {
   userPermisos: number[];
 }
 
-
-export default function Index({ usuario, areaLaborales, paises, provincias, cantones, universidades, carreras, userPermisos }: Props) {
+export default function Index({
+  usuario,
+  areaLaborales,
+  paises,
+  provincias,
+  cantones,
+  universidades,
+  carreras,
+  userPermisos,
+}: Props) {
   const [formData, setFormData] = useState<Usuario>(usuario);
   const [editando, setEditando] = useState(false);
   const modal = useModal(); // MOD: usar el modal
 
   // --- Derivar país y provincia actuales en base al id_canton ---
-  const cantonActual = cantones.find(c => c.id === usuario.id_canton);
-  const provinciaActual = cantonActual ? provincias.find(p => p.id === cantonActual.id_provincia) : null;
-  const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
+  const cantonActual = cantones.find((c) => c.id === usuario.id_canton);
+  const provinciaActual = cantonActual
+    ? provincias.find((p) => p.id === cantonActual.id_provincia)
+    : null;
+  const paisActual = provinciaActual
+    ? paises.find((pa) => pa.id === provinciaActual.id_pais)
+    : null;
 
-  const universidadActual = universidades.find(u => u.id === usuario.id_universidad);
-  const carreraActual = carreras.find(c => c.id === usuario.id_carrera);
+  const universidadActual = universidades.find((u) => u.id === usuario.id_universidad);
+  const carreraActual = carreras.find((c) => c.id === usuario.id_carrera);
 
-  const [selectedUniversidad, setSelectedUniversidad] = useState<number | null>(universidadActual?.id ?? null);
-
+  const [selectedUniversidad, setSelectedUniversidad] = useState<number | null>(
+    universidadActual?.id ?? null
+  );
 
   const [selectedPais, setSelectedPais] = useState<number | null>(paisActual?.id ?? null);
-  const [selectedProvincia, setSelectedProvincia] = useState<number | null>(provinciaActual?.id ?? null);
+  const [selectedProvincia, setSelectedProvincia] = useState<number | null>(
+    provinciaActual?.id ?? null
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
-  let newValue: string | number | null = value;
+    const { name, value } = e.target;
+    let newValue: string | number | null = value;
 
-  // Validaciones personalizadas
-  if (name === "identificacion") {
-    if (!/^\d{0,9}$/.test(value)) return; // máximo 8 dígitos
-  }
+    // Validaciones personalizadas
+    if (name === "identificacion") {
+      if (!/^\d{0,9}$/.test(value)) return; // máximo 9 dígitos
+    }
 
-  if (name === "nombre_completo") {
-    if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]*$/.test(value)) return; // solo letras y espacios
-  }
+    if (name === "nombre_completo") {
+      if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]*$/.test(value)) return; // solo letras y espacios
+    }
 
-  if (name === "telefono") {
-    if (!/^\d{0,8}$/.test(value)) return; // máximo 8 dígitos
-  }
+    if (name === "telefono") {
+      if (!/^\d{0,8}$/.test(value)) return; // máximo 8 dígitos
+    }
 
-  if (name === "anio_graduacion") {
-    const year = Number(value);
-    const currentYear = new Date().getFullYear();
-    if (year && (year < 2007 || year > currentYear)) return;
-  }
+    if (name === "anio_graduacion") {
+      const year = Number(value);
+      const currentYear = new Date().getFullYear();
+      if (year && (year < 2007 || year > currentYear)) return;
+    }
 
-  if (["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(name)) { 
-    newValue = value === "" ? null : Number(value);
-  }
+    if (
+      ["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(
+        name
+      )
+    ) {
+      newValue = value === "" ? null : Number(value);
+    }
 
-  if (newValue === "") newValue = null;
+    if (newValue === "") newValue = null;
 
-  setFormData({ ...formData, [name]: newValue });
-};
-
+    setFormData({ ...formData, [name]: newValue });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // MOD: Confirmación antes de guardar cambios
     const ok = await modal.confirmacion({
       titulo: "Confirmar cambios",
-      mensaje: "¿Está seguro que desea guardar los cambios en su perfil?"
+      mensaje: "¿Está seguro que desea guardar los cambios en su perfil?",
     });
     if (!ok) return;
 
@@ -155,29 +172,64 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
         </div>
 
         {!editando ? (
-          // Vista solo lectura, aca mostramos la informacion del perfil y opcion para poder editar
+          // Vista solo lectura
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p><strong>Nombre:</strong> {usuario.nombre_completo}</p>
-            <p><strong>Correo:</strong> {usuario.correo}</p>
-            <p><strong>Identificación:</strong> {usuario.identificacion}</p>
-            <p><strong>Teléfono:</strong> {usuario.telefono ?? "N/A"}</p>
-            <p><strong>Fecha Nacimiento:</strong> {usuario.fecha_nacimiento ?? "N/A"}</p>
-            <p><strong>Género:</strong> {usuario.genero ?? "N/A"}</p>
-            <p><strong>Universidad:</strong> {universidadActual?.nombre ?? "N/A"}</p>
-            <p><strong>Carrera:</strong> {carreraActual?.nombre ?? "N/A"}</p>
-            <p><strong>Estado Estudios:</strong> {usuario.estado_estudios ?? "N/A"}</p>
-            <p><strong>Año Graduación:</strong> {usuario.anio_graduacion ?? "N/A"}</p>
-            <p><strong>Nivel Académico:</strong> {usuario.nivel_academico ?? "N/A"}</p>
-            <p><strong>Estado Empleo:</strong> {usuario.estado_empleo ?? "N/A"}</p>
-            <p><strong>Tiempo para conseguir empleo:</strong> {usuario.tiempo_conseguir_empleo ?? "N/A"}</p>
-            <p><strong>Área Laboral:</strong> {areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre ?? "N/A"}</p>
-            <p><strong>Ubicación:</strong> {
-              paisActual && provinciaActual && cantonActual
+            <p>
+              <strong>Nombre:</strong> {usuario.nombre_completo}
+            </p>
+            <p>
+              <strong>Correo:</strong> {usuario.correo}
+            </p>
+            <p>
+              <strong>Identificación:</strong> {usuario.identificacion}
+            </p>
+            <p>
+              <strong>Teléfono:</strong> {usuario.telefono ?? "N/A"}
+            </p>
+            <p>
+              <strong>Fecha Nacimiento:</strong> {usuario.fecha_nacimiento ?? "N/A"}
+            </p>
+            <p>
+              <strong>Género:</strong> {usuario.genero ?? "N/A"}
+            </p>
+            <p>
+              <strong>Universidad:</strong> {universidadActual?.nombre ?? "N/A"}
+            </p>
+            <p>
+              <strong>Carrera:</strong> {carreraActual?.nombre ?? "N/A"}
+            </p>
+            <p>
+              <strong>Estado Estudios:</strong> {usuario.estado_estudios ?? "N/A"}
+            </p>
+            <p>
+              <strong>Año Graduación:</strong> {usuario.anio_graduacion ?? "N/A"}
+            </p>
+            <p>
+              <strong>Nivel Académico:</strong> {usuario.nivel_academico ?? "N/A"}
+            </p>
+            <p>
+              <strong>Estado Empleo:</strong> {usuario.estado_empleo ?? "N/A"}
+            </p>
+            <p>
+              <strong>Tiempo para conseguir empleo:</strong>{" "}
+              {usuario.tiempo_conseguir_empleo ?? "N/A"}
+            </p>
+            <p>
+              <strong>Área Laboral:</strong>{" "}
+              {areaLaborales.find((a) => a.id === usuario.area_laboral_id)?.nombre ?? "N/A"}
+            </p>
+            <p>
+              <strong>Ubicación:</strong>{" "}
+              {paisActual && provinciaActual && cantonActual
                 ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-                : "N/A"
-            }</p>
-            <p><strong>Salario Promedio:</strong> {usuario.salario_promedio ?? "N/A"}</p>
-            <p><strong>Tipo Empleo:</strong> {usuario.tipo_empleo ?? "N/A"}</p>
+                : "N/A"}
+            </p>
+            <p>
+              <strong>Salario Promedio:</strong> {usuario.salario_promedio ?? "N/A"}
+            </p>
+            <p>
+              <strong>Tipo Empleo:</strong> {usuario.tipo_empleo ?? "N/A"}
+            </p>
 
             <button
               onClick={() => setEditando(true)}
@@ -220,7 +272,6 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               className="border p-2 rounded w-full"
             />
 
-            
             <input
               type="text"
               name="telefono"
@@ -326,7 +377,6 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
                 ))}
             </select>
 
-
             <select
               name="estado_empleo"
               value={formData.estado_empleo ?? ""}
@@ -393,7 +443,7 @@ export default function Index({ usuario, areaLaborales, paises, provincias, cant
               </>
             )}
 
-  {/* Select país */}
+            {/* Select país */}
             <select
               value={selectedPais ?? ""}
               onChange={(e) => {
