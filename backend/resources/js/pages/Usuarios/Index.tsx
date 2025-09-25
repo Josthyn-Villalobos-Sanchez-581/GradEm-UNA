@@ -4,6 +4,8 @@ import { Link, Head } from "@inertiajs/react";
 import AdminPpLayout from "@/layouts/AdminPpLayout";
 import { route } from 'ziggy-js';
 //import Ziggy from '@/ziggy';
+import { useModal } from "@/hooks/useModal";
+import { Inertia } from "@inertiajs/inertia";
 interface UserItem {
   id: number;
   nombre_completo?: string;
@@ -37,6 +39,8 @@ interface UsuariosIndexProps {
 }
 export default function Index(props: UsuariosIndexProps) {
   // Normalizar lista de usuarios (paginador o array plano)
+   const { confirmacion } = useModal();
+
   const usersList: UserItem[] = Array.isArray(props.users)
     ? props.users
     : props.users.data ?? [];
@@ -142,23 +146,30 @@ export default function Index(props: UsuariosIndexProps) {
                         >
                           Editar
                         </Link>
-                        <Link
-                          href={route("admin.eliminar", { id: u.id })}
-                          method="delete"
-                          as="button"
-                          className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                "¿Seguro que deseas eliminar este usuario?"
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          Eliminar
-                        </Link>
+                            <Link
+          key={u.id}
+          href={route("admin.eliminar", { id: u.id })}
+          method="delete"
+          as="button"
+          className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
+          onClick={async (e) => {
+            e.preventDefault(); // Evita que se envíe de inmediato
+            const ok = await confirmacion({
+              titulo: "Confirmar eliminación",
+              mensaje: "¿Seguro que deseas eliminar este usuario?",
+              textoAceptar: "Sí, eliminar",
+              textoCancelar: "Cancelar"
+            });
+            if (ok) {
+              // Si el usuario confirma, ejecuta el delete
+                 Inertia.delete(route("admin.eliminar", { id: u.id }));
+
+            }
+          }}
+        >
+          Eliminar
+        </Link>
+
                       </td>
                     </tr>
                   ))

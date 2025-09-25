@@ -92,7 +92,7 @@ interface Carrera {
 }
 
 const allowedCarreras = [
-  "Ingeniería en Sistemas",
+  "Ingeniería en Sistemas de Información",
   "Química Industrial",
   "Administración",
   "Inglés"
