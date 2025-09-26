@@ -63,6 +63,50 @@ class PerfilController extends Controller
 
     }
 
+    public function edit()
+    {
+        $usuario = Auth::user();
+
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        $areasLaborales = DB::table('areas_laborales')
+            ->select('id_area_laboral as id', 'nombre')
+            ->get();
+
+        $paises = DB::table('paises')
+            ->select('id_pais as id', 'nombre')
+            ->get();
+
+        $provincias = DB::table('provincias')
+            ->select('id_provincia as id', 'nombre', 'id_pais')
+            ->get();
+
+        $cantones = DB::table('cantones')
+            ->select('id_canton as id', 'nombre', 'id_provincia')
+            ->get();
+
+        $universidades = DB::table('universidades')
+            ->select('id_universidad as id', 'nombre', 'sigla')
+            ->get();
+
+        $carreras = DB::table('carreras')
+            ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
+            ->get();
+
+        return Inertia::render('Perfil/Editar', [
+            'usuario' => $usuario,
+            'userPermisos' => $userPermisos,
+            'areaLaborales' => $areasLaborales,
+            'paises' => $paises,
+            'provincias' => $provincias,
+            'cantones' => $cantones,
+            'universidades' => $universidades,
+            'carreras' => $carreras,
+        ]);
+    }
 
 
     public function update(Request $request, $id)
@@ -89,7 +133,6 @@ class PerfilController extends Controller
             'anio_graduacion' => 'nullable|integer',
             'nivel_academico' => 'nullable|string|max:50',
             'tiempo_conseguir_empleo' => 'nullable|integer',
-            // Corrección de los nombres de las columnas
             'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
             'salario_promedio' => 'nullable|string|max:50',
@@ -102,7 +145,8 @@ class PerfilController extends Controller
 
         $usuario->update($data);
 
-        return back()->with('success', 'Perfil actualizado correctamente');
+        return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');
+
 
     }
 }
