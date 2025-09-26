@@ -85,15 +85,16 @@ class PermisoController extends Controller
 
     public function destroy($id)
     {
-        $permiso = Permiso::with('roles')->findOrFail($id);
+        $permiso = Permiso::findOrFail($id);
 
-        if ($permiso->roles->count() > 0) {
+        if ($permiso->roles()->exists()) {
             return redirect()->route('roles_permisos.index')
-                ->with('error', 'No se puede eliminar un permiso asignado a un rol.');
+                ->withErrors([
+                    'error' => "No se puede eliminar el permiso '{$permiso->nombre}' porque está asignado a uno o más roles."
+                ]);
         }
 
         $permiso->delete();
-        $this->registrarBitacora('permisos','eliminar',"Permiso eliminado ID {$id}");
 
         return redirect()->route('roles_permisos.index')
             ->with('success', 'Permiso eliminado correctamente.');

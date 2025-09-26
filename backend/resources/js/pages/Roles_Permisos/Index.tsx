@@ -26,7 +26,6 @@ function extractErrorMessage(errs: any): string | null {
   if (typeof errs === "string") return errs;
   if (errs.error) return errs.error;
   if (errs.message) return errs.message;
-  // validation style: { field: ["msg"] }
   for (const k in errs) {
     const v = errs[k];
     if (Array.isArray(v) && v.length) return v[0];
@@ -50,51 +49,37 @@ export default function Index(props: RolesPermisosIndexProps) {
   const page = usePage().props as any;
   const pageFlash = page?.flash ?? {};
   const pageErrors = page?.errors ?? propsErrors ?? {};
-
   const mergedFlash = { ...pageFlash, ...flash };
 
   const modal = useModal();
 
-  // 🔹 Mostrar mensajes globales con el modal
   useEffect(() => {
-    if (mergedFlash?.error) {
-      modal.alerta({ titulo: "Error", mensaje: mergedFlash.error });
-    }
-    if (mergedFlash?.success) {
-      modal.alerta({ titulo: "Éxito", mensaje: mergedFlash.success });
-    }
-    if (pageErrors?.error) {
-      modal.alerta({ titulo: "Error", mensaje: pageErrors.error });
-    }
+    if (mergedFlash?.error) modal.alerta({ titulo: "Error", mensaje: mergedFlash.error });
+    if (mergedFlash?.success) modal.alerta({ titulo: "Éxito", mensaje: mergedFlash.success });
+    if (pageErrors?.error) modal.alerta({ titulo: "Error", mensaje: pageErrors.error });
   }, [mergedFlash, pageErrors]);
 
-  // state
   const [rolPermisos, setRolPermisos] = useState<Record<number, number[]>>({});
   const [rolAbierto, setRolAbierto] = useState<number | null>(null);
   const [sections, setSections] = useState<string[]>(visibleSections);
 
-  // controlled search inputs
   const [searchRolInput, setSearchRolInput] = useState<string>(filters.searchRol ?? "");
   const [searchPermisoInput, setSearchPermisoInput] = useState<string>(filters.searchPermiso ?? "");
 
-  // debounce refs
   const rolTimer = useRef<number | null>(null);
   const permisoTimer = useRef<number | null>(null);
 
-  // mapear permisos por rol al recibir roles
   useEffect(() => {
     const map: Record<number, number[]> = {};
     roles.data.forEach((r) => (map[r.id_rol] = r.permisos.map((p) => p.id_permiso)));
     setRolPermisos(map);
   }, [roles]);
 
-  // sincronizar inputs si filters vienen desde servidor
   useEffect(() => {
     setSearchRolInput(filters.searchRol ?? "");
     setSearchPermisoInput(filters.searchPermiso ?? "");
   }, [filters.searchRol, filters.searchPermiso]);
 
-  // UI helpers
   const togglePermiso = (rolId: number, permisoId: number) =>
     setRolPermisos((prev) => {
       const current = prev[rolId] ?? [];
@@ -115,16 +100,18 @@ export default function Index(props: RolesPermisosIndexProps) {
   const toggleSection = (section: string) =>
     setSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]));
 
-  // BUSCAR (envía ambos filtros y las secciones visibles)
   const buscar = (searchRol: string, searchPermiso: string) => {
-    Inertia.get(
-      "/roles_permisos",
-      { searchRol, searchPermiso, visibleSections: sections },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
-  };
+  Inertia.get(
+    "/roles_permisos",
+    { 
+      searchRol, 
+      searchPermiso, 
+      visibleSections: Array.from(new Set(sections)) // ✅ elimina duplicados
+    },
+    { preserveState: true, preserveScroll: true, replace: true }
+  );
+};
 
-  // debounce handlers
   const onChangeSearchRol = (value: string) => {
     setSearchRolInput(value);
     if (rolTimer.current) window.clearTimeout(rolTimer.current);
@@ -145,18 +132,17 @@ export default function Index(props: RolesPermisosIndexProps) {
 
   const onKeyDownSearchRol = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (rolTimer.current) { window.clearTimeout(rolTimer.current); rolTimer.current = null; }
+      if (rolTimer.current) window.clearTimeout(rolTimer.current);
       buscar(searchRolInput, searchPermisoInput);
     }
   };
   const onKeyDownSearchPermiso = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (permisoTimer.current) { window.clearTimeout(permisoTimer.current); permisoTimer.current = null; }
+      if (permisoTimer.current) window.clearTimeout(permisoTimer.current);
       buscar(searchRolInput, searchPermisoInput);
     }
   };
 
-  // Guardar permisos asignados a un rol
   const guardarPermisos = async (rolId: number) => {
     const asignados = rolPermisos[rolId] ?? [];
     if (asignados.length === 0) {
@@ -175,18 +161,15 @@ export default function Index(props: RolesPermisosIndexProps) {
       {
         preserveState: true,
         preserveScroll: true,
-        onSuccess: async () => {
-          await modal.alerta({ titulo: "Éxito", mensaje: "Permisos actualizados correctamente." });
-        },
+        onSuccess: async () => modal.alerta({ titulo: "Éxito", mensaje: "Permisos actualizados correctamente." }),
         onError: async (errs: any) => {
           const m = extractErrorMessage(errs) ?? "Ocurrió un error al actualizar permisos.";
-          await modal.alerta({ titulo: "Error", mensaje: m });
+          modal.alerta({ titulo: "Error", mensaje: m });
         },
       }
     );
   };
 
-  // Eliminar rol
   const eliminarRol = async (rolId: number) => {
     const permisosAsignados = rolPermisos[rolId]?.length ?? 0;
     let mensaje = "¿Desea eliminar este rol?";
@@ -199,17 +182,14 @@ export default function Index(props: RolesPermisosIndexProps) {
     Inertia.delete(`/roles/${rolId}`, {
       preserveState: true,
       preserveScroll: true,
-      onSuccess: async () => {
-        await modal.alerta({ titulo: "Éxito", mensaje: "Rol eliminado correctamente." });
-      },
+      onSuccess: async () => modal.alerta({ titulo: "Éxito", mensaje: "Rol eliminado correctamente." }),
       onError: async (errs: any) => {
         const m = extractErrorMessage(errs) ?? "No se pudo eliminar el rol.";
-        await modal.alerta({ titulo: "Error", mensaje: m });
+        modal.alerta({ titulo: "Error", mensaje: m });
       },
     });
   };
 
-  // Eliminar permiso (captura error y lo muestra en modal)
   const eliminarPermiso = async (permisoId: number) => {
     const ok = await modal.confirmacion({ titulo: "Eliminar permiso", mensaje: "¿Desea eliminar este permiso?" });
     if (!ok) return;
@@ -217,68 +197,66 @@ export default function Index(props: RolesPermisosIndexProps) {
     Inertia.delete(`/permisos/${permisoId}`, {
       preserveState: true,
       preserveScroll: true,
-      onSuccess: async () => {
-        await modal.alerta({ titulo: "Éxito", mensaje: "Permiso eliminado correctamente." });
-      },
+      onSuccess: async () => modal.alerta({ titulo: "Éxito", mensaje: "Permiso eliminado correctamente." }),
       onError: async (errs: any) => {
         const m = extractErrorMessage(errs) ?? "No se pudo eliminar el permiso. Verifique si está asignado a un rol.";
-        await modal.alerta({ titulo: "Error", mensaje: m });
+        modal.alerta({ titulo: "Error", mensaje: m });
       },
     });
   };
 
-  // Paginación (usa link.url generado por backend)
-  const cambiarPagina = (linkUrl: string | null) => {
-    if (!linkUrl) return;
-    Inertia.visit(linkUrl, {
-      preserveState: true,
-      preserveScroll: true,
-      data: { searchRol: searchRolInput, searchPermiso: searchPermisoInput, visibleSections: sections } as any,
-    });
-  };
+  const cambiarPagina = (linkUrl: string | null, tipo: 'roles' | 'permisos') => {
+  if (!linkUrl) return;
+  Inertia.visit(linkUrl, {
+    preserveState: true,
+    preserveScroll: true,
+    data: { 
+      searchRol: searchRolInput, 
+      searchPermiso: searchPermisoInput, 
+      visibleSections: Array.from(new Set(sections)), // ✅ elimina duplicados
+    } as any,
+  });
+};
 
   return (
     <>
       <Head title="Roles y Permisos" />
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-black">
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]">
         {/* Secciones */}
-        <div className="bg-white shadow rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-bold mb-2">Seleccionar Secciones</h2>
+        <div className="bg-[#FFFFFF] shadow rounded-lg p-4 mb-6">
+          <h2 className="text-lg font-bold mb-2 text-[#034991]">Seleccionar Secciones</h2>
           <div className="flex gap-4 items-center">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[#000000]">
               <input type="checkbox" checked={sections.includes("roles")} onChange={() => toggleSection("roles")} />
               Roles
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[#000000]">
               <input type="checkbox" checked={sections.includes("permisos")} onChange={() => toggleSection("permisos")} />
               Permisos
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[#000000]">
               <input type="checkbox" checked={sections.includes("asignacion")} onChange={() => toggleSection("asignacion")} />
               Asignación de Permisos
             </label>
-            <button className="ml-auto bg-[#034991] hover:bg-[#0563c1] text-white px-3 py-1 rounded" onClick={() => setSections(["roles", "permisos", "asignacion"])}>
+            <button
+              className="ml-auto bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-3 py-1 rounded"
+              onClick={() => setSections(["roles", "permisos", "asignacion"])}
+            >
               Mostrar Todo
             </button>
           </div>
         </div>
 
-        {/* Mensajes globales (texto plano de respaldo) */}
-        {mergedFlash?.success && <div className="bg-green-50 text-green-800 p-3 rounded">{mergedFlash.success}</div>}
-        {mergedFlash?.error && <div className="bg-red-50 text-red-800 p-3 rounded">{mergedFlash.error}</div>}
-        {pageErrors?.error && <div className="bg-red-50 text-red-800 p-3 rounded">{pageErrors.error}</div>}
-
         {/* Roles */}
         {sections.includes("roles") && (
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Roles</h2>
-              <Link href="/roles/create" className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded">Agregar Rol</Link>
+              <h2 className="text-xl font-bold text-[#034991]">Roles</h2>
+              <Link href="/roles/create" className="bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-4 py-2 rounded">Agregar Rol</Link>
             </div>
 
             {/* Buscador Roles */}
             <div className="relative w-full mb-4">
-              <label htmlFor="buscarRol" className="sr-only">Buscar Rol</label>
               <input
                 id="buscarRol"
                 type="text"
@@ -286,29 +264,29 @@ export default function Index(props: RolesPermisosIndexProps) {
                 value={searchRolInput}
                 onChange={(e) => onChangeSearchRol(e.target.value)}
                 onKeyDown={onKeyDownSearchRol}
-                className="border px-3 py-2 rounded w-full pl-10"
+                className="border border-[#A7A7A9] px-3 py-2 rounded w-full pl-10 text-[#000000]"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400" aria-hidden>🔍</span>
+              <span className="absolute left-3 top-2.5 text-[#A7A7A9]" aria-hidden>🔍</span>
             </div>
 
-            <table className="w-full table-auto border border-gray-200">
-              <thead className="bg-gray-100 sticky top-0 z-10">
+            <table className="w-full table-auto border border-[#A7A7A9]">
+              <thead className="bg-[#A7A7A9]">
                 <tr>
-                  <th className="px-4 py-2 border">ID</th>
-                  <th className="px-4 py-2 border">Nombre</th>
-                  <th className="px-4 py-2 border">Acciones</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">ID</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">Nombre</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {roles.data.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-3 text-center text-gray-500">No se encontraron roles.</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-3 text-center text-[#A7A7A9]">No se encontraron roles.</td></tr>
                 ) : roles.data.map((rol) => (
-                  <tr key={rol.id_rol} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border">{rol.id_rol}</td>
-                    <td className="px-4 py-2 border">{rol.nombre_rol}</td>
-                    <td className="px-4 py-2 border flex gap-2">
-                      <Link href={`/roles/${rol.id_rol}/edit`} className="bg-[#0D47A1] hover:bg-blue-800 text-white px-3 py-1 rounded">Actualizar</Link>
-                      <button onClick={() => eliminarRol(rol.id_rol)} className="bg-[#B71C1C] hover:bg-red-800 text-white px-3 py-1 rounded">Eliminar</button>
+                  <tr key={rol.id_rol} className="hover:bg-[#A7A7A9]/20">
+                    <td className="px-4 py-2 border border-[#A7A7A9]">{rol.id_rol}</td>
+                    <td className="px-4 py-2 border border-[#A7A7A9]">{rol.nombre_rol}</td>
+                    <td className="px-4 py-2 border border-[#A7A7A9] flex gap-2">
+                      <Link href={`/roles/${rol.id_rol}/edit`} className="bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-3 py-1 rounded">Actualizar</Link>
+                      <button onClick={() => eliminarRol(rol.id_rol)} className="bg-[#CD1719] active:bg-[#9e1113] text-[#FFFFFF] px-3 py-1 rounded">Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -321,8 +299,8 @@ export default function Index(props: RolesPermisosIndexProps) {
                 <button
                   key={i}
                   disabled={!link.url}
-                  onClick={() => cambiarPagina(link.url)}
-                  className={`px-3 py-1 rounded ${link.active ? "bg-[#034991] text-white" : "bg-gray-200"}`}
+                  onClick={() => cambiarPagina(link.url, 'roles')} // 👈 agregamos 'roles' como segundo argumento
+                  className={`px-3 py-1 rounded ${link.active ? "bg-[#034991] text-[#FFFFFF]" : "bg-[#A7A7A9] text-[#000000]"}`}
                   dangerouslySetInnerHTML={{ __html: link.label }}
                 />
               ))}
@@ -332,15 +310,14 @@ export default function Index(props: RolesPermisosIndexProps) {
 
         {/* Permisos */}
         {sections.includes("permisos") && (
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Permisos</h2>
-              <Link href="/permisos/create" className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded">Agregar Permiso</Link>
+              <h2 className="text-xl font-bold text-[#034991]">Permisos</h2>
+              <Link href="/permisos/create" className="bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-4 py-2 rounded">Agregar Permiso</Link>
             </div>
 
             {/* Buscador Permisos */}
             <div className="relative w-full mb-4">
-              <label htmlFor="buscarPermiso" className="sr-only">Buscar Permiso</label>
               <input
                 id="buscarPermiso"
                 type="text"
@@ -348,29 +325,29 @@ export default function Index(props: RolesPermisosIndexProps) {
                 value={searchPermisoInput}
                 onChange={(e) => onChangeSearchPermiso(e.target.value)}
                 onKeyDown={onKeyDownSearchPermiso}
-                className="border px-3 py-2 rounded w-full pl-10"
+                className="border border-[#A7A7A9] px-3 py-2 rounded w-full pl-10 text-[#000000]"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400" aria-hidden>🔍</span>
+              <span className="absolute left-3 top-2.5 text-[#A7A7A9]" aria-hidden>🔍</span>
             </div>
 
-            <table className="w-full table-auto border border-gray-200">
-              <thead className="bg-gray-100 sticky top-0 z-10">
+            <table className="w-full table-auto border border-[#A7A7A9]">
+              <thead className="bg-[#A7A7A9]">
                 <tr>
-                  <th className="px-4 py-2 border">ID</th>
-                  <th className="px-4 py-2 border">Nombre</th>
-                  <th className="px-4 py-2 border">Acciones</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">ID</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">Nombre</th>
+                  <th className="px-4 py-2 border border-[#A7A7A9] text-[#000000]">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {permisos.data.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-3 text-center text-gray-500">No se encontraron permisos.</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-3 text-center text-[#A7A7A9]">No se encontraron permisos.</td></tr>
                 ) : permisos.data.map((permiso) => (
-                  <tr key={permiso.id_permiso} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border">{permiso.id_permiso}</td>
-                    <td className="px-4 py-2 border">{permiso.nombre}</td>
-                    <td className="px-4 py-2 border flex gap-2">
-                      <Link href={`/permisos/${permiso.id_permiso}/edit`} className="bg-[#0D47A1] hover:bg-blue-800 text-white px-3 py-1 rounded">Actualizar</Link>
-                      <button onClick={() => eliminarPermiso(permiso.id_permiso)} className="bg-[#B71C1C] hover:bg-red-800 text-white px-3 py-1 rounded">Eliminar</button>
+                  <tr key={permiso.id_permiso} className="hover:bg-[#A7A7A9]/20">
+                    <td className="px-4 py-2 border border-[#A7A7A9]">{permiso.id_permiso}</td>
+                    <td className="px-4 py-2 border border-[#A7A7A9]">{permiso.nombre}</td>
+                    <td className="px-4 py-2 border border-[#A7A7A9] flex gap-2">
+                      <Link href={`/permisos/${permiso.id_permiso}/edit`} className="bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-3 py-1 rounded">Actualizar</Link>
+                      <button onClick={() => eliminarPermiso(permiso.id_permiso)} className="bg-[#CD1719] active:bg-[#9e1113] text-[#FFFFFF] px-3 py-1 rounded">Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -383,8 +360,8 @@ export default function Index(props: RolesPermisosIndexProps) {
                 <button
                   key={i}
                   disabled={!link.url}
-                  onClick={() => cambiarPagina(link.url)}
-                  className={`px-3 py-1 rounded ${link.active ? "bg-[#034991] text-white" : "bg-gray-200"}`}
+                  onClick={() => cambiarPagina(link.url, 'permisos')} // 👈 agregamos 'permisos' como segundo argumento
+                  className={`px-3 py-1 rounded ${link.active ? "bg-[#034991] text-[#FFFFFF]" : "bg-[#A7A7A9] text-[#000000]"}`}
                   dangerouslySetInnerHTML={{ __html: link.label }}
                 />
               ))}
@@ -394,33 +371,48 @@ export default function Index(props: RolesPermisosIndexProps) {
 
         {/* Asignación de permisos */}
         {sections.includes("asignacion") && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Asignación de Permisos a Roles</h2>
+          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4 text-[#034991]">Asignación de Permisos a Roles</h2>
             {roles.data.map((rol) => (
-              <div key={rol.id_rol} className="mb-6 border-b pb-4">
-                <button className="w-full text-left font-semibold px-3 py-2 bg-gray-100 rounded" onClick={() => toggleRol(rol.id_rol)}>
+              <div key={rol.id_rol} className="mb-6 border-b pb-4 border-[#A7A7A9]">
+                <button
+                  className="w-full text-left font-semibold px-3 py-2 bg-[#A7A7A9]/40 rounded"
+                  onClick={() => toggleRol(rol.id_rol)}
+                >
                   {rol.nombre_rol} {rolAbierto === rol.id_rol ? "▲" : "▼"}
                 </button>
                 {rolAbierto === rol.id_rol && (
                   <div className="mt-2">
                     <div className="flex gap-2 mb-2">
-                      <button onClick={() => seleccionarTodos(rol.id_rol)} className="px-3 py-1 bg-blue-600 text-white rounded">Seleccionar Todo</button>
-                      <button onClick={() => deseleccionarTodos(rol.id_rol)} className="px-3 py-1 bg-gray-300 rounded">Deseleccionar Todo</button>
+                      <button onClick={() => seleccionarTodos(rol.id_rol)} className="px-3 py-1 bg-[#034991] active:bg-[#023163] text-[#FFFFFF] rounded">Seleccionar Todo</button>
+                      <button onClick={() => deseleccionarTodos(rol.id_rol)} className="px-3 py-1 bg-[#A7A7A9] active:bg-[#7b7b7d] text-[#000000] rounded">Deseleccionar Todo</button>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-80 overflow-y-auto border rounded p-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-80 overflow-y-auto border rounded p-2 border-[#A7A7A9]">
                       {todosPermisos.map((p) => {
                         const asignado = rolPermisos[rol.id_rol]?.includes(p.id_permiso) ?? false;
                         return (
-                          <label key={p.id_permiso} className={`flex items-center gap-2 border rounded px-2 py-1 cursor-pointer ${asignado ? "bg-blue-50" : ""}`}>
-                            <input type="checkbox" checked={!!asignado} onChange={() => togglePermiso(rol.id_rol, p.id_permiso)} />
+                          <label
+                            key={p.id_permiso}
+                            className={`flex items-center gap-2 border border-[#A7A7A9] rounded px-2 py-1 cursor-pointer ${asignado ? "bg-[#034991]/10" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!asignado}
+                              onChange={() => togglePermiso(rol.id_rol, p.id_permiso)}
+                            />
                             <span>{p.nombre}</span>
                           </label>
                         );
                       })}
                     </div>
 
-                    <button onClick={() => guardarPermisos(rol.id_rol)} className="bg-[#0D47A1] hover:bg-blue-800 text-white px-4 py-1 mt-3 rounded">Guardar Permisos</button>
+                    <button
+                      onClick={() => guardarPermisos(rol.id_rol)}
+                      className="bg-[#034991] active:bg-[#023163] text-[#FFFFFF] px-4 py-1 mt-3 rounded"
+                    >
+                      Guardar Permisos
+                    </button>
                   </div>
                 )}
               </div>
