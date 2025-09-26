@@ -111,42 +111,44 @@ class PerfilController extends Controller
 
     public function update(Request $request, $id)
     {
-        $usuario = Usuario::findOrFail($id);
+        try {
+            $usuario = Usuario::findOrFail($id);
 
-        // Limpiar los campos vacíos antes de validar
-        $dataToValidate = $request->all();
-        foreach ($dataToValidate as $key => $value) {
-            if ($value === '') {
-                $dataToValidate[$key] = null;
+            // Limpiar los campos vacíos antes de validar
+            $dataToValidate = $request->all();
+            foreach ($dataToValidate as $key => $value) {
+                if ($value === '') {
+                    $dataToValidate[$key] = null;
+                }
             }
+
+            $data = validator($dataToValidate, [
+                'nombre_completo' => 'required|string|max:100',
+                'correo' => 'required|email|max:100|unique:usuarios,correo,' . $usuario->id_usuario . ',id_usuario',
+                'identificacion' => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
+                'telefono' => 'nullable|string|max:20',
+                'fecha_nacimiento' => 'nullable|date',
+                'genero' => 'nullable|string|max:10',
+                'estado_empleo' => 'nullable|string|max:20',
+                'estado_estudios' => 'nullable|string|max:20',
+                'anio_graduacion' => 'nullable|integer',
+                'nivel_academico' => 'nullable|string|max:50',
+                'tiempo_conseguir_empleo' => 'nullable|integer',
+                'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
+                'id_canton' => 'nullable|integer|exists:cantones,id_canton',
+                'salario_promedio' => 'nullable|string|max:50',
+                'tipo_empleo' => 'nullable|string|max:50',
+                'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
+                'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
+            ])->validate();
+
+            $usuario->update($data);
+
+            return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');//todo salio bien y se manda mensaje
+
+        } catch (\Throwable $e) {
+            // Capturamos cualquier error inesperado y enviamos un mensaje genérico
+            return redirect()->back()->with('error', 'Ocurrió un error al actualizar los datos.');
         }
-
-        $data = validator($dataToValidate, [
-            'nombre_completo' => 'required|string|max:100',
-            'correo' => 'required|email|max:100|unique:usuarios,correo,' . $usuario->id_usuario . ',id_usuario',
-            'identificacion' => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
-            'telefono' => 'nullable|string|max:20',
-            'fecha_nacimiento' => 'nullable|date',
-            'genero' => 'nullable|string|max:10',
-            'estado_empleo' => 'nullable|string|max:20',
-            'estado_estudios' => 'nullable|string|max:20',
-            'anio_graduacion' => 'nullable|integer',
-            'nivel_academico' => 'nullable|string|max:50',
-            'tiempo_conseguir_empleo' => 'nullable|integer',
-            'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
-            'id_canton' => 'nullable|integer|exists:cantones,id_canton',
-            'salario_promedio' => 'nullable|string|max:50',
-            'tipo_empleo' => 'nullable|string|max:50',
-            'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
-            'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
-
-        ])->validate();
-
-
-        $usuario->update($data);
-
-        return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');
-
-
     }
 }
