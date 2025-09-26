@@ -13,7 +13,7 @@ class Usuario extends Authenticatable
     protected $table = 'usuarios';
     protected $primaryKey = 'id_usuario';
     public $timestamps = false; // no hay created_at / updated_at
-    protected $guarded = []; // puedes usar fillable si prefieres
+    protected $guarded = [];
 
     protected $fillable = [
         'nombre_completo',
@@ -28,10 +28,7 @@ class Usuario extends Authenticatable
         'estado_estudios',
         'fecha_registro',
         'id_rol',
-        //'id_universidad',
-        //'id_carrera',
         'estado_id',
-        // ¡Estos son los campos que faltaban!
         'anio_graduacion',
         'nivel_academico',
         'tiempo_conseguir_empleo',

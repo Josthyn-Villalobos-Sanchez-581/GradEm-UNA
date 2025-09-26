@@ -144,7 +144,7 @@ class PerfilController extends Controller
 
             $usuario->update($data);
 
-            return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');//todo salio bien y se manda mensaje
+            return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');//todo salio
 
         } catch (\Throwable $e) {
             // Capturamos cualquier error inesperado y enviamos un mensaje genérico

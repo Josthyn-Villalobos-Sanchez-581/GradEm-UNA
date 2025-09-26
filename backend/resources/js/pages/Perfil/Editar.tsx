@@ -180,24 +180,14 @@ export default function Editar({
   e.preventDefault();
 
   // 1. Revalidar todos los campos antes de enviar
-  const nuevosErrores: { [key: string]: string } = {};
-  Object.entries(formData).forEach(([key, value]) => {
-    validarCampo(key, value as string);
-    if (errores[key]) {
-      nuevosErrores[key] = errores[key];
-    }
-  });
-
-  if (Object.values(nuevosErrores).some((msg) => msg)) {
-    setErrores(nuevosErrores);
-    
+  if (Object.values(errores).some((msg) => msg)) {
     await modal.alerta({
-      titulo: "Errores en el formulario",
-      mensaje: "Por favor corrija los campos marcados en rojo antes de continuar.",
+        titulo: "Errores en el formulario",
+        mensaje: "Por favor corrija los campos marcados en rojo antes de continuar.",
     });
 
     return;
-  }
+}
 
   // 2. Confirmación modal
   const ok = await modal.confirmacion({
@@ -208,18 +198,19 @@ export default function Editar({
 
   // 3. Envío con Inertia y mensaje de éxito
   Inertia.put(`/perfil/${usuario.id_usuario}`, { ...formData }, {
-    onSuccess: () => {
-      modal.alerta({
-        titulo: "Éxito",
-        mensaje: "Datos guardados con éxito",
-      }).then(() => {
-        Inertia.visit(route('perfil.index'));
-      });
-    },
-    onError: (errors) => {
-    console.error('Errores de validación de Laravel:', errors);
+  onSuccess: () => {
+    modal.alerta({
+      titulo: "Éxito",
+      mensaje: "Datos guardados con éxito",
+    });
   },
-  });
+  onError: (errors) => {
+    console.error("Errores de validación:", errors);
+    debugger; // Aquí sí se detendrá si hay un error de Laravel
+  },
+}
+);
+
 };
 
 
