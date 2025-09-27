@@ -59,14 +59,14 @@ const RecuperarContrasena: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    // MOD: Cortafuegos de validación en cliente antes de enviar
+    // Cortafuegos de validación en cliente antes de enviar
     if (errorPassword || errorConfirm) {
       await modal.alerta({ titulo: "Advertencia", mensaje: errorPassword || errorConfirm || "Revise los campos." });
       setError(errorPassword || errorConfirm || "Revise los campos.");
       return;
     }
 
-    // MOD: Confirmación antes de cambiar la contraseña
+    // Confirmación antes de cambiar la contraseña
     const ok = await modal.confirmacion({
       titulo: "Confirmar cambio",
       mensaje: "¿Está seguro que desea cambiar la contraseña?"
@@ -78,10 +78,13 @@ const RecuperarContrasena: React.FC = () => {
         correo,
         codigo,
         password,
-        password_confirmation: confirmPassword, // MOD: nombre compatible con 'confirmed' en backend
+        password_confirmation: confirmPassword,
       });
-      await modal.alerta({ titulo: "Éxito", mensaje: "Contraseña cambiada con éxito" }); // MOD
-      window.location.href = "/login";
+      await modal.alerta({ titulo: "Éxito", mensaje: "Contraseña cambiada con éxito" });
+      
+      // Redirigir al login después de la recuperación exitosa
+      window.location.href = "/login"; // Esta línea redirige a Login.tsx
+
     } catch (err: any) {
       await modal.alerta({ titulo: "Error", mensaje: err.response?.data?.message || "Error al cambiar la contraseña" }); // MOD
       setError(err.response?.data?.message || "Error al cambiar la contraseña");
