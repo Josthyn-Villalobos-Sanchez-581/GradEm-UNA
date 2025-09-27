@@ -27,6 +27,7 @@ const Registro: React.FC = () => {
     const [codigo, setCodigo] = useState<string>("");
     const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
     const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
+    const [correoValido, setCorreoValido] = useState<boolean>(true);
 
     // Datos del formulario
     const [password, setPassword] = useState<string>("");
@@ -143,6 +144,28 @@ const Registro: React.FC = () => {
         confirmPassword.length > 0 &&
         nombreCompleto.length > 0 &&
         numeroIdentificacion.length > 0;
+
+    const verificarCorreo = async (email: string) => {
+        try {
+            const response = await axios.post("/verificar-correo", { correo: email });
+            if (response.data.exists) {
+                setCorreoValido(false);
+                setErrors((prev: any) => ({ ...prev, correo: ["Este correo ya está registrado"] }));
+            } else {
+                setCorreoValido(true);
+                setErrors((prev: any) => ({ ...prev, correo: undefined }));
+            }
+        } catch (error) {
+            // Opcional: manejar error de red
+        }
+    };
+
+    const handleCorreoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setCorreo(e.target.value);
+        if (e.target.value) {
+            await verificarCorreo(e.target.value);
+        }
+    };
 
     const handleEnviarCodigo = async () => {
         try {
@@ -295,7 +318,7 @@ const Registro: React.FC = () => {
                                         type="email"
                                         required
                                         value={correo}
-                                        onChange={(e) => setCorreo(e.target.value)}
+                                        onChange={handleCorreoChange}
                                         className="appearance-none rounded-md w-full px-3 py-2 border border-una-gray text-gray-900 focus:ring-una-red focus:border-una-red sm:text-sm"
                                         placeholder="ejemplo@est.una.ac.cr"
                                         disabled={codigoValidado}
@@ -715,7 +738,7 @@ const Registro: React.FC = () => {
                                         </div>
                                         )}
 
-                                        {/* MOD: Campo Contraseña con ayuda y error */}
+                                        {/* MOD: Campo Contraseña with ayuda y error */}
                                         <div>
                                             <label htmlFor="password" className="block text-sm font-bold text-black font-open-sans">
                                                 Contraseña
@@ -769,7 +792,7 @@ const Registro: React.FC = () => {
                                         <button
                                             type="submit"
                                             // MOD: Deshabilitar envío si el formulario no es válido
-                                            disabled={!formularioValido}
+                                            disabled={!formularioValido || !correoValido}
                                             className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
                                         >
                                             Registrarse
