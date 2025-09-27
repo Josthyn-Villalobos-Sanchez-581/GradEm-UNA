@@ -19,12 +19,12 @@ class AuthController extends Controller
 
         $usuario = Usuario::where('correo', $request->correo)->first();
         if (!$usuario) {
-            return response()->json(['message' => 'Usuario no encontrado'], 422);
+            return response()->json(['message' => 'Los datos ingresados son incorrectos'], 422);
         }
 
         $credencial = Credencial::where('id_usuario', $usuario->id_usuario)->first();
         if (!$credencial || !Hash::check($request->password, $credencial->hash_contrasena)) {
-            return response()->json(['message' => 'Contraseña incorrecta'], 422);
+            return response()->json(['message' => 'Los datos ingresados son incorrectos'], 422);
         }
 
         Auth::login($usuario);
