@@ -6,6 +6,7 @@ import { route } from 'ziggy-js';
 //import Ziggy from '@/ziggy';
 import { useModal } from "@/hooks/useModal";
 import { Inertia } from "@inertiajs/inertia";
+
 interface UserItem {
   id: number;
   nombre_completo?: string;

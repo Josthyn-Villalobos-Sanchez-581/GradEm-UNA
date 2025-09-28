@@ -3,35 +3,76 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Link } from "@inertiajs/react";
+
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
 const tailwindStyles = `
-    .font-open-sans { font-family: 'Open Sans', sans-serif; }
-    .text-una-red { color: #CD1719; }
-    .bg-una-red { background-color: #CD1719; }
-    .border-una-red { border-color: #CD1719; }
-    .text-una-blue { color: #034991; }
-    .bg-una-blue { background-color: #034991; }
-    .text-una-gray { color: #A7A7A9; }
-    .bg-una-gray { background-color: #A7A7A9; }
-    .border-una-gray { border-color: #A7A7A9; }
-    .text-black { color: #000000; }
-    .text-una-dark-gray { color: #4B5563; }
+  /* Paletas y utilidades pequeñas */
+  .text-una-red { color: #CD1719; }
+  .bg-una-red { background-color: #CD1719; }
+  .border-una-red { border-color: #CD1719; }
+  .text-una-blue { color: #034991; }
+  .text-una-gray { color: #A7A7A9; }
+  .text-black { color: #000000; }
+  .text-una-dark-gray { color: #4B5563; }
+
+  /* Tipografías - prioridad: Frutiger (títulos/labels), Open Sans (fallback para títulos),
+     Goudy Old Style (texto extenso / inputs / párrafos) */
+  :root{
+    --font-title: "Frutiger", "Open Sans", Arial, sans-serif;
+    --font-body: "Goudy Old Style", Georgia, "Times New Roman", serif;
+  }
 `;
 
-/* estilos locales (grid, inputs, botón, estados disabled) */
+/* estilos locales (grid, inputs, botón, estados disabled)
+   Aplique font-family específicas según tu especificación */
 const localStyles = `
-  .form-section { width: 100%; font-family: 'Open Sans', sans-serif; box-sizing: border-box; max-width: 980px; }
-  .section-title { font-family: 'Goudy Old Style', serif; font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }
-  .section-sub { color: #333; margin-bottom: .75rem; }
+  .form-section {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 980px;
+    margin: 0 auto;
+    /* texto de lectura extensa (cuerpo) */
+    font-family: var(--font-body);
+  }
 
-  .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  /* Títulos y textos cortos: Frutiger / Open Sans */
+  .section-title {
+    font-family: var(--font-title);
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+  }
+
+  .section-sub {
+    color: #333;
+    margin-bottom: .75rem;
+    font-size: .95rem;
+    /* subtítulos cortos: usar font-title para consistencia visual en títulos/subtítulos */
+    font-family: var(--font-title);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
   @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
 
   .field { display: flex; flex-direction: column; }
-  .label { font-weight: 700; margin-bottom: .25rem; font-size: .95rem; color: #034991; }
 
+  /* Labels son textos cortos => usar font-title */
+  .label {
+    font-family: var(--font-title);
+    font-weight: 700;
+    margin-bottom: .25rem;
+    font-size: .95rem;
+    color: #034991;
+  }
+
+  /* Inputs: contenidos potencialmente largos -> usar font-body (Goudy Old Style) */
   .input, .select {
+    font-family: var(--font-body);
     padding: .5rem .75rem;
     border: 1px solid #A7A7A9;
     border-radius: 6px;
@@ -40,13 +81,17 @@ const localStyles = `
     box-sizing: border-box;
   }
 
+  .input::placeholder { font-family: var(--font-body); color: #9CA3AF; }
+
   .input:focus, .select:focus {
     outline: none;
     border-color: #CD1719;
     box-shadow: 0 0 6px rgba(205,23,25,0.12);
   }
 
+  /* Botón: texto corto => font-title */
   .btn-primary {
+    font-family: var(--font-title);
     display: inline-flex;
     justify-content: center;
     align-items: center;
@@ -67,17 +112,30 @@ const localStyles = `
   .btn-primary[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #CD1719; /* mantiene color pero visualmente deshabilitado */
+    background: #CD1719;
   }
 
-  .error-text { color: #b91c1c; font-size: .9rem; margin-top: .35rem; min-height: 1.1rem; }
-  .help-text { color: #4B5563; font-size: .9rem; text-align: center; margin-top: .5rem; }
+  .error-text {
+    color: #b91c1c;
+    font-size: .9rem;
+    margin-top: .35rem;
+    min-height: 1.1rem;
+    /* mensajes de error (lectura) => font-body */
+    font-family: var(--font-body);
+  }
+
+  .help-text {
+    color: #4B5563;
+    font-size: .9rem;
+    text-align: center;
+    margin-top: .5rem;
+    font-family: var(--font-body);
+  }
 
   .full-row { grid-column: 1 / -1; }
   .mb-4 { margin-bottom: 1rem; }
   .mt-6 { margin-top: 1.5rem; }
 `;
-
 
 interface Universidad {
   id_universidad: number;
@@ -95,7 +153,7 @@ const allowedCarreras = [
   "Ingeniería en Sistemas de Información",
   "Química Industrial",
   "Administración",
-  "Inglés"
+  "Inglés",
 ];
 
 const FormularioRegistroAdmin: React.FC = () => {
@@ -118,29 +176,7 @@ const FormularioRegistroAdmin: React.FC = () => {
 
   const fieldError = (field: string) => (form.errors as Record<string, any>)[field] || "";
 
-  const labelFromNombre = (nombre: string) => {
-    if (nombre === "Ingeniería en Sistemas") return "Ing. Sistemas";
-    return nombre;
-  };
-
-  const loadCarrerasForUni = async (id_universidad: number) => {
-    setLoadingCarreras(true);
-    try {
-      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
-      if (!res.ok) throw new Error("Error cargando carreras");
-      const data = await res.json();
-      const filtered = Array.isArray(data) ? data.filter(c => allowedCarreras.includes(c.nombre)) : [];
-      setCarreras(filtered);
-      form.setData("carrera", "");
-    } catch (err) {
-      console.error(err);
-      setCarreras([]);
-      form.setData("carrera", "");
-    } finally {
-      setLoadingCarreras(false);
-    }
-  };
-
+  /* ================ carga dinámicas ================ */
   useEffect(() => {
     let mounted = true;
     const loadUnis = async () => {
@@ -165,6 +201,24 @@ const FormularioRegistroAdmin: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  const loadCarrerasForUni = async (id_universidad: number) => {
+    setLoadingCarreras(true);
+    try {
+      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("Error cargando carreras");
+      const data = await res.json();
+      const filtered = Array.isArray(data) ? data.filter((c: any) => allowedCarreras.includes(c.nombre)) : [];
+      setCarreras(filtered);
+      form.setData("carrera", "");
+    } catch (err) {
+      console.error(err);
+      setCarreras([]);
+      form.setData("carrera", "");
+    } finally {
+      setLoadingCarreras(false);
+    }
+  };
+
   const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = Number(e.target.value);
     const selected = universidades.find((u) => u.id_universidad === selectedId);
@@ -187,40 +241,6 @@ const FormularioRegistroAdmin: React.FC = () => {
     const selectedId = Number(val);
     const selected = carreras.find((c) => c.id_carrera === selectedId);
     if (selected) form.setData("carrera", selected.nombre);
-  };
-
-  const isFormValid = (): boolean => {
-    const data = form.data as Record<string, any>;
-    if (!data.nombre_completo || !String(data.nombre_completo).trim()) return false;
-    if (!data.correo || !/^\S+@\S+\.\S+$/.test(String(data.correo))) return false;
-    const idClean = String(data.identificacion || "").replace(/[-\s]/g, "");
-    if (!idClean || !/^\d+$/.test(idClean)) return false;
-    const tel = String(data.telefono || "").replace(/[-\s]/g, "");
-    if (tel && !/^\d{8}$/.test(tel)) return false;
-    if (data.rol === "Dirección" && !String(data.carrera || "").trim()) return false;
-    if (!data.contrasena || String(data.contrasena).length < 8) return false;
-    if (String(data.contrasena) !== String(data.contrasena_confirmation)) return false;
-    return true;
-  };
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid()) return;
-    form.post(route("usuarios.store"), {
-      preserveScroll: true,
-      onSuccess: () => {
-        form.reset(
-          "nombre_completo",
-          "correo",
-          "identificacion",
-          "telefono",
-          "universidad",
-          "carrera",
-          "contrasena",
-          "contrasena_confirmation"
-        );
-      },
-    });
   };
 
   const renderUniversidadField = () => {
@@ -257,7 +277,7 @@ const FormularioRegistroAdmin: React.FC = () => {
           className="input"
           value={form.data.carrera}
           onChange={(e) => form.setData("carrera", e.target.value)}
-          placeholder="Ej: Ingeniería en Sistemas"
+          placeholder="Opcional"
         />
       );
     }
@@ -271,48 +291,164 @@ const FormularioRegistroAdmin: React.FC = () => {
         <option value="">Ninguna</option>
         {carreras.map((c) => (
           <option key={c.id_carrera} value={c.id_carrera}>
-            {labelFromNombre(c.nombre)}
+            {c.nombre}
           </option>
         ))}
       </select>
     );
   };
 
+  /* ========================= VALIDACIONES EN TIEMPO REAL ========================= */
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
+    value = value.replace(/\s{2,}/g, " ");
+    if (value.length > 100) value = value.slice(0, 100);
+    form.setData("nombre_completo", value);
+  };
+
+  const handleCorreoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    value = value.replace(/[0-9]/g, "");
+    value = value.replace(/\s/g, "");
+    if (value.length > 150) value = value.slice(0, 150);
+    form.setData("correo", value);
+  };
+
+  const validarCorreo = (correo: string) => /^.+@(una\.ac\.cr|gmail\.com)$/i.test(correo);
+
+  const handleIdentificacionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 9) value = value.slice(0, 9);
+    form.setData("identificacion", value);
+  };
+
+  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^0-9+]/g, "");
+    if (value.startsWith("+")) {
+      value = "+" + value.slice(1).replace(/\+/g, "");
+    } else {
+      value = value.replace(/\+/g, "");
+    }
+    if (value.length > 12) value = value.slice(0, 12);
+    form.setData("telefono", value);
+  };
+
+  const validarContrasena = (pwd: string) =>
+    /[a-z]/.test(pwd) &&
+    /[A-Z]/.test(pwd) &&
+    /\d/.test(pwd) &&
+    /[$@!%?&]/.test(pwd) &&
+    !/\s/.test(pwd) &&
+    pwd.length >= 8 &&
+    pwd.length <= 12;
+
+  const getContrasenaError = (pwd: string) => {
+    if (!pwd) return "Requerido";
+    const problems: string[] = [];
+    if (!/[a-z]/.test(pwd)) problems.push("una minúscula");
+    if (!/[A-Z]/.test(pwd)) problems.push("una mayúscula");
+    if (!/\d/.test(pwd)) problems.push("un número");
+    if (!/[$@!%?&]/.test(pwd)) problems.push("un carácter especial ($ @ ! % ? &)");
+    if (/\s/.test(pwd)) problems.push("no debe tener espacios");
+    if (pwd.length < 8) problems.push("mínimo 8 caracteres");
+    if (pwd.length > 12) problems.push("máximo 12 caracteres");
+    if (problems.length === 0) return "";
+    return "La contraseña debe incluir " + problems.join(", ") + ".";
+  };
+
+  /* ========================= Validación general ========================= */
+  const anyTextEmpty = () => {
+    const requiredText = [
+      String(form.data.nombre_completo || ""),
+      String(form.data.correo || ""),
+      String(form.data.identificacion || ""),
+      String(form.data.telefono || ""),
+    ];
+    return requiredText.some((s) => !s.trim());
+  };
+
+  const isFormValid = (): boolean => {
+    const data = form.data as Record<string, any>;
+    if (anyTextEmpty()) return false;
+    if (!validarCorreo(data.correo)) return false;
+    if (data.identificacion.length !== 9) return false;
+    const telLen = (data.telefono || "").length;
+    if (telLen < 8 || telLen > 12) return false;
+    if (!validarContrasena(data.contrasena)) return false;
+    if (data.contrasena !== data.contrasena_confirmation) return false;
+    return true;
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isFormValid()) return;
+    form.post(route("usuarios.store"), {
+      preserveScroll: true,
+      onSuccess: () => {
+        form.reset(
+          "nombre_completo",
+          "correo",
+          "identificacion",
+          "telefono",
+          "universidad",
+          "carrera",
+          "contrasena",
+          "contrasena_confirmation"
+        );
+      },
+    });
+  };
+
+  const nombreError = !String(form.data.nombre_completo || "").trim() ? "Requerido" : "";
+  const correoError =
+    !String(form.data.correo || "").trim()
+      ? "Requerido"
+      : (!validarCorreo(form.data.correo) ? "Correo inválido (dominios: una.ac.cr o gmail.com)" : "");
+  const identificacionError =
+    !String(form.data.identificacion || "").trim()
+      ? "Requerido"
+      : (String(form.data.identificacion).length !== 9 ? "Debe tener 9 dígitos" : "");
+  const telefonoError =
+    !String(form.data.telefono || "").trim()
+      ? "Requerido"
+      : (((form.data.telefono as string).length < 8 || (form.data.telefono as string).length > 12) ? "Teléfono inválido (8-12 caracteres incl. +)" : "");
+  const contrasenaError = getContrasenaError(String(form.data.contrasena || ""));
+  const contrasenaConfirmError = form.data.contrasena && form.data.contrasena !== form.data.contrasena_confirmation ? "No coincide" : "";
+
   const valid = isFormValid();
 
   return (
     <div className="form-section">
-      <style>{tailwindStyles}</style>
-      <style>{localStyles}</style>
+      <style>{tailwindStyles + localStyles}</style>
 
-   <div className="mb-4 flex justify-between items-center">
-  <div>
-    <h2 className="section-title text-una-red font-open-sans">
-      Registro — Administrador / Dirección / Subdirección 
-    </h2>
-    <p className="section-sub">Complete los datos para crear la cuenta.</p>
-  </div>
-
-  <Link
-    href={route('usuarios.index')}
-    className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-  >
-    Volver
-  </Link>
-</div>
+      <div className="mb-4 flex justify-between items-center">
+        <div>
+          <h2 className="section-title text-una-red" style={{ margin: 0 }}>
+            Registro — Administrador / Dirección / Subdirección
+          </h2>
+          <p className="section-sub">Complete los datos para crear la cuenta.</p>
+        </div>
+        <Link
+          href={route("usuarios.index")}
+          className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+        >
+          Volver
+        </Link>
+      </div>
 
       <form onSubmit={submit} noValidate>
         <div className="form-grid">
-          {/* Nombre */}
+          {/* Nombre completo */}
           <div className="field">
             <label className="label">Nombre completo</label>
             <input
               className={`input ${fieldError("nombre_completo") ? "border-una-red" : ""}`}
               value={form.data.nombre_completo}
-              onChange={(e) => form.setData("nombre_completo", e.target.value)}
+              onChange={handleNombreChange}
               placeholder="Ej: Juan Pérez González"
+              maxLength={100}
             />
-            <div className="error-text">{fieldError("nombre_completo")}</div>
+            <div className="error-text">{fieldError("nombre_completo") || nombreError}</div>
           </div>
 
           {/* Correo */}
@@ -322,10 +458,10 @@ const FormularioRegistroAdmin: React.FC = () => {
               type="email"
               className={`input ${fieldError("correo") ? "border-una-red" : ""}`}
               value={form.data.correo}
-              onChange={(e) => form.setData("correo", e.target.value)}
+              onChange={handleCorreoChange}
               placeholder="ejemplo@una.ac.cr"
             />
-            <div className="error-text">{fieldError("correo")}</div>
+            <div className="error-text">{fieldError("correo") || correoError}</div>
           </div>
 
           {/* Identificación */}
@@ -334,10 +470,11 @@ const FormularioRegistroAdmin: React.FC = () => {
             <input
               className={`input ${fieldError("identificacion") ? "border-una-red" : ""}`}
               value={form.data.identificacion}
-              onChange={(e) => form.setData("identificacion", e.target.value)}
+              onChange={handleIdentificacionChange}
               placeholder="Ej: 112345678"
+              maxLength={9}
             />
-            <div className="error-text">{fieldError("identificacion")}</div>
+            <div className="error-text">{fieldError("identificacion") || identificacionError}</div>
           </div>
 
           {/* Teléfono */}
@@ -346,10 +483,11 @@ const FormularioRegistroAdmin: React.FC = () => {
             <input
               className={`input ${fieldError("telefono") ? "border-una-red" : ""}`}
               value={form.data.telefono}
-              onChange={(e) => form.setData("telefono", e.target.value)}
-              placeholder="88888888"
+              onChange={handleTelefonoChange}
+              placeholder="+50688888888"
+              maxLength={12}
             />
-            <div className="error-text">{fieldError("telefono")}</div>
+            <div className="error-text">{fieldError("telefono") || telefonoError}</div>
           </div>
 
           {/* Rol */}
@@ -366,20 +504,13 @@ const FormularioRegistroAdmin: React.FC = () => {
             </select>
             <div className="error-text">{fieldError("rol")}</div>
           </div>
+
           {/* Universidad */}
           <div className="field">
             <label className="label">Universidad asociada</label>
             {renderUniversidadField()}
             <div className="error-text">{fieldError("universidad")}</div>
           </div>
-
-          <div className="field">
-            <label className="label">
-              Carrera asociada {form.data.rol === "Dirección" && <span style={{ color: "#CD1719" }}>(requerida)</span>}
-            </label>
-            {renderCarreraField()}
-            <div className="error-text">{fieldError("carrera")}</div>
-                 </div>
 
           {/* Contraseña */}
           <div className="field">
@@ -389,9 +520,16 @@ const FormularioRegistroAdmin: React.FC = () => {
               className={`input ${fieldError("contrasena") ? "border-una-red" : ""}`}
               value={form.data.contrasena}
               onChange={(e) => form.setData("contrasena", e.target.value)}
-              placeholder="Mínimo 8 caracteres"
+              placeholder="8-12 caracteres, mayúscula, minúscula, número y símbolo"
             />
-            <div className="error-text">{fieldError("contrasena")}</div>
+            <div className="error-text">{fieldError("contrasena") || contrasenaError}</div>
+          </div>
+
+          {/* Carrera */}
+          <div className="field">
+            <label className="label">Carrera asociada</label>
+            {renderCarreraField()}
+            <div className="error-text">{fieldError("carrera")}</div>
           </div>
 
           {/* Confirmar contraseña */}
@@ -404,10 +542,10 @@ const FormularioRegistroAdmin: React.FC = () => {
               onChange={(e) => form.setData("contrasena_confirmation", e.target.value)}
               placeholder="Reingrese la contraseña"
             />
-            <div className="error-text">{fieldError("contrasena_confirmation")}</div>
+            <div className="error-text">{fieldError("contrasena_confirmation") || contrasenaConfirmError}</div>
           </div>
 
-          <div className="full-row help-text">Campos con * son obligatorios. La contraseña debe tener mínimo 8 caracteres.</div>
+          <div className="full-row help-text">Campos con * son obligatorios. La contraseña debe tener mínimo 8 caracteres y cumplir las reglas.</div>
         </div>
 
         <div className="mt-6">
@@ -415,7 +553,7 @@ const FormularioRegistroAdmin: React.FC = () => {
             type="submit"
             disabled={form.processing || !valid}
             className="btn-primary"
-                          title={valid ? "Registrar" : "Complete todos los campos correctamente"}
+            title={valid ? "Registrar" : "Complete todos los campos correctamente"}
           >
             {form.processing ? "Enviando..." : "Registrar"}
           </button>
