@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
-import { useModal } from "@/hooks/useModal"; // MOD: importar el modal
+import { useModal } from "@/hooks/useModal";
 
 interface Props {
   userPermisos: number[];
@@ -10,18 +10,42 @@ interface Props {
 
 export default function Create({ userPermisos }: Props) {
   const [nombreRol, setNombreRol] = useState("");
-  const modal = useModal(); // MOD: usar el modal
+  const [errorNombre, setErrorNombre] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const modal = useModal();
+
+  const validate = (value: string) => {
+    if (!value.trim()) return "El nombre del rol no puede estar vacío";
+    if (value.length < 3) return "El nombre del rol debe tener al menos 3 caracteres";
+    if (value.length > 50) return "El nombre del rol no puede exceder 50 caracteres";
+    if (!/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/.test(value)) return "Solo se permiten letras y espacios";
+    return "";
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNombreRol(value);
+    setErrorNombre(validate(value));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // MOD: Confirmación antes de crear el rol
+    const error = validate(nombreRol);
+    if (error) {
+      setErrorNombre(error);
+      return;
+    }
+
     const ok = await modal.confirmacion({
       titulo: "Confirmar creación",
-      mensaje: "¿Está seguro que desea crear este rol?"
+      mensaje: `¿Está seguro que desea crear el rol "${nombreRol}"?`,
     });
     if (!ok) return;
 
-    Inertia.post("/roles", { nombre_rol: nombreRol });
+    setSubmitting(true);
+    Inertia.post("/roles", { nombre_rol: nombreRol }, {
+      onFinish: () => setSubmitting(false)
+    });
   };
 
   return (
@@ -37,19 +61,25 @@ export default function Create({ userPermisos }: Props) {
             Volver
           </Link>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <label htmlFor="nombreRol" className="font-medium">Nombre del rol</label>
           <input
+            id="nombreRol"
             type="text"
             value={nombreRol}
-            onChange={(e) => setNombreRol(e.target.value)}
-            placeholder="Nombre del rol"
-            className="border p-2 rounded w-full"
+            onChange={handleChange}
+            placeholder="Ingrese el nombre del rol"
+            className={`border p-2 rounded w-full ${errorNombre ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-400`}
+            disabled={submitting}
           />
+          {errorNombre && <p className="text-red-500 text-sm">{errorNombre}</p>}
+          <p className="text-gray-500 text-sm">Debe tener entre 3 y 50 caracteres, solo letras y espacios.</p>
           <button
             type="submit"
-            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
+            disabled={!!errorNombre || submitting || !nombreRol.trim()}
+            className={`bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded mt-2 ${(!nombreRol.trim() || errorNombre || submitting) ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            Crear
+            {submitting ? "Creando..." : "Crear"}
           </button>
         </form>
       </div>

@@ -155,7 +155,7 @@ return [
         'name' => 'nombre',
         'nombre' => 'nombre',
         'nombre_completo' => 'nombre completo',
-        'correo' => 'correo institucional',
+        'correo' => 'correo electrónico',
         'email' => 'correo electrónico',
         'password' => 'contraseña',
         'contrasena' => 'contraseña',

@@ -202,7 +202,7 @@ public function edit($id)
     $rolNombre = $usuario->rol?->nombre_rol ?? 'Administrador del Sistema';
 
     // Si el rol en BD no está en el mapa, por defecto "Administrador del Sistema"
-    $rolNormalizado = $rolNombre; // puedes mapear si lo necesitas
+    $rolNormalizado = $rolNombre;
 
     // Obtener universidad con sigla si existe
     $uni = $usuario->id_universidad

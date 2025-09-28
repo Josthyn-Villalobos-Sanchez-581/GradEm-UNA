@@ -1,39 +1,91 @@
 <?php
 
-//backend/app/Http/Controllers/RolesPermisosController.php 
 namespace App\Http\Controllers;
 
 use App\Models\Rol;
 use App\Models\Permiso;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-// Controlador principal para la gestión de roles y permisos
 class RolesPermisosController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Obtener al usuario autenticado
         $usuario = Auth::user();
 
-        // Obtener todos los roles con sus permisos asociados
-        $roles = Rol::with('permisos')->get();
+        $searchRol = $request->input('searchRol');
+        $searchPermiso = $request->input('searchPermiso');
+        $visibleSections = $request->input('visibleSections', ['roles','permisos','asignacion']);
 
-        // Obtener todos los permisos
-        $permisos = Permiso::all();
+        // Roles con paginación independiente
+        $roles = Rol::with('permisos')
+            ->when($searchRol, function ($q) use ($searchRol) {
+                $q->where('nombre_rol', 'LIKE', "%{$searchRol}%")
+                  ->orWhere('id_rol', is_numeric($searchRol) ? $searchRol : 0);
+            })
+            ->paginate(10, ['*'], 'roles_page') // 👈 nombre distinto para query param
+            ->appends($request->except('roles_page'));
 
-        // Obtener los IDs de los permisos del usuario autenticado para controlar la visibilidad del layout
+        // Permisos con paginación independiente
+        $permisos = Permiso::when($searchPermiso, function ($q) use ($searchPermiso) {
+                $q->where('nombre', 'LIKE', "%{$searchPermiso}%")
+                  ->orWhere('id_permiso', is_numeric($searchPermiso) ? $searchPermiso : 0);
+            })
+            ->paginate(10, ['*'], 'permisos_page') // 👈 nombre distinto para query param
+            ->appends($request->except('permisos_page'));
+
+        // Para checkboxes de asignación
+        $todosPermisos = Permiso::all(['id_permiso','nombre']);
+
+        // Permisos del usuario autenticado
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->pluck('id_permiso')
             ->toArray();
 
-        // Renderizar la vista Inertia y pasar los datos necesarios
         return Inertia::render('Roles_Permisos/Index', [
-            'roles' => $roles,
-            'permisos' => $permisos,
-            'userPermisos' => $userPermisos, // Esto es clave para el control de la interfaz de usuario en el frontend
+            'roles'           => $roles,
+            'permisos'        => $permisos,
+            'todosPermisos'   => $todosPermisos,
+            'userPermisos'    => $userPermisos,
+            'filters'         => [
+                'searchRol'     => $searchRol,
+                'searchPermiso' => $searchPermiso,
+            ],
+            'visibleSections' => $visibleSections, // 👈 mantiene selección de secciones
+        ]);
+    }
+
+    public function asignarPermisos(Request $request, $rolId)
+    {
+        $rol = Rol::findOrFail($rolId);
+
+        $request->validate([
+            'permisos'   => 'required|array|min:1',
+            'permisos.*' => 'exists:permisos,id_permiso'
+        ]);
+
+        $rol->permisos()->sync(array_unique($request->permisos));
+
+        $this->registrarBitacora(
+            'roles_permisos',
+            'asignar',
+            "Permisos actualizados rol ID {$rolId}: " . implode(',', $request->permisos)
+        );
+
+        return back()->with('success', 'Permisos actualizados correctamente.');
+    }
+
+    private function registrarBitacora($tabla, $operacion, $descripcion)
+    {
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada'    => $tabla,
+            'operacion'         => $operacion,
+            'usuario_responsable'=> Auth::id(),
+            'descripcion_cambio'=> $descripcion,
+            'fecha_cambio'      => now()
         ]);
     }
 }

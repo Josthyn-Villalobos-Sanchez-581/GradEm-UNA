@@ -97,7 +97,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
     Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
     Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
-    Route::post('/roles/{id}/permisos', [RolController::class, 'asignarPermisos'])->name('roles.asignar');
 
     // ==========================================
     // Rutas de Permisos
@@ -110,10 +109,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
 
     // ==========================================
-    // Ruta de Roles_Permisos (Index general)
+    // Rutas de Roles_Permisos (Index general y asignación)
     // ==========================================
-    Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])
-        ->name('roles_permisos.index');
+    Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
+    Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
+
 
     // ==========================================
     // Rutas de Usuarios Administradores/Dirección/Subdirección
@@ -133,7 +133,9 @@ Route::middleware('auth')->group(function () {
     // Perfil
     // ==========================================
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
+    Route::get('/perfil/editar', [PerfilController::class, 'edit'])->name('perfil.edit');
     Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
+
 });
 
 // ==========================================

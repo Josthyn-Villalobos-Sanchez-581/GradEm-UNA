@@ -16,6 +16,11 @@ class RegistroController extends Controller
     {
         $request->validate(['correo' => 'required|email']);
 
+        // Verificar si el correo ya está registrado
+        if (\App\Models\Usuario::where('correo', $request->correo)->exists()) {
+            return response()->json(['message' => 'Este correo ya está registrado'], 422);
+        }
+
         $codigo = rand(100000, 999999);
 
         // Guardamos en sesión por 5 minutos
@@ -129,5 +134,17 @@ class RegistroController extends Controller
     public function mostrarFormulario()
     {
         return Inertia::render('Registro'); // apunta a resources/js/pages/Registro.tsx
+    }
+
+    // Método para verificar si el correo ya existe
+    public function verificarCorreo(Request $request)
+    {
+        $request->validate([
+            'correo' => 'required|email'
+        ]);
+
+        $exists = \App\Models\User::where('correo', $request->correo)->exists();
+
+        return response()->json(['exists' => $exists]);
     }
 }

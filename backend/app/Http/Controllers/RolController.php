@@ -1,26 +1,29 @@
 <?php
-//backend/app/Http/Controllers/RolController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Rol;
 use App\Models\Permiso;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RolController extends Controller
 {
-    // Listar roles y permisos para la vista principal de gestión
-    public function index()
+    public function index(Request $request)
     {
-        // Obtener todos los roles con sus permisos asociados
-        $roles = Rol::with('permisos')->get();
-        // Obtener todos los permisos disponibles
-        $permisos = Permiso::all();
+        $searchRol = $request->input('searchRol');
+        $searchPermiso = $request->input('searchPermiso');
 
-        // Permisos del usuario autenticado para controlar la visibilidad del layout
+        $roles = Rol::with('permisos')
+            ->when($searchRol, fn($q)=>$q->where('nombre_rol','like',"%$searchRol%"))
+            ->paginate(10)->withQueryString();
+
+        $permisos = Permiso::when($searchPermiso, fn($q)=>$q->where('nombre','like',"%$searchPermiso%"))
+            ->paginate(10)->withQueryString();
+
         $usuario = Auth::user();
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
@@ -30,110 +33,94 @@ class RolController extends Controller
         return Inertia::render('Roles_Permisos/Index', [
             'roles' => $roles,
             'permisos' => $permisos,
+            'todosPermisos' => Permiso::all(['id_permiso', 'nombre']),
             'userPermisos' => $userPermisos,
-            // Pasar un mensaje flash de éxito si existe en la sesión
-            'flash' => session('success') ? ['success' => session('success')] : null,
+            'filters' => [
+                'searchRol' => $searchRol,
+                'searchPermiso' => $searchPermiso,
+            ],
+            'visibleSections' => $request->input('visibleSections', ['roles','permisos','asignacion']),
         ]);
     }
 
-    // Mostrar formulario para crear un nuevo rol
     public function create()
     {
-        // Obtener los permisos del usuario autenticado para la navegación o UI
         $usuario = Auth::user();
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
-
+        $userPermisos = DB::table('roles_permisos')->where('id_rol', $usuario->id_rol)->pluck('id_permiso')->toArray();
         return Inertia::render('Roles_Permisos/Roles/Create', [
-            'userPermisos' => $userPermisos,
+            'todosPermisos' => Permiso::all(['id_permiso', 'nombre']),
+            'userPermisos' => $userPermisos
         ]);
     }
 
-    // Mostrar formulario para editar un rol existente
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nombre_rol' => 'required|string|max:255|unique:roles,nombre_rol',
+        ]);
+
+        $rol = Rol::create([
+            'nombre_rol' => $request->nombre_rol,
+        ]);
+
+        $this->registrarBitacora('roles', 'crear', 'Rol creado ID '.$rol->id_rol);
+
+        return redirect()->route('roles_permisos.index')->with('success', 'Rol creado correctamente. Recuerda asignarle permisos.');
+    }
+
     public function edit($id)
     {
-        // Encontrar el rol por su ID o fallar
-        $rol = Rol::findOrFail($id);
-
-        // Obtener los permisos del usuario autenticado para la navegación o UI
+        $rol = Rol::with('permisos')->findOrFail($id);
         $usuario = Auth::user();
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
+        $userPermisos = DB::table('roles_permisos')->where('id_rol', $usuario->id_rol)->pluck('id_permiso')->toArray();
 
         return Inertia::render('Roles_Permisos/Roles/Edit', [
             'rol' => $rol,
-            'userPermisos' => $userPermisos,
+            'todosPermisos' => Permiso::all(['id_permiso','nombre']),
+            'userPermisos' => $userPermisos
         ]);
     }
 
-    // Almacenar un nuevo rol en la base de datos
-    public function store(Request $request)
-    {
-        // Validar los datos de la solicitud
-        $data = $request->validate([
-            // 'nombre_rol' es un campo obligatorio, de tipo string, máximo 50 caracteres y único en la tabla 'roles'
-            'nombre_rol' => ['required', 'string', 'max:50', Rule::unique('roles', 'nombre_rol')],
-        ]);
-
-        // Crear una nueva instancia de rol con los datos validados
-        Rol::create($data);
-
-        // Redireccionar a la vista de índice con una redirección de Inertia
-        return Inertia::location(route('roles_permisos.index'));
-    }
-
-    // Actualizar un rol existente
     public function update(Request $request, $id)
     {
-        // Encontrar el rol por su ID o fallar
         $rol = Rol::findOrFail($id);
 
-        // Validar los datos de la solicitud
         $data = $request->validate([
-            'nombre_rol' => [
-                'required',
-                'string',
-                'max:50',
-                // Asegurar que el nombre del rol sea único, ignorando el rol actual
-                Rule::unique('roles', 'nombre_rol')->ignore($rol->id_rol, 'id_rol'),
-            ],
+            'nombre_rol' => ['required','string','max:50', Rule::unique('roles','nombre_rol')->ignore($rol->id_rol,'id_rol')],
+            'permisos' => 'required|array|min:1',
+            'permisos.*' => 'exists:permisos,id_permiso'
         ]);
 
-        // Actualizar el rol con los datos validados
-        $rol->update($data);
+        $rol->update(['nombre_rol' => $data['nombre_rol']]);
+        $rol->permisos()->sync($data['permisos']);
+        $this->registrarBitacora('roles','actualizar',"Rol actualizado ID {$rol->id_rol} con permisos: ".implode(',',$data['permisos']));
 
-        // Redireccionar a la vista de índice con una redirección de Inertia
-        return Inertia::location(route('roles_permisos.index'));
+        return back();
     }
 
-    // Eliminar un rol
     public function destroy($id)
     {
-        // Encontrar el rol por su ID o fallar
-        $rol = Rol::findOrFail($id);
-        // Eliminar el rol de la base de datos
-        $rol->delete();
+        $rol = Rol::with('permisos')->findOrFail($id);
 
-        // Redireccionar a la vista de índice con una redirección de Inertia
-        return Inertia::location(route('roles_permisos.index'));
+        $permisosAsignados = $rol->permisos->pluck('id_permiso')->toArray();
+        if(count($permisosAsignados) > 0){
+            $rol->permisos()->detach();
+            $this->registrarBitacora('roles','desasignar',"Permisos desasignados antes de eliminar rol ID {$rol->id_rol}: ".implode(',',$permisosAsignados));
+        }
+
+        $rol->delete();
+        $this->registrarBitacora('roles','eliminar',"Rol eliminado ID {$id}");
+        return back();
     }
 
-    // Asignar permisos a un rol específico
-    public function asignarPermisos(Request $request, $id)
+    private function registrarBitacora($tabla,$operacion,$descripcion)
     {
-        // Encontrar el rol por su ID o fallar
-        $rol = Rol::findOrFail($id);
-        // Obtener la lista de IDs de permisos del request, o un array vacío si no se proporciona
-        $permisos = $request->get('permisos', []);
-        // Sincronizar los permisos del rol. Esto adjunta, elimina y actualiza permisos en la tabla pivote
-        // para que solo existan los IDs de permisos enviados en el array.
-        $rol->permisos()->sync($permisos);
-
-        // Redireccionar a la vista de índice con una redirección de Inertia
-        return Inertia::location(route('roles_permisos.index'));
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada' => $tabla,
+            'operacion' => $operacion,
+            'usuario_responsable' => Auth::id(),
+            'descripcion_cambio' => $descripcion,
+            'fecha_cambio' => now(),
+        ]);
     }
 }
