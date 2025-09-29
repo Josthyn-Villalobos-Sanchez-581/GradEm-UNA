@@ -1,8 +1,5 @@
-// backend/resources/js/layouts/PpLayout.tsx 
-
-
 import { type BreadcrumbItem } from '@/types';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import axios from 'axios';
 
@@ -22,6 +19,19 @@ interface MenuItem {
 export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayoutProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [menuTimeout, setMenuTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // ✅ Configuración global de Axios (CSRF + cookies + X-Requested-With)
+  //    Esto evita repetir headers en cada servicio y asegura que POST/PUT/DELETE funcionen con middleware web.
+  useEffect(() => {
+    const csrfToken =
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    axios.defaults.withCredentials = true; // usa cookies de sesión
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    if (csrfToken) {
+      axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+    }
+  }, []);
 
   // Maneja la apertura del submenú
   const handleMouseEnter = (menu: string) => {
@@ -50,6 +60,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     {
       title: 'Currículum',
       subMenu: [
+        { title: 'Generar CV', route: '/curriculum/generar', permisoId: 2 }, // ✅ NUEVO: conecta con la página de generación
         { title: 'Gestión', route: '/curriculum', permisoId: 2 },
         { title: 'Carga de Documentos', route: '/documentos', permisoId: 3 },
         { title: 'Visualización', route: '/ver-curriculum', permisoId: 4 },
@@ -107,10 +118,14 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
   const handleLogout = async () => {
     try {
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await axios.post('/logout', {}, {
-        headers: { 'X-CSRF-TOKEN': csrfToken || '' },
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        '/logout',
+        {},
+        {
+          headers: { 'X-CSRF-TOKEN': csrfToken || '' },
+          withCredentials: true,
+        }
+      );
       if (res.data.redirect) window.location.href = res.data.redirect;
     } catch (err) {
       console.error('Error al cerrar sesión', err);
@@ -169,20 +184,13 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                   </div>
                 </div>
               ) : (
-                <Link
-                  key={item.title}
-                  href={item.route!}
-                  className="font-medium hover:text-gray-200 transition"
-                >
+                <Link key={item.title} href={item.route!} className="font-medium hover:text-gray-200 transition">
                   {item.title}
                 </Link>
               )
             )}
-            
-            <Link
-              href="/perfil"
-              className="font-medium hover:text-gray-200 transition"
-            >
+
+            <Link href="/perfil" className="font-medium hover:text-gray-200 transition">
               Mi Perfil
             </Link>
 
@@ -253,7 +261,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
 
       {/* Contenido principal */}
       <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
-        <div className="bg-white shadow rounded-xl p-6 text">{children}</div>
+        {/* ✅ Antes tenías "text" (clase global). Ahora usamos Tailwind para color legible en fondo blanco */}
+        <div className="bg-white shadow rounded-xl p-6 text-gray-900">{children}</div>
       </main>
 
       {/* Footer */}

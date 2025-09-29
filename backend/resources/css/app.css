@@ -139,4 +139,20 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* 🔧 Forzar color visible en icono de inputs type="date" (WebKit/Chromium) */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0); /* 0 = negro (visible en fondo claro), 1 = blanco */
+        cursor: pointer;
+    }
+
+    /* 🔧 Firefox: mejorar contraste del control interno del date */
+    input[type="date"]::-moz-focus-inner {
+        color: black;
+    }
+
+    /* (Opcional) Si usas modo oscuro y quieres el icono claro: */
+    .dark input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
 }
