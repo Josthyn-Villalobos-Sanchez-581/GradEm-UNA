@@ -175,8 +175,21 @@ export default function Editar({
 
     if (newValue === "") newValue = null;
 
+    // Si cambia el estado de empleo a desempleado, resetear campos relacionados
+    if (name === "estado_empleo" && value.toLowerCase() === "desempleado") {
+        setFormData({
+            ...formData,
+            estado_empleo: value,
+            tiempo_conseguir_empleo: null,
+            area_laboral_id: null,
+            salario_promedio: null,
+            tipo_empleo: null,
+        });
+        return;
+    }
+
     setFormData({ ...formData, [name]: newValue });
-  };
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
