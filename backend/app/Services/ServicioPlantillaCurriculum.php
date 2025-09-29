@@ -5,29 +5,38 @@ namespace App\Services;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Storage;
 
 class ServicioPlantillaCurriculum
 {
-	public function generarPdf(array $payload): string
-	{
-		// Renderiza vista Blade con estilos institucionales UNA
-		$html = View::make('pdf.curriculum', [
-			'datos' => $payload
-		])->render();
+    public function generarPdf(array $payload): string
+    {
+        // Normalizamos arrays por si vienen null
+        $payload['habilidades']  = $payload['habilidades']  ?? [];
+        $payload['idiomas']      = $payload['idiomas']      ?? [];
+        $payload['referencias']  = $payload['referencias']  ?? [];
+        $payload['educaciones']  = $payload['educaciones']  ?? [];
+        $payload['experiencias'] = $payload['experiencias'] ?? [];
 
-		$options = new Options();
-		$options->set('isRemoteEnabled', true);
-		$dompdf = new Dompdf($options);
-		$dompdf->loadHtml($html, 'UTF-8');
-		$dompdf->setPaper('A4', 'portrait');
-		$dompdf->render();
+        $html = View::make('pdf.curriculum', [
+            'datos' => $payload
+        ])->render();
 
-		$contenido = $dompdf->output();
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
 
-		$nombre = 'cv_' . $payload['usuarioId'] . '_' . now()->format('Ymd_His') . '.pdf';
-		$ruta = 'curriculum/' . $nombre;
-		\Storage::disk('public')->put($ruta, $contenido);
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
 
-		return $ruta; // ruta relativa en storage/app/public
-	}
+        $contenido = $dompdf->output();
+
+        $nombre = 'cv_' . ($payload['usuarioId'] ?? 'anon') . '_' . now()->format('Ymd_His') . '.pdf';
+        $ruta = 'curriculum/' . $nombre;
+
+        Storage::disk('public')->put($ruta, $contenido);
+
+        return $ruta;
+    }
 }
