@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UniversidadController;
+use App\Http\Controllers\CurriculumController; // ✅ NUEVO: controlador para generar CV
 
 // ==========================================
 // Rutas públicas
@@ -71,17 +72,21 @@ Route::post('/recuperar/cambiar-contrasena', [RecuperarContrasenaController::cla
 
 Route::middleware('auth')->group(function () {
 
-    // Dashboard dinámico con permisos
-    Route::get('/dashboard', function () {
+    // Función helper para obtener permisos del usuario autenticado
+    $getUserPermisos = function () {
         $usuario = Auth::user();
-
-        $userPermisos = DB::table('roles_permisos')
+        return DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->pluck('id_permiso')
             ->toArray();
+    };
 
+    // ==========================================
+    // Dashboard dinámico con permisos
+    // ==========================================
+    Route::get('/dashboard', function () use ($getUserPermisos) {
         return Inertia::render('Dashboard', [
-            'userPermisos' => $userPermisos
+            'userPermisos' => $getUserPermisos()
         ]);
     })->name('dashboard');
 
@@ -114,13 +119,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
     Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
-
     // ==========================================
     // Rutas de Usuarios Administradores/Dirección/Subdirección
     // ==========================================
     Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-    Route::get('/usuarios/crear', function () {
-        return Inertia::render('Usuarios/CrearAdmin');
+    Route::get('/usuarios/crear', function () use ($getUserPermisos) {
+        return Inertia::render('Usuarios/CrearAdmin', [
+            'userPermisos' => $getUserPermisos()
+        ]);
     })->name('usuarios.create');
     Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
     Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
@@ -134,14 +140,27 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::get('/perfil/editar', [PerfilController::class, 'edit'])->name('perfil.edit');
-    Route::put('/perfil/{id}', [PerfilController::class, 'update'])->name('perfil.update');
+    Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
+    // ==========================================
+    // Currículum (páginas y API web)
+    // ==========================================
+    Route::get('/curriculum/generar', function () use ($getUserPermisos) {
+        // Renderiza la página React ubicada en resources/js/pages/Frt_FormularioGeneracionCurriculum.tsx
+        // Además le pasamos userPermisos para que PpLayout pueda mostrar el menú correcto
+        return Inertia::render('Frt_FormularioGeneracionCurriculum', [
+            'userPermisos' => $getUserPermisos()
+        ]);
+    })->name('curriculum.generar');
+
+    // ✅ NUEVO (SIN Ziggy): endpoint POST consumido por axios con path literal "/api/curriculum/generate"
+    Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])
+        ->name('api.curriculum.generate'); // el nombre es opcional si no usarás Ziggy
 });
 
 // ==========================================
 // Archivos de configuración adicionales
 // ==========================================
-
 
 require __DIR__.'/settings.php';
 

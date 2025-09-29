@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\RegistroController; // Agrega esta línea
+use App\Http\Controllers\CurriculumController; // Integración solicitada
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -22,3 +23,6 @@ Route::patch('usuarios/{usuario}/estado', [UsuarioController::class, 'actualizar
 
 // Ruta para verificar si el correo ya existe usando RegistroController
 Route::post('/verificar-correo', [RegistroController::class, 'verificarCorreo']);
+
+// Ruta protegida para generar curriculum
+Route::middleware('auth:sanctum')->post('/curriculum/generate', [CurriculumController::class, 'generar']);

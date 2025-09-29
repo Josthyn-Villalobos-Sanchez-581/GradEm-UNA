@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Inspiring;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Auth;
 
 class HandleInertiaRequests extends Middleware
 {
