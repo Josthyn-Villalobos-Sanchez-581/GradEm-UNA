@@ -5,9 +5,10 @@ import { usePage } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
 import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGeneracionCurriculum';
 import { postGenerarCurriculum } from '../services/curriculumService';
-import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum'; // ⬅️ ajusta si tu archivo está en otra ruta
+import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
+import { useModal } from '../hooks/useModal'; // 🟢 Integración modal
 
-// ================== Tipos (evita never[]) ==================
+// ================== Tipos ==================
 type Educacion = {
   institucion: string;
   titulo: string;
@@ -55,6 +56,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const page = usePage<{ auth: { user?: any }, userPermisos?: number[] }>();
   const userPermisos = page.props.userPermisos ?? [];
 
+  // 🟢 modal hook (alerta y confirmacion)
+  const modal = useModal();
+
   const usuario: UsuarioActual | null = page.props.auth?.user
     ? {
         id_usuario: page.props.auth.user.id_usuario,
@@ -84,6 +88,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [paso, setPaso] = useState<number>(1);
   const [errores, setErrores] = useState<ErrorMapa>({});
   const [rutaPdf, setRutaPdf] = useState<string>('');
+  const [cargando, setCargando] = useState<boolean>(false); // 🟢 estado de carga
 
   // Helper para setear campos por path "a.b.c"
   function setCampo(path: string, value: any) {
@@ -97,11 +102,32 @@ export default function Frt_FormularioGeneracionCurriculum() {
     });
   }
 
-  // Eliminar un elemento de un arreglo del formulario
-  function removeArrayItem(
+  // 🟢 Manejo central de errores de API (incluye 422)
+  const manejarErrorApi = async (error: any) => {
+    if (error?.response?.status === 422) {
+      setErrores(error.response.data?.errors ?? {});
+      return;
+    }
+    await modal.alerta({
+      titulo: "Error",
+      mensaje: error?.response?.data?.message || "Ocurrió un error al procesar la solicitud.",
+    });
+  };
+
+  // Eliminar un elemento de un arreglo del formulario (con confirmación)
+  async function removeArrayItem(
     key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias',
     idx: number
   ) {
+    const continuar = await modal.confirmacion({
+      titulo: "Confirmar eliminación",
+      mensaje: "¿Deseas eliminar este elemento?",
+      textoAceptar: "Eliminar",
+      textoCancelar: "Cancelar",
+    });
+
+    if (!continuar) return;
+
     setForm(prev => {
       const copia = structuredClone(prev) as FormCV;
       (copia[key] as any[]).splice(idx, 1);
@@ -120,11 +146,33 @@ export default function Frt_FormularioGeneracionCurriculum() {
   async function generar() {
     const e = validarPaso(form, paso);
     setErrores(e);
-    if (Object.keys(e).length > 0) return;
-    const resp = await postGenerarCurriculum(form); // ⬅️ Usa servicio con CSRF + withCredentials
-    if (resp.ok) {
-      setRutaPdf(resp.rutaPublica);
-      alert(resp.mensaje);
+    if (Object.keys(e).length > 0) {
+      await modal.alerta({
+        titulo: "Validación",
+        mensaje: "Revisa los campos marcados antes de continuar.",
+      });
+      return;
+    }
+
+    try {
+      setCargando(true);
+      const resp = await postGenerarCurriculum(form); // ⬅️ Usa servicio con CSRF + withCredentials
+      if (resp.ok) {
+        setRutaPdf(resp.rutaPublica);
+        await modal.alerta({
+          titulo: "Éxito",
+          mensaje: resp.mensaje || "Tu currículum ha sido generado correctamente.",
+        });
+      } else {
+        await modal.alerta({
+          titulo: "Error",
+          mensaje: resp.mensaje || "No fue posible generar el currículum.",
+        });
+      }
+    } catch (error: any) {
+      await manejarErrorApi(error);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -173,7 +221,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
             <button
               className="mb-2 px-3 py-1 border rounded"
               onClick={()=>{
-                // ✅ w-full y grid previenen “línea sobre línea”
                 setForm(prev => ({
                   ...prev,
                   educaciones:[...prev.educaciones, {institucion:'', titulo:'', fecha_inicio:'', fecha_fin:''}]
@@ -295,7 +342,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
               <button
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
-                  // ✅ Ahora: nombre libre + nivel MCER (sin catálogo numérico)
                   setForm(prev => ({...prev, idiomas:[...prev.idiomas, { nombre:'', nivel:'' }]}));
                 }}
               >
@@ -385,7 +431,13 @@ export default function Frt_FormularioGeneracionCurriculum() {
           {paso<4 ? (
             <button className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
           ) : (
-            <button className="px-4 py-2 bg-[#CD1719] text-white rounded" onClick={generar}>Generar y Descargar</button>
+            <button
+              className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
+              onClick={generar}
+              disabled={cargando}
+            >
+              {cargando ? "Generando..." : "Generar y Descargar"}
+            </button>
           )}
         </div>
 
