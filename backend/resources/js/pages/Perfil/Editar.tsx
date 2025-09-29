@@ -4,6 +4,8 @@ import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
+import { router } from '@inertiajs/react';
+
 
 
 interface Usuario {
@@ -187,29 +189,31 @@ export default function Editar({
     });
 
     return;
-}
+  }
 
   // 2. Confirmación modal
-  const ok = await modal.confirmacion({
-    titulo: "Confirmar cambios",
-    mensaje: "¿Está seguro que desea guardar los cambios en su perfil?",
-  });
-  if (!ok) return;
-
-  // 3. Envío con Inertia y mensaje de éxito
-  Inertia.put(`/perfil/${usuario.id_usuario}`, { ...formData }, {
-  onSuccess: () => {
-    modal.alerta({
-      titulo: "Éxito",
-      mensaje: "Datos guardados con éxito",
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar cambios",
+      mensaje: "¿Está seguro que desea guardar los cambios en su perfil?",
     });
+    if (!ok) return;
+
+    // 3. Envío con Inertia y mensaje de éxito
+   router.put(route("perfil.update"), { ...formData }, {
+  preserveScroll: true,
+  onSuccess: () => {
+    window.location.href = route("perfil.index"); // redirección tradicional
   },
   onError: (errors) => {
     console.error("Errores de validación:", errors);
-    debugger; // Aquí sí se detendrá si hay un error de Laravel
+    modal.alerta({
+      titulo: "Error de validación",
+      mensaje: "Por favor revise los campos e intente nuevamente.",
+    });
   },
-}
-);
+});
+
+
 
 };
 

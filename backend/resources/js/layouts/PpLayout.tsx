@@ -113,6 +113,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     .filter(Boolean) as MenuItem[];
 
   const logoUrl = new URL('../assets/logoUNATopBar.png', import.meta.url).href;
+  const logo = new URL('../assets/GradEmLayout.png', import.meta.url).href;
 
   // Función para cerrar sesión
   const handleLogout = async () => {
@@ -139,7 +140,11 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         <div className="flex justify-between items-center px-4 md:px-6 py-3">
           {/* Logo a la izquierda */}
           <div className="flex-shrink-0">
-            <img src={logoUrl} alt="Logo UNA" className="h-14 w-auto object-contain" />
+            <img src={logoUrl} alt="Logo UNA" className="h-10 w-auto object-contain" />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <img src={logo} alt="Logo GradEm" className="h-14 w-auto object-contain" />
           </div>
 
           {/* Botón hamburguesa móvil */}
