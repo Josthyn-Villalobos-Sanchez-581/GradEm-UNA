@@ -187,9 +187,10 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
             </Link>
 
             {/* Botón de Cerrar Sesión usando axios */}
+               {/*  className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition mt-2"  */}
             <button
               onClick={handleLogout}
-              className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition"
+              className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition" 
             >
               Cerrar Sesión
             </button>
@@ -251,10 +252,15 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         )}
       </header>
 
-      {/* Contenido principal */}
-      <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
+     {/*<main className="flex-1 max-w-7xl mx-auto p-6 w-full">
         <div className="bg-white shadow rounded-xl p-6 text">{children}</div>
+      </main> */}
+      
+  {/* Contenido principal */}
+    <main className="flex-1 max-w-none w-full p-6">
+        <div className="bg-white shadow rounded-xl p-6 w-full">{children}</div>
       </main>
+
 
       {/* Footer */}
       <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">

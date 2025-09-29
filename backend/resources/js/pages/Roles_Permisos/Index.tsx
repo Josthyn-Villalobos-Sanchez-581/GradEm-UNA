@@ -1,3 +1,4 @@
+//backend/resources/js/pages/Roles_Permisos/Index.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
