@@ -35,4 +35,3 @@ createInertiaApp({
 
 // Inicializamos tema claro/oscuro
 initializeTheme();
-
