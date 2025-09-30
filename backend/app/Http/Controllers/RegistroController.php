@@ -65,20 +65,20 @@ class RegistroController extends Controller
     {
         $request->validate([
             'correo' => 'required|email|max:150|unique:usuarios,correo',
-            'password' => 'required|confirmed|min:6',
+            'password' => 'required|confirmed|min:8',
             'nombre_completo' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
             'identificacion' => 'required|numeric|digits_between:8,12|unique:usuarios,identificacion',
             'telefono' => 'nullable|numeric|digits_between:8,15',
             'fecha_nacimiento' => 'nullable|date|before:today',
-            'genero' => 'nullable|string|max:20',
-            'estado_empleo' => 'nullable|string|max:50',
-            'estado_estudios' => 'nullable|string|max:50',
+            'genero' => 'nullable|string|max:20|in:masculino,femenino,otro',
+            'estado_empleo' => 'nullable|string|max:50|in:empleado,desempleado',
+            'estado_estudios' => 'nullable|string|max:50|in:activo,finalizado',
             'nivel_academico' => 'nullable|string|max:50',
             'anio_graduacion' => 'nullable|digits:4|integer|min:2007|max:' . date('Y'),
-            'tiempo_conseguir_empleo' => 'nullable|integer|min:0|max:120',
+            'tiempo_conseguir_empleo' => 'nullable|digits_between:1,3|integer|min:0|max:120',
             'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
-            'salario_promedio' => 'nullable|string|max:50',
+            'salario_promedio' => 'nullable|digits_between:1,10',
             'tipo_empleo' => 'nullable|string|max:50',
             'tipoCuenta' => 'required|in:estudiante_egresado,empresa',
         ], [
@@ -90,9 +90,13 @@ class RegistroController extends Controller
         'telefono.numeric' => 'El teléfono debe contener solo números.',
         'telefono.digits_between' => 'El teléfono debe tener entre 8 y 15 dígitos.',
         'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+        'genero.in' => 'Debe seleccionar una opción válida en género.',
+        'estado_empleo.in' => 'Debe ser empleado o desempleado.',
+        'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
         'anio_graduacion.digits' => 'El año de graduación debe tener 4 dígitos.',
         'anio_graduacion.min' => 'El año de graduación no puede ser antes de 2007.',
-        'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros.',
+        'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros de entre 1 y 3 dígitos.',
+        'salario_promedio.digits_between' => 'El salario promedio debe tener entre 1 y 10 dígitos numéricos.',
         ]);
 
         if (!session('otp_validado') || $request->correo !== session('otp_correo')) {

@@ -2,8 +2,8 @@ import React, { useState, useEffect, FormEvent, useMemo } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
+import grademLogo from "../assets/GradEm.png";
 import { useModal } from "../hooks/useModal";
-
 
 
 // Estilos personalizados de Tailwind
@@ -20,6 +20,20 @@ const tailwindStyles = `
     .text-black { color: #000000; }
     .text-una-dark-gray { color: #4B5563; }
 `;
+
+// Estilos para los contenedores de logos
+const logosContainerStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "20px",
+  marginBottom: "20px",
+};
+
+const logoStyle: React.CSSProperties = {
+  height: "60px",
+  objectFit: "contain",
+};
 
 const Registro: React.FC = () => {
     const [tipoCuenta, setTipoCuenta] = useState<string>("");
@@ -45,6 +59,97 @@ const Registro: React.FC = () => {
     const [nivelAcademico, setNivelAcademico] = useState<string>("");
     const [anioGraduacion, setAnioGraduacion] = useState<string>("");
 
+    // --- Validaciones en tiempo real ---
+    // Identificación: required|numeric|digits_between:8,12
+    function validarIdentificacion(valor: string): string | undefined {
+        const v = (valor || '').trim();
+        if (!v) return 'La identificación es obligatoria.';
+        if (!/^[0-9]+$/.test(v)) return 'La identificación debe ser un número.';
+        if (v.length < 8 || v.length > 12) return 'La identificación debe tener entre 8 y 12 dígitos.';
+        return undefined;
+    }
+
+    // Teléfono: nullable|numeric|digits_between:8,15
+    function validarTelefono(valor: string): string | undefined {
+        const v = (valor || '').trim();
+        if (!v) return undefined; // nullable
+        if (!/^[0-9]+$/.test(v)) return 'El teléfono debe contener solo números.';
+        if (v.length < 8 || v.length > 15) return 'El teléfono debe tener entre 8 y 15 dígitos.';
+        return undefined;
+    }
+
+    // Fecha de nacimiento: nullable|date|before:today
+    function validarFechaNacimiento(valor: string): string | undefined {
+        if (!valor) return undefined; // nullable
+        const hoy = new Date();
+        const fecha = new Date(valor);
+        if (isNaN(fecha.getTime())) return 'Fecha inválida.';
+        if (fecha >= hoy) return 'La fecha de nacimiento debe ser anterior a hoy.';
+        return undefined;
+    }
+
+    // Género: nullable|string|max:20|in:masculino,femenino,otro
+    function validarGenero(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!["masculino", "femenino", "otro"].includes(valor)) return 'Debe seleccionar una opción válida en género.';
+        return undefined;
+    }
+
+    // Estado empleo: nullable|string|max:50|in:empleado,desempleado
+    function validarEstadoEmpleo(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!["empleado", "desempleado"].includes(valor)) return 'Debe ser empleado o desempleado.';
+        return undefined;
+    }
+
+    // Estado estudios: nullable|string|max:50|in:activo,pausado,finalizado
+    function validarEstadoEstudios(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!["activo", "pausado", "finalizado"].includes(valor)) return 'Debe ser activo, pausado o finalizado.';
+        return undefined;
+    }
+
+    // Nivel académico: nullable|string|max:50 (solo longitud)
+    function validarNivelAcademico(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (valor.length > 50) return 'El nivel académico no puede superar 50 caracteres.';
+        return undefined;
+    }
+
+    // Año graduación: nullable|digits:4|integer|min:2007|max:año_actual
+    function validarAnioGraduacion(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!/^[0-9]{4}$/.test(valor)) return 'El año de graduación debe tener 4 dígitos.';
+        const n = parseInt(valor, 10);
+        const anioActual = new Date().getFullYear();
+        if (n < 2007) return 'El año de graduación no puede ser antes de 2007.';
+        if (n > anioActual) return `El año de graduación no puede ser después de ${anioActual}.`;
+        return undefined;
+    }
+
+    // Tiempo conseguir empleo: solo números, máximo 3 dígitos, rango 0-120
+    function validarTiempoConseguirEmpleo(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!/^[0-9]{1,3}$/.test(valor)) return 'Solo números, máximo 3 dígitos.';
+        const n = parseInt(valor, 10);
+        if (n < 0 || n > 120) return 'El tiempo debe estar entre 0 y 120 meses.';
+        return undefined;
+    }
+
+    // Salario promedio: solo números, máximo 10 dígitos
+    function validarSalarioPromedio(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (!/^[0-9]{1,10}$/.test(valor)) return 'Solo números, máximo 10 dígitos.';
+        return undefined;
+    }
+
+    // Tipo empleo: nullable|string|max:50
+    function validarTipoEmpleo(valor: string): string | undefined {
+        if (!valor) return undefined;
+        if (valor.length > 50) return 'El tipo de empleo no puede superar 50 caracteres.';
+        return undefined;
+    }
+
     // Ubicación
     const [paises, setPaises] = useState<any[]>([]);
     const [provincias, setProvincias] = useState<any[]>([]);
@@ -67,6 +172,26 @@ const Registro: React.FC = () => {
 
     const [errors, setErrors] = useState<any>({});
     const modal = useModal();
+
+    const nameRegex = useMemo(() => {
+    // Intentamos usar Unicode property escapes; si no son soportadas, usamos fallback
+    try {
+        return new RegExp('^[\\p{L}\\s]+$', 'u');
+    } catch {
+        return /^[A-Za-zÀ-ÿ\s]+$/;
+    }
+    }, []);
+
+    /** Valida y devuelve mensaje de error (string) o undefined si es válido */
+    function validarNombreCompletoValor(valor: string): string | undefined {
+    const v = (valor || '').trim();
+
+    if (!v) return 'El nombre es obligatorio.';
+    if (v.length < 3) return 'El nombre debe tener al menos 3 caracteres.';
+    if (v.length > 100) return 'El nombre no puede superar los 100 caracteres.';
+    if (!nameRegex.test(v)) return 'El nombre solo puede contener letras y espacios.';
+    return undefined;
+    }
 
     useEffect(() => {
     axios.get("/ubicaciones/paises").then((res) => setPaises(res.data));
@@ -120,7 +245,7 @@ const Registro: React.FC = () => {
         if (valor.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
         if (valor.length > 15) return "La contraseña no puede superar los 15 caracteres.";
         if (!regexContrasena.test(valor))
-            return "Debe incluir minúscula, mayúscula, número, un carácter especial ($ @ $ ! % ? &) y no contener espacios.";
+            return "Debe incluir minúscula, mayúscula, número, un carácter especial ($ @ ! % ? &) y no contener espacios.";
         return undefined;
     }
 
@@ -134,12 +259,34 @@ const Registro: React.FC = () => {
     // MOD: Errores calculados en tiempo real
     const errorPassword = useMemo(() => validarContrasena(password), [password]);
     const errorConfirm = useMemo(() => validarConfirmacion(password, confirmPassword), [password, confirmPassword]);
+    const errorIdentificacion = useMemo(() => validarIdentificacion(numeroIdentificacion), [numeroIdentificacion]);
+    const errorTelefono = useMemo(() => validarTelefono(telefono), [telefono]);
+    const errorFechaNacimiento = useMemo(() => validarFechaNacimiento(fechaNacimiento), [fechaNacimiento]);
+    const errorGenero = useMemo(() => validarGenero(genero), [genero]);
+    const errorEstadoEmpleo = useMemo(() => validarEstadoEmpleo(estadoEmpleo), [estadoEmpleo]);
+    const errorEstadoEstudios = useMemo(() => validarEstadoEstudios(estadoEstudios), [estadoEstudios]);
+    const errorNivelAcademico = useMemo(() => validarNivelAcademico(nivelAcademico), [nivelAcademico]);
+    const errorAnioGraduacion = useMemo(() => validarAnioGraduacion(anioGraduacion), [anioGraduacion]);
+    const errorTiempoConseguirEmpleo = useMemo(() => validarTiempoConseguirEmpleo(tiempoConseguirEmpleo), [tiempoConseguirEmpleo]);
+    const errorSalarioPromedio = useMemo(() => validarSalarioPromedio(salarioPromedio), [salarioPromedio]);
+    const errorTipoEmpleo = useMemo(() => validarTipoEmpleo(tipoEmpleo), [tipoEmpleo]);
 
     // MOD: Formulario válido (para deshabilitar submit)
     const formularioValido =
         codigoValidado &&
         !errorPassword &&
         !errorConfirm &&
+        !errorIdentificacion &&
+        !errorTelefono &&
+        !errorFechaNacimiento &&
+        !errorGenero &&
+        !errorEstadoEmpleo &&
+        !errorEstadoEstudios &&
+        !errorNivelAcademico &&
+        !errorAnioGraduacion &&
+        !errorTiempoConseguirEmpleo &&
+        !errorSalarioPromedio &&
+        !errorTipoEmpleo &&
         password.length > 0 &&
         confirmPassword.length > 0 &&
         nombreCompleto.length > 0 &&
@@ -239,6 +386,30 @@ const Registro: React.FC = () => {
             titulo: "Éxito",
             mensaje: response.data.message || "Registro exitoso",
         });
+
+        // 🔹 Redirigir después de cerrar el modal
+        router.get("/login");
+
+        // 🔹 limpiar formulario
+        setNombreCompleto("");
+        setCorreo("");
+        setPassword("");
+        setConfirmPassword("");
+        setNumeroIdentificacion("");
+        setTelefono("");
+        setFechaNacimiento("");
+        setGenero("");
+        setUniversidad("");
+        setCarrera("");
+        setEstadoEmpleo("");
+        setEstadoEstudios("");
+        setNivelAcademico("");
+        setAnioGraduacion("");
+        setCanton("");
+        setTiempoConseguirEmpleo("");
+        setAreaLaboral("");
+        setSalarioPromedio("");
+        setTipoEmpleo("");
     } catch (error: any) {
         if (error.response?.status === 422) {
             // Laravel devolvió errores de validación
@@ -264,23 +435,24 @@ const Registro: React.FC = () => {
                         borderRadius: "10px",
                         padding: "30px 20px",
                         }}>
-                            {/* Logo UNA centrado */}
-                            <div className="flex justify-center mb-6">
-                                <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
-                                    <img alt="Logo UNA" className="h-20" src={logoUNA} />
-                                </a>
+                            {/* Logos GradEm + UNA */}
+                            <div style={logosContainerStyle}>
+                            <img src={grademLogo} alt="Logo GradEm" style={logoStyle} />
+                            <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer">
+                                <img src={logoUNA} alt="Logo UNA" style={logoStyle} />
+                            </a>
                             </div>
                         <div>
                             <h1
-                            style={{
-                                fontFamily: "'Goudy Old Style', serif",
-                                fontSize: "clamp(24px, 5vw, 48px)",
-                                color: "#000000",
-                                marginBottom: "30px",
-                                textAlign: "center",
-                            }}
+                                style={{
+                                    fontFamily: "'Goudy Old Style', serif",
+                                    fontSize: "clamp(20px, 4vw, 36px)", // 🔹 Más pequeño
+                                    color: "#000000",
+                                    marginBottom: "20px",
+                                    textAlign: "center",
+                                }}
                             >
-                            Crear Cuenta
+                                Crear Cuenta
                             </h1>
                             <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
                                 Complete la información a continuación para crear su cuenta.
@@ -300,7 +472,7 @@ const Registro: React.FC = () => {
                             required={tipoCuenta === ""} // Obliga a seleccionar una opción
                             />
                             <span className="ml-2 font-open-sans text-black">
-                            {tipo === "estudiante_egresado" ? "Estudiante/Egresado" : "Empresa"}
+                            {tipo === "estudiante_egresado" ? "Estudiante / Egresado" : "Empresa"}
                             </span>
                         </label>
                         ))}
@@ -375,17 +547,49 @@ const Registro: React.FC = () => {
                                             </label>
                                             <input
                                                 id="nombreCompleto"
+                                                name="nombre_completo"
                                                 type="text"
                                                 required
                                                 value={nombreCompleto}
-                                                onChange={(e) => setNombreCompleto(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                onChange={(e) => {
+                                                const value = e.target.value;
+                                                setNombreCompleto(value);
+
+                                                // Validación en tiempo real: actualiza solo el error de este campo
+                                                const err = validarNombreCompletoValor(value);
+                                                setErrors((prev: any) => {
+                                                    if (err) {
+                                                    return { ...prev, nombre_completo: [err] };
+                                                    } else {
+                                                    const { nombre_completo, ...rest } = prev;
+                                                    return rest;
+                                                    }
+                                                });
+                                                }}
+                                                onBlur={(e) => {
+                                                // Validación adicional en onBlur para asegurar mensaje si estaba vacío y el usuario sale del campo
+                                                const err = validarNombreCompletoValor(e.target.value);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, nombre_completo: [err] };
+                                                    const { nombre_completo, ...rest } = prev;
+                                                    return rest;
+                                                });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                                                (errors as any).nombre_completo ? 'border-red-500' : 'border-una-gray'
+                                                } placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
                                                 placeholder="Ej: Juan Pérez González"
+                                                aria-invalid={!!(errors as any).nombre_completo}
+                                                aria-describedby={(errors as any).nombre_completo ? 'nombre-error' : undefined}
                                             />
-                                            {errors.nombre_completo && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.nombre_completo[0]}</p>
+
+                                            {/* Mensaje de error (compatibiliza con errores del servidor que vienen como array) */}
+                                            {(errors as any).nombre_completo && (
+                                                <p id="nombre-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                {(errors as any).nombre_completo[0]}
+                                                </p>
                                             )}
-                                        </div>
+                                            </div>
                                         <div>
                                             <label htmlFor="numeroIdentificacion" className="block text-sm font-bold text-black font-open-sans">
                                                 Número de identificación
@@ -395,12 +599,32 @@ const Registro: React.FC = () => {
                                                 type="text"
                                                 required
                                                 value={numeroIdentificacion}
-                                                onChange={(e) => setNumeroIdentificacion(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                placeholder="Ej: 1-1234-5678"
+                                                onChange={(e) => {
+                                                    setNumeroIdentificacion(e.target.value);
+                                                    const err = validarIdentificacion(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, identificacion: [err] };
+                                                        const { identificacion, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarIdentificacion(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, identificacion: [err] };
+                                                        const { identificacion, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).identificacion ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                placeholder="Ej: 112345678"
+                                                aria-invalid={!!(errors as any).identificacion}
+                                                aria-describedby={(errors as any).identificacion ? 'identificacion-error' : undefined}
                                             />
-                                            {errors.identificacion && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.identificacion[0]}</p>
+                                            {(errors as any).identificacion && (
+                                                <p id="identificacion-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                    {(errors as any).identificacion[0]}
+                                                </p>
                                             )}
                                         </div>
                                         <div>
@@ -411,12 +635,32 @@ const Registro: React.FC = () => {
                                                 id="telefono"
                                                 type="tel"
                                                 value={telefono}
-                                                onChange={(e) => setTelefono(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                placeholder="Ej: 8888-8888"
+                                                onChange={(e) => {
+                                                    setTelefono(e.target.value);
+                                                    const err = validarTelefono(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, telefono: [err] };
+                                                        const { telefono, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarTelefono(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, telefono: [err] };
+                                                        const { telefono, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).telefono ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                placeholder="Ej: 88888888"
+                                                aria-invalid={!!(errors as any).telefono}
+                                                aria-describedby={(errors as any).telefono ? 'telefono-error' : undefined}
                                             />
-                                            {errors.telefono && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.telefono[0]}</p>
+                                            {(errors as any).telefono && (
+                                                <p id="telefono-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                    {(errors as any).telefono[0]}
+                                                </p>
                                             )}
                                         </div>
                                         <div>
@@ -427,11 +671,33 @@ const Registro: React.FC = () => {
                                                 id="fechaNacimiento"
                                                 type="date"
                                                 value={fechaNacimiento}
-                                                onChange={(e) => setFechaNacimiento(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                onChange={(e) => {
+                                                    setFechaNacimiento(e.target.value);
+                                                    const err = validarFechaNacimiento(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, fecha_nacimiento: [err] };
+                                                        const { fecha_nacimiento, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarFechaNacimiento(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, fecha_nacimiento: [err] };
+                                                        const { fecha_nacimiento, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).fecha_nacimiento ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split("T")[0]}
+                                                max={new Date(new Date().setFullYear(new Date().getFullYear() - 15)).toISOString().split("T")[0]}
+                                                aria-invalid={!!(errors as any).fecha_nacimiento}
+                                                aria-describedby={(errors as any).fecha_nacimiento ? 'fecha-nacimiento-error' : undefined}
                                             />
-                                            {errors.fecha_nacimiento && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.fecha_nacimiento[0]}</p>
+                                            {(errors as any).fecha_nacimiento && (
+                                                <p id="fecha-nacimiento-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                    {(errors as any).fecha_nacimiento[0]}
+                                                </p>
                                             )}
                                         </div>
                                         <div>
@@ -441,14 +707,37 @@ const Registro: React.FC = () => {
                                             <select
                                                 id="genero"
                                                 value={genero}
-                                                onChange={(e) => setGenero(e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                onChange={(e) => {
+                                                    setGenero(e.target.value);
+                                                    const err = validarGenero(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, genero: [err] };
+                                                        const { genero, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarGenero(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, genero: [err] };
+                                                        const { genero, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 block w-full px-3 py-2 border ${(errors as any).genero ? 'border-red-500' : 'border-una-gray'} rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                aria-invalid={!!(errors as any).genero}
+                                                aria-describedby={(errors as any).genero ? 'genero-error' : undefined}
                                             >
                                                 <option value="">Seleccione...</option>
                                                 <option value="femenino">Femenino</option>
                                                 <option value="masculino">Masculino</option>
                                                 <option value="otro">Otro</option>
                                             </select>
+                                            {(errors as any).genero && (
+                                                <p id="genero-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                    {(errors as any).genero[0]}
+                                                </p>
+                                            )}
                                         </div>
                                         {/* Ubicación */}
                                         <div>
@@ -584,9 +873,32 @@ const Registro: React.FC = () => {
                                                 id="tiempoConseguirEmpleo"
                                                 type="number"
                                                 value={tiempoConseguirEmpleo}
-                                                onChange={(e) => setTiempoConseguirEmpleo(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                max={120}
+                                                min={0}
+                                                maxLength={3}
+                                                onChange={(e) => {
+                                                    // Solo permitir hasta 3 dígitos y solo números
+                                                    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 3);
+                                                    setTiempoConseguirEmpleo(v);
+                                                    const err = validarTiempoConseguirEmpleo(v);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
+                                                        const { tiempo_conseguir_empleo, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarTiempoConseguirEmpleo(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
+                                                        const { tiempo_conseguir_empleo, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).tiempo_conseguir_empleo ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
                                                 placeholder="Ej: 6"
+                                                aria-invalid={!!(errors as any).tiempo_conseguir_empleo}
+                                                aria-describedby={(errors as any).tiempo_conseguir_empleo ? 'tiempo-conseguir-empleo-error' : undefined}
                                             />
                                             {errors.tiempo_conseguir_empleo && (
                                                 <p className="mt-1 text-sm text-red-600">{errors.tiempo_conseguir_empleo[0]}</p>
@@ -628,27 +940,73 @@ const Registro: React.FC = () => {
                                                 id="salarioPromedio"
                                                 type="text"
                                                 value={salarioPromedio}
-                                                onChange={(e) => setSalarioPromedio(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                placeholder="Ej: ₡500,000"
+                                                maxLength={10}
+                                                onChange={(e) => {
+                                                    // Solo permitir hasta 10 dígitos y solo números
+                                                    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                                                    setSalarioPromedio(v);
+                                                    const err = validarSalarioPromedio(v);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, salario_promedio: [err] };
+                                                        const { salario_promedio, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const err = validarSalarioPromedio(e.target.value);
+                                                    setErrors((prev: any) => {
+                                                        if (err) return { ...prev, salario_promedio: [err] };
+                                                        const { salario_promedio, ...rest } = prev;
+                                                        return rest;
+                                                    });
+                                                }}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).salario_promedio ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                placeholder="Ej: 500000"
+                                                aria-invalid={!!(errors as any).salario_promedio}
+                                                aria-describedby={(errors as any).salario_promedio ? 'salario-promedio-error' : undefined}
                                             />
                                             </div>
 
                                             <div>
-                                            <label
-                                                htmlFor="tipoEmpleo"
-                                                className="block text-sm font-bold text-black font-open-sans"
-                                            >
-                                                Tipo de empleo
-                                            </label>
-                                            <input
-                                                id="tipoEmpleo"
-                                                type="text"
-                                                value={tipoEmpleo}
-                                                onChange={(e) => setTipoEmpleo(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                placeholder="Tiempo completo / Medio tiempo"
-                                            />
+                                                <label
+                                                    htmlFor="tipoEmpleo"
+                                                    className="block text-sm font-bold text-black font-open-sans"
+                                                >
+                                                    Tipo de empleo
+                                                </label>
+                                                <select
+                                                    id="tipoEmpleo"
+                                                    value={tipoEmpleo}
+                                                    onChange={(e) => {
+                                                        setTipoEmpleo(e.target.value);
+                                                        const err = validarTipoEmpleo(e.target.value);
+                                                        setErrors((prev: any) => {
+                                                            if (err) return { ...prev, tipo_empleo: [err] };
+                                                            const { tipo_empleo, ...rest } = prev;
+                                                            return rest;
+                                                        });
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const err = validarTipoEmpleo(e.target.value);
+                                                        setErrors((prev: any) => {
+                                                            if (err) return { ...prev, tipo_empleo: [err] };
+                                                            const { tipo_empleo, ...rest } = prev;
+                                                            return rest;
+                                                        });
+                                                    }}
+                                                    className={`mt-1 block w-full px-3 py-2 border ${(errors as any).tipo_empleo ? 'border-red-500' : 'border-una-gray'} rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                    aria-invalid={!!(errors as any).tipo_empleo}
+                                                    aria-describedby={(errors as any).tipo_empleo ? 'tipo-empleo-error' : undefined}
+                                                >
+                                                    <option value="">Seleccione...</option>
+                                                    <option value="Tiempo completo">Tiempo completo</option>
+                                                    <option value="Medio tiempo">Medio tiempo</option>
+                                                </select>
+                                                {(errors as any).tipo_empleo && (
+                                                    <p id="tipo-empleo-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                        {(errors as any).tipo_empleo[0]}
+                                                    </p>
+                                                )}
                                             </div>
                                         </>
                                         )}
@@ -700,43 +1058,51 @@ const Registro: React.FC = () => {
                                             </div>
 
                                             <div>
-                                            <label
-                                                htmlFor="anioGraduacion"
-                                                className="block text-sm font-bold text-black font-open-sans"
-                                            >
-                                                Año de graduación
-                                            </label>
-                                            <input
-                                                id="anioGraduacion"
-                                                type="number"
-                                                value={anioGraduacion}
-                                                onChange={(e) => setAnioGraduacion(e.target.value)}
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                                placeholder="Ej: 2024"
-                                            />
-                                            {errors.anio_graduacion && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.anio_graduacion[0]}</p>
-                                            )}
+                                                <label
+                                                    htmlFor="anioGraduacion"
+                                                    className="block text-sm font-bold text-black font-open-sans"
+                                                >
+                                                    Año de graduación
+                                                </label>
+                                                <select
+                                                    id="anioGraduacion"
+                                                    value={anioGraduacion}
+                                                    onChange={(e) => {
+                                                        setAnioGraduacion(e.target.value);
+                                                        const err = validarAnioGraduacion(e.target.value);
+                                                        setErrors((prev: any) => {
+                                                            if (err) return { ...prev, anio_graduacion: [err] };
+                                                            const { anio_graduacion, ...rest } = prev;
+                                                            return rest;
+                                                        });
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const err = validarAnioGraduacion(e.target.value);
+                                                        setErrors((prev: any) => {
+                                                            if (err) return { ...prev, anio_graduacion: [err] };
+                                                            const { anio_graduacion, ...rest } = prev;
+                                                            return rest;
+                                                        });
+                                                    }}
+                                                    className={`mt-1 block w-full px-3 py-2 border ${(errors as any).anio_graduacion ? 'border-red-500' : 'border-una-gray'} rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                    aria-invalid={!!(errors as any).anio_graduacion}
+                                                    aria-describedby={(errors as any).anio_graduacion ? 'anio-graduacion-error' : undefined}
+                                                >
+                                                    <option value="">Seleccione...</option>
+                                                    {Array.from({length: new Date().getFullYear() - 2007}, (_, i) => 2007 + i).map(y => (
+                                                        <option key={y} value={y}>{y}</option>
+                                                    ))}
+                                                </select>
+                                                {(errors as any).anio_graduacion && (
+                                                    <p id="anio-graduacion-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
+                                                        {(errors as any).anio_graduacion[0]}
+                                                    </p>
+                                                )}
                                             </div>
                                         </>
                                         )}
 
-                                        {/* Año de graduación solo si aplica */}
-                                        {["Diplomado", "Licenciatura", "Otra"].includes(nivelAcademico) && (
-                                        <div>
-                                            <label htmlFor="anioGraduacion" className="block text-sm font-bold text-black font-open-sans">
-                                            Año de graduación
-                                            </label>
-                                            <input
-                                            id="anioGraduacion"
-                                            type="text"
-                                            value={anioGraduacion}
-                                            onChange={(e) => setAnioGraduacion(e.target.value)}
-                                            className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
-                                            placeholder="Ej: 2024"
-                                            />
-                                        </div>
-                                        )}
+
 
                                         {/* MOD: Campo Contraseña with ayuda y error */}
                                         <div>
@@ -752,11 +1118,6 @@ const Registro: React.FC = () => {
                                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
                                                 placeholder="Contraseña"
                                             />
-                                            <p className="mt-1 text-xs text-black">
-                                                {/* MOD: Texto guía de política */}
-                                                Debe tener 8–15 caracteres, incluir minúscula, mayúscula, número y uno
-                                                de estos caracteres: $ @ $ ! % ? &. Sin espacios.
-                                            </p>
                                             {errorPassword && (
                                                 <p className="mt-1 text-sm text-black">
                                                     {/* MOD: Mensaje de error de contraseña */}
@@ -787,13 +1148,22 @@ const Registro: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
+                                    {/* Ayuda de requisitos de contraseña */}
+                                    <div className="md:col-span-2">
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            La contraseña debe tener mínimo 8 caracteres, incluir mayúscula, minúscula, número y uno de estos caracteres: $ @ ! % ? &. Sin espacios.
+                                        </p>
+                                    </div>
 
                                     <div className="mt-6">
                                         <button
                                             type="submit"
                                             // MOD: Deshabilitar envío si el formulario no es válido
-                                            disabled={!formularioValido || !correoValido}
-                                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
+                                            disabled={Object.keys(errors).length > 0} // 🔒 Bloquea si hay errores
+                                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans
+                                                ${Object.keys(errors).length > 0 
+                                                ? "bg-gray-400 cursor-not-allowed" 
+                                                : "bg-una-red hover:bg-red-800"}`}
                                         >
                                             Registrarse
                                         </button>
@@ -815,20 +1185,6 @@ const Registro: React.FC = () => {
                                     </button>
                                 </div>
                             )}
-
-                            {/* Login link */}
-                            <div className="text-center">
-                                <p className="text-md text-gray-800 font-open-sans">
-                                    ¿Ya tiene una cuenta?
-                                    <button
-                                        type="button"
-                                        onClick={() => router.visit("/login")}
-                                        className="font-medium text-una-blue hover:text-blue-700 ml-1"
-                                    >
-                                        Iniciar sesión
-                                    </button>
-                                </p>
-                            </div>
                         </form>
                     </div>
                 </main>
