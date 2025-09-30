@@ -17,6 +17,7 @@ use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UniversidadController;
 use App\Http\Controllers\CurriculumController; 
 use App\Http\Controllers\FotoPerfilController; 
+use App\Http\Controllers\DocumentosController;
 
 // ==========================================
 // Rutas públicas
@@ -165,6 +166,24 @@ Route::middleware('auth')->group(function () {
     // ✅ NUEVO (SIN Ziggy): endpoint POST consumido por axios con path literal "/api/curriculum/generate"
     Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])
         ->name('api.curriculum.generate'); // el nombre es opcional si no usarás Ziggy
+
+    //rutas para que el usuario pueda ver y subir su curriculum si ya lo tiene
+    // Página de carga de currículum
+    Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])
+        ->name('curriculum.index');
+
+    // Subida de archivo PDF
+    Route::post('/curriculum-cargado', [CurriculumController::class, 'upload'])
+        ->name('curriculum.upload');
+
+    // Eliminar currículum Cargado por el usuario
+    Route::delete('/curriculum-cargado', [CurriculumController::class, 'delete'])
+    ->name('curriculum.delete');
+
+
+    // Página principal de carga de documentos
+    Route::get('/documentos', [DocumentosController::class, 'index'])
+    ->name('documentos.index');
 });
 
 // ==========================================
