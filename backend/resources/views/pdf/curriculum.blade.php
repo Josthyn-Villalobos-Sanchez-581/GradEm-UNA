@@ -1,5 +1,20 @@
 @php
+  // Normalizamos el payload que llega desde el ServicioPlantillaCurriculum
+  // y damos un fallback si aún no existiera 'idiomas_normalizados'.
   $d = $datos;
+
+  // Telefóno y correo en una sola línea con separador solo si ambos existen
+  $lineaContacto = trim(($d['datosPersonales']['correo'] ?? '') . ' ' .
+                    ((isset($d['datosPersonales']['telefono']) && $d['datosPersonales']['telefono'] !== '')
+                      ? '· ' . $d['datosPersonales']['telefono'] : ''));
+
+  // Idiomas normalizados: preferir $d['idiomas_normalizados']; si no existe, construirlos de nombre + nivel
+  $idiomasNormalizados = $d['idiomas_normalizados'] ?? collect($d['idiomas'] ?? [])->map(function ($i) {
+      $nombre = trim($i['nombre'] ?? '');
+      $nivel  = trim($i['nivel'] ?? '');
+      return $nombre !== '' || $nivel !== '' ? ($nivel ? "{$nombre} ({$nivel})" : $nombre) : null;
+  })->filter()->values()->all();
+
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -27,8 +42,10 @@
 
   <section>
     <h3 class="sub">Datos personales</h3>
-    <div><strong>{{ $d['datosPersonales']['nombreCompleto'] }}</strong></div>
-    <div>{{ $d['datosPersonales']['correo'] }} · {{ $d['datosPersonales']['telefono'] ?? '' }}</div>
+    <div><strong>{{ $d['datosPersonales']['nombreCompleto'] ?? '' }}</strong></div>
+    @if($lineaContacto !== '')
+      <div>{{ $lineaContacto }}</div>
+    @endif
     @if(!empty($d['resumenProfesional']))
       <p style="margin-top:8px;">{{ $d['resumenProfesional'] }}</p>
     @endif
@@ -38,7 +55,16 @@
   <section>
     <h3 class="sub">Formación académica</h3>
     @foreach($d['educaciones'] as $e)
-      <div><strong>{{ $e['titulo'] }}</strong> — {{ $e['institucion'] }} ({{ $e['fecha_inicio'] ?? '' }} - {{ $e['fecha_fin'] ?? 'Actual' }})</div>
+      @php
+        $ini = $e['fecha_inicio'] ?? '';
+        $fin = $e['fecha_fin'] ?? '';
+        $rango = ($ini || $fin) ? '(' . ($ini ?: '¿?') . ' - ' . ($fin ?: 'Actual') . ')' : '';
+      @endphp
+      <div>
+        <strong>{{ $e['titulo'] ?? '' }}</strong>
+        @if(!empty($e['institucion'])) — {{ $e['institucion'] }} @endif
+        @if($rango) {{ $rango }} @endif
+      </div>
     @endforeach
   </section>
   @endif
@@ -47,7 +73,16 @@
   <section>
     <h3 class="sub">Experiencia laboral</h3>
     @foreach($d['experiencias'] as $x)
-      <div><strong>{{ $x['puesto'] }}</strong> — {{ $x['empresa'] }} ({{ $x['periodo_inicio'] ?? '' }} - {{ $x['periodo_fin'] ?? 'Actual' }})</div>
+      @php
+        $ini = $x['periodo_inicio'] ?? '';
+        $fin = $x['periodo_fin'] ?? '';
+        $rango = ($ini || $fin) ? '(' . ($ini ?: '¿?') . ' - ' . ($fin ?: 'Actual') . ')' : '';
+      @endphp
+      <div>
+        <strong>{{ $x['puesto'] ?? '' }}</strong>
+        @if(!empty($x['empresa'])) — {{ $x['empresa'] }} @endif
+        @if($rango) {{ $rango }} @endif
+      </div>
       @if(!empty($x['funciones']))<div style="margin-left:10px">{{ $x['funciones'] }}</div>@endif
     @endforeach
   </section>
@@ -58,18 +93,23 @@
     <h3 class="sub">Habilidades</h3>
     <div>
     @foreach($d['habilidades'] as $h)
-      <span class="chip">{{ $h['descripcion'] }}</span>
+      @if(!empty($h['descripcion']))
+        <span class="chip">{{ $h['descripcion'] }}</span>
+      @endif
     @endforeach
     </div>
   </section>
   @endif
 
-  @if(!empty($d['idiomas']))
+  {{-- ✅ Idiomas: se usa la versión normalizada (Nombre (Nivel)) --}}
+  @if(!empty($idiomasNormalizados))
   <section>
     <h3 class="sub">Idiomas</h3>
-    @foreach($d['idiomas'] as $i)
-      <div>- {{ $i['nombre'] ?? 'Idioma' }} ({{ $i['nivel'] }})</div>
-    @endforeach
+    <div>
+      @foreach($idiomasNormalizados as $idioma)
+        <span class="chip">{{ $idioma }}</span>
+      @endforeach
+    </div>
   </section>
   @endif
 
@@ -77,7 +117,16 @@
   <section>
     <h3 class="sub">Referencias</h3>
     @foreach($d['referencias'] as $r)
-      <div>- {{ $r['nombre'] }} · {{ $r['contacto'] }} ({{ $r['relacion'] }})</div>
+      @php
+        $partes = [];
+        if (!empty($r['nombre']))    $partes[] = $r['nombre'];
+        if (!empty($r['relacion']))  $partes[] = $r['relacion'];
+        $cabecera = implode(' — ', $partes);
+      @endphp
+      <div>
+        @if($cabecera !== '') <strong>{{ $cabecera }}</strong>@endif
+        @if(!empty($r['contacto'])) · {{ $r['contacto'] }} @endif
+      </div>
     @endforeach
   </section>
   @endif

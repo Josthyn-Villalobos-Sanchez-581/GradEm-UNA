@@ -6,51 +6,55 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class GenerarCurriculumRequest extends FormRequest
 {
-	// PEL06: comentarios en bloque
-	// Valida payload con reglas espejo a las del frontend
-	public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return auth()->check();
+    }
 
-	public function rules(): array
-	{
-		return [
-			'usuarioId' => ['required','integer','exists:usuarios,id_usuario'],
-			'datosPersonales.nombreCompleto' => ['required','string','max:100'],
-			'datosPersonales.correo' => ['required','email','max:100'],
-			'datosPersonales.telefono' => ['nullable','string','max:20'],
-			'resumenProfesional' => ['nullable','string','max:2000'],
+    public function rules(): array
+    {
+        return [
+            'usuarioId' => 'required|integer',
 
-			'educaciones' => ['array'],
-			'educaciones.*.institucion' => ['required','string','max:100'],
-			'educaciones.*.titulo' => ['required','string','max:100'],
-			'educaciones.*.fecha_inicio' => ['nullable','date'],
-			'educaciones.*.fecha_fin' => ['nullable','date','after_or_equal:educaciones.*.fecha_inicio'],
+            'datosPersonales.nombreCompleto' => 'required|string|max:255',
+            'datosPersonales.correo'        => 'required|email',
+            'datosPersonales.telefono'      => 'nullable|string|max:30',
 
-			'experiencias' => ['array'],
-			'experiencias.*.empresa' => ['required','string','max:100'],
-			'experiencias.*.puesto' => ['required','string','max:100'],
-			'experiencias.*.periodo_inicio' => ['nullable','date'],
-			'experiencias.*.periodo_fin' => ['nullable','date'],
+            'resumenProfesional' => 'nullable|string|max:2000',
 
-			'habilidades' => ['array'],
-			'habilidades.*.descripcion' => ['required','string','max:100'],
+            'educaciones' => 'array',
+            'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|max:255',
+            'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|max:255',
+            'educaciones.*.fecha_inicio' => 'nullable|date',
+            'educaciones.*.fecha_fin'    => 'nullable|date',
 
-			'idiomas' => ['array'],
-			'idiomas.*.id_idioma_catalogo' => ['required','integer','exists:idiomas_catalogo,id_idioma_catalogo'],
-			'idiomas.*.nivel' => ['required','string','max:50'],
+            'experiencias' => 'array',
+            'experiencias.*.empresa'        => 'required_with:experiencias.*.puesto|string|max:255',
+            'experiencias.*.puesto'         => 'required_with:experiencias.*.empresa|string|max:255',
+            'experiencias.*.periodo_inicio' => 'nullable|date',
+            'experiencias.*.periodo_fin'    => 'nullable|date',
+            'experiencias.*.funciones'      => 'nullable|string|max:1000',
 
-			'referencias' => ['array'],
-			'referencias.*.nombre' => ['required','string','max:100'],
-			'referencias.*.contacto' => ['required','string','max:100'],
-			'referencias.*.relacion' => ['required','string','max:100'],
-		];
-	}
+            'habilidades' => 'array',
+            'habilidades.*.descripcion' => 'required|string|max:255',
 
-	public function messages(): array
-	{
-		return [
-			'usuarioId.required' => 'El usuario es obligatorio.',
-			'datosPersonales.nombreCompleto.required' => 'El nombre completo es obligatorio.',
-			// ... agrega mensajes específicos si lo deseas
-		];
-	}
+            // ✅ Ahora idiomas es libre: nombre + nivel MCER
+            'idiomas' => 'array',
+            'idiomas.*.nombre' => 'required|string|max:100',
+            'idiomas.*.nivel'  => 'required|in:A1,A2,B1,B2,C1,C2,Nativo',
+
+            'referencias' => 'array',
+            'referencias.*.nombre'   => 'required|string|max:255',
+            'referencias.*.contacto' => 'required|string|max:255',
+            'referencias.*.relacion' => 'nullable|string|max:255',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'idiomas.*.nombre.required' => 'El nombre del idioma es obligatorio.',
+            'idiomas.*.nivel.required'  => 'Debe seleccionar el nivel MCER.',
+        ];
+    }
 }
