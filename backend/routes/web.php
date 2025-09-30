@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UniversidadController;
-use App\Http\Controllers\CurriculumController; // ✅ NUEVO: controlador para generar CV
+use App\Http\Controllers\CurriculumController; 
+use App\Http\Controllers\FotoPerfilController; 
 
 // ==========================================
 // Rutas públicas
@@ -141,6 +142,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::get('/perfil/editar', [PerfilController::class, 'edit'])->name('perfil.edit');
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
+
+    // ==========================================
+    // Foto de Perfil
+    // ==========================================
+    Route::post('/perfil/foto', [FotoPerfilController::class, 'subirFoto'])->name('perfil.foto.subir');
+    Route::get('/perfil/foto', [FotoPerfilController::class, 'mostrarFoto'])->name('perfil.foto.mostrar');
+    Route::post('/perfil/foto/eliminar', [FotoPerfilController::class, 'eliminarFoto'])
+    ->name('perfil.foto.eliminar');
 
     // ==========================================
     // Currículum (páginas y API web)
