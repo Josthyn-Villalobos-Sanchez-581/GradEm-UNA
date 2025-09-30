@@ -1,8 +1,5 @@
-// backend/resources/js/layouts/PpLayout.tsx 
-
-
 import { type BreadcrumbItem } from '@/types';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import axios from 'axios';
 
@@ -23,19 +20,27 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [menuTimeout, setMenuTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Maneja la apertura del submenú
+  useEffect(() => {
+    const csrfToken =
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    axios.defaults.withCredentials = true;
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    if (csrfToken) {
+      axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+    }
+  }, []);
+
   const handleMouseEnter = (menu: string) => {
     if (menuTimeout) clearTimeout(menuTimeout);
     setOpenMenu(menu);
   };
 
-  // Maneja el cierre con delay
   const handleMouseLeave = () => {
-    const timeout = setTimeout(() => setOpenMenu(null), 500);
+    const timeout = setTimeout(() => setOpenMenu(null), 300);
     setMenuTimeout(timeout);
   };
 
-  // Definición del menú principal
   const menu: MenuItem[] = [
     { title: 'Dashboard', route: '/dashboard', permisoId: 1 },
     {
@@ -50,6 +55,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     {
       title: 'Currículum',
       subMenu: [
+        { title: 'Generar CV', route: '/curriculum/generar', permisoId: 2 },
         { title: 'Gestión', route: '/curriculum', permisoId: 2 },
         { title: 'Carga de Documentos', route: '/documentos', permisoId: 3 },
         { title: 'Visualización', route: '/ver-curriculum', permisoId: 4 },
@@ -87,7 +93,6 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     { title: 'Integraciones', route: '/integraciones', permisoId: 17 },
   ];
 
-  // Filtra el menú según permisos del usuario
   const permisos = userPermisos ?? [];
   const filteredMenu = menu
     .map((m) => {
@@ -101,16 +106,20 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     })
     .filter(Boolean) as MenuItem[];
 
-  const logoUrl = new URL('../assets/logoUNATopBar.png', import.meta.url).href;
+  const logoUnaUrl = new URL('../assets/logoUNATopBar.png', import.meta.url).href;
+  const logoGradEmUrl = new URL('../assets/LogoGradEmUNABlanco.png', import.meta.url).href;
 
-  // Función para cerrar sesión
   const handleLogout = async () => {
     try {
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await axios.post('/logout', {}, {
-        headers: { 'X-CSRF-TOKEN': csrfToken || '' },
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        '/logout',
+        {},
+        {
+          headers: { 'X-CSRF-TOKEN': csrfToken || '' },
+          withCredentials: true,
+        }
+      );
       if (res.data.redirect) window.location.href = res.data.redirect;
     } catch (err) {
       console.error('Error al cerrar sesión', err);
@@ -118,13 +127,16 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
       {/* Topbar */}
-      <header className="bg-red-700 shadow-md sticky top-0 z-50 flex flex-col">
-        <div className="flex justify-between items-center px-4 md:px-6 py-3">
-          {/* Logo a la izquierda */}
-          <div className="flex-shrink-0">
-            <img src={logoUrl} alt="Logo UNA" className="h-14 w-auto object-contain" />
+      <header className="bg-red-700 shadow-md sticky top-0 z-50">
+        <div className="flex justify-between items-center px-6 py-3">
+          {/* Logos */}
+          <div className="flex items-center gap-4">
+            <Link href="https://www.una.ac.cr" target="_blank">
+              <img src={logoUnaUrl} alt="Logo UNA" className="h-14 w-auto object-contain" />
+            </Link>
+            <img src={logoGradEmUrl} alt="Logo GradEm" className="h-12 w-auto object-contain" />
           </div>
 
           {/* Botón hamburguesa móvil */}
@@ -140,7 +152,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
           </div>
 
           {/* Menú desktop */}
-          <nav className="hidden md:flex gap-4 items-center ml-auto text-white">
+          <nav className="hidden md:flex gap-6 items-center ml-auto text-white font-medium">
             {filteredMenu.map((item) =>
               item.subMenu ? (
                 <div
@@ -149,7 +161,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                   onMouseEnter={() => handleMouseEnter(item.title)}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <button className="font-medium hover:text-gray-200 transition">
+                  <button className="hover:text-gray-200 transition-colors">
                     {item.title} ▾
                   </button>
                   <div
@@ -161,7 +173,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                       <Link
                         key={sub.title}
                         href={sub.route!}
-                        className="block px-4 py-2 hover:bg-red-50 hover:text-red-700 transition"
+                        className="block px-4 py-2 hover:bg-red-50 hover:text-red-700 transition-colors"
                       >
                         {sub.title}
                       </Link>
@@ -169,36 +181,28 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                   </div>
                 </div>
               ) : (
-                <Link
-                  key={item.title}
-                  href={item.route!}
-                  className="font-medium hover:text-gray-200 transition"
-                >
+                <Link key={item.title} href={item.route!} className="hover:text-gray-200 transition-colors">
                   {item.title}
                 </Link>
               )
             )}
-            
-            <Link
-              href="/perfil"
-              className="font-medium hover:text-gray-200 transition"
-            >
+
+            <Link href="/perfil" className="hover:text-gray-200 transition-colors">
               Mi Perfil
             </Link>
 
-            {/* Botón de Cerrar Sesión usando axios */}
             <button
               onClick={handleLogout}
-              className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition"
+              className="bg-red-800 hover:bg-red-900 px-4 py-1 rounded text-white text-sm transition-colors"
             >
               Cerrar Sesión
             </button>
           </nav>
         </div>
 
-        {/* Menú móvil desplegable */}
+        {/* Menú móvil */}
         {openMenu === 'movil' && (
-          <nav className="md:hidden bg-red-700 px-4 py-2 flex flex-col gap-1 text-white">
+          <nav className="md:hidden bg-red-700 px-4 py-2 flex flex-col gap-2 text-white">
             {filteredMenu.map((item) =>
               item.subMenu ? (
                 <div key={item.title}>
@@ -208,7 +212,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                       <Link
                         key={sub.title}
                         href={sub.route!}
-                        className="block px-2 py-1 hover:bg-red-800 rounded transition"
+                        className="block px-2 py-1 hover:bg-red-800 rounded transition-colors"
                         onClick={() => setOpenMenu(null)}
                       >
                         {sub.title}
@@ -220,7 +224,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                 <Link
                   key={item.title}
                   href={item.route!}
-                  className="block px-2 py-1 hover:bg-red-800 rounded transition"
+                  className="block px-2 py-1 hover:bg-red-800 rounded transition-colors"
                   onClick={() => setOpenMenu(null)}
                 >
                   {item.title}
@@ -229,7 +233,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
             )}
             <button
               onClick={handleLogout}
-              className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition mt-2"
+              className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm transition-colors mt-2"
             >
               Cerrar Sesión
             </button>
@@ -238,10 +242,10 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
 
         {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <div className="bg-red-800 px-4 md:px-6 py-2 text-sm text-white flex flex-wrap gap-1">
+          <div className="bg-red-800 px-6 py-2 text-sm text-white flex flex-wrap gap-2">
             {breadcrumbs.map((item, idx) => (
               <span key={idx} className="flex items-center">
-                <Link href={item.href} className="hover:text-gray-200">
+                <Link href={item.href} className="hover:text-gray-200 transition-colors">
                   {item.title}
                 </Link>
                 {idx < breadcrumbs.length - 1 && <span className="mx-1">/</span>}
@@ -253,12 +257,12 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
 
       {/* Contenido principal */}
       <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
-        <div className="bg-white shadow rounded-xl p-6 text">{children}</div>
+        <div className="bg-white shadow-xl rounded-2xl p-6 text-gray-900">{children}</div>
       </main>
 
       {/* Footer */}
       <footer className="bg-white border-t text-center p-4 text-gray-500 text-sm">
-        Sistema de Gestión © 2025 - Universidad Nacional
+        Sistema GradEm © 2025 - Universidad Nacional
       </footer>
     </div>
   );

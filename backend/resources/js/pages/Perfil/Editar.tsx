@@ -4,6 +4,8 @@ import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
+import { router } from '@inertiajs/react';
+
 
 
 interface Usuario {
@@ -106,129 +108,236 @@ export default function Editar({
 
   const [errores, setErrores] = useState<{ [key: string]: string }>({});
 
-  const validarCampo = (name: string, value: string) => {
-    let error = "";
-    const currentYear = new Date().getFullYear();
 
-    if (name === "nombre_completo") {
-      if (!value.trim()) error = "El nombre es obligatorio.";
-      else if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(value))
-        error = "El nombre solo puede contener letras y espacios.";
+  const validarCampo = (name: string, value: string) => {//validaciones de los campos
+  let error = "";
+  const currentYear = new Date().getFullYear();
+
+  if (name === "nombre_completo") {
+    if (!value.trim()) error = "El nombre es obligatorio.";
+    else if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(value))
+      error = "El nombre solo puede contener letras y espacios.";
+  }
+
+  if (name === "correo") {
+    if (!value.trim()) error = "El correo es obligatorio.";
+    else if (!/^[\w.%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value))
+      error = "Ingrese un correo válido.";
+  }
+
+  if (name === "identificacion") {
+    if (!/^[a-zA-Z0-9]{5,20}$/.test(value)) {
+      error = "La identificación debe ser alfanumérica y tener entre 5 y 20 caracteres.";
     }
+  }
 
-    if (name === "correo") {
-      if (!value.trim()) error = "El correo es obligatorio.";
-      else if (!/^[\w.%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value))
-        error = "Ingrese un correo válido.";
+  if (name === "telefono") {
+    if (!/^\d{8}$/.test(value)) {
+      error = "El teléfono debe ser de exactamente 8 dígitos numéricos.";
     }
+  }
 
-    if (name === "identificacion") {
-      if (!/^\d{9}$/.test(value))
-        error = "La identificación debe tener exactamente 9 dígitos.";
+  if (name === "fecha_nacimiento") {
+    if (!value) error = "Debe ingresar su fecha de nacimiento.";
+    else {
+      const year = new Date(value).getFullYear();
+      if (year > currentYear - 16) error = "Debe tener al menos 16 años.";
+      if (year < currentYear - 100) error = "La edad no puede superar los 100 años.";
     }
+  }
 
-    if (name === "telefono") {
-      if (!/^\+\d{8,15}$/.test(value))
-        error =
-          "El teléfono debe incluir extensión internacional (+) y entre 8 y 15 dígitos.";
+  if (name === "estado_estudios") {
+    if (!value) error = "Debe seleccionar su estado de estudios.";
+  }
+
+  if (name === "nivel_academico") {
+    if (formData.estado_estudios === "Graduado" && !value) {
+      error = "Debe seleccionar un nivel académico.";
     }
+  }
 
-    if (name === "fecha_nacimiento") {
-      if (!value) error = "Debe ingresar su fecha de nacimiento.";
-      else {
-        const year = new Date(value).getFullYear();
-        if (year > currentYear - 16) error = "Debe tener al menos 16 años.";
-        if (year < currentYear - 100) error = "La edad no puede superar los 100 años.";
-        if (year.toString().length !== 4)
-          error = "El año de nacimiento debe tener 4 cifras.";
-      }
+  if (name === "anio_graduacion") {
+    const year = Number(value);
+    // Solo obligatorio si hay nivel académico (Diplomado o superior)
+    if (formData.nivel_academico && !year) {
+      error = "Debe ingresar el año de graduación.";
+    } else if (year && (year < 2007 || year > currentYear)) {
+      error = `El año debe estar entre 2007 y ${currentYear}.`;
     }
+  }
 
-    if (name === "anio_graduacion") {
-      const year = Number(value);
-      if (formData.nivel_academico && !year)
-        error = "Debe ingresar el año de graduación.";
-      else if (year && (year < 2007 || year > currentYear))
-        error = `El año debe estar entre 2007 y ${currentYear}.`;
-    }
+  if (name === "estado_empleo") {
+    if (!value) error = "Debe seleccionar su estado de empleo.";
+  }
 
-    setErrores((prev) => ({ ...prev, [name]: error }));
-  };
+  // Validaciones específicas si es empleado
+  if (formData.estado_empleo?.toLowerCase() === "empleado") {
+    if (name === "tiempo_conseguir_empleo" && !value)
+      error = "Debe indicar los meses para conseguir empleo.";
+    if (name === "area_laboral_id" && !value)
+      error = "Debe seleccionar un área laboral.";
+    if (name === "salario_promedio" && !value)
+      error = "Debe seleccionar un rango salarial.";
+    if (name === "tipo_empleo" && !value)
+      error = "Debe seleccionar un tipo de empleo.";
+  }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let newValue: string | number | null = value;
-
-    // Validar el campo en el momento
-    validarCampo(name, value);
-
-    // Normalizar valores numéricos
-    if (
-      ["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(
-        name
-      )
-    ) {
-      newValue = value === "" ? null : Number(value);
-    }
-
-    if (newValue === "") newValue = null;
-
-    setFormData({ ...formData, [name]: newValue });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  // 1. Revalidar todos los campos antes de enviar
-  if (Object.values(errores).some((msg) => msg)) {
-    await modal.alerta({
-        titulo: "Errores en el formulario",
-        mensaje: "Por favor corrija los campos marcados en rojo antes de continuar.",
-    });
-
-    return;
-}
-
-  // 2. Confirmación modal
-  const ok = await modal.confirmacion({
-    titulo: "Confirmar cambios",
-    mensaje: "¿Está seguro que desea guardar los cambios en su perfil?",
-  });
-  if (!ok) return;
-
-  // 3. Envío con Inertia y mensaje de éxito
-  Inertia.put(`/perfil/${usuario.id_usuario}`, { ...formData }, {
-  onSuccess: () => {
-    modal.alerta({
-      titulo: "Éxito",
-      mensaje: "Datos guardados con éxito",
-    });
-  },
-  onError: (errors) => {
-    console.error("Errores de validación:", errors);
-    debugger; // Aquí sí se detendrá si hay un error de Laravel
-  },
-}
-);
-
+  setErrores((prev) => ({ ...prev, [name]: error }));
 };
 
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
+  let newValue: string | number | null = value;
+
+  // Validar en el momento
+  validarCampo(name, value);
+
+  // Normalizar valores numéricos
+  if (
+    ["anio_graduacion", "tiempo_conseguir_empleo", "area_laboral_id", "id_canton", "id_carrera"].includes(
+      name
+    )
+  ) {
+    newValue = value === "" ? null : Number(value);
+  }
+
+  if (newValue === "") newValue = null;
+
+  // Si cambia a desempleado, reseteamos campos laborales + limpiamos errores
+  if (name === "estado_empleo" && value.toLowerCase() === "desempleado") {
+    setFormData({
+      ...formData,
+      estado_empleo: value,
+      tiempo_conseguir_empleo: null,
+      area_laboral_id: null,
+      salario_promedio: null,
+      tipo_empleo: null,
+    });
+
+    setErrores((prev) => {
+      const nuevos = { ...prev };
+      delete nuevos["tiempo_conseguir_empleo"];
+      delete nuevos["area_laboral_id"];
+      delete nuevos["salario_promedio"];
+      delete nuevos["tipo_empleo"];
+      return nuevos;
+    });
+
+    return;
+  }
+
+  setFormData({ ...formData, [name]: newValue });
+};
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  // 1. Definir campos obligatorios base
+  const camposObligatorios: string[] = [
+    "nombre_completo",
+    "correo",
+    "identificacion",
+    "telefono",
+    "fecha_nacimiento",
+    "genero",
+    "estado_estudios",
+    "estado_empleo",
+    "id_universidad",
+    "id_carrera",
+    "id_canton",
+  ];
+
+  // Nivel académico obligatorio si es Graduado
+  if (formData.estado_estudios === "Graduado") {
+    camposObligatorios.push("nivel_academico");
+  }
+
+  // Año de graduación obligatorio si seleccionó nivel académico
+  if (formData.nivel_academico) {
+    camposObligatorios.push("anio_graduacion");
+  }
+
+  // Campos extra si es empleado
+  if (formData.estado_empleo?.toLowerCase() === "empleado") {
+    camposObligatorios.push(
+      "tiempo_conseguir_empleo",
+      "area_laboral_id",
+      "salario_promedio",
+      "tipo_empleo"
+    );
+  }
+
+  // 2. Revisar campos vacíos
+  const camposVacios = camposObligatorios.filter((campo) => {
+    const valor = (formData as any)[campo];
+    return valor === null || valor === "" || valor === undefined;
+  });
+
+  if (camposVacios.length > 0) {
+    await modal.alerta({
+      titulo: "Campos incompletos",
+      mensaje: "Aún no se han llenado algunos campos obligatorios.",
+    });
+    return;
+  }
+
+
+  // 3. Revalidar todos los campos antes de enviar
+  if (Object.values(errores).some((msg) => msg)) {
+    await modal.alerta({
+        titulo: "Errores en el formulario",
+        mensaje: "Por favor corrija los campos antes de continuar.",
+    });
+
+    return;
+  }
+
+  // 4. Confirmación modal
+    const ok = await modal.confirmacion({
+      titulo: "Confirmar cambios",
+      mensaje: "¿Está seguro que desea guardar los cambios en su perfil?",
+    });
+    if (!ok) return;
+
+    // 5. Envío con Inertia y mensaje de éxito
+   router.put(route("perfil.update"), { ...formData }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      window.location.href = route("perfil.index"); // redirección tradicional
+    },
+    onError: (errors) => {
+      console.error("Errores de validación:", errors);
+      modal.alerta({
+        titulo: "Error de validación",
+        mensaje: "Por favor revise los campos e intente nuevamente.",
+      });
+    },
+  }
+);
+
+};
   return (
   <>
     <Head title="Editar Perfil" />
-    <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Editar mi perfil</h2>
-        <Link
-          href="/perfil"
-          className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-        >
-          Volver
-        </Link>
-      </div>
+<div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-xl font-bold">Editar mi perfil</h2>
+    <Link
+      href="/perfil"
+      className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+    >
+      Volver
+    </Link>
+  </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
+    {/* ================= DATOS PERSONALES ================= */}
+    <div>
+      <h3 className="text-lg font-semibold mb-2 border-b pb-1">
+        Datos personales
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Nombre */}
         <div className="flex flex-col">
           <label>Nombre completo</label>
@@ -329,222 +438,6 @@ export default function Editar({
           )}
         </div>
 
-        {/* Año de graduación */}
-        <div className="flex flex-col">
-          <label className="text-sm">Año de graduación</label>
-          <input
-            type="number"
-            name="anio_graduacion"
-            value={formData.anio_graduacion ?? ""}
-            onChange={handleChange}
-            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-            min={2007}
-            max={new Date().getFullYear()}
-            className="border p-1 rounded w-full text-sm"
-          />
-          {errores.anio_graduacion && (
-            <span className="text-red-500 text-xs">{errores.anio_graduacion}</span>
-          )}
-        </div>
-
-        {/* Estado estudios */}
-        <div className="flex flex-col">
-          <label className="text-sm">Estado de estudios</label>
-          <select
-            name="estado_estudios"
-            value={formData.estado_estudios ?? ""}
-            onChange={handleChange}
-            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-            className="border p-1 rounded w-full text-sm"
-          >
-            <option value="">Seleccione estado</option>
-            <option value="Graduado">Graduado</option>
-            <option value="Estudiando">Estudiando</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="Otro">Otro</option>
-          </select>
-          {errores.estado_estudios && (
-            <span className="text-red-500 text-xs">{errores.estado_estudios}</span>
-          )}
-        </div>
-
-        {/* Nivel académico */}
-        <div className="flex flex-col">
-          <label className="text-sm">Nivel académico</label>
-          <select
-            name="nivel_academico"
-            value={formData.nivel_academico ?? ""}
-            onChange={handleChange}
-            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-            className="border p-1 rounded w-full text-sm"
-          >
-            <option value="">Seleccione nivel académico</option>
-            <option value="Diplomado">Diplomado</option>
-            <option value="Bachillerato">Bachillerato</option>
-            <option value="Licenciatura">Licenciatura</option>
-            <option value="Maestría">Maestría</option>
-            <option value="Doctorado">Doctorado</option>
-          </select>
-          {errores.nivel_academico && (
-            <span className="text-red-500 text-xs">{errores.nivel_academico}</span>
-          )}
-        </div>
-
-        {/* Universidad */}
-        <div className="flex flex-col">
-          <label className="text-sm">Universidad</label>
-          <select
-            name="id_universidad"
-            value={selectedUniversidad ?? ""}
-            onChange={(e) => {
-              const uniId = e.target.value ? Number(e.target.value) : null;
-              setSelectedUniversidad(uniId);
-              setFormData({ ...formData, id_carrera: null, id_universidad: uniId });
-              validarCampo("id_universidad", e.target.value);
-            }}
-            className="border p-1 rounded w-full text-sm"
-          >
-            <option value="">Seleccione universidad</option>
-            {universidades.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nombre} ({u.sigla})
-              </option>
-            ))}
-          </select>
-          {errores.id_universidad && (
-            <span className="text-red-500 text-xs">{errores.id_universidad}</span>
-          )}
-        </div>
-
-        {/* Carrera */}
-        <div className="flex flex-col">
-          <label className="text-sm">Carrera</label>
-          <select
-            name="id_carrera"
-            value={formData.id_carrera ?? ""}
-            onChange={handleChange}
-            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-            disabled={!selectedUniversidad}
-            className="border p-1 rounded w-full text-sm"
-          >
-            <option value="">Seleccione carrera</option>
-            {carreras
-              .filter((c) => c.id_universidad === selectedUniversidad)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-          </select>
-          {errores.id_carrera && (
-            <span className="text-red-500 text-xs">{errores.id_carrera}</span>
-          )}
-        </div>
-
-        {/* Estado empleo */}
-        <div className="flex flex-col">
-          <label className="text-sm">Estado de empleo</label>
-          <select
-            name="estado_empleo"
-            value={formData.estado_empleo ?? ""}
-            onChange={handleChange}
-            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-            className="border p-1 rounded w-full text-sm"
-          >
-            <option value="">Seleccione estado de empleo</option>
-            <option value="empleado">Empleado</option>
-            <option value="desempleado">Desempleado</option>
-          </select>
-          {errores.estado_empleo && (
-            <span className="text-red-500 text-xs">{errores.estado_empleo}</span>
-          )}
-        </div>
-
-        {/* Campos adicionales si es empleado */}
-        {formData.estado_empleo?.toLowerCase() === "empleado" && (
-          <>
-            <div className="flex flex-col">
-              <label className="text-sm">Meses para conseguir empleo</label>
-              <input
-                type="number"
-                name="tiempo_conseguir_empleo"
-                value={formData.tiempo_conseguir_empleo ?? ""}
-                onChange={handleChange}
-                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                min={0}
-                className="border p-1 rounded w-full text-sm"
-              />
-              {errores.tiempo_conseguir_empleo && (
-                <span className="text-red-500 text-xs">
-                  {errores.tiempo_conseguir_empleo}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm">Área laboral</label>
-              <select
-                name="area_laboral_id"
-                value={formData.area_laboral_id ?? ""}
-                onChange={handleChange}
-                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                className="border p-1 rounded w-full text-sm"
-              >
-                <option value="">Seleccione área laboral</option>
-                {areaLaborales.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-              {errores.area_laboral_id && (
-                <span className="text-red-500 text-xs">{errores.area_laboral_id}</span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm">Rango salarial</label>
-              <select
-                name="salario_promedio"
-                value={formData.salario_promedio ?? ""}
-                onChange={handleChange}
-                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                className="border p-1 rounded w-full text-sm"
-              >
-                <option value="">Seleccione rango salarial</option>
-                <option value="<300000">Menor a ₡300,000</option>
-                <option value="300000-600000">₡300,000 - ₡600,000</option>
-                <option value="600000-1000000">₡600,000 - ₡1,000,000</option>
-                <option value=">1000000">Mayor a ₡1,000,000</option>
-              </select>
-              {errores.salario_promedio && (
-                <span className="text-red-500 text-xs">{errores.salario_promedio}</span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm">Tipo de empleo</label>
-              <select
-                name="tipo_empleo"
-                value={formData.tipo_empleo ?? ""}
-                onChange={handleChange}
-                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                className="border p-1 rounded w-full text-sm"
-              >
-                <option value="">Seleccione tipo de empleo</option>
-                <option value="Tiempo completo">Tiempo completo</option>
-                <option value="Medio tiempo">Medio tiempo</option>
-                <option value="Temporal">Temporal</option>
-                <option value="Independiente">Independiente</option>
-                <option value="Práctica">Práctica</option>
-              </select>
-              {errores.tipo_empleo && (
-                <span className="text-red-500 text-xs">{errores.tipo_empleo}</span>
-              )}
-            </div>
-          </>
-        )}
-
         {/* País */}
         <div className="flex flex-col">
           <label className="text-sm">País</label>
@@ -625,16 +518,251 @@ export default function Editar({
             <span className="text-red-500 text-xs">{errores.id_canton}</span>
           )}
         </div>
-
-          {/* Botón */}
-          <button
-            type="submit"
-            className="bg-[#034991] hover:bg-[#0563c1] text-white px-3 py-1 rounded col-span-2"
-          >
-            Guardar cambios
-          </button>
-        </form>
       </div>
+    </div>
+
+    {/* ================= DATOS ACADÉMICOS ================= */}
+    <div>
+      <h3 className="text-lg font-semibold mb-2 border-b pb-1">
+        Datos académicos
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Estado estudios */}
+        <div className="flex flex-col">
+          <label className="text-sm">Estado de estudios</label>
+          <select
+            name="estado_estudios"
+            value={formData.estado_estudios ?? ""}
+            onChange={handleChange}
+            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+            className="border p-1 rounded w-full text-sm"
+          >
+            <option value="">Seleccione estado</option>
+            <option value="Graduado">Graduado</option>
+            <option value="Estudiando">Estudiando</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Otro">Otro</option>
+          </select>
+          {errores.estado_estudios && (
+            <span className="text-red-500 text-xs">{errores.estado_estudios}</span>
+          )}
+        </div>
+
+        {/* Nivel académico */}
+        <div className="flex flex-col">
+          <label className="text-sm">Nivel académico</label>
+          <select
+            name="nivel_academico"
+            value={formData.nivel_academico ?? ""}
+            onChange={handleChange}
+            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+            className="border p-1 rounded w-full text-sm"
+          >
+            <option value="">Seleccione nivel académico</option>
+            <option value="Diplomado">Diplomado</option>
+            <option value="Bachillerato">Bachillerato</option>
+            <option value="Licenciatura">Licenciatura</option>
+            <option value="Maestría">Maestría</option>
+            <option value="Doctorado">Doctorado</option>
+          </select>
+          {errores.nivel_academico && (
+            <span className="text-red-500 text-xs">{errores.nivel_academico}</span>
+          )}
+        </div>
+
+        {/* Año de graduación */}
+        <div className="flex flex-col">
+          <label className="text-sm">Año de graduación</label>
+          <input
+            type="number"
+            name="anio_graduacion"
+            value={formData.anio_graduacion ?? ""}
+            onChange={handleChange}
+            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+            min={2007}
+            max={new Date().getFullYear()}
+            className="border p-1 rounded w-full text-sm"
+          />
+          {errores.anio_graduacion && (
+            <span className="text-red-500 text-xs">{errores.anio_graduacion}</span>
+          )}
+        </div>
+
+        {/* Universidad */}
+        <div className="flex flex-col">
+          <label className="text-sm">Universidad</label>
+          <select
+            name="id_universidad"
+            value={selectedUniversidad ?? ""}
+            onChange={(e) => {
+              const uniId = e.target.value ? Number(e.target.value) : null;
+              setSelectedUniversidad(uniId);
+              setFormData({ ...formData, id_carrera: null, id_universidad: uniId });
+              validarCampo("id_universidad", e.target.value);
+            }}
+            className="border p-1 rounded w-full text-sm"
+          >
+            <option value="">Seleccione universidad</option>
+            {universidades.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.nombre} ({u.sigla})
+              </option>
+            ))}
+          </select>
+          {errores.id_universidad && (
+            <span className="text-red-500 text-xs">{errores.id_universidad}</span>
+          )}
+        </div>
+
+        {/* Carrera */}
+        <div className="flex flex-col">
+          <label className="text-sm">Carrera</label>
+          <select
+            name="id_carrera"
+            value={formData.id_carrera ?? ""}
+            onChange={handleChange}
+            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+            disabled={!selectedUniversidad}
+            className="border p-1 rounded w-full text-sm"
+          >
+            <option value="">Seleccione carrera</option>
+            {carreras
+              .filter((c) => c.id_universidad === selectedUniversidad)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+          </select>
+          {errores.id_carrera && (
+            <span className="text-red-500 text-xs">{errores.id_carrera}</span>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* ================= DATOS LABORALES ================= */}
+    <div>
+      <h3 className="text-lg font-semibold mb-2 border-b pb-1">
+        Datos laborales
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Estado empleo */}
+        <div className="flex flex-col">
+          <label className="text-sm">Estado de empleo</label>
+          <select
+            name="estado_empleo"
+            value={formData.estado_empleo ?? ""}
+            onChange={handleChange}
+            onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+            className="border p-1 rounded w-full text-sm"
+          >
+            <option value="">Seleccione estado de empleo</option>
+            <option value="empleado">Empleado</option>
+            <option value="desempleado">Desempleado</option>
+          </select>
+          {errores.estado_empleo && (
+            <span className="text-red-500 text-xs">{errores.estado_empleo}</span>
+          )}
+        </div>
+
+        {/* Campos adicionales si es empleado */}
+        {formData.estado_empleo?.toLowerCase() === "empleado" && (
+          <>
+          <div className="flex flex-col">
+              <label className="text-sm">Meses para conseguir empleo</label>
+              <input
+                type="number"
+                name="tiempo_conseguir_empleo"
+                value={formData.tiempo_conseguir_empleo ?? ""}
+                onChange={handleChange}
+                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                min={0}
+                className="border p-1 rounded w-full text-sm"
+              />
+              {errores.tiempo_conseguir_empleo && (
+                <span className="text-red-500 text-xs">
+                  {errores.tiempo_conseguir_empleo}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm">Área laboral</label>
+              <select
+                name="area_laboral_id"
+                value={formData.area_laboral_id ?? ""}
+                onChange={handleChange}
+                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                className="border p-1 rounded w-full text-sm"
+              >
+                <option value="">Seleccione área laboral</option>
+                {areaLaborales.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+              {errores.area_laboral_id && (
+                <span className="text-red-500 text-xs">{errores.area_laboral_id}</span>
+              )}
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm">Rango salarial</label>
+              <select
+                name="salario_promedio"
+                value={formData.salario_promedio ?? ""}
+                onChange={handleChange}
+                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                className="border p-1 rounded w-full text-sm"
+              >
+                <option value="">Seleccione rango salarial</option>
+                <option value="<300000">Menor a ₡300,000</option>
+                <option value="300000-600000">₡300,000 - ₡600,000</option>
+                <option value="600000-1000000">₡600,000 - ₡1,000,000</option>
+                <option value=">1000000">Mayor a ₡1,000,000</option>
+              </select>
+              {errores.salario_promedio && (
+                <span className="text-red-500 text-xs">{errores.salario_promedio}</span>
+              )}
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm">Tipo de empleo</label>
+              <select
+                name="tipo_empleo"
+                value={formData.tipo_empleo ?? ""}
+                onChange={handleChange}
+                onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                className="border p-1 rounded w-full text-sm"
+              >
+                <option value="">Seleccione tipo de empleo</option>
+                <option value="Tiempo completo">Tiempo completo</option>
+                <option value="Medio tiempo">Medio tiempo</option>
+                <option value="Temporal">Temporal</option>
+                <option value="Independiente">Independiente</option>
+                <option value="Práctica">Práctica</option>
+              </select>
+              {errores.tipo_empleo && (
+                <span className="text-red-500 text-xs">{errores.tipo_empleo}</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* BOTÓN */}
+    <button
+      type="submit"
+      className="bg-[#034991] hover:bg-[#0563c1] text-white px-3 py-2 rounded"
+    >
+      Guardar cambios
+    </button>
+  </form>
+</div>
+
     </>
   );
 }

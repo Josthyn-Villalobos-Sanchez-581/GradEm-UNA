@@ -10,48 +10,48 @@ use App\Models\Usuario;
 
 class PerfilController extends Controller
 {
+    /**
+     * Mostrar el perfil del usuario con relación a fotoPerfil cargada
+     */
     public function index()
     {
-        $usuario = Auth::user();
+        /** @var Usuario $usuario */
+        $usuario = Usuario::with('fotoPerfil')->find(Auth::id());
 
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->pluck('id_permiso')
             ->toArray();
 
-        // Áreas laborales
         $areasLaborales = DB::table('areas_laborales')
             ->select('id_area_laboral as id', 'nombre')
             ->get();
 
-        // Paises
         $paises = DB::table('paises')
             ->select('id_pais as id', 'nombre')
             ->get();
 
-        // Provincias
         $provincias = DB::table('provincias')
             ->select('id_provincia as id', 'nombre', 'id_pais')
             ->get();
 
-        // Cantones
         $cantones = DB::table('cantones')
             ->select('id_canton as id', 'nombre', 'id_provincia')
             ->get();
 
-        // Universidades
         $universidades = DB::table('universidades')
             ->select('id_universidad as id', 'nombre', 'sigla')
             ->get();
 
-        // Carreras
         $carreras = DB::table('carreras')
             ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
             ->get();
 
-
         return Inertia::render('Perfil/Index', [
-            'usuario' => $usuario,
+            'usuario' => [
+                ...$usuario->toArray(),
+                'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+            ],
             'userPermisos' => $userPermisos,
             'areaLaborales' => $areasLaborales,
             'paises' => $paises,
@@ -60,12 +60,12 @@ class PerfilController extends Controller
             'universidades' => $universidades,
             'carreras' => $carreras,
         ]);
-
     }
 
     public function edit()
     {
-        $usuario = Auth::user();
+        /** @var Usuario $usuario */
+        $usuario = Usuario::with('fotoPerfil')->find(Auth::id());
 
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
@@ -97,7 +97,10 @@ class PerfilController extends Controller
             ->get();
 
         return Inertia::render('Perfil/Editar', [
-            'usuario' => $usuario,
+            'usuario' => [
+                ...$usuario->toArray(),
+                'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+            ],
             'userPermisos' => $userPermisos,
             'areaLaborales' => $areasLaborales,
             'paises' => $paises,
@@ -108,18 +111,15 @@ class PerfilController extends Controller
         ]);
     }
 
-
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         try {
-            $usuario = Usuario::findOrFail($id);
+            /** @var Usuario $usuario */
+            $usuario = Auth::user();
 
-            // Limpiar los campos vacíos antes de validar
             $dataToValidate = $request->all();
             foreach ($dataToValidate as $key => $value) {
-                if ($value === '') {
-                    $dataToValidate[$key] = null;
-                }
+                if ($value === '') $dataToValidate[$key] = null;
             }
 
             $data = validator($dataToValidate, [
@@ -142,13 +142,14 @@ class PerfilController extends Controller
                 'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
             ])->validate();
 
-            $usuario->update($data);
+            $usuario->fill($data);
+            $usuario->save();
 
-            return redirect()->route('perfil.index')->with('success', 'Datos guardados con éxito');//todo salio
-
+            return redirect(route('perfil.index'))->with('success', 'Datos guardados con éxito');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->validator)->withInput();
         } catch (\Throwable $e) {
-            // Capturamos cualquier error inesperado y enviamos un mensaje genérico
-            return redirect()->back()->with('error', 'Ocurrió un error al actualizar los datos.');
+            return back()->with('error', 'Ocurrió un error al actualizar los datos.')->withInput();
         }
     }
 }
