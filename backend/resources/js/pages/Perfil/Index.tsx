@@ -1,9 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Link, Head, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
-import { useModal } from "@/hooks/useModal";
-
-
 
 interface Usuario {
   id_usuario: number;
@@ -81,7 +78,8 @@ export default function Index({
   universidades,
   carreras,
 }: Props) {
-  const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;//mostrar mensajes despues de editar
+  const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
+
   const cantonActual = cantones.find((c) => c.id === usuario.id_canton);
   const provinciaActual = cantonActual
     ? provincias.find((p) => p.id === cantonActual.id_provincia)
@@ -92,6 +90,9 @@ export default function Index({
 
   const universidadActual = universidades.find((u) => u.id === usuario.id_universidad);
   const carreraActual = carreras.find((c) => c.id === usuario.id_carrera);
+
+  const renderValor = (valor: any) =>
+    valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
   return (
     <>
@@ -108,8 +109,9 @@ export default function Index({
             {flash.error}
           </div>
         )}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Mi Perfil</h2>
+
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
           <Link
             href="/dashboard"
             className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
@@ -118,67 +120,73 @@ export default function Index({
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <p>
-            <strong>Nombre:</strong> {usuario.nombre_completo}
-          </p>
-          <p>
-            <strong>Correo:</strong> {usuario.correo}
-          </p>
-          <p>
-            <strong>Identificación:</strong> {usuario.identificacion}
-          </p>
-          <p>
-            <strong>Teléfono:</strong> {usuario.telefono ?? "N/A"}
-          </p>
-          <p>
-            <strong>Fecha Nacimiento:</strong> {usuario.fecha_nacimiento ?? "N/A"}
-          </p>
-          <p>
-            <strong>Género:</strong> {usuario.genero ?? "N/A"}
-          </p>
-          <p>
-            <strong>Universidad:</strong> {universidadActual?.nombre ?? "N/A"}
-          </p>
-          <p>
-            <strong>Carrera:</strong> {carreraActual?.nombre ?? "N/A"}
-          </p>
-          <p>
-            <strong>Estado Estudios:</strong> {usuario.estado_estudios ?? "N/A"}
-          </p>
-          <p>
-            <strong>Año Graduación:</strong> {usuario.anio_graduacion ?? "N/A"}
-          </p>
-          <p>
-            <strong>Nivel Académico:</strong> {usuario.nivel_academico ?? "N/A"}
-          </p>
-          <p>
-            <strong>Estado Empleo:</strong> {usuario.estado_empleo ?? "N/A"}
-          </p>
-          <p>
-            <strong>Tiempo para conseguir empleo:</strong>{" "}
-            {usuario.tiempo_conseguir_empleo ?? "N/A"}
-          </p>
-          <p>
-            <strong>Área Laboral:</strong>{" "}
-            {areaLaborales.find((a) => a.id === usuario.area_laboral_id)?.nombre ?? "N/A"}
-          </p>
-          <p>
-            <strong>Ubicación:</strong>{" "}
-            {paisActual && provinciaActual && cantonActual
-              ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-              : "N/A"}
-          </p>
-          <p>
-            <strong>Salario Promedio:</strong> {usuario.salario_promedio ?? "N/A"}
-          </p>
-          <p>
-            <strong>Tipo Empleo:</strong> {usuario.tipo_empleo ?? "N/A"}
-          </p>
+        {/* Datos personales */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos personales
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong className="text-gray-700">Nombre:</strong> {renderValor(usuario.nombre_completo)}</p>
+            <p><strong className="text-gray-700">Correo:</strong> {renderValor(usuario.correo)}</p>
+            <p><strong className="text-gray-700">Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+            <p><strong className="text-gray-700">Teléfono:</strong> {renderValor(usuario.telefono)}</p>
+            <p><strong className="text-gray-700">Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
+            <p><strong className="text-gray-700">Género:</strong> {renderValor(usuario.genero)}</p>
+          </div>
+        </div>
 
+        {/* Datos académicos */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos académicos
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong className="text-gray-700">Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
+            <p><strong className="text-gray-700">Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
+            <p><strong className="text-gray-700">Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+            <p><strong className="text-gray-700">Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+            <p><strong className="text-gray-700">Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+          </div>
+        </div>
+
+        {/* Datos laborales */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos laborales
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong className="text-gray-700">Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+            {usuario.estado_empleo?.toLowerCase() === "empleado" && (
+              <>
+                <p><strong className="text-gray-700">Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
+                <p><strong className="text-gray-700">Área laboral:</strong> {renderValor(areaLaborales.find((a) => a.id === usuario.area_laboral_id)?.nombre)}</p>
+                <p><strong className="text-gray-700">Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
+                <p><strong className="text-gray-700">Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Ubicación */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Ubicación
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p>
+              <strong className="text-gray-700">Ubicación:</strong>{" "}
+              {paisActual && provinciaActual && cantonActual
+                ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
+                : <span className="text-gray-400 italic">N/A</span>}
+            </p>
+          </div>
+        </div>
+
+        {/* Botón editar */}
+        <div className="mt-6">
           <Link
             href="/perfil/editar"
-            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2 text-center"
+            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2 text-center block"
           >
             Editar Perfil
           </Link>
