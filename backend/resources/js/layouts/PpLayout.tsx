@@ -261,8 +261,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         )}
       </header>
 
-     {/*<main className="flex-1 max-w-7xl mx-auto p-6 w-full">
-        <div className="bg-white shadow rounded-xl p-6 text">{children}</div>
+     {/*  <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
+        <div className="bg-white shadow-xl rounded-2xl p-6 text-gray-900">{children}</div> 
       </main> */}
       
   {/* Contenido principal */}

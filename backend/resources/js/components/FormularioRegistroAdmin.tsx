@@ -150,11 +150,14 @@ interface Carrera {
 }
 
 const allowedCarreras = [
+  "Ninguna",
   "Ingeniería en Sistemas de Información",
   "Química Industrial",
-  "Administración",
   "Inglés",
+  "Administración",
+  "Otra",
 ];
+
 
 const FormularioRegistroAdmin: React.FC = () => {
   const form = useForm({
@@ -268,35 +271,40 @@ const FormularioRegistroAdmin: React.FC = () => {
       </select>
     );
   };
+const renderCarreraField = () => {
+  if (loadingCarreras) return <div>Cargando carreras...</div>;
 
-  const renderCarreraField = () => {
-    if (loadingCarreras) return <div>Cargando carreras...</div>;
-    if (carreras.length === 0) {
-      return (
-        <input
-          className="input"
-          value={form.data.carrera}
-          onChange={(e) => form.setData("carrera", e.target.value)}
-          placeholder="Opcional"
-        />
-      );
-    }
-    const selectedOptionValue = (() => {
-      const found = carreras.find((c) => c.nombre === form.data.carrera);
-      return found ? String(found.id_carrera) : "";
-    })();
-
+  if (carreras.length === 0) {
     return (
-      <select className="select input" value={selectedOptionValue} onChange={handleCarreraChange}>
-        <option value="">Ninguna</option>
-        {carreras.map((c) => (
-          <option key={c.id_carrera} value={c.id_carrera}>
-            {c.nombre}
-          </option>
-        ))}
-      </select>
+      <input
+        className="input"
+        value={form.data.carrera}
+        onChange={(e) => form.setData("carrera", e.target.value)}
+        placeholder="Opcional"
+      />
     );
-  };
+  }
+
+  const selectedOptionValue = (() => {
+    const found = carreras.find((c) => c.nombre === form.data.carrera);
+    return found ? String(found.id_carrera) : "";
+  })();
+
+  return (
+    <select
+      className="select input"
+      value={selectedOptionValue}
+      onChange={handleCarreraChange}
+    >
+      {carreras.map((c) => (
+        <option key={c.id_carrera} value={c.id_carrera}>
+          {c.nombre}
+        </option>
+      ))}
+    </select>
+  );
+};
+
 
   /* ========================= VALIDACIONES EN TIEMPO REAL ========================= */
   const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,19 +325,14 @@ const FormularioRegistroAdmin: React.FC = () => {
   const validarCorreo = (correo: string) => /^.+@(una\.ac\.cr|gmail\.com)$/i.test(correo);
 
   const handleIdentificacionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
-    if (value.length > 9) value = value.slice(0, 9);
+    let value = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+    if (value.length > 12) value = value.slice(0, 12);
     form.setData("identificacion", value);
   };
 
-  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9+]/g, "");
-    if (value.startsWith("+")) {
-      value = "+" + value.slice(1).replace(/\+/g, "");
-    } else {
-      value = value.replace(/\+/g, "");
-    }
-    if (value.length > 12) value = value.slice(0, 12);
+const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 8) value = value.slice(0, 8);
     form.setData("telefono", value);
   };
 
@@ -371,9 +374,8 @@ const FormularioRegistroAdmin: React.FC = () => {
     const data = form.data as Record<string, any>;
     if (anyTextEmpty()) return false;
     if (!validarCorreo(data.correo)) return false;
-    if (data.identificacion.length !== 9) return false;
-    const telLen = (data.telefono || "").length;
-    if (telLen < 8 || telLen > 12) return false;
+    if (data.identificacion.length === 0 || data.identificacion.length > 12) return false;
+    if (data.telefono.length !== 8) return false;
     if (!validarContrasena(data.contrasena)) return false;
     if (data.contrasena !== data.contrasena_confirmation) return false;
     return true;
@@ -407,11 +409,11 @@ const FormularioRegistroAdmin: React.FC = () => {
   const identificacionError =
     !String(form.data.identificacion || "").trim()
       ? "Requerido"
-      : (String(form.data.identificacion).length !== 9 ? "Debe tener 9 dígitos" : "");
+      : (String(form.data.identificacion).length !== 9 ? "Debe tener 9 dígitos o 12 si es DIMEX " : "");
   const telefonoError =
     !String(form.data.telefono || "").trim()
       ? "Requerido"
-      : (((form.data.telefono as string).length < 8 || (form.data.telefono as string).length > 12) ? "Teléfono inválido (8-12 caracteres incl. +)" : "");
+      : (((form.data.telefono as string).length < 8 || (form.data.telefono as string).length > 9) ? "Teléfono inválido (8 digitos)" : "");
   const contrasenaError = getContrasenaError(String(form.data.contrasena || ""));
   const contrasenaConfirmError = form.data.contrasena && form.data.contrasena !== form.data.contrasena_confirmation ? "No coincide" : "";
 
@@ -471,8 +473,8 @@ const FormularioRegistroAdmin: React.FC = () => {
               className={`input ${fieldError("identificacion") ? "border-una-red" : ""}`}
               value={form.data.identificacion}
               onChange={handleIdentificacionChange}
-              placeholder="Ej: 112345678"
-              maxLength={9}
+              placeholder="Ej: ABC123456"
+              maxLength={12}
             />
             <div className="error-text">{fieldError("identificacion") || identificacionError}</div>
           </div>
@@ -484,8 +486,8 @@ const FormularioRegistroAdmin: React.FC = () => {
               className={`input ${fieldError("telefono") ? "border-una-red" : ""}`}
               value={form.data.telefono}
               onChange={handleTelefonoChange}
-              placeholder="+50688888888"
-              maxLength={12}
+              placeholder="88888888"
+              maxLength={8}
             />
             <div className="error-text">{fieldError("telefono") || telefonoError}</div>
           </div>

@@ -155,6 +155,8 @@ const allowedCarreras = [
   "Química Industrial",
   "Administración",
   "Inglés",
+  "Ninguna",
+  "Otra",
 ];
 
 interface Props {
@@ -227,24 +229,19 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
     return /^.+@(una\.ac\.cr|gmail\.com)$/i.test(correo);
   };
 
-  // Identificación: solo dígitos en tiempo real (no permite letras).
-  const handleIdentificacionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ""); // solo números
-    if (value.length > 9) value = value.slice(0, 9); // máximo 9 dígitos
-    setData("identificacion", value);
-  };
+// Identificación: permite letras y números (ej. DIMEX) hasta 12 caracteres
+const handleIdentificacionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+  if (value.length > 12) value = value.slice(0, 12);
+  setData("identificacion", value);
+};
 
-  // Teléfono: permite + al inicio y solo dígitos, máximo 12 caracteres (incluye +).
-  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9+]/g, ""); // solo dígitos o +
-    if (value.startsWith("+")) {
-      value = "+" + value.slice(1).replace(/\+/g, ""); // solo un + al inicio
-    } else {
-      value = value.replace(/\+/g, "");
-    }
-    if (value.length > 12) value = value.slice(0, 12); // máximo 12
-    setData("telefono", value);
-  };
+// Teléfono: solo dígitos, máximo 8 caracteres
+const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value.replace(/\D/g, "");
+  if (value.length > 8) value = value.slice(0, 8);
+  setData("telefono", value);
+};
 
   // Contraseña: debe cumplir las reglas indicadas (si el usuario decide cambiarla).
   const validarContrasena = (pwd: string) => {
@@ -415,7 +412,7 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
 
     return (
       <select className="select input" value={selectedOptionValue} onChange={handleCarreraChange}>
-        <option value="">Ninguna</option>
+        {/* <option value="">Ninguna</option> */}
         {carreras.map((c) => (
           <option key={c.id_carrera} value={c.id_carrera}>
             {labelFromNombre(c.nombre)}
@@ -444,19 +441,19 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
     return requiredText.some((s) => !s.trim());
   };
 
-  const isFormValid = () => {
-    if (anyTextEmpty()) return false;
-    if (!validarCorreo(data.correo)) return false;
-    if ((data.identificacion || "").length !== 9) return false;
-    // telefono: longitud entre 8 y 12 (incluye +)
-    const telLen = (data.telefono || "").length;
-    if (telLen < 8 || telLen > 12) return false;
-    // password: optional, but if present must validate
-    if (data.contrasena && !validarContrasena(data.contrasena)) return false;
-    if (data.contrasena && data.contrasena !== data.contrasena_confirmation) return false;
-    return true;
-  };
 
+const isFormValid = () => {
+  if (anyTextEmpty()) return false;
+  if (!validarCorreo(data.correo)) return false;
+  // Identificación: no vacía y máxima 12 (acepta 9 o 12 formatos como en crear)
+  if (data.identificacion.length === 0 || data.identificacion.length > 12) return false;
+  // Teléfono: exactamente 8 dígitos
+  if ((data.telefono || "").length !== 8) return false;
+  // password opcional; si está presente debe validar y coincidir
+  if (data.contrasena && !validarContrasena(data.contrasena)) return false;
+  if (data.contrasena && data.contrasena !== data.contrasena_confirmation) return false;
+  return true;
+};
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid()) return;
@@ -466,10 +463,14 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
   const nombreError = !data.nombre_completo.trim() ? "Requerido" : "";
   const correoError =
     !data.correo.trim() ? "Requerido" : (!validarCorreo(data.correo) ? "Correo inválido (dominios: @una.ac.cr o @gmail.com)" : "");
-  const identificacionError =
-    !data.identificacion ? "Requerido" : (data.identificacion.length !== 9 ? "Debe tener 9 dígitos" : "");
-  const telefonoError =
-    !data.telefono ? "Requerido" : ((data.telefono.length < 8 || data.telefono.length > 12) ? "Teléfono inválido (puede incluir extensión de pais)" : "");
+const identificacionError =
+  !data.identificacion
+    ? "Requerido"
+    : (data.identificacion.length !== 9 && data.identificacion.length !== 12 ? "Debe tener 9 dígitos o 12 si es DIMEX " : "");
+const telefonoError =
+  !data.telefono
+    ? "Requerido"
+    : ((data.telefono.length !== 8) ? "Teléfono inválido (8 dígitos)" : "");
   const contrasenaError = getContrasenaError(data.contrasena);
   const contrasenaConfirmError = data.contrasena && data.contrasena !== data.contrasena_confirmation ? "No coincide" : "";
 

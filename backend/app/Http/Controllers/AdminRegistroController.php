@@ -320,12 +320,21 @@ public function actualizar(Request $request, $id)
         return back()->with('error', 'Ocurrió un error al actualizar el usuario.')->withInput();
     }
 }
+
 // Eliminar administrador/dirección/subdirección
 public function destroy($id)
 {
+    $usuarioActual = Auth::user();
+
+    // Verificar si el usuario autenticado tiene rol "Administrador del Sistema"
+    if ($usuarioActual->rol?->nombre_rol !== 'Administrador del Sistema') {
+        return redirect()->route('usuarios.index')
+            ->with('error', 'No tiene permisos para eliminar usuarios.');
+    }
+
     DB::beginTransaction();
     try {
-        // Eliminar credenciales primero (si existe relación)
+        // Eliminar credenciales primero
         DB::table('credenciales')->where('id_usuario', $id)->delete();
 
         // Eliminar usuario
@@ -345,6 +354,7 @@ public function destroy($id)
         return back()->with('error', 'Ocurrió un error al eliminar el usuario.');
     }
 }
+
 public function create()
 {
     $usuario = Auth::user();
