@@ -11,21 +11,36 @@ interface Props {
   fotoPerfil?: string | null;
 }
 
+// Colores oficiales UNA
+const COLORS = {
+  rojo: "#CD1719",
+  azul: "#034991",
+  gris: "#A7A7A9",
+  blanco: "#FFFFFF",
+  negro: "#000000",
+};
+
+// Tipografía oficial UNA
+const FONT = {
+  titulo: "'Open Sans', sans-serif",
+  texto: "'Goudy Old Style', serif",
+};
+
 export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
   const [foto, setFoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const modal = useModal();
 
-  // Validación de formato y tamaño
   const validarImagen = (file: File) => {
     const formatosPermitidos = ["image/jpeg", "image/png"];
-    if (!formatosPermitidos.includes(file.type)) return "Formato inválido. Solo JPG o PNG.";
-    if (file.size > 2 * 1024 * 1024) return "La imagen supera el tamaño máximo permitido (2MB).";
+    if (!formatosPermitidos.includes(file.type))
+      return "Formato inválido. Solo JPG o PNG.";
+    if (file.size > 2 * 1024 * 1024)
+      return "La imagen supera el tamaño máximo permitido (2MB).";
     return null;
   };
 
-  // Procesar archivo
   const handleFile = (file: File) => {
     const errorMsg = validarImagen(file);
     if (errorMsg) {
@@ -52,16 +67,19 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
     img.src = URL.createObjectURL(file);
   };
 
-  // Dropzone
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files[0])
+      handleFile(e.dataTransfer.files[0]);
   };
 
-  // Subir archivo
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!foto) return modal.alerta({ titulo: "Error", mensaje: "Debe seleccionar una foto válida." });
+    if (!foto)
+      return modal.alerta({
+        titulo: "Error",
+        mensaje: "Debe seleccionar una foto válida.",
+      });
 
     const ok = await modal.confirmacion({
       titulo: "Confirmar actualización",
@@ -73,28 +91,48 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
     formData.append("foto", foto);
 
     try {
-      await axios.post("/perfil/foto", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      await axios.post("/perfil/foto", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      // Redirigir automáticamente al index de Perfil
-      modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil actualizada exitosamente." }).then(() => {
-        Inertia.visit("/perfil"); // ✅ redirección
+      modal.alerta({
+        titulo: "Éxito",
+        mensaje: "Foto de perfil actualizada exitosamente.",
+      }).then(() => {
+        Inertia.visit("/perfil");
       });
 
       setFoto(null);
       setPreview(null);
     } catch {
-      modal.alerta({ titulo: "Error", mensaje: "No se pudo subir la foto. Verifique formato, tamaño y dimensiones." });
+      modal.alerta({
+        titulo: "Error",
+        mensaje:
+          "No se pudo subir la foto. Verifique formato, tamaño y dimensiones.",
+      });
     }
   };
 
   return (
     <>
       <Head title="Actualizar Foto de Perfil" />
-      <div className="max-w-md mx-auto p-6 space-y-6 text-gray-900">
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4 text-blue-800">Actualizar Foto de Perfil</h2>
-          <p className="text-gray-700 mb-4">
-            Seleccione una foto <strong>JPG o PNG</strong>, máximo 2MB, mínimo 500x500 píxeles.
+      <div
+        className="max-w-md mx-auto p-6 space-y-6"
+        style={{ color: COLORS.negro, fontFamily: FONT.texto }}
+      >
+        <div
+          className="bg-white shadow-md rounded-lg p-6"
+          style={{ backgroundColor: COLORS.blanco }}
+        >
+          <h2
+            className="text-xl font-bold mb-4"
+            style={{ color: COLORS.azul, fontFamily: FONT.titulo }}
+          >
+            Actualizar Foto de Perfil
+          </h2>
+          <p className="mb-4" style={{ color: COLORS.gris }}>
+            Seleccione una foto <strong>JPG o PNG</strong>, máximo 2MB,
+            mínimo 500x500 píxeles.
           </p>
 
           {/* Dropzone */}
@@ -105,16 +143,34 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
+            style={{
+              borderColor: preview ? COLORS.azul : COLORS.gris,
+            }}
           >
             {!preview ? (
               <>
-                <img src={FotoXDefecto} alt="placeholder" className="h-32 w-32 object-cover rounded-full mb-3" />
-                <p className="text-gray-400 text-center">
-                  Arrastre su foto aquí o <span className="text-blue-600 font-semibold">haga clic</span> para seleccionar
+                <img
+                  src={FotoXDefecto}
+                  alt="placeholder"
+                  className="h-32 w-32 object-cover rounded-full mb-3"
+                />
+                <p
+                  className="text-center"
+                  style={{ color: COLORS.gris, fontFamily: FONT.texto }}
+                >
+                  Arrastre su foto aquí o{" "}
+                  <span style={{ color: COLORS.rojo, fontFamily: FONT.titulo }}>
+                    haga clic
+                  </span>{" "}
+                  para seleccionar
                 </p>
               </>
             ) : (
-              <img src={preview} alt="Vista previa" className="h-48 w-48 md:h-56 md:w-56 object-cover rounded-lg shadow" />
+              <img
+                src={preview}
+                alt="Vista previa"
+                className="h-48 w-48 md:h-56 md:w-56 object-cover rounded-lg shadow"
+              />
             )}
             <input
               ref={inputRef}
@@ -122,7 +178,9 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
               name="foto"
               accept="image/png, image/jpeg"
               className="hidden"
-              onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+              onChange={(e) =>
+                e.target.files && handleFile(e.target.files[0])
+              }
             />
           </div>
 
@@ -130,7 +188,12 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
           <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
             <button
               type="submit"
-              className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-2 rounded shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-6 py-2 rounded shadow"
+              style={{
+                backgroundColor: COLORS.azul,
+                color: COLORS.blanco,
+                fontFamily: FONT.titulo,
+              }}
               disabled={!foto}
             >
               Subir Foto
@@ -138,8 +201,16 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
             {foto && (
               <button
                 type="button"
-                onClick={() => { setFoto(null); setPreview(null); }}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
+                onClick={() => {
+                  setFoto(null);
+                  setPreview(null);
+                }}
+                className="px-6 py-2 rounded shadow"
+                style={{
+                  backgroundColor: COLORS.rojo,
+                  color: COLORS.blanco,
+                  fontFamily: FONT.titulo,
+                }}
               >
                 Cancelar
               </button>
@@ -155,3 +226,4 @@ PerfilFoto.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
+
