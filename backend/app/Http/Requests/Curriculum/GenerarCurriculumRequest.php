@@ -6,11 +6,18 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class GenerarCurriculumRequest extends FormRequest
 {
+    /**
+     * Autoriza la solicitud (puedes ajustar a tu lógica de permisos).
+     */
     public function authorize(): bool
     {
         return auth()->check();
     }
 
+    /**
+     * Reglas de validación para generar el currículum.
+     * Nota: Teléfonos CR deben ser exactamente 8 dígitos (sin espacios ni símbolos).
+     */
     public function rules(): array
     {
         return [
@@ -18,7 +25,8 @@ class GenerarCurriculumRequest extends FormRequest
 
             'datosPersonales.nombreCompleto' => 'required|string|max:255',
             'datosPersonales.correo'        => 'required|email',
-            'datosPersonales.telefono'      => 'nullable|string|max:30',
+            // ✅ Teléfono CR: exactamente 8 dígitos numéricos
+            'datosPersonales.telefono'      => ['nullable','regex:/^[0-9]{8}$/'],
 
             'resumenProfesional' => 'nullable|string|max:2000',
 
@@ -38,21 +46,28 @@ class GenerarCurriculumRequest extends FormRequest
             'habilidades' => 'array',
             'habilidades.*.descripcion' => 'required|string|max:255',
 
-            // ✅ Ahora idiomas es libre: nombre + nivel MCER
+            // ✅ Idiomas (nombre + nivel MCER)
             'idiomas' => 'array',
             'idiomas.*.nombre' => 'required|string|max:100',
             'idiomas.*.nivel'  => 'required|in:A1,A2,B1,B2,C1,C2,Nativo',
 
             'referencias' => 'array',
             'referencias.*.nombre'   => 'required|string|max:255',
-            'referencias.*.contacto' => 'required|string|max:255',
+            // ✅ Teléfono CR para contacto en referencias (obligatorio)
+            'referencias.*.contacto' => ['required','regex:/^[0-9]{8}$/'],
             'referencias.*.relacion' => 'nullable|string|max:255',
         ];
     }
 
+    /**
+     * Mensajes de error personalizados.
+     */
     public function messages(): array
     {
         return [
+            'datosPersonales.telefono.regex'   => 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).',
+            'referencias.*.contacto.regex'     => 'El teléfono de la referencia debe tener exactamente 8 dígitos (Costa Rica).',
+
             'idiomas.*.nombre.required' => 'El nombre del idioma es obligatorio.',
             'idiomas.*.nivel.required'  => 'Debe seleccionar el nivel MCER.',
         ];
