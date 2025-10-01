@@ -90,6 +90,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [rutaPdf, setRutaPdf] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false); // 🟢 estado de carga
 
+  // ================== Helpers ==================
   // Helper para setear campos por path "a.b.c"
   function setCampo(path: string, value: any) {
     setForm(prev => {
@@ -100,6 +101,35 @@ export default function Frt_FormularioGeneracionCurriculum() {
       ref[partes.at(-1)!] = value;
       return copia as FormCV;
     });
+  }
+
+  // Solo dígitos y longitud máxima
+  function solo8Digitos(valor: string) {
+    return valor.replace(/\D/g, '').slice(0, 8);
+  }
+
+  // Validación local CR (8 dígitos) para teléfonos de DP y Referencias
+  function validarTelefonosLocales(formActual: FormCV, pasoActual: number): ErrorMapa {
+    const errs: ErrorMapa = {};
+    const regexTelefono = /^[0-9]{8}$/;
+
+    if (pasoActual === 1) {
+      const tel = formActual.datosPersonales.telefono?.trim();
+      if (tel && !regexTelefono.test(tel)) {
+        errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
+      }
+    }
+
+    if (pasoActual === 4) {
+      formActual.referencias.forEach((r, idx) => {
+        const c = r.contacto?.trim();
+        if (c && !regexTelefono.test(c)) {
+          errs[`referencias.${idx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
+        }
+      });
+    }
+
+    return errs;
   }
 
   // 🟢 Manejo central de errores de API (incluye 422)
@@ -136,7 +166,10 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   async function siguiente() {
-    const e = validarPaso(form, paso);
+    // Validación existente + validación local de teléfonos
+    const eBase = validarPaso(form, paso);
+    const eTel = validarTelefonosLocales(form, paso);
+    const e = { ...eBase, ...eTel };
     setErrores(e);
     if (Object.keys(e).length === 0) setPaso(paso + 1);
   }
@@ -144,7 +177,13 @@ export default function Frt_FormularioGeneracionCurriculum() {
   function anterior() { setPaso(paso - 1); }
 
   async function generar() {
-    const e = validarPaso(form, paso);
+    // Validación existente + validación teléfonos del paso actual (4) y de DP
+    const eBase = validarPaso(form, paso);
+    const eTelPaso = validarTelefonosLocales(form, paso);
+    // Fuerza revisar también DP por si el usuario cambió atrás y vino directo a generar
+    const eTelDP = validarTelefonosLocales(form, 1);
+    const e = { ...eBase, ...eTelPaso, ...eTelDP };
+
     setErrores(e);
     if (Object.keys(e).length > 0) {
       await modal.alerta({
@@ -198,20 +237,47 @@ export default function Frt_FormularioGeneracionCurriculum() {
           <section className="grid grid-cols-2 gap-4">
             <div>
               <label className="block">Nombre completo</label>
-              <input className="border p-2 w-full" value={form.datosPersonales.nombreCompleto}
-                     onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)} />
+              <input
+                className="border p-2 w-full"
+                value={form.datosPersonales.nombreCompleto}
+                onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)}
+              />
               {errores['datosPersonales.nombreCompleto'] && <p className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>}
             </div>
             <div>
               <label className="block">Correo</label>
-              <input className="border p-2 w-full" value={form.datosPersonales.correo}
-                     onChange={e=>setCampo('datosPersonales.correo', e.target.value)} />
+              <input
+                className="border p-2 w-full"
+                value={form.datosPersonales.correo}
+                onChange={e=>setCampo('datosPersonales.correo', e.target.value)}
+              />
               {errores['datosPersonales.correo'] && <p className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>}
+            </div>
+            <div>
+              <label className="block">Teléfono (CR, 8 dígitos)</label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{8}"
+                maxLength={8}
+                className="border p-2 w-full"
+                placeholder="Ej: 88889999"
+                value={form.datosPersonales.telefono}
+                onChange={(e)=>{
+                  const limpio = solo8Digitos(e.target.value);
+                  setCampo('datosPersonales.telefono', limpio);
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">Debe contener exactamente 8 dígitos (Costa Rica).</p>
+              {errores['datosPersonales.telefono'] && <p className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>}
             </div>
             <div className="col-span-2">
               <label className="block">Resumen profesional</label>
-              <textarea className="border p-2 w-full" value={form.resumenProfesional}
-                        onChange={e=>setCampo('resumenProfesional', e.target.value)} />
+              <textarea
+                className="border p-2 w-full"
+                value={form.resumenProfesional}
+                onChange={e=>setCampo('resumenProfesional', e.target.value)}
+              />
             </div>
           </section>
         )}
@@ -219,6 +285,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso===2 && (
           <section>
             <button
+              type="button"
               className="mb-2 px-3 py-1 border rounded"
               onClick={()=>{
                 setForm(prev => ({
@@ -264,6 +331,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso===3 && (
           <section>
             <button
+              type="button"
               className="mb-2 px-3 py-1 border rounded"
               onClick={()=>{
                 setForm(prev => ({
@@ -313,6 +381,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
             <div>
               <h3 className="font-bold text-[#034991] mb-1">Habilidades</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, habilidades:[...prev.habilidades, {descripcion:''}]}));
@@ -340,6 +409,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, idiomas:[...prev.idiomas, { nombre:'', nivel:'' }]}));
@@ -388,6 +458,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Referencias</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, referencias:[...prev.referencias, {nombre:'', contacto:'', relacion:''}]}));
@@ -409,13 +480,33 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <input className="border p-2 w-full" placeholder="Nombre" value={r.nombre}
-                      onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)} />
-                    <input className="border p-2 w-full" placeholder="Contacto" value={r.contacto}
-                      onChange={e=>setCampo(`referencias.${idx}.contacto`, e.target.value)} />
-                    <input className="border p-2 w-full" placeholder="Relación" value={r.relacion}
-                      onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)} />
+                    <input
+                      className="border p-2 w-full"
+                      placeholder="Nombre"
+                      value={r.nombre}
+                      onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)}
+                    />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]{8}"
+                      maxLength={8}
+                      className="border p-2 w-full"
+                      placeholder="Teléfono (8 dígitos)"
+                      value={r.contacto}
+                      onChange={(e)=>{
+                        const limpio = solo8Digitos(e.target.value);
+                        setCampo(`referencias.${idx}.contacto`, limpio);
+                      }}
+                    />
+                    <input
+                      className="border p-2 w-full"
+                      placeholder="Relación"
+                      value={r.relacion}
+                      onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)}
+                    />
                   </div>
+                  {errores[`referencias.${idx}.contacto`] && <p className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
                 </div>
               ))}
             </div>
@@ -427,11 +518,12 @@ export default function Frt_FormularioGeneracionCurriculum() {
         )}
 
         <div className="mt-6 flex justify-between">
-          {paso>1 ? <button className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
+          {paso>1 ? <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
           {paso<4 ? (
-            <button className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
+            <button type="button" className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
           ) : (
             <button
+              type="button"
               className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
               onClick={generar}
               disabled={cargando}
