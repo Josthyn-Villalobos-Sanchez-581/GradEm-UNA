@@ -10,10 +10,15 @@ use Illuminate\Support\Facades\Mail;
 
 class RecuperarContrasenaController extends Controller
 {
-    // 1. Enviar código OTP al correo
+    // 1. Enviar código OTP
     public function enviarCodigo(Request $request)
     {
         $request->validate(['correo' => 'required|email']);
+
+        $usuario = Usuario::where('correo', $request->correo)->first();
+        if (!$usuario) {
+            return response()->json(['message' => 'Si el correo es válido, se ha enviado un código']);
+        }
 
         $codigo = rand(100000, 999999);
 
@@ -23,11 +28,15 @@ class RecuperarContrasenaController extends Controller
             'reset_expires_at' => now()->addMinutes(5)
         ]);
 
-        Mail::raw("Tu código de recuperación es: $codigo", function ($m) use ($request) {
-            $m->to($request->correo)->subject('Código de recuperación de contraseña');
-        });
+        try {
+            Mail::raw("Tu código de recuperación es: $codigo", function ($m) use ($request) {
+                $m->to($request->correo)->subject('Código de recuperación de contraseña');
+            });
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Hubo un problema al enviar el código'], 500);
+        }
 
-        return response()->json(['message' => 'Código enviado al correo']);
+        return response()->json(['message' => 'Si el correo es válido, se ha enviado un código']);
     }
 
     // 2. Cambiar contraseña
@@ -36,7 +45,11 @@ class RecuperarContrasenaController extends Controller
         $request->validate([
             'correo' => 'required|email',
             'codigo' => 'required|string',
-            'password' => 'required|confirmed|min:8',
+            'password' => [
+                'required',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%?&])([A-Za-z\d$@$!%?&]|[^ ]){8,15}$/'
+            ],
         ]);
 
         if (
@@ -47,16 +60,12 @@ class RecuperarContrasenaController extends Controller
             return response()->json(['message' => 'Código inválido o expirado'], 422);
         }
 
-        // Buscar usuario por correo
         $usuario = Usuario::where('correo', $request->correo)->firstOrFail();
-
-        // Cambiar contraseña en credenciales
         $credencial = Credencial::where('id_usuario', $usuario->id_usuario)->firstOrFail();
         $credencial->hash_contrasena = Hash::make($request->password);
         $credencial->fecha_ultimo_cambio = now();
         $credencial->save();
 
-        // Limpiar la sesión OTP
         session()->forget(['reset_correo', 'reset_codigo', 'reset_expires_at']);
 
         return response()->json(['message' => 'Contraseña restablecida con éxito']);
