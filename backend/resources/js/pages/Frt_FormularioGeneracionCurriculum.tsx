@@ -46,6 +46,7 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  [key: string]: any; // Add this line
 };
 
 type UsuarioActual = { id_usuario:number; nombre_completo:string; correo:string; telefono?:string };
@@ -93,13 +94,33 @@ export default function Frt_FormularioGeneracionCurriculum() {
   // ================== Helpers ==================
   // Helper para setear campos por path "a.b.c"
   function setCampo(path: string, value: any) {
-    setForm(prev => {
-      const copia: any = structuredClone(prev);
-      const partes = path.split('.');
-      let ref = copia;
-      for (let i=0;i<partes.length-1;i++) ref = ref[partes[i]];
-      ref[partes.at(-1)!] = value;
-      return copia as FormCV;
+    setForm(prevForm => {
+      const newForm = {...prevForm};
+      let current: any = newForm;
+      const parts = path.split('.');
+      
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]];
+      }
+      current[parts[parts.length - 1]] = value;
+
+      // Si es una fecha de educación, validar
+      if (path.startsWith('educaciones.') && (path.endsWith('fecha_inicio') || path.endsWith('fecha_fin'))) {
+        const [, indexStr] = path.split('.');
+        const index = parseInt(indexStr);
+        const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
+        setErrores(prev => ({ ...prev, ...nuevosErrores }));
+      }
+
+      // Si es una fecha de experiencia, validar
+      if (path.startsWith('experiencias.') && (path.endsWith('periodo_inicio') || path.endsWith('periodo_fin'))) {
+        const [, indexStr] = path.split('.');
+        const index = parseInt(indexStr);
+        const nuevosErrores = validarFechasExperiencia(newForm.experiencias[index], index);
+        setErrores(prev => ({ ...prev, ...nuevosErrores }));
+      }
+
+      return newForm;
     });
   }
 
@@ -215,6 +236,221 @@ export default function Frt_FormularioGeneracionCurriculum() {
     }
   }
 
+  // Datos Personales
+  const validacionesDatosPersonales = {
+    nombreCompleto: {
+      required: true,
+      minLength: 5,
+      maxLength: 255,
+      pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/,  // Solo letras y espacios
+    },
+    
+    correo: {
+      required: true,
+      pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/,
+      maxLength: 255
+    },
+    
+    telefono: {
+      required: false,
+      pattern: /^[0-9]{8}$/,  // Exactamente 8 dígitos para CR
+    }
+  }
+
+  // Educación
+  const validacionesEducacion = {
+    institucion: {
+      required: true,
+      minLength: 3,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    },
+    
+    titulo: {
+      required: true,
+      minLength: 3,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    },
+    
+    fecha_inicio: {
+      required: false,
+      validate: (value: string) => {
+        if (!value) return true;
+        const date = new Date(value);
+        return date <= new Date(); // No fechas futuras
+      }
+    },
+    
+    fecha_fin: {
+      required: false,
+      validate: (value: string, { fecha_inicio }: any) => {
+        if (!value) return true;
+        if (!fecha_inicio) return true;
+        return new Date(value) >= new Date(fecha_inicio);
+      }
+    }
+  }
+
+  // Experiencia
+  const validacionesExperiencia = {
+    empresa: {
+      required: true,
+      minLength: 3,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    },
+    
+    puesto: {
+      required: true,
+      minLength: 3,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    },
+    
+    funciones: {
+      required: false,
+      maxLength: 1000
+    },
+    
+    periodo_inicio: {
+      required: false,
+      validate: (value: string) => {
+        if (!value) return true;
+        return new Date(value) <= new Date();
+      }
+    },
+    
+    periodo_fin: {
+      required: false,
+      validate: (value: string, { periodo_inicio }: any) => {
+        if (!value) return true;
+        if (!periodo_inicio) return true;
+        return new Date(value) >= new Date(periodo_inicio);
+      }
+    }
+  }
+
+  // Habilidades
+  const validacionesHabilidad = {
+    descripcion: {
+      required: true,
+      minLength: 3,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    }
+  }
+
+  // Idiomas
+  const validacionesIdioma = {
+    nombre: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/
+    },
+    
+    nivel: {
+      required: true,
+      validate: (value: string) => {
+        return ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value);
+      }
+    }
+  }
+
+  // Referencias
+  const validacionesReferencia = {
+    nombre: {
+      required: true,
+      minLength: 5,
+      maxLength: 255,
+      pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/
+    },
+    
+    contacto: {
+      required: true,
+      pattern: /^[0-9]{8}$/  // Teléfono CR
+    },
+    
+    relacion: {
+      required: false,
+      maxLength: 255,
+      pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
+    }
+  }
+
+  // Validar fechas de educación
+  function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
+    const errores: ErrorMapa = {};
+    const hoy = new Date();
+    const fechaMinima = new Date('1960-01-01');
+
+    // Validar fecha de inicio
+    if (educacion.fecha_inicio) {
+      const fechaInicio = new Date(educacion.fecha_inicio);
+      
+      if (fechaInicio > hoy) {
+        errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser mayor a hoy';
+      }
+      
+      if (fechaInicio < fechaMinima) {
+        errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser anterior a 1960';
+      }
+    }
+
+    // Validar fecha de fin
+    if (educacion.fecha_fin) {
+      const fechaFin = new Date(educacion.fecha_fin);
+      const fechaInicio = educacion.fecha_inicio ? new Date(educacion.fecha_inicio) : null;
+
+      if (fechaFin > hoy) {
+        errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
+      }
+
+      if (fechaInicio && fechaFin < fechaInicio) {
+        errores[`educaciones.${index}.fecha_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
+      }
+    }
+
+    return errores;
+  }
+
+  // Validar fechas de experiencia
+  function validarFechasExperiencia(experiencia: Experiencia, index: number): ErrorMapa {
+    const errores: ErrorMapa = {};
+    const hoy = new Date();
+    const fechaMinima = new Date('1960-01-01');
+
+    // Validar periodo de inicio
+    if (experiencia.periodo_inicio) {
+      const fechaInicio = new Date(experiencia.periodo_inicio);
+      
+      if (fechaInicio > hoy) {
+        errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser mayor a hoy';
+      }
+      
+      if (fechaInicio < fechaMinima) {
+        errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser anterior a 1960';
+      }
+    }
+
+    // Validar periodo de fin
+    if (experiencia.periodo_fin) {
+      const fechaFin = new Date(experiencia.periodo_fin);
+      const fechaInicio = experiencia.periodo_inicio ? new Date(experiencia.periodo_inicio) : null;
+
+      if (fechaFin > hoy) {
+        errores[`experiencias.${index}.periodo_fin`] = 'La fecha no puede ser mayor a hoy';
+      }
+
+      if (fechaInicio && fechaFin < fechaInicio) {
+        errores[`experiencias.${index}.periodo_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
+      }
+    }
+
+    return errores;
+  }
+
   return (
     <PpLayout
       userPermisos={userPermisos}
@@ -315,14 +551,24 @@ export default function Frt_FormularioGeneracionCurriculum() {
                     onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)} />
                   <input className="border p-2 w-full" placeholder="Título" value={ed.titulo}
                     onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ed.fecha_inicio ?? ''}
+                  <input className="border p-2 w-full" type="date" min="1960-01-01" max={new Date().toISOString().split('T')[0]} value={ed.fecha_inicio ?? ''}
                     onChange={e=>setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ed.fecha_fin ?? ''}
+                  <input className="border p-2 w-full" type="date" min={ed.fecha_inicio ?? '1960-01-01'} max={new Date().toISOString().split('T')[0]} value={ed.fecha_fin ?? ''}
                     onChange={e=>setCampo(`educaciones.${i}.fecha_fin`, e.target.value)} />
                 </div>
 
                 {errores[`educaciones.${i}.institucion`] && <p className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
                 {errores[`educaciones.${i}.titulo`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
+                {errores[`educaciones.${i}.fecha_inicio`] && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errores[`educaciones.${i}.fecha_inicio`]}
+                  </p>
+                )}
+                {errores[`educaciones.${i}.fecha_fin`] && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errores[`educaciones.${i}.fecha_fin`]}
+                  </p>
+                )}
               </div>
             ))}
           </section>
@@ -361,16 +607,38 @@ export default function Frt_FormularioGeneracionCurriculum() {
                     onChange={e=>setCampo(`experiencias.${i}.empresa`, e.target.value)} />
                   <input className="border p-2 w-full" placeholder="Puesto" value={ex.puesto}
                     onChange={e=>setCampo(`experiencias.${i}.puesto`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ex.periodo_inicio ?? ''}
-                    onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ex.periodo_fin ?? ''}
-                    onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)} />
+                  <input 
+                    className="border p-2 w-full" 
+                    type="date" 
+                    min="1960-01-01" 
+                    max={new Date().toISOString().split('T')[0]}
+                    value={ex.periodo_inicio ?? ''} 
+                    onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)} 
+                  />
+                  <input 
+                    className="border p-2 w-full" 
+                    type="date"
+                    min={ex.periodo_inicio ?? '1960-01-01'}
+                    max={new Date().toISOString().split('T')[0]}
+                    value={ex.periodo_fin ?? ''} 
+                    onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)} 
+                  />
                   <input className="border p-2 w-full col-span-5" placeholder="Funciones" value={ex.funciones ?? ''}
                     onChange={e=>setCampo(`experiencias.${i}.funciones`, e.target.value)} />
                 </div>
 
                 {errores[`experiencias.${i}.empresa`] && <p className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
                 {errores[`experiencias.${i}.puesto`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
+                {errores[`experiencias.${i}.periodo_inicio`] && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errores[`experiencias.${i}.periodo_inicio`]}
+                  </p>
+                )}
+                {errores[`experiencias.${i}.periodo_fin`] && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errores[`experiencias.${i}.periodo_fin`]}
+                  </p>
+                )}
               </div>
             ))}
           </section>

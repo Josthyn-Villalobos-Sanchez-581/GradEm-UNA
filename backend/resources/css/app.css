@@ -163,3 +163,17 @@ h1, h2, h3, h4, h5, h6 {
         filter: invert(1);
     }
 }
+
+/* Estilos globales para los iconos de calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(0.7);
+    background-color: rgba(0, 0, 0, 0.1);
+}
