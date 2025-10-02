@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 
 class Usuario extends Authenticatable
 {
@@ -73,5 +75,18 @@ class Usuario extends Authenticatable
     public function fotoPerfil(): HasOne
     {
         return $this->hasOne(FotoPerfil::class, 'id_usuario', 'id_usuario');
+    }
+
+    public function universidad(): BelongsTo
+    {
+        return $this->belongsTo(Universidad::class, 'id_universidad', 'id_universidad');
+    }
+
+    /**
+     * Relación con Carrera
+     */
+    public function carrera(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
 }

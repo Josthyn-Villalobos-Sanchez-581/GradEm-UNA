@@ -18,6 +18,7 @@ use App\Http\Controllers\UniversidadController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\DocumentosController;
+use App\Http\Controllers\UsuariosConsultaController;
 
 // ==========================================
 // Rutas públicas
@@ -142,6 +143,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
         Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
         Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+            // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
+        Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
     });
 
     // ==========================================
