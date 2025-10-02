@@ -46,11 +46,43 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
-  [key: string]: any; // Add this line
+  [key: string]: any;
 };
 
 type UsuarioActual = { id_usuario:number; nombre_completo:string; correo:string; telefono?:string };
 // ===========================================================
+
+// ================== Utilidades locales (sin diálogos nativos) ==================
+function descargarArchivo(url: string, nombre: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// Añadir esta nueva función helper
+function getAbsoluteUrl(url: string) {
+  // Si la URL ya es absoluta, retornarla
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Si es relativa, construir la URL completa
+  const baseUrl = window.location.origin;
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function abrirEnPestanaNueva(url: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+// ==============================================================================
 
 export default function Frt_FormularioGeneracionCurriculum() {
   // Traemos userPermisos desde Inertia para que PpLayout filtre el menú
@@ -92,7 +124,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [cargando, setCargando] = useState<boolean>(false); // 🟢 estado de carga
 
   // ================== Helpers ==================
-  // Helper para setear campos por path "a.b.c"
   function setCampo(path: string, value: any) {
     setForm(prevForm => {
       const newForm = {...prevForm};
@@ -104,7 +135,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
       current[parts[parts.length - 1]] = value;
 
-      // Si es una fecha de educación, validar
       if (path.startsWith('educaciones.') && (path.endsWith('fecha_inicio') || path.endsWith('fecha_fin'))) {
         const [, indexStr] = path.split('.');
         const index = parseInt(indexStr);
@@ -112,7 +142,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
         setErrores(prev => ({ ...prev, ...nuevosErrores }));
       }
 
-      // Si es una fecha de experiencia, validar
       if (path.startsWith('experiencias.') && (path.endsWith('periodo_inicio') || path.endsWith('periodo_fin'))) {
         const [, indexStr] = path.split('.');
         const index = parseInt(indexStr);
@@ -124,12 +153,10 @@ export default function Frt_FormularioGeneracionCurriculum() {
     });
   }
 
-  // Solo dígitos y longitud máxima
   function solo8Digitos(valor: string) {
     return valor.replace(/\D/g, '').slice(0, 8);
   }
 
-  // Validación local CR (8 dígitos) para teléfonos de DP y Referencias
   function validarTelefonosLocales(formActual: FormCV, pasoActual: number): ErrorMapa {
     const errs: ErrorMapa = {};
     const regexTelefono = /^[0-9]{8}$/;
@@ -153,7 +180,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
     return errs;
   }
 
-  // 🟢 Manejo central de errores de API (incluye 422)
+  // 🟢 Manejo central de errores de API (incluye 422) ⇒ SIEMPRE con modal propio
   const manejarErrorApi = async (error: any) => {
     if (error?.response?.status === 422) {
       setErrores(error.response.data?.errors ?? {});
@@ -165,7 +192,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
     });
   };
 
-  // Eliminar un elemento de un arreglo del formulario (con confirmación)
   async function removeArrayItem(
     key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias',
     idx: number
@@ -187,7 +213,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   async function siguiente() {
-    // Validación existente + validación local de teléfonos
     const eBase = validarPaso(form, paso);
     const eTel = validarTelefonosLocales(form, paso);
     const e = { ...eBase, ...eTel };
@@ -198,10 +223,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
   function anterior() { setPaso(paso - 1); }
 
   async function generar() {
-    // Validación existente + validación teléfonos del paso actual (4) y de DP
     const eBase = validarPaso(form, paso);
     const eTelPaso = validarTelefonosLocales(form, paso);
-    // Fuerza revisar también DP por si el usuario cambió atrás y vino directo a generar
     const eTelDP = validarTelefonosLocales(form, 1);
     const e = { ...eBase, ...eTelPaso, ...eTelDP };
 
@@ -216,18 +239,25 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
     try {
       setCargando(true);
-      const resp = await postGenerarCurriculum(form); // ⬅️ Usa servicio con CSRF + withCredentials
-      if (resp.ok) {
+      const resp = await postGenerarCurriculum(form);
+      
+      if (resp.rutaPublica) {
         setRutaPdf(resp.rutaPublica);
-        await modal.alerta({
-          titulo: "Éxito",
-          mensaje: resp.mensaje || "Tu currículum ha sido generado correctamente.",
+
+        const abrir = await modal.confirmacion({
+          titulo: "Currículum generado",
+          mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
+          textoAceptar: "Abrir en pestaña nueva",
+          textoCancelar: "Descargar PDF"
         });
+
+        if (abrir) {
+          abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
+        } else {
+          descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
+        }
       } else {
-        await modal.alerta({
-          titulo: "Error",
-          mensaje: resp.mensaje || "No fue posible generar el currículum.",
-        });
+        throw new Error("No se pudo generar el PDF");
       }
     } catch (error: any) {
       await manejarErrorApi(error);
@@ -236,28 +266,25 @@ export default function Frt_FormularioGeneracionCurriculum() {
     }
   }
 
-  // Datos Personales
+  // Validaciones
   const validacionesDatosPersonales = {
     nombreCompleto: {
       required: true,
       minLength: 5,
       maxLength: 255,
-      pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/,  // Solo letras y espacios
+      pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/,
     },
-    
     correo: {
       required: true,
       pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/,
       maxLength: 255
     },
-    
     telefono: {
       required: false,
-      pattern: /^[0-9]{8}$/,  // Exactamente 8 dígitos para CR
+      pattern: /^[0-9]{8}$/,
     }
-  }
+  };
 
-  // Educación
   const validacionesEducacion = {
     institucion: {
       required: true,
@@ -265,23 +292,20 @@ export default function Frt_FormularioGeneracionCurriculum() {
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     },
-    
     titulo: {
       required: true,
       minLength: 3,
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     },
-    
     fecha_inicio: {
       required: false,
       validate: (value: string) => {
         if (!value) return true;
         const date = new Date(value);
-        return date <= new Date(); // No fechas futuras
+        return date <= new Date();
       }
     },
-    
     fecha_fin: {
       required: false,
       validate: (value: string, { fecha_inicio }: any) => {
@@ -290,9 +314,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
         return new Date(value) >= new Date(fecha_inicio);
       }
     }
-  }
+  };
 
-  // Experiencia
   const validacionesExperiencia = {
     empresa: {
       required: true,
@@ -300,19 +323,16 @@ export default function Frt_FormularioGeneracionCurriculum() {
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     },
-    
     puesto: {
       required: true,
       minLength: 3,
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     },
-    
     funciones: {
       required: false,
       maxLength: 1000
     },
-    
     periodo_inicio: {
       required: false,
       validate: (value: string) => {
@@ -320,7 +340,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
         return new Date(value) <= new Date();
       }
     },
-    
     periodo_fin: {
       required: false,
       validate: (value: string, { periodo_inicio }: any) => {
@@ -329,9 +348,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
         return new Date(value) >= new Date(periodo_inicio);
       }
     }
-  }
+  };
 
-  // Habilidades
   const validacionesHabilidad = {
     descripcion: {
       required: true,
@@ -339,9 +357,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     }
-  }
+  };
 
-  // Idiomas
   const validacionesIdioma = {
     nombre: {
       required: true,
@@ -349,16 +366,14 @@ export default function Frt_FormularioGeneracionCurriculum() {
       maxLength: 100,
       pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/
     },
-    
     nivel: {
       required: true,
       validate: (value: string) => {
         return ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value);
       }
     }
-  }
+  };
 
-  // Referencias
   const validacionesReferencia = {
     nombre: {
       required: true,
@@ -366,39 +381,32 @@ export default function Frt_FormularioGeneracionCurriculum() {
       maxLength: 255,
       pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/
     },
-    
     contacto: {
       required: true,
-      pattern: /^[0-9]{8}$/  // Teléfono CR
+      pattern: /^[0-9]{8}$/
     },
-    
     relacion: {
       required: false,
       maxLength: 255,
       pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/
     }
-  }
+  };
 
-  // Validar fechas de educación
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
     const hoy = new Date();
     const fechaMinima = new Date('1960-01-01');
 
-    // Validar fecha de inicio
     if (educacion.fecha_inicio) {
       const fechaInicio = new Date(educacion.fecha_inicio);
-      
       if (fechaInicio > hoy) {
         errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser mayor a hoy';
       }
-      
       if (fechaInicio < fechaMinima) {
         errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser anterior a 1960';
       }
     }
 
-    // Validar fecha de fin
     if (educacion.fecha_fin) {
       const fechaFin = new Date(educacion.fecha_fin);
       const fechaInicio = educacion.fecha_inicio ? new Date(educacion.fecha_inicio) : null;
@@ -406,7 +414,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       if (fechaFin > hoy) {
         errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
       }
-
       if (fechaInicio && fechaFin < fechaInicio) {
         errores[`educaciones.${index}.fecha_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
       }
@@ -415,26 +422,21 @@ export default function Frt_FormularioGeneracionCurriculum() {
     return errores;
   }
 
-  // Validar fechas de experiencia
   function validarFechasExperiencia(experiencia: Experiencia, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
     const hoy = new Date();
     const fechaMinima = new Date('1960-01-01');
 
-    // Validar periodo de inicio
     if (experiencia.periodo_inicio) {
       const fechaInicio = new Date(experiencia.periodo_inicio);
-      
       if (fechaInicio > hoy) {
         errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser mayor a hoy';
       }
-      
       if (fechaInicio < fechaMinima) {
         errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser anterior a 1960';
       }
     }
 
-    // Validar periodo de fin
     if (experiencia.periodo_fin) {
       const fechaFin = new Date(experiencia.periodo_fin);
       const fechaInicio = experiencia.periodo_inicio ? new Date(experiencia.periodo_inicio) : null;
@@ -442,7 +444,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       if (fechaFin > hoy) {
         errores[`experiencias.${index}.periodo_fin`] = 'La fecha no puede ser mayor a hoy';
       }
-
       if (fechaInicio && fechaFin < fechaInicio) {
         errores[`experiencias.${index}.periodo_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
       }
