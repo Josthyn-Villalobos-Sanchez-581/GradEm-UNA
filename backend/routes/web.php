@@ -18,7 +18,7 @@ use App\Http\Controllers\UniversidadController;
 use App\Http\Controllers\CurriculumController; 
 use App\Http\Controllers\FotoPerfilController; 
 use App\Http\Controllers\DocumentosController;
-
+use App\Http\Controllers\PlataformaExternaController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -184,6 +184,18 @@ Route::middleware('auth')->group(function () {
     // Página principal de carga de documentos
     Route::get('/documentos', [DocumentosController::class, 'index'])
     ->name('documentos.index');
+});
+
+
+// cosas de plataforma externa 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/perfil/plataformas', [PlataformaExternaController::class, 'store'])
+        ->name('perfil.plataformas.store');
+    Route::delete('/perfil/plataformas/{id}', [PlataformaExternaController::class, 'destroy'])
+        ->name('perfil.plataformas.destroy');
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index'); // <- nombre agregado
 });
 
 // ==========================================

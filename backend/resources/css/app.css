@@ -147,7 +147,8 @@
 }*/
 h1, h2, h3, h4, h5, h6 {
   @apply font-sans;
-    /* 🔧 Forzar color visible en icono de inputs type="date" (WebKit/Chromium) */
+}
+   /* 🔧 Forzar color visible en icono de inputs type="date" (WebKit/Chromium) */
     input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(0); /* 0 = negro (visible en fondo claro), 1 = blanco */
         cursor: pointer;
@@ -162,4 +163,3 @@ h1, h2, h3, h4, h5, h6 {
     .dark input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(1);
     }
-}

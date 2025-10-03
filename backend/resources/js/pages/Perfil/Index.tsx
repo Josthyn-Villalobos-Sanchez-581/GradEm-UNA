@@ -4,6 +4,9 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+// backend/resources/js/pages/Perfil/Index.tsx
+// 👇 importa tu componente de enlaces externos
+import EnlacesExternos from "./EnlacesExternos";
 
 interface FotoPerfil {
   ruta_imagen: string;
@@ -38,6 +41,12 @@ interface Canton { id: number; nombre: string; id_provincia: number }
 interface Universidad { id: number; nombre: string; sigla: string }
 interface Carrera { id: number; nombre: string; id_universidad: number; area_conocimiento: string }
 
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
+}
+
 interface Props {
   usuario: Usuario;
   areaLaborales: AreaLaboral[];
@@ -47,6 +56,7 @@ interface Props {
   universidades: Universidad[];
   carreras: Carrera[];
   userPermisos: number[];
+  plataformas: Plataforma[];
 }
 
 export default function Index({
@@ -57,6 +67,7 @@ export default function Index({
   cantones,
   universidades,
   carreras,
+  plataformas,
 }: Props) {
   const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
   const modal = useModal();
@@ -70,7 +81,7 @@ export default function Index({
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
-  // Función para eliminar foto de perfil
+  // Eliminar foto de perfil
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
       titulo: "Confirmar eliminación",
@@ -78,10 +89,19 @@ export default function Index({
     });
     if (!confirm) return;
 
-    Inertia.post("/perfil/foto/eliminar", {}, {
-      onSuccess: () => modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
-      onError: (errors: any) => modal.alerta({ titulo: "Error", mensaje: errors.foto || "No se pudo eliminar la foto." }),
-    });
+    Inertia.post(
+      "/perfil/foto/eliminar",
+      {},
+      {
+        onSuccess: () =>
+          modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
+        onError: (errors: any) =>
+          modal.alerta({
+            titulo: "Error",
+            mensaje: errors.foto || "No se pudo eliminar la foto.",
+          }),
+      }
+    );
   };
 
   const renderValor = (valor: any) =>
@@ -106,15 +126,22 @@ export default function Index({
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link href="/dashboard" className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded">
+          <Link
+            href="/dashboard"
+            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+          >
             Volver
           </Link>
         </div>
 
-        {/* Foto de Perfil con botones */}
+        {/* Foto de Perfil */}
         <div className="flex flex-col md:flex-row gap-6 mb-6 items-center md:items-start">
           <div className="h-40 w-40 md:h-48 md:w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm">
-            <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+            <img
+              src={fotoPerfilUrl}
+              alt="Foto de perfil"
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="flex flex-col gap-3">
             <Link
@@ -136,40 +163,83 @@ export default function Index({
 
         {/* Datos personales */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos personales</h3>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos personales
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p><strong>Nombre:</strong> {renderValor(usuario.nombre_completo)}</p>
-            <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-            <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-            <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
-            <p><strong>Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
-            <p><strong>Género:</strong> {renderValor(usuario.genero)}</p>
+            <p>
+              <strong>Nombre:</strong> {renderValor(usuario.nombre_completo)}
+            </p>
+            <p>
+              <strong>Correo:</strong> {renderValor(usuario.correo)}
+            </p>
+            <p>
+              <strong>Identificación:</strong> {renderValor(usuario.identificacion)}
+            </p>
+            <p>
+              <strong>Teléfono:</strong> {renderValor(usuario.telefono)}
+            </p>
+            <p>
+              <strong>Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}
+            </p>
+            <p>
+              <strong>Género:</strong> {renderValor(usuario.genero)}
+            </p>
           </div>
         </div>
 
         {/* Datos académicos */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos académicos
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-            <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-            <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
-            <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
-            <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+            <p>
+              <strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}
+            </p>
+            <p>
+              <strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}
+            </p>
+            <p>
+              <strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}
+            </p>
+            <p>
+              <strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}
+            </p>
+            <p>
+              <strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}
+            </p>
           </div>
         </div>
 
         {/* Datos laborales */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Datos laborales
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+            <p>
+              <strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}
+            </p>
             {usuario.estado_empleo?.toLowerCase() === "empleado" && (
               <>
-                <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
-                <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                <p>
+                  <strong>Tiempo para conseguir empleo:</strong>{" "}
+                  {renderValor(usuario.tiempo_conseguir_empleo)}
+                </p>
+                <p>
+                  <strong>Área laboral:</strong>{" "}
+                  {renderValor(
+                    areaLaborales.find((a) => a.id === usuario.area_laboral_id)?.nombre
+                  )}
+                </p>
+                <p>
+                  <strong>Salario promedio:</strong>{" "}
+                  {renderValor(usuario.salario_promedio)}
+                </p>
+                <p>
+                  <strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}
+                </p>
               </>
             )}
           </div>
@@ -177,16 +247,23 @@ export default function Index({
 
         {/* Ubicación */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Ubicación</h3>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
+            Ubicación
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <p>
               <strong>Ubicación:</strong>{" "}
-              {paisActual && provinciaActual && cantonActual
-                ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-                : <span className="text-gray-400 italic">N/A</span>}
+              {paisActual && provinciaActual && cantonActual ? (
+                `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
+              ) : (
+                <span className="text-gray-400 italic">N/A</span>
+              )}
             </p>
           </div>
         </div>
+
+        {/* 🔗 Enlaces a plataformas externas */}
+        <EnlacesExternos enlaces={plataformas} usuario={usuario} />
 
         {/* Botón Editar Perfil */}
         <div className="mt-6">
@@ -206,4 +283,3 @@ Index.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
-
