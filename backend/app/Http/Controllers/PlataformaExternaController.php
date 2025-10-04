@@ -1,5 +1,5 @@
 <?php
-
+//backend/app/Http/Controllers/PlataformaExternaController.php
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PlataformaExternaRequest;
