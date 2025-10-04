@@ -19,22 +19,19 @@ class RolesPermisosController extends Controller
         $searchPermiso = $request->input('searchPermiso');
         $visibleSections = $request->input('visibleSections', ['roles','permisos','asignacion']);
 
-        // Roles con paginación independiente
+        // ✅ Ahora devolvemos todos los roles y permisos, sin paginación
         $roles = Rol::with('permisos')
             ->when($searchRol, function ($q) use ($searchRol) {
                 $q->where('nombre_rol', 'LIKE', "%{$searchRol}%")
                   ->orWhere('id_rol', is_numeric($searchRol) ? $searchRol : 0);
             })
-            ->paginate(10, ['*'], 'roles_page') // 👈 nombre distinto para query param
-            ->appends($request->except('roles_page'));
+            ->get();
 
-        // Permisos con paginación independiente
         $permisos = Permiso::when($searchPermiso, function ($q) use ($searchPermiso) {
                 $q->where('nombre', 'LIKE', "%{$searchPermiso}%")
                   ->orWhere('id_permiso', is_numeric($searchPermiso) ? $searchPermiso : 0);
             })
-            ->paginate(10, ['*'], 'permisos_page') // 👈 nombre distinto para query param
-            ->appends($request->except('permisos_page'));
+            ->get();
 
         // Para checkboxes de asignación
         $todosPermisos = Permiso::all(['id_permiso','nombre']);
@@ -54,7 +51,7 @@ class RolesPermisosController extends Controller
                 'searchRol'     => $searchRol,
                 'searchPermiso' => $searchPermiso,
             ],
-            'visibleSections' => $visibleSections, // 👈 mantiene selección de secciones
+            'visibleSections' => $visibleSections, // mantiene selección de secciones
         ]);
     }
 
