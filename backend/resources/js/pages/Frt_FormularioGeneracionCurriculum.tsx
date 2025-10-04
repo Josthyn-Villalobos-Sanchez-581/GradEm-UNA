@@ -6,7 +6,7 @@ import PpLayout from '../layouts/PpLayout';
 import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGeneracionCurriculum';
 import { postGenerarCurriculum } from '../services/curriculumService';
 import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
-import { useModal } from '../hooks/useModal'; // 🟢 Integración modal
+import { useModal } from '../hooks/useModal';
 
 // ================== Tipos ==================
 type Educacion = {
@@ -46,17 +46,46 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  [key: string]: any;
 };
 
 type UsuarioActual = { id_usuario:number; nombre_completo:string; correo:string; telefono?:string };
 // ===========================================================
 
+// ================== Utilidades locales (sin diálogos nativos) ==================
+function descargarArchivo(url: string, nombre: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// Añadir esta nueva función helper
+function getAbsoluteUrl(url: string) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const baseUrl = window.location.origin;
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function abrirEnPestanaNueva(url: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+// ==============================================================================
+
 export default function Frt_FormularioGeneracionCurriculum() {
-  // Traemos userPermisos desde Inertia para que PpLayout filtre el menú
   const page = usePage<{ auth: { user?: any }, userPermisos?: number[] }>();
   const userPermisos = page.props.userPermisos ?? [];
 
-  // 🟢 modal hook (alerta y confirmacion)
   const modal = useModal();
 
   const usuario: UsuarioActual | null = page.props.auth?.user
@@ -68,7 +97,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
     : null;
 
-  // Prefill tipado
   const prefill: FormCV = useMemo(() => ({
     usuarioId: usuario?.id_usuario ?? 0,
     datosPersonales: {
@@ -88,24 +116,78 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [paso, setPaso] = useState<number>(1);
   const [errores, setErrores] = useState<ErrorMapa>({});
   const [rutaPdf, setRutaPdf] = useState<string>('');
-  const [cargando, setCargando] = useState<boolean>(false); // 🟢 estado de carga
+  const [cargando, setCargando] = useState<boolean>(false);
 
-  // Helper para setear campos por path "a.b.c"
+  const paso4Completo = useMemo(() => {
+    const habilidadesOk = form.habilidades.every(h => (h.descripcion ?? '').trim());
+    const idiomasOk = form.idiomas.every(i => (i.nombre ?? '').trim() && (i.nivel ?? '').trim());
+    const referenciasOk = form.referencias.every(r =>
+      (r.nombre ?? '').trim() &&
+      solo8Digitos(r.contacto ?? '').length === 8 &&
+      (r.relacion ?? '').trim()
+    );
+    return habilidadesOk && idiomasOk && referenciasOk;
+  }, [form.habilidades, form.idiomas, form.referencias]);
+
+  // ================== Helpers ==================
   function setCampo(path: string, value: any) {
-    setForm(prev => {
-      const copia: any = structuredClone(prev);
-      const partes = path.split('.');
-      let ref = copia;
-      for (let i=0;i<partes.length-1;i++) ref = ref[partes[i]];
-      ref[partes.at(-1)!] = value;
-      return copia as FormCV;
+    setForm(prevForm => {
+      const newForm = {...prevForm};
+      let current: any = newForm;
+      const parts = path.split('.');
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]];
+      }
+      current[parts[parts.length - 1]] = value;
+
+      if (path.startsWith('educaciones.') && (path.endsWith('fecha_inicio') || path.endsWith('fecha_fin'))) {
+        const [, indexStr] = path.split('.');
+        const index = parseInt(indexStr);
+        const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
+        setErrores(prev => ({ ...prev, ...nuevosErrores }));
+      }
+
+      if (path.startsWith('experiencias.') && (path.endsWith('periodo_inicio') || path.endsWith('periodo_fin'))) {
+        const [, indexStr] = path.split('.');
+        const index = parseInt(indexStr);
+        const nuevosErrores = validarFechasExperiencia(newForm.experiencias[index], index);
+        setErrores(prev => ({ ...prev, ...nuevosErrores }));
+      }
+
+      return newForm;
     });
   }
 
-  // 🟢 Manejo central de errores de API (incluye 422)
+  function solo8Digitos(valor: string) {
+    return valor.replace(/\D/g, '').slice(0, 8);
+  }
+
+  function validarTelefonosLocales(formActual: FormCV, pasoActual: number): ErrorMapa {
+    const errs: ErrorMapa = {};
+    const regexTelefono = /^[0-9]{8}$/;
+
+    if (pasoActual === 1) {
+      const tel = formActual.datosPersonales.telefono?.trim();
+      if (tel && !regexTelefono.test(tel)) {
+        errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
+      }
+    }
+
+    if (pasoActual === 4) {
+      formActual.referencias.forEach((r, idx) => {
+        const c = r.contacto?.trim();
+        if (c && !regexTelefono.test(c)) {
+          errs[`referencias.${idx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
+        }
+      });
+    }
+
+    return errs;
+  }
+
   const manejarErrorApi = async (error: any) => {
     if (error?.response?.status === 422) {
-      setErrores(error.response.data?.errors ?? {});
+      setErrores(formatearErroresConEtiquetas(error.response.data?.errors));
       return;
     }
     await modal.alerta({
@@ -114,7 +196,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
     });
   };
 
-  // Eliminar un elemento de un arreglo del formulario (con confirmación)
   async function removeArrayItem(
     key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias',
     idx: number
@@ -125,7 +206,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       textoAceptar: "Eliminar",
       textoCancelar: "Cancelar",
     });
-
     if (!continuar) return;
 
     setForm(prev => {
@@ -136,17 +216,34 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   async function siguiente() {
-    const e = validarPaso(form, paso);
-    setErrores(e);
-    if (Object.keys(e).length === 0) setPaso(paso + 1);
+    const eBase = validarPaso(form, paso);
+    const eTel = validarTelefonosLocales(form, paso);
+    const e = { ...eBase, ...eTel };
+
+    if (paso === 1 && !(form.resumenProfesional ?? '').trim()) {
+      e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    }
+
+    const erroresFormateados = formatearErroresConEtiquetas(e);
+    setErrores(erroresFormateados);
+    if (Object.keys(erroresFormateados).length === 0) setPaso(paso + 1);
   }
 
   function anterior() { setPaso(paso - 1); }
 
   async function generar() {
-    const e = validarPaso(form, paso);
-    setErrores(e);
-    if (Object.keys(e).length > 0) {
+    const eBase = validarPaso(form, paso);
+    const eTelPaso = validarTelefonosLocales(form, paso);
+    const eTelDP = validarTelefonosLocales(form, 1);
+    const e = { ...eBase, ...eTelPaso, ...eTelDP };
+
+    if (!(form.resumenProfesional ?? '').trim()) {
+      e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    }
+
+    const erroresFormateados = formatearErroresConEtiquetas(e);
+    setErrores(erroresFormateados);
+    if (Object.keys(erroresFormateados).length > 0) {
       await modal.alerta({
         titulo: "Validación",
         mensaje: "Revisa los campos marcados antes de continuar.",
@@ -156,24 +253,146 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
     try {
       setCargando(true);
-      const resp = await postGenerarCurriculum(form); // ⬅️ Usa servicio con CSRF + withCredentials
-      if (resp.ok) {
+      const resp = await postGenerarCurriculum(form);
+      if (resp.rutaPublica) {
         setRutaPdf(resp.rutaPublica);
-        await modal.alerta({
-          titulo: "Éxito",
-          mensaje: resp.mensaje || "Tu currículum ha sido generado correctamente.",
+        const abrir = await modal.confirmacion({
+          titulo: "Currículum generado",
+          mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
+          textoAceptar: "Abrir en pestaña nueva",
+          textoCancelar: "Descargar PDF"
         });
+        if (abrir) {
+          abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
+        } else {
+          descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
+        }
       } else {
-        await modal.alerta({
-          titulo: "Error",
-          mensaje: resp.mensaje || "No fue posible generar el currículum.",
-        });
+        throw new Error("No se pudo generar el PDF");
       }
     } catch (error: any) {
       await manejarErrorApi(error);
     } finally {
       setCargando(false);
     }
+  }
+
+  // Validaciones (sin cambios)
+  const validacionesDatosPersonales = {
+    nombreCompleto: { required: true, minLength: 5, maxLength: 255, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+    correo: { required: true, pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, maxLength: 255 },
+    telefono: { required: false, pattern: /^[0-9]{8}$/ }
+  };
+
+  const validacionesEducacion = {
+    institucion: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
+    titulo: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
+    fecha_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
+    fecha_fin: { required: false, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
+  };
+
+  const validacionesExperiencia = {
+    empresa: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
+    puesto: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
+    funciones: { required: false, maxLength: 1000 },
+    periodo_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
+    periodo_fin: { required: false, validate: (value: string, { periodo_inicio }: any) => !value || !periodo_inicio || new Date(value) >= new Date(periodo_inicio) }
+  };
+
+  const validacionesHabilidad = {
+    descripcion: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
+  };
+
+  const validacionesIdioma = {
+    nombre: { required: true, minLength: 2, maxLength: 100, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+    nivel: { required: true, validate: (value: string) => ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value) }
+  };
+
+  const validacionesReferencia = {
+    nombre: { required: true, minLength: 5, maxLength: 255, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+    contacto: { required: true, pattern: /^[0-9]{8}$/ },
+    relacion: { required: false, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
+  };
+
+  function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
+    const errores: ErrorMapa = {};
+    const hoy = new Date();
+    const fechaMinima = new Date('1960-01-01');
+
+    if (educacion.fecha_inicio) {
+      const fechaInicio = new Date(educacion.fecha_inicio);
+      if (fechaInicio > hoy) errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser mayor a hoy';
+      if (fechaInicio < fechaMinima) errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser anterior a 1960';
+    }
+    if (educacion.fecha_fin) {
+      const fechaFin = new Date(educacion.fecha_fin);
+      const fechaInicio = educacion.fecha_inicio ? new Date(educacion.fecha_inicio) : null;
+      if (fechaFin > hoy) errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
+      if (fechaInicio && fechaFin < fechaInicio) errores[`educaciones.${index}.fecha_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
+    }
+    return errores;
+  }
+
+  function validarFechasExperiencia(experiencia: Experiencia, index: number): ErrorMapa {
+    const errores: ErrorMapa = {};
+    const hoy = new Date();
+    const fechaMinima = new Date('1960-01-01');
+
+    if (experiencia.periodo_inicio) {
+      const fechaInicio = new Date(experiencia.periodo_inicio);
+      if (fechaInicio > hoy) errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser mayor a hoy';
+      if (fechaInicio < fechaMinima) errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser anterior a 1960';
+    }
+    if (experiencia.periodo_fin) {
+      const fechaFin = new Date(experiencia.periodo_fin);
+      const fechaInicio = experiencia.periodo_inicio ? new Date(experiencia.periodo_inicio) : null;
+      if (fechaFin > hoy) errores[`experiencias.${index}.periodo_fin`] = 'La fecha no puede ser mayor a hoy';
+      if (fechaInicio && fechaFin < fechaInicio) errores[`experiencias.${index}.periodo_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
+    }
+    return errores;
+  }
+
+  const etiquetasCampo: Record<string, string> = {
+    'datosPersonales.nombreCompleto': 'Nombre completo',
+    'datosPersonales.correo': 'Correo electrónico',
+    'datosPersonales.telefono': 'Teléfono',
+    resumenProfesional: 'Resumen profesional',
+    'educaciones.institucion': 'Institución',
+    'educaciones.titulo': 'Título',
+    'educaciones.fecha_inicio': 'Fecha inicio',
+    'educaciones.fecha_fin': 'Fecha fin',
+    'experiencias.empresa': 'Empresa',
+    'experiencias.puesto': 'Puesto',
+    'experiencias.periodo_inicio': 'Fecha inicio',
+    'experiencias.periodo_fin': 'Fecha fin',
+    'experiencias.funciones': 'Funciones',
+    'habilidades.descripcion': 'Descripción de habilidad',
+    'idiomas.nombre': 'Nombre del idioma',
+    'idiomas.nivel': 'Nivel',
+    'referencias.nombre': 'Nombre',
+    'referencias.contacto': 'Teléfono',
+    'referencias.relacion': 'Relación',
+  };
+
+  function obtenerEtiquetaDeClave(clave: string): string {
+    const claveNormalizada = clave.replace(/\.\d+/g, '.').replace(/\.$/, '');
+    if (etiquetasCampo[claveNormalizada]) return etiquetasCampo[claveNormalizada];
+    const partes = clave.split('.');
+    const ultima = partes[partes.length - 1] ?? clave;
+    return ultima.replace(/[_-]/g, ' ').replace(/\b\w/g, letra => letra.toUpperCase());
+  }
+
+  function formatearErroresConEtiquetas(errores: ErrorMapa = {}): ErrorMapa {
+    const resultado: ErrorMapa = {};
+    Object.entries(errores).forEach(([clave, valor]) => {
+      const mensajeBase = Array.isArray(valor) ? valor[0] : valor;
+      if (typeof mensajeBase === 'string' && /requerid/i.test(mensajeBase)) {
+        resultado[clave] = `Campo requerido: ${obtenerEtiquetaDeClave(clave)}`;
+      } else if (mensajeBase) {
+        resultado[clave] = mensajeBase;
+      }
+    });
+    return resultado;
   }
 
   return (
@@ -196,22 +415,73 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
         {paso===1 && (
           <section className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block">Nombre completo</label>
-              <input className="border p-2 w-full" value={form.datosPersonales.nombreCompleto}
-                     onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)} />
-              {errores['datosPersonales.nombreCompleto'] && <p className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>}
+            {/* Nombre completo */}
+            <div className="float-label-input">
+              <input
+                id="dp_nombreCompleto"
+                className="peer"
+                placeholder=" "
+                value={form.datosPersonales.nombreCompleto}
+                onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)}
+              />
+              <label htmlFor="dp_nombreCompleto">Nombre completo</label>
+              {errores['datosPersonales.nombreCompleto'] &&
+                <p className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>
+              }
             </div>
-            <div>
-              <label className="block">Correo</label>
-              <input className="border p-2 w-full" value={form.datosPersonales.correo}
-                     onChange={e=>setCampo('datosPersonales.correo', e.target.value)} />
-              {errores['datosPersonales.correo'] && <p className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>}
+
+            {/* Correo */}
+            <div className="float-label-input">
+              <input
+                id="dp_correo"
+                type="email"
+                className="peer"
+                placeholder=" "
+                value={form.datosPersonales.correo}
+                onChange={e=>setCampo('datosPersonales.correo', e.target.value)}
+              />
+              <label htmlFor="dp_correo">Correo electrónico</label>
+              {errores['datosPersonales.correo'] &&
+                <p className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>
+              }
             </div>
-            <div className="col-span-2">
-              <label className="block">Resumen profesional</label>
-              <textarea className="border p-2 w-full" value={form.resumenProfesional}
-                        onChange={e=>setCampo('resumenProfesional', e.target.value)} />
+
+            {/* Teléfono */}
+            <div className="float-label-input">
+              <input
+                id="dp_telefono"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{8}"
+                maxLength={8}
+                className={`peer ${form.datosPersonales.telefono ? 'has-value':''}`}
+                placeholder=" "
+                value={form.datosPersonales.telefono}
+                onChange={(e)=>{
+                  const limpio = solo8Digitos(e.target.value);
+                  setCampo('datosPersonales.telefono', limpio);
+                }}
+              />
+              <label htmlFor="dp_telefono">Teléfono (8 dígitos)</label>
+              <p className="text-xs text-gray-500 mt-1">Debe contener exactamente 8 dígitos (Costa Rica).</p>
+              {errores['datosPersonales.telefono'] &&
+                <p className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>
+              }
+            </div>
+
+            {/* Resumen profesional */}
+            <div className="float-label-input col-span-2">
+              <textarea
+                id="dp_resumen"
+                className={`peer ${(form.resumenProfesional ?? '').trim() ? 'has-value' : ''}`}
+                placeholder=" "
+                value={form.resumenProfesional}
+                onChange={e=>setCampo('resumenProfesional', e.target.value)}
+              />
+              <label htmlFor="dp_resumen">Resumen profesional</label>
+              {errores['resumenProfesional'] &&
+                <p className="text-red-600 text-sm">{errores['resumenProfesional']}</p>
+              }
             </div>
           </section>
         )}
@@ -219,6 +489,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso===2 && (
           <section>
             <button
+              type="button"
               className="mb-2 px-3 py-1 border rounded"
               onClick={()=>{
                 setForm(prev => ({
@@ -231,7 +502,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
             </button>
 
             {form.educaciones.map((ed, i)=>(
-              <div key={i} className="mb-3 border rounded-lg p-3">
+              <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Educación {i+1}</span>
                   <button
@@ -244,18 +515,66 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 </div>
 
                 <div className="grid grid-cols-4 gap-2">
-                  <input className="border p-2 w-full" placeholder="Institución" value={ed.institucion}
-                    onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)} />
-                  <input className="border p-2 w-full" placeholder="Título" value={ed.titulo}
-                    onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ed.fecha_inicio ?? ''}
-                    onChange={e=>setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ed.fecha_fin ?? ''}
-                    onChange={e=>setCampo(`educaciones.${i}.fecha_fin`, e.target.value)} />
+                  {/* Institución */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ed_${i}_institucion`}
+                      className={`peer ${ed.institucion ? 'has-value' : ''}`}
+                      placeholder=" "
+                      value={ed.institucion}
+                      onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)}
+                    />
+                    <label htmlFor={`ed_${i}_institucion`}>Institución</label>
+                  </div>
+
+                  {/* Título */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ed_${i}_titulo`}
+                      className={`peer ${ed.titulo ? 'has-value' : ''}`}
+                      placeholder=" "
+                      value={ed.titulo}
+                      onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)}
+                    />
+                    <label htmlFor={`ed_${i}_titulo`}>Título</label>
+                  </div>
+
+                  {/* Fecha inicio */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ed_${i}_fecha_inicio`}
+                      className={`peer ${ed.fecha_inicio ? 'has-value':''}`}
+                      type="date"
+                      placeholder=" "
+                      min="1960-01-01"
+                      max={new Date().toISOString().split('T')[0]}
+                      value={ed.fecha_inicio ?? ''}
+                      onChange={e=>setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)}
+                    />
+                    <label htmlFor={`ed_${i}_fecha_inicio`}>Fecha inicio</label>
+                  </div>
+
+                  {/* Fecha fin */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ed_${i}_fecha_fin`}
+                      className={`peer ${ed.fecha_fin ? 'has-value':''}`}
+                      type="date"
+                      placeholder=" "
+                      min={ed.fecha_inicio ?? '1960-01-01'}
+                      max={new Date().toISOString().split('T')[0]}
+                      value={ed.fecha_fin ?? ''}
+                      onChange={e=>setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
+                    />
+                    <label htmlFor={`ed_${i}_fecha_fin`}>Fecha fin</label>
+                  </div>
                 </div>
 
+                {/* Errores */}
                 {errores[`educaciones.${i}.institucion`] && <p className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
                 {errores[`educaciones.${i}.titulo`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
+                {errores[`educaciones.${i}.fecha_inicio`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_inicio`]}</p>}
+                {errores[`educaciones.${i}.fecha_fin`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_fin`]}</p>}
               </div>
             ))}
           </section>
@@ -264,6 +583,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso===3 && (
           <section>
             <button
+              type="button"
               className="mb-2 px-3 py-1 border rounded"
               onClick={()=>{
                 setForm(prev => ({
@@ -276,7 +596,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
             </button>
 
             {form.experiencias.map((ex, i)=>(
-              <div key={i} className="mb-3 border rounded-lg p-3">
+              <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Experiencia {i+1}</span>
                   <button
@@ -289,20 +609,78 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 </div>
 
                 <div className="grid grid-cols-5 gap-2">
-                  <input className="border p-2 w-full" placeholder="Empresa" value={ex.empresa}
-                    onChange={e=>setCampo(`experiencias.${i}.empresa`, e.target.value)} />
-                  <input className="border p-2 w-full" placeholder="Puesto" value={ex.puesto}
-                    onChange={e=>setCampo(`experiencias.${i}.puesto`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ex.periodo_inicio ?? ''}
-                    onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)} />
-                  <input className="border p-2 w-full" type="date" value={ex.periodo_fin ?? ''}
-                    onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)} />
-                  <input className="border p-2 w-full col-span-5" placeholder="Funciones" value={ex.funciones ?? ''}
-                    onChange={e=>setCampo(`experiencias.${i}.funciones`, e.target.value)} />
+                  {/* Empresa */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ex_${i}_empresa`}
+                      className={`peer ${ex.empresa ? 'has-value' : ''}`}
+                      placeholder=" "
+                      value={ex.empresa}
+                      onChange={e=>setCampo(`experiencias.${i}.empresa`, e.target.value)}
+                    />
+                    <label htmlFor={`ex_${i}_empresa`}>Empresa</label>
+                  </div>
+
+                  {/* Puesto */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ex_${i}_puesto`}
+                      className={`peer ${ex.puesto ? 'has-value' : ''}`}
+                      placeholder=" "
+                      value={ex.puesto}
+                      onChange={e=>setCampo(`experiencias.${i}.puesto`, e.target.value)}
+                    />
+                    <label htmlFor={`ex_${i}_puesto`}>Puesto</label>
+                  </div>
+
+                  {/* Fecha inicio */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ex_${i}_periodo_inicio`}
+                      className={`peer ${ex.periodo_inicio ? 'has-value':''}`}
+                      type="date"
+                      placeholder=" "
+                      min="1960-01-01"
+                      max={new Date().toISOString().split('T')[0]}
+                      value={ex.periodo_inicio ?? ''}
+                      onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)}
+                    />
+                    <label htmlFor={`ex_${i}_periodo_inicio`}>Fecha inicio</label>
+                  </div>
+
+                  {/* Fecha fin */}
+                  <div className="float-label-input">
+                    <input
+                      id={`ex_${i}_periodo_fin`}
+                      className={`peer ${ex.periodo_fin ? 'has-value':''}`}
+                      type="date"
+                      placeholder=" "
+                      min={ex.periodo_inicio ?? '1960-01-01'}
+                      max={new Date().toISOString().split('T')[0]}
+                      value={ex.periodo_fin ?? ''}
+                      onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)}
+                    />
+                    <label htmlFor={`ex_${i}_periodo_fin`}>Fecha fin</label>
+                  </div>
+
+                  {/* Funciones */}
+                  <div className="float-label-input col-span-5">
+                    <input
+                      id={`ex_${i}_funciones`}
+                      className={`peer ${ex.funciones ? 'has-value' : ''}`}
+                      placeholder=" "
+                      value={ex.funciones ?? ''}
+                      onChange={e=>setCampo(`experiencias.${i}.funciones`, e.target.value)}
+                    />
+                    <label htmlFor={`ex_${i}_funciones`}>Funciones</label>
+                  </div>
                 </div>
 
+                {/* Errores */}
                 {errores[`experiencias.${i}.empresa`] && <p className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
                 {errores[`experiencias.${i}.puesto`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
+                {errores[`experiencias.${i}.periodo_inicio`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_inicio`]}</p>}
+                {errores[`experiencias.${i}.periodo_fin`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_fin`]}</p>}
               </div>
             ))}
           </section>
@@ -313,6 +691,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
             <div>
               <h3 className="font-bold text-[#034991] mb-1">Habilidades</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, habilidades:[...prev.habilidades, {descripcion:''}]}));
@@ -322,12 +701,16 @@ export default function Frt_FormularioGeneracionCurriculum() {
               </button>
               {form.habilidades.map((h,i)=>(
                 <div key={i} className="flex gap-2 mb-2">
-                  <input
-                    className="border p-2 w-full"
-                    placeholder="Descripción"
-                    value={h.descripcion}
-                    onChange={e=>setCampo(`habilidades.${i}.descripcion`, e.target.value)}
-                  />
+                  <div className="float-label-input w-full">
+                    <input
+                      id={`hab_${i}_descripcion`}
+                      className="peer"
+                      placeholder=" "
+                      value={h.descripcion}
+                      onChange={e=>setCampo(`habilidades.${i}.descripcion`, e.target.value)}
+                    />
+                    <label htmlFor={`hab_${i}_descripcion`}>Descripción de habilidad</label>
+                  </div>
                   <button
                     type="button"
                     className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded whitespace-nowrap"
@@ -340,6 +723,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, idiomas:[...prev.idiomas, { nombre:'', nivel:'' }]}));
@@ -349,7 +733,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
               </button>
 
               {form.idiomas.map((i2,idx)=>(
-                <div key={idx} className="mb-2 border rounded-lg p-3">
+                <div key={idx} className="mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Idioma {idx+1}</span>
                     <button
@@ -362,32 +746,44 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <input
-                      className="border p-2 w-full col-span-2"
-                      placeholder="Idioma (p. ej. Español, Inglés)"
-                      value={i2.nombre}
-                      onChange={e=>setCampo(`idiomas.${idx}.nombre`, e.target.value)}
-                    />
-                    <select
-                      className="border p-2 w-full"
-                      value={i2.nivel}
-                      onChange={e=>setCampo(`idiomas.${idx}.nivel`, e.target.value)}
-                    >
-                      <option value="">Nivel (MCER)</option>
-                      <option value="A1">A1</option>
-                      <option value="A2">A2</option>
-                      <option value="B1">B1</option>
-                      <option value="B2">B2</option>
-                      <option value="C1">C1</option>
-                      <option value="C2">C2</option>
-                      <option value="Nativo">Nativo</option>
-                    </select>
+                    {/* Nombre idioma */}
+                    <div className="float-label-input col-span-2">
+                      <input
+                        id={`idioma_${idx}_nombre`}
+                        className="peer"
+                        placeholder=" "
+                        value={i2.nombre}
+                        onChange={e=>setCampo(`idiomas.${idx}.nombre`, e.target.value)}
+                      />
+                      <label htmlFor={`idioma_${idx}_nombre`}>Nombre del idioma</label>
+                    </div>
+
+                    {/* Nivel (select con label flotante) */}
+                    <div className="float-label-input">
+                      <select
+                        id={`idioma_${idx}_nivel`}
+                        className={`peer ${i2.nivel ? 'has-value':''}`}
+                        value={i2.nivel}
+                        onChange={e=>setCampo(`idiomas.${idx}.nivel`, e.target.value)}
+                      >
+                        <option value="">Seleccione...</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="B1">B1</option>
+                        <option value="B2">B2</option>
+                        <option value="C1">C1</option>
+                        <option value="C2">C2</option>
+                        <option value="Nativo">Nativo</option>
+                      </select>
+                      <label htmlFor={`idioma_${idx}_nivel`}>Nivel</label>
+                    </div>
                   </div>
                 </div>
               ))}
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Referencias</h3>
               <button
+                type="button"
                 className="mb-2 px-3 py-1 border rounded"
                 onClick={()=>{
                   setForm(prev => ({...prev, referencias:[...prev.referencias, {nombre:'', contacto:'', relacion:''}]}));
@@ -396,7 +792,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 + Referencia
               </button>
               {form.referencias.map((r,idx)=>(
-                <div key={idx} className="mb-2 border rounded-lg p-3">
+                <div key={idx} className="mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Referencia {idx+1}</span>
                     <button
@@ -409,13 +805,50 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <input className="border p-2 w-full" placeholder="Nombre" value={r.nombre}
-                      onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)} />
-                    <input className="border p-2 w-full" placeholder="Contacto" value={r.contacto}
-                      onChange={e=>setCampo(`referencias.${idx}.contacto`, e.target.value)} />
-                    <input className="border p-2 w-full" placeholder="Relación" value={r.relacion}
-                      onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)} />
+                    {/* Nombre */}
+                    <div className="float-label-input">
+                      <input
+                        id={`ref_${idx}_nombre`}
+                        className="peer"
+                        placeholder=" "
+                        value={r.nombre}
+                        onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)}
+                      />
+                      <label htmlFor={`ref_${idx}_nombre`}>Nombre</label>
+                    </div>
+
+                    {/* Contacto */}
+                    <div className="float-label-input">
+                      <input
+                        id={`ref_${idx}_contacto`}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{8}"
+                        maxLength={8}
+                        className={`peer ${r.contacto ? 'has-value':''}`}
+                        placeholder=" "
+                        value={r.contacto}
+                        onChange={(e)=>{
+                          const limpio = solo8Digitos(e.target.value);
+                          setCampo(`referencias.${idx}.contacto`, limpio);
+                        }}
+                      />
+                      <label htmlFor={`ref_${idx}_contacto`}>Teléfono</label>
+                    </div>
+
+                    {/* Relación */}
+                    <div className="float-label-input">
+                      <input
+                        id={`ref_${idx}_relacion`}
+                        className="peer"
+                        placeholder=" "
+                        value={r.relacion}
+                        onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)}
+                      />
+                      <label htmlFor={`ref_${idx}_relacion`}>Relación</label>
+                    </div>
                   </div>
+                  {errores[`referencias.${idx}.contacto`] && <p className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
                 </div>
               ))}
             </div>
@@ -427,14 +860,15 @@ export default function Frt_FormularioGeneracionCurriculum() {
         )}
 
         <div className="mt-6 flex justify-between">
-          {paso>1 ? <button className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
+          {paso>1 ? <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
           {paso<4 ? (
-            <button className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
+            <button type="button" className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
           ) : (
             <button
+              type="button"
               className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
               onClick={generar}
-              disabled={cargando}
+              disabled={cargando || !paso4Completo}
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
             </button>

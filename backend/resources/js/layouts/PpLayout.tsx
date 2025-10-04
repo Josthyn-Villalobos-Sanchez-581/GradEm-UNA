@@ -48,6 +48,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       subMenu: [
         { title: 'Roles y Permisos', route: '/roles_permisos', permisoId: 12 },
         { title: 'Usuarios', route: '/usuarios', permisoId: 12 },
+        { title: 'Ver Usuarios', route: '/usuarios/perfiles', permisoId: 12 }, // Nueva ruta para perfiles de usuarios, esto es para ver funcionalidad
+        //probablemente haya que agregarle un nuevo permiso en la base de datos
         { title: 'Catálogos', route: '/catalogos', permisoId: 13 },
         { title: 'Auditoría', route: '/auditoria', permisoId: 16 },
       ],
