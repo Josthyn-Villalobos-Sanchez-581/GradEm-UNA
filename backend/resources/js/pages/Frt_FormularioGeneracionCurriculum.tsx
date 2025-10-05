@@ -119,13 +119,25 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [cargando, setCargando] = useState<boolean>(false);
 
   const paso4Completo = useMemo(() => {
-    const habilidadesOk = form.habilidades.every(h => (h.descripcion ?? '').trim());
-    const idiomasOk = form.idiomas.every(i => (i.nombre ?? '').trim() && (i.nivel ?? '').trim());
-    const referenciasOk = form.referencias.every(r =>
-      (r.nombre ?? '').trim() &&
-      solo8Digitos(r.contacto ?? '').length === 8 &&
-      (r.relacion ?? '').trim()
-    );
+    const habilidadesOk = form.habilidades.every(h => {
+      const desc = (h.descripcion ?? '').trim();
+      return desc && desc.length <= 20;
+    });
+    const idiomasOk = form.idiomas.every(i => {
+      const nombre = (i.nombre ?? '').trim();
+      const nivel = (i.nivel ?? '').trim();
+      return nombre && nombre.length <= 15 && nivel;
+    });
+    const referenciasOk = form.referencias.every(r => {
+      const nombre = (r.nombre ?? '').trim();
+      const contacto = solo8Digitos(r.contacto ?? '');
+      const relacion = (r.relacion ?? '').trim();
+      return (
+        nombre && nombre.length <= 30 &&
+        contacto.length === 8 &&
+        relacion && relacion.length <= 30
+      );
+    });
     return habilidadesOk && idiomasOk && referenciasOk;
   }, [form.habilidades, form.idiomas, form.referencias]);
 
@@ -220,8 +232,12 @@ export default function Frt_FormularioGeneracionCurriculum() {
     const eTel = validarTelefonosLocales(form, paso);
     const e = { ...eBase, ...eTel };
 
-    if (paso === 1 && !(form.resumenProfesional ?? '').trim()) {
-      e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    if (paso === 1) {
+      if (!(form.resumenProfesional ?? '').trim()) {
+        e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+      } else if ((form.resumenProfesional ?? '').length > 600) {
+        e['resumenProfesional'] = 'Máximo 600 caracteres.';
+      }
     }
 
     const erroresFormateados = formatearErroresConEtiquetas(e);
@@ -239,6 +255,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
     if (!(form.resumenProfesional ?? '').trim()) {
       e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    } else if ((form.resumenProfesional ?? '').length > 600) {
+      e['resumenProfesional'] = 'Máximo 600 caracteres.';
     }
 
     const erroresFormateados = formatearErroresConEtiquetas(e);
@@ -300,18 +318,18 @@ export default function Frt_FormularioGeneracionCurriculum() {
   };
 
   const validacionesHabilidad = {
-    descripcion: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
+    descripcion: { required: true, minLength: 3, maxLength: 20, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
   };
 
   const validacionesIdioma = {
-    nombre: { required: true, minLength: 2, maxLength: 100, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+    nombre: { required: true, minLength: 2, maxLength: 15, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
     nivel: { required: true, validate: (value: string) => ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value) }
   };
 
   const validacionesReferencia = {
-    nombre: { required: true, minLength: 5, maxLength: 255, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+    nombre: { required: true, minLength: 5, maxLength: 30, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
     contacto: { required: true, pattern: /^[0-9]{8}$/ },
-    relacion: { required: false, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
+    relacion: { required: false, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
   };
 
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
@@ -475,6 +493,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 id="dp_resumen"
                 className={`peer ${(form.resumenProfesional ?? '').trim() ? 'has-value' : ''}`}
                 placeholder=" "
+                maxLength={600}
                 value={form.resumenProfesional}
                 onChange={e=>setCampo('resumenProfesional', e.target.value)}
               />
@@ -706,6 +725,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       id={`hab_${i}_descripcion`}
                       className="peer"
                       placeholder=" "
+                      maxLength={20}
                       value={h.descripcion}
                       onChange={e=>setCampo(`habilidades.${i}.descripcion`, e.target.value)}
                     />
@@ -752,6 +772,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`idioma_${idx}_nombre`}
                         className="peer"
                         placeholder=" "
+                        maxLength={15}
                         value={i2.nombre}
                         onChange={e=>setCampo(`idiomas.${idx}.nombre`, e.target.value)}
                       />
@@ -811,6 +832,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`ref_${idx}_nombre`}
                         className="peer"
                         placeholder=" "
+                        maxLength={30}
                         value={r.nombre}
                         onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)}
                       />
@@ -842,6 +864,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`ref_${idx}_relacion`}
                         className="peer"
                         placeholder=" "
+                        maxLength={30}
                         value={r.relacion}
                         onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)}
                       />

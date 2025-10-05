@@ -112,44 +112,39 @@ export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) 
         </section>
       )}
 
-      {/* Habilidades */}
-      {habilidades.length > 0 && (
-        <section className="mb-3">
-          <h3 className="text-[#CD1719] font-semibold">Habilidades</h3>
-          <div className="flex flex-wrap gap-2">
-            {habilidades
-              .filter((h) => h.descripcion?.trim())
-              .map((h, i) => (
-                <span
-                  key={i}
-                  className="border rounded px-2 py-1 text-sm bg-gray-50"
-                >
-                  {h.descripcion}
-                </span>
-              ))}
-          </div>
-        </section>
-      )}
+     {/* Habilidades */}
+{habilidades.length > 0 && (
+  <section className="mb-3">
+    <h3 className="text-[#CD1719] font-semibold">Habilidades</h3>
+    <div className="flex flex-wrap gap-2">
+      {habilidades
+        .filter((h) => h.descripcion?.trim())
+        .map((h, i) => (
+          <span key={i} className="text-sm">
+            {h.descripcion}
+          </span>
+        ))}
+    </div>
+  </section>
+)}
 
-      {/* ✅ Idiomas (nombre + nivel MCER) */}
-      {idiomas.length > 0 && (
-        <section className="mb-3">
-          <h3 className="text-[#CD1719] font-semibold">Idiomas</h3>
-          <div className="flex flex-wrap gap-2">
-            {idiomas
-              .filter((x) => x.nombre?.trim() || x.nivel)
-              .map((x, i) => (
-                <span
-                  key={i}
-                  className="border rounded px-2 py-1 text-sm bg-gray-50"
-                >
-                  {x.nombre || '—'}
-                  {x.nivel ? ` (${x.nivel})` : ''}
-                </span>
-              ))}
-          </div>
-        </section>
-      )}
+{/* ✅ Idiomas (nombre + nivel MCER) */}
+{idiomas.length > 0 && (
+  <section className="mb-3">
+    <h3 className="text-[#CD1719] font-semibold">Idiomas</h3>
+    <div className="flex flex-wrap gap-2">
+      {idiomas
+        .filter((x) => x.nombre?.trim() || x.nivel)
+        .map((x, i) => (
+          <span key={i} className="text-sm">
+            {x.nombre || '—'}
+            {x.nivel ? ` (${x.nivel})` : ''}
+          </span>
+        ))}
+    </div>
+  </section>
+)}
+
 
       {/* ✅ Referencias */}
       {referencias.length > 0 && (
