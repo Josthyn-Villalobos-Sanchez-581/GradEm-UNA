@@ -20,7 +20,7 @@ class PlataformaExternaTest extends TestCase
 
         // ⚠️ Usar un usuario ya existente en tu BD de pruebas
         // Ejemplo: el que me pasaste con id_usuario = 8
-        $this->usuario = Usuario::find(8);
+        $this->usuario = Usuario::find(5);
 
         // Seguridad: si no existe, lo creamos manualmente
         if (!$this->usuario) {
