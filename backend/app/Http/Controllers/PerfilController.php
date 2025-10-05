@@ -7,7 +7,9 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Usuario;
+use App\Models\PlataformaExterna;
 
+use Illuminate\Support\Facades\Log; // 👈 aquí
 class PerfilController extends Controller
 {
     /**
@@ -46,7 +48,7 @@ class PerfilController extends Controller
         $carreras = DB::table('carreras')
             ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
             ->get();
-
+$plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
         return Inertia::render('Perfil/Index', [
             'usuario' => [
                 ...$usuario->toArray(),
@@ -59,6 +61,7 @@ class PerfilController extends Controller
             'cantones' => $cantones,
             'universidades' => $universidades,
             'carreras' => $carreras,
+            'plataformas' => $plataformas,
         ]);
     }
 

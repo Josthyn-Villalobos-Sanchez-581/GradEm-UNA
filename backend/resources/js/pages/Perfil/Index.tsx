@@ -4,6 +4,9 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+// backend/resources/js/pages/Perfil/Index.tsx
+// 👇 importa tu componente de enlaces externos
+import EnlacesExternos from "./EnlacesExternos";
 
 interface FotoPerfil {
   ruta_imagen: string;
@@ -38,6 +41,12 @@ interface Canton { id: number; nombre: string; id_provincia: number }
 interface Universidad { id: number; nombre: string; sigla: string }
 interface Carrera { id: number; nombre: string; id_universidad: number; area_conocimiento: string }
 
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
+}
+
 interface Props {
   usuario: Usuario;
   areaLaborales: AreaLaboral[];
@@ -47,6 +56,7 @@ interface Props {
   universidades: Universidad[];
   carreras: Carrera[];
   userPermisos: number[];
+  plataformas: Plataforma[];
 }
 
 export default function Index({
@@ -57,6 +67,7 @@ export default function Index({
   cantones,
   universidades,
   carreras,
+  plataformas,
 }: Props) {
   const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
   const modal = useModal();
@@ -70,7 +81,7 @@ export default function Index({
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
-  // Función para eliminar foto de perfil
+  // Eliminar foto de perfil
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
       titulo: "Confirmar eliminación",
@@ -78,10 +89,19 @@ export default function Index({
     });
     if (!confirm) return;
 
-    Inertia.post("/perfil/foto/eliminar", {}, {
-      onSuccess: () => modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
-      onError: (errors: any) => modal.alerta({ titulo: "Error", mensaje: errors.foto || "No se pudo eliminar la foto." }),
-    });
+    Inertia.post(
+      "/perfil/foto/eliminar",
+      {},
+      {
+        onSuccess: () =>
+          modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
+        onError: (errors: any) =>
+          modal.alerta({
+            titulo: "Error",
+            mensaje: errors.foto || "No se pudo eliminar la foto.",
+          }),
+      }
+    );
   };
 
   const renderValor = (valor: any) =>
@@ -106,7 +126,10 @@ export default function Index({
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link href="/dashboard" className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded">
+          <Link
+            href="/dashboard"
+            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+          >
             Volver
           </Link>
         </div>
@@ -133,6 +156,13 @@ export default function Index({
                   Eliminar Foto
                 </button>
               )}
+              {/* Nuevo botón Ver Currículum */}
+              <Link
+                href="/mi-curriculum/ver"
+                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
+              >
+                Ver Currículum
+              </Link>
             </div>
           </div>
 
@@ -191,6 +221,9 @@ export default function Index({
                 </p>
               </div>
             </div>
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
 
             {/* Botón Editar Perfil */}
             <div className="mt-6">
