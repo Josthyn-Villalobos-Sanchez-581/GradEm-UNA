@@ -6,7 +6,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\DB;
-
+//use PHPUnit\Framework\Attributes\Test; 
 class DocumentosTest extends TestCase
 {
     use DatabaseTransactions; // Todo lo que se haga en DB se revierte automáticamente

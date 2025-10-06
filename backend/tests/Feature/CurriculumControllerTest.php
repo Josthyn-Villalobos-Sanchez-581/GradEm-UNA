@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class CurriculumControllerTest extends TestCase
 {
     use DatabaseTransactions, WithoutMiddleware;
@@ -27,7 +27,7 @@ class CurriculumControllerTest extends TestCase
         ]);
     }
 
-   /** @test */
+   #[Test]
 public function puede_generar_curriculum_con_servicio_mockeado()
 {
     Storage::fake('public');
@@ -69,7 +69,8 @@ public function puede_generar_curriculum_con_servicio_mockeado()
         'ruta_archivo_pdf' => 'curriculum/fake.pdf',
     ]);
 }
-/** @test */
+
+  #[Test]
 public function no_puede_generar_curriculum_si_falta_el_usuarioid()
 {
     $this->mock(ServicioPlantillaCurriculum::class);
@@ -94,7 +95,7 @@ public function no_puede_generar_curriculum_si_falta_el_usuarioid()
     $response->assertSessionHasErrors(['usuarioId']);
 }
 
-    /** @test */
+    #[Test]
 public function puede_subir_un_pdf_y_guardarlo_correctamente()
 {
     Storage::fake('public');
@@ -121,7 +122,7 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
     ]);
 }
 
-    /** @test */
+    #[Test]
     public function no_puede_subir_si_no_envia_archivo()
     {
         Storage::fake('public');
@@ -133,7 +134,7 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
         $response->assertSessionHasErrors(['curriculum']);
     }
 
-    /** @test */
+    #[Test]
     public function no_puede_subir_archivo_que_no_sea_pdf()
     {
         Storage::fake('public');
@@ -149,7 +150,7 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
         $response->assertSessionHasErrors(['curriculum']);
     }
 
-    /** @test */
+    #[Test]
     public function puede_eliminar_un_curriculum_existente()
     {
         Storage::fake('public');
@@ -178,7 +179,7 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function puede_acceder_a_index_carga_y_obtener_estado_200()
     {
         $response = $this->actingAs($this->usuario)

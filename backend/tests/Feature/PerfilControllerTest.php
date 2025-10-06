@@ -6,7 +6,7 @@ use App\Models\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class PerfilControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -62,7 +62,7 @@ class PerfilControllerTest extends TestCase
 );
     }
 
-    /** @test */
+    #[Test]
     public function test_usuario_puede_ver_perfil_index()
     {
         $response = $this->actingAs($this->usuario)
@@ -82,7 +82,7 @@ class PerfilControllerTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_usuario_puede_ver_perfil_edit()
     {
         $response = $this->actingAs($this->usuario)
@@ -97,7 +97,7 @@ class PerfilControllerTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_usuario_puede_actualizar_datos_perfil()
     {
         $payload = [
@@ -123,7 +123,7 @@ class PerfilControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function test_error_validacion_en_update()
     {
         $payload = [
@@ -137,7 +137,7 @@ class PerfilControllerTest extends TestCase
         $response->assertSessionHasErrors(['nombre_completo', 'correo']);
     }
 
-    /** @test */
+    #[Test]
     public function test_update_no_modifica_datos_si_no_hay_cambios()
     {
         $originalCorreo = $this->usuario->correo;
@@ -153,7 +153,7 @@ class PerfilControllerTest extends TestCase
         $this->assertDatabaseHas('usuarios', ['correo' => $originalCorreo]);
     }
 
-    /** @test */
+    #[Test]
     public function test_update_rechaza_datos_invalidos_en_relaciones()
     {
         $payload = [

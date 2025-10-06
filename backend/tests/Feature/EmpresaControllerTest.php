@@ -8,7 +8,7 @@ use App\Models\Usuario;
 use App\Models\Empresa;
 use App\Models\Credencial;
 use Illuminate\Support\Facades\Hash;
-
+//use PHPUnit\Framework\Attributes\Test;
 class EmpresaControllerTest extends TestCase
 {
     use DatabaseTransactions;

@@ -7,12 +7,12 @@ use App\Models\Credencial;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class AuthControllerTest extends TestCase
 {
     use DatabaseTransactions;
 
-    /** @test */
+    #[Test]
     public function login_exitoso_con_usuario_temporal()
     {
         $usuario = Usuario::create([
@@ -42,7 +42,7 @@ class AuthControllerTest extends TestCase
                  ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_falla_con_usuario_inexistente()
     {
         $response = $this->post('/login', [
@@ -56,7 +56,7 @@ class AuthControllerTest extends TestCase
                  ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_falla_con_contrasena_incorrecta()
     {
         $usuario = Usuario::create([
@@ -86,7 +86,7 @@ class AuthControllerTest extends TestCase
                  ]);
     }
 
-    /** @test */
+    #[Test]
     public function logout_exitoso()
     {
         $usuario = Usuario::create([
@@ -114,19 +114,19 @@ class AuthControllerTest extends TestCase
                  ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_falla_con_usuario_inactivo_pendiente()
     {
         $this->markTestIncomplete('Test pendiente: lógica de usuario inactivo aún no implementada');
     }
 
-    /** @test */
+    #[Test]
     public function login_falla_por_intentos_fallidos_pendiente()
     {
         $this->markTestIncomplete('Test pendiente: lógica de intentos fallidos aún no implementada');
     }
 
-    /** @test */
+    #[Test]
     public function login_falla_por_fecha_baneo_pendiente()
     {
         $this->markTestIncomplete('Test pendiente: lógica de fecha de baneo aún no implementada');

@@ -21,7 +21,7 @@ class FotoPerfilControllerTest extends TestCase
 
         // Finge almacenamiento público
         Storage::fake('public');
-
+  $this->withoutMiddleware();
         // Crea usuario de prueba con rol 1 (permiso para acceder al perfil)
         $this->usuario = Usuario::factory()->withCredencial()->create([
             'id_rol' => 1,

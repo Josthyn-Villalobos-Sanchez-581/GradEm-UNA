@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class RegistroControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -28,7 +28,7 @@ class RegistroControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function mostrar_formulario_registro()
     {
         $response = $this->get(route('registro.form'));
@@ -39,7 +39,7 @@ class RegistroControllerTest extends TestCase
                  );
     }
 
-    /** @test */
+    #[Test]
     public function enviar_codigo_exitoso()
     {
         Mail::fake();
@@ -57,7 +57,7 @@ class RegistroControllerTest extends TestCase
         $this->assertNotNull(session('otp_expires_at'));
     }
 
-    /** @test */
+    #[Test]
     public function enviar_codigo_correo_ya_registrado()
     {
         $response = $this->post('/registro/enviar-codigo', [
@@ -68,7 +68,7 @@ class RegistroControllerTest extends TestCase
                  ->assertJson(['message' => 'Este correo ya está registrado']);
     }
 
-    /** @test */
+    #[Test]
     public function validar_codigo_exitoso()
     {
         $codigo = '123456';
@@ -89,7 +89,7 @@ class RegistroControllerTest extends TestCase
         $this->assertTrue(session('otp_validado'));
     }
 
-    /** @test */
+    #[Test]
     public function validar_codigo_invalido_o_expirado()
     {
         $codigo = '123456';
@@ -108,7 +108,7 @@ class RegistroControllerTest extends TestCase
                  ->assertJson(['message' => 'Código inválido o expirado']);
     }
 
-    /** @test */
+    #[Test]
     public function registrar_usuario_exitoso()
     {
         $codigo = '123456';
@@ -144,7 +144,7 @@ class RegistroControllerTest extends TestCase
         $this->assertNull(session('otp_validado'));
     }
 
-    /** @test */
+    #[Test]
     public function registrar_sin_validar_correo()
     {
         session()->forget(['otp_validado', 'otp_correo']);
@@ -162,7 +162,7 @@ class RegistroControllerTest extends TestCase
                  ->assertJson(['message' => 'Debe validar su correo primero']);
     }
 
-    /** @test */
+    #[Test]
     public function registrar_correo_duplicado()
     {
         $codigo = '123456';

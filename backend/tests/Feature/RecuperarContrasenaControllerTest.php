@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class RecuperarContrasenaControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -26,7 +26,7 @@ class RecuperarContrasenaControllerTest extends TestCase
         $this->usuario = Usuario::factory()->withCredencial()->create();
     }
 
-    /** @test */
+    #[Test]
     public function enviar_codigo_exitoso_usuario_existente()
     {
         Mail::fake();
@@ -42,7 +42,7 @@ class RecuperarContrasenaControllerTest extends TestCase
         $this->assertEquals($this->usuario->correo, session('reset_correo'));
     }
 
-    /** @test */
+    #[Test]
     public function enviar_codigo_usuario_no_existente_devuelve_mensaje_generico()
     {
         Mail::fake();
@@ -55,7 +55,7 @@ class RecuperarContrasenaControllerTest extends TestCase
                  ->assertJson(['message' => 'Si el correo es válido, se ha enviado un código']);
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_contrasena_exitoso()
     {
         $codigo = '123456'; // ahora como string
@@ -83,7 +83,7 @@ class RecuperarContrasenaControllerTest extends TestCase
         $this->assertNull(session('reset_expires_at'));
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_contrasena_codigo_invalido()
     {
         session([
@@ -103,7 +103,7 @@ class RecuperarContrasenaControllerTest extends TestCase
                  ->assertJson(['message' => 'Código inválido o expirado']);
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_contrasena_codigo_expirado()
     {
         session([
@@ -123,7 +123,7 @@ class RecuperarContrasenaControllerTest extends TestCase
                  ->assertJson(['message' => 'Código inválido o expirado']);
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_contrasena_password_no_confirmada()
     {
         session([
@@ -142,7 +142,7 @@ class RecuperarContrasenaControllerTest extends TestCase
         $response->assertSessionHasErrors('password');
     }
 
-    /** @test */
+    #[Test]
     public function cambiar_contrasena_password_no_valida_regex()
     {
         session([

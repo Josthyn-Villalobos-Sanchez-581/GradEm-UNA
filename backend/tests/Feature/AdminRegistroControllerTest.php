@@ -6,7 +6,7 @@ namespace Tests\Feature;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class AdminRegistroControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -28,7 +28,7 @@ class AdminRegistroControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function un_admin_puede_crear_otro_admin()
     {
         $payload = [
@@ -53,7 +53,7 @@ class AdminRegistroControllerTest extends TestCase
         $this->assertNotNull($usuario);
     }
 
-    /** @test */
+      #[Test]
     public function no_se_puede_crear_usuario_con_correo_duplicado()
     {
         $payload = [
@@ -72,7 +72,7 @@ class AdminRegistroControllerTest extends TestCase
         $response->assertSessionHasErrors(['correo']);
     }
 
-    /** @test */
+      #[Test]
     public function un_admin_puede_actualizar_un_usuario()
     {
         $usuario = Usuario::factory()->withCredencial()->create([
@@ -100,7 +100,7 @@ class AdminRegistroControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function un_admin_puede_eliminar_un_usuario()
     {
         
@@ -119,7 +119,7 @@ $this->withoutMiddleware();
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function un_usuario_subdireccion_no_puede_eliminar_un_usuario()
     {
         $usuario = Usuario::factory()->withCredencial()->create([
@@ -139,7 +139,7 @@ $this->withoutMiddleware();
         ]);
     }
 
-    /** @test */
+        #[Test]
     public function index_lista_usuarios_admins()
     {
         $response = $this->actingAs($this->admin)

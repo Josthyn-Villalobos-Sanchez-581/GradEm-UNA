@@ -8,7 +8,7 @@ use App\Models\Rol;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class PermisoControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -29,7 +29,7 @@ class PermisoControllerTest extends TestCase
         $this->usuario->save();
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_ver_lista_de_permisos()
     {
         $response = $this->get(route('permisos.index'));
@@ -42,7 +42,7 @@ class PermisoControllerTest extends TestCase
                  );
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_ver_vista_de_crear_permiso()
     {
         $response = $this->get(route('permisos.create'));
@@ -54,7 +54,7 @@ class PermisoControllerTest extends TestCase
                  );
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_crear_permiso_valido()
     {
         $response = $this->post(route('permisos.store'), [
@@ -69,7 +69,7 @@ class PermisoControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function error_al_crear_permiso_sin_nombre()
     {
         $response = $this->post(route('permisos.store'), [
@@ -79,7 +79,7 @@ class PermisoControllerTest extends TestCase
         $response->assertSessionHasErrors('nombre');
     }
 
-    /** @test */
+    #[Test]
     public function error_al_crear_permiso_duplicado()
     {
         Permiso::create(['nombre' => 'Permiso Duplicado']);
@@ -91,7 +91,7 @@ class PermisoControllerTest extends TestCase
         $response->assertSessionHasErrors('nombre');
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_ver_vista_de_editar_permiso()
     {
         $permiso = Permiso::create(['nombre' => 'Permiso Editar']);
@@ -106,7 +106,7 @@ class PermisoControllerTest extends TestCase
                  );
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_actualizar_permiso_valido()
     {
         $permiso = Permiso::create(['nombre' => 'Permiso Original']);
@@ -124,7 +124,7 @@ class PermisoControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function error_al_actualizar_permiso_a_nombre_duplicado()
     {
         Permiso::create(['nombre' => 'Permiso Existente']);
@@ -137,7 +137,7 @@ class PermisoControllerTest extends TestCase
         $response->assertSessionHasErrors('nombre');
     }
 
-    /** @test */
+    #[Test]
     public function usuario_puede_eliminar_permiso_no_asignado()
     {
         $permiso = Permiso::create(['nombre' => 'Permiso a Eliminar']);
@@ -152,7 +152,7 @@ class PermisoControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function error_al_eliminar_permiso_asignado_a_rol()
     {
         $permiso = Permiso::create(['nombre' => 'Permiso Rol']);
