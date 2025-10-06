@@ -27,19 +27,21 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
             📄 Cargar Currículum
           </Link>
 
-          {/* Espacio para más tipos */}
-          <button
-            disabled
-            className="block bg-gray-400 cursor-not-allowed text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center"
+          {/* Botón Certificados */}
+          <Link
+            href="/certificados-cargados"
+            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
           >
-            🎓 Certificados (Próximamente)
-          </button>
-          <button
-            disabled
-            className="block bg-gray-400 cursor-not-allowed text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center"
+            📑 Cargar Certificados
+          </Link>
+
+          {/* Botón Títulos */}
+          <Link
+            href="/titulos-cargados"
+            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
           >
-            📑 Títulos (Próximamente)
-          </button>
+            🎓 Cargar Títulos
+          </Link>
         </div>
       </div>
     </>

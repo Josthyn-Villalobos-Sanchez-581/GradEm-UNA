@@ -19,6 +19,8 @@ use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\DocumentosController;
 use App\Http\Controllers\UsuariosConsultaController;
+use App\Http\Controllers\CertificadosController;
+use App\Http\Controllers\TitulosController;
 use App\Http\Controllers\PlataformaExternaController;
 
 // ==========================================
@@ -111,6 +113,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/documentos', [DocumentosController::class, 'index'])->name('documentos.index');
     });
 
+    Route::middleware('auth')->group(function () {
+    Route::get('/titulos-cargados', [TitulosController::class, 'indexCarga'])->name('titulos.index');
+    Route::post('/titulos/upload', [TitulosController::class, 'upload'])->name('titulos.upload');
+    Route::delete('/titulos/delete', [TitulosController::class, 'delete'])->name('titulos.delete');
+
+    Route::get('/certificados-cargados', [CertificadosController::class, 'indexCarga'])->name('certificados.index');
+    Route::post('/certificados/upload', [CertificadosController::class, 'upload'])->name('certificados.upload');
+    Route::delete('/certificados/delete', [CertificadosController::class, 'delete'])->name('certificados.delete');
+    });
+
     // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================
@@ -136,10 +148,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
         // Usuarios
-        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/crear', fn () => Inertia::render('Usuarios/CrearAdmin', [
             'userPermisos' => getUserPermisos()
         ]))->name('usuarios.create');
+    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+    Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+    Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+    Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+    Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+    Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+            // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
         Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');

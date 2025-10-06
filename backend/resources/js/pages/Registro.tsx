@@ -1178,7 +1178,12 @@ const Registro: React.FC = () => {
                                     <br />
                                     <button
                                         type="button"
-                                        onClick={() => router.get("/registro-empresa")}
+                                        onClick={() => {
+                                            // Guardar validación antes de ir al formulario
+                                            sessionStorage.setItem("correo_validado_empresa", "true");
+                                            sessionStorage.setItem("correo_empresa", correo);
+                                            router.get("/registro-empresa");
+                                        }}
                                         className="text-una-red hover:underline"
                                     >
                                         Continuar al formulario de registro de empresa
