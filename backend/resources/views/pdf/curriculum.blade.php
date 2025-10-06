@@ -37,7 +37,7 @@
 </head>
 <body>
   <header>
-    <div class="titulo">Universidad Nacional (UNA) - Currículum Vitae</div>
+    <div class="titulo">Currículum Vitae</div>
   </header>
 
   <section>

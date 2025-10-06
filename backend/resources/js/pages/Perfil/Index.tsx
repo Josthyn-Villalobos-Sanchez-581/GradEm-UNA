@@ -156,6 +156,13 @@ export default function Index({
                   Eliminar Foto
                 </button>
               )}
+              {/* Nuevo botón Ver Currículum */}
+              <Link
+                href="/mi-curriculum/ver"
+                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
+              >
+                Ver Currículum
+              </Link>
             </div>
           </div>
 
@@ -214,9 +221,9 @@ export default function Index({
                 </p>
               </div>
             </div>
-            
-      {/* 🔗 Enlaces a plataformas externas */}
-        <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
 
             {/* Botón Editar Perfil */}
             <div className="mt-6">

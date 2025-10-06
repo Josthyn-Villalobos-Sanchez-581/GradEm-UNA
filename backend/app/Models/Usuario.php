@@ -90,4 +90,9 @@ class Usuario extends Authenticatable
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
+
+    public function curriculum(): HasOne
+    {
+        return $this->hasOne(Curriculum::class, 'id_usuario', 'id_usuario');
+    }
 }

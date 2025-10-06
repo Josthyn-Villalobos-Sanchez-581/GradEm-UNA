@@ -62,7 +62,6 @@ function descargarArchivo(url: string, nombre: string) {
   a.remove();
 }
 
-// Añadir esta nueva función helper
 function getAbsoluteUrl(url: string) {
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
@@ -119,15 +118,29 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [cargando, setCargando] = useState<boolean>(false);
 
   const paso4Completo = useMemo(() => {
-    const habilidadesOk = form.habilidades.every(h => (h.descripcion ?? '').trim());
-    const idiomasOk = form.idiomas.every(i => (i.nombre ?? '').trim() && (i.nivel ?? '').trim());
-    const referenciasOk = form.referencias.every(r =>
-      (r.nombre ?? '').trim() &&
-      solo8Digitos(r.contacto ?? '').length === 8 &&
-      (r.relacion ?? '').trim()
-    );
+    const habilidadesOk = form.habilidades.every(h => {
+      const desc = (h.descripcion ?? '').trim();
+      return desc && desc.length <= 20;
+    });
+    const idiomasOk = form.idiomas.every(i => {
+      const nombre = (i.nombre ?? '').trim();
+      const nivel = (i.nivel ?? '').trim();
+      return nombre && nombre.length <= 15 && nivel;
+    });
+    const referenciasOk = form.referencias.every(r => {
+      const nombre = (r.nombre ?? '').trim();
+      const contacto = solo8Digitos(r.contacto ?? '');
+      const relacion = (r.relacion ?? '').trim();
+      return (
+        nombre && nombre.length <= 30 &&
+        contacto.length === 8 &&
+        relacion && relacion.length <= 30
+      );
+    });
     return habilidadesOk && idiomasOk && referenciasOk;
   }, [form.habilidades, form.idiomas, form.referencias]);
+
+  const botonGenerarDeshabilitado = cargando || !paso4Completo;
 
   // ================== Helpers ==================
   function setCampo(path: string, value: any) {
@@ -185,6 +198,105 @@ export default function Frt_FormularioGeneracionCurriculum() {
     return errs;
   }
 
+  // === NUEVO: utilidades para validar por reglas declarativas ===
+  type Regla = {
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    // validate(value, ctx): boolean => true OK, false o string => error
+    validate?: (value: any, ctx?: any) => boolean | string;
+  };
+
+  function validarCampoSegunReglas(
+    valor: any,
+    reglas: Regla,
+    etiqueta: string,
+    ctx?: any
+  ): string | null {
+    const v = (typeof valor === 'string') ? valor.trim() : valor;
+
+    if (reglas.required && (v === undefined || v === null || v === '')) {
+      return `Campo requerido: ${etiqueta}`;
+    }
+    if (v !== undefined && v !== null && v !== '') {
+      if (reglas.minLength !== undefined && typeof v === 'string' && v.length < reglas.minLength) {
+        return `Debe tener al menos ${reglas.minLength} caracteres.`;
+      }
+      if (reglas.maxLength !== undefined && typeof v === 'string' && v.length > reglas.maxLength) {
+        return `Debe tener como máximo ${reglas.maxLength} caracteres.`;
+      }
+      if (reglas.pattern && typeof v === 'string' && !reglas.pattern.test(v)) {
+        return `Formato inválido en ${etiqueta}.`;
+      }
+      if (reglas.validate) {
+        const res = reglas.validate(v, ctx);
+        if (res === false) return `Valor inválido en ${etiqueta}.`;
+        if (typeof res === 'string') return res;
+      }
+    }
+    return null;
+  }
+
+  function recolectarErroresFechas(formActual: FormCV): ErrorMapa {
+    const errs: ErrorMapa = {};
+    formActual.educaciones.forEach((e,i)=>Object.assign(errs, validarFechasEducacion(e,i)));
+    formActual.experiencias.forEach((e,i)=>Object.assign(errs, validarFechasExperiencia(e,i)));
+    return errs;
+  }
+
+  function validarColecciones(formActual: FormCV): ErrorMapa {
+    const errs: ErrorMapa = {};
+
+    // EDUCACIÓN y EXPERIENCIA quedan como estaban (no son del paso 4)
+
+    // HABILIDADES (solo si hay texto)
+    formActual.habilidades.forEach((h, i) => {
+      const desc = (h.descripcion ?? '').trim();
+      if (desc) {
+        const msg = validarCampoSegunReglas(desc, validacionesHabilidad.descripcion, 'Descripción de habilidad');
+        if (msg) errs[`habilidades.${i}.descripcion`] = msg;
+      }
+    });
+
+    // IDIOMAS (solo si usuario escribe nombre o selecciona nivel)
+    formActual.idiomas.forEach((id, i) => {
+      const nom = (id.nombre ?? '').trim();
+      const niv = (id.nivel ?? '').trim();
+
+      if (nom) {
+        const msgNom = validarCampoSegunReglas(nom, validacionesIdioma.nombre, 'Nombre del idioma');
+        if (msgNom) errs[`idiomas.${i}.nombre`] = msgNom;
+      }
+      if (niv) {
+        const msgNiv = validarCampoSegunReglas(niv, { validate: validacionesIdioma.nivel.validate }, 'Nivel');
+        if (msgNiv) errs[`idiomas.${i}.nivel`] = msgNiv;
+      }
+    });
+
+    // REFERENCIAS (solo si se escribe algo en la fila)
+    formActual.referencias.forEach((r, i) => {
+      const nom = (r.nombre ?? '').trim();
+      const tel = (r.contacto ?? '').trim();
+      const rel = (r.relacion ?? '').trim();
+
+      if (nom) {
+        const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
+        if (msgNom) errs[`referencias.${i}.nombre`] = msgNom;
+      }
+      if (tel) {
+        const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
+        if (msgTel) errs[`referencias.${i}.contacto`] = msgTel;
+      }
+      if (rel) {
+        const msgRel = validarCampoSegunReglas(rel, validacionesReferencia.relacion, 'Relación');
+        if (msgRel) errs[`referencias.${i}.relacion`] = msgRel;
+      }
+    });
+
+    return errs;
+  }
+
   const manejarErrorApi = async (error: any) => {
     if (error?.response?.status === 422) {
       setErrores(formatearErroresConEtiquetas(error.response.data?.errors));
@@ -218,10 +330,27 @@ export default function Frt_FormularioGeneracionCurriculum() {
   async function siguiente() {
     const eBase = validarPaso(form, paso);
     const eTel = validarTelefonosLocales(form, paso);
-    const e = { ...eBase, ...eTel };
+    const eFechas = recolectarErroresFechas(form);
+    const eColecciones = validarColecciones(form);
+    const e: ErrorMapa = { ...eBase, ...eTel, ...eFechas, ...eColecciones };
 
-    if (paso === 1 && !(form.resumenProfesional ?? '').trim()) {
-      e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    if (paso === 1) {
+      if (!(form.resumenProfesional ?? '').trim()) {
+        e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+      } else if ((form.resumenProfesional ?? '').length > 600) {
+        e['resumenProfesional'] = 'Máximo 600 caracteres.';
+      }
+      // Datos personales: validación explícita según reglas
+      let msg = validarCampoSegunReglas(form.datosPersonales.nombreCompleto, validacionesDatosPersonales.nombreCompleto, 'Nombre completo');
+      if (msg) e['datosPersonales.nombreCompleto'] = msg;
+
+      msg = validarCampoSegunReglas(form.datosPersonales.correo, validacionesDatosPersonales.correo, 'Correo electrónico');
+      if (msg) e['datosPersonales.correo'] = msg;
+
+      if ((form.datosPersonales.telefono ?? '').trim()) {
+        msg = validarCampoSegunReglas(form.datosPersonales.telefono, validacionesDatosPersonales.telefono, 'Teléfono');
+        if (msg) e['datosPersonales.telefono'] = msg;
+      }
     }
 
     const erroresFormateados = formatearErroresConEtiquetas(e);
@@ -235,10 +364,27 @@ export default function Frt_FormularioGeneracionCurriculum() {
     const eBase = validarPaso(form, paso);
     const eTelPaso = validarTelefonosLocales(form, paso);
     const eTelDP = validarTelefonosLocales(form, 1);
-    const e = { ...eBase, ...eTelPaso, ...eTelDP };
+    const eFechas = recolectarErroresFechas(form);
+    const eColecciones = validarColecciones(form);
+
+    const e: ErrorMapa = { ...eBase, ...eTelPaso, ...eTelDP, ...eFechas, ...eColecciones };
 
     if (!(form.resumenProfesional ?? '').trim()) {
       e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+    } else if ((form.resumenProfesional ?? '').length > 600) {
+      e['resumenProfesional'] = 'Máximo 600 caracteres.';
+    }
+
+    // Datos personales
+    let msg = validarCampoSegunReglas(form.datosPersonales.nombreCompleto, validacionesDatosPersonales.nombreCompleto, 'Nombre completo');
+    if (msg) e['datosPersonales.nombreCompleto'] = msg;
+
+    msg = validarCampoSegunReglas(form.datosPersonales.correo, validacionesDatosPersonales.correo, 'Correo electrónico');
+    if (msg) e['datosPersonales.correo'] = msg;
+
+    if ((form.datosPersonales.telefono ?? '').trim()) {
+      msg = validarCampoSegunReglas(form.datosPersonales.telefono, validacionesDatosPersonales.telefono, 'Teléfono');
+      if (msg) e['datosPersonales.telefono'] = msg;
     }
 
     const erroresFormateados = formatearErroresConEtiquetas(e);
@@ -277,42 +423,49 @@ export default function Frt_FormularioGeneracionCurriculum() {
     }
   }
 
-  // Validaciones (sin cambios)
+  // === VALIDACIONES ACTUALIZADAS ===
   const validacionesDatosPersonales = {
-    nombreCompleto: { required: true, minLength: 5, maxLength: 255, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
-    correo: { required: true, pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/, maxLength: 255 },
+    // permite letras, espacios, acentos, apóstrofos y guiones
+    nombreCompleto: { required: true, minLength: 5, maxLength: 30, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ },
+    // TLD 2–24
+    correo: { required: true, pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,24}$/, maxLength: 255 },
     telefono: { required: false, pattern: /^[0-9]{8}$/ }
   };
 
   const validacionesEducacion = {
-    institucion: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
-    titulo: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
+    institucion: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    titulo: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     fecha_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
     fecha_fin: { required: false, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
   };
 
   const validacionesExperiencia = {
-    empresa: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
-    puesto: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ },
-    funciones: { required: false, maxLength: 1000 },
+    empresa: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    puesto: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    funciones: { required: false, maxLength: 150 },
     periodo_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
     periodo_fin: { required: false, validate: (value: string, { periodo_inicio }: any) => !value || !periodo_inicio || new Date(value) >= new Date(periodo_inicio) }
   };
 
-  const validacionesHabilidad = {
-    descripcion: { required: true, minLength: 3, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
-  };
+// === VALIDACIONES (OPCIONAL) ===
+const validacionesHabilidad = {
+  // ya NO es required, pero mantiene min/max/pattern cuando hay valor
+  descripcion: { required: false, minLength: 3, maxLength: 20, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ }
+};
 
-  const validacionesIdioma = {
-    nombre: { required: true, minLength: 2, maxLength: 100, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
-    nivel: { required: true, validate: (value: string) => ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value) }
-  };
+const validacionesIdioma = {
+  // ambos opcionales; si se escribe nombre, valida; si se elige nivel, debe estar en el set
+  nombre: { required: false, minLength: 2, maxLength: 15, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
+  nivel:  { required: false, validate: (value: string) => ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value) }
+};
 
-  const validacionesReferencia = {
-    nombre: { required: true, minLength: 5, maxLength: 255, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
-    contacto: { required: true, pattern: /^[0-9]{8}$/ },
-    relacion: { required: false, maxLength: 255, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()-]+$/ }
-  };
+// relación/telefono/nombre OPCIONALES; si vienen, se validan (tel: 8 dígitos)
+const validacionesReferencia = {
+  nombre:   { required: false, minLength: 5, maxLength: 30, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ },
+  contacto: { required: false, pattern: /^[0-9]{8}$/ },
+  relacion: { required: false, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ }
+};
+
 
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
@@ -395,6 +548,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
     return resultado;
   }
 
+  const getAriaInvalid = (key: string) => (errores[key] ? true : undefined);
+  const getDescribedBy = (key: string) => (errores[key] ? `${key.replace(/[^\w-]/g,'_')}_err` : undefined);
+
   return (
     <PpLayout
       userPermisos={userPermisos}
@@ -423,10 +579,13 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 placeholder=" "
                 value={form.datosPersonales.nombreCompleto}
                 onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)}
+                aria-invalid={getAriaInvalid('datosPersonales.nombreCompleto')}
+                aria-describedby={getDescribedBy('datosPersonales.nombreCompleto')}
+                maxLength={30}
               />
               <label htmlFor="dp_nombreCompleto">Nombre completo</label>
               {errores['datosPersonales.nombreCompleto'] &&
-                <p className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>
+                <p id="datosPersonales_nombreCompleto_err" className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>
               }
             </div>
 
@@ -439,10 +598,12 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 placeholder=" "
                 value={form.datosPersonales.correo}
                 onChange={e=>setCampo('datosPersonales.correo', e.target.value)}
+                aria-invalid={getAriaInvalid('datosPersonales.correo')}
+                aria-describedby={getDescribedBy('datosPersonales.correo')}
               />
               <label htmlFor="dp_correo">Correo electrónico</label>
               {errores['datosPersonales.correo'] &&
-                <p className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>
+                <p id="datosPersonales_correo_err" className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>
               }
             </div>
 
@@ -461,11 +622,13 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   const limpio = solo8Digitos(e.target.value);
                   setCampo('datosPersonales.telefono', limpio);
                 }}
+                aria-invalid={getAriaInvalid('datosPersonales.telefono')}
+                aria-describedby={getDescribedBy('datosPersonales.telefono')}
               />
               <label htmlFor="dp_telefono">Teléfono (8 dígitos)</label>
               <p className="text-xs text-gray-500 mt-1">Debe contener exactamente 8 dígitos (Costa Rica).</p>
               {errores['datosPersonales.telefono'] &&
-                <p className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>
+                <p id="datosPersonales_telefono_err" className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>
               }
             </div>
 
@@ -475,12 +638,15 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 id="dp_resumen"
                 className={`peer ${(form.resumenProfesional ?? '').trim() ? 'has-value' : ''}`}
                 placeholder=" "
+                maxLength={600}
                 value={form.resumenProfesional}
                 onChange={e=>setCampo('resumenProfesional', e.target.value)}
+                aria-invalid={getAriaInvalid('resumenProfesional')}
+                aria-describedby={getDescribedBy('resumenProfesional')}
               />
               <label htmlFor="dp_resumen">Resumen profesional</label>
               {errores['resumenProfesional'] &&
-                <p className="text-red-600 text-sm">{errores['resumenProfesional']}</p>
+                <p id="resumenProfesional_err" className="text-red-600 text-sm">{errores['resumenProfesional']}</p>
               }
             </div>
           </section>
@@ -523,6 +689,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       placeholder=" "
                       value={ed.institucion}
                       onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
+                      aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
+                      maxLength={30}
                     />
                     <label htmlFor={`ed_${i}_institucion`}>Institución</label>
                   </div>
@@ -535,6 +704,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       placeholder=" "
                       value={ed.titulo}
                       onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
+                      aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
+                      maxLength={30}
                     />
                     <label htmlFor={`ed_${i}_titulo`}>Título</label>
                   </div>
@@ -550,6 +722,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       max={new Date().toISOString().split('T')[0]}
                       value={ed.fecha_inicio ?? ''}
                       onChange={e=>setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_inicio`)}
+                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_inicio`)}
                     />
                     <label htmlFor={`ed_${i}_fecha_inicio`}>Fecha inicio</label>
                   </div>
@@ -565,16 +739,18 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       max={new Date().toISOString().split('T')[0]}
                       value={ed.fecha_fin ?? ''}
                       onChange={e=>setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_fin`)}
+                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_fin`)}
                     />
                     <label htmlFor={`ed_${i}_fecha_fin`}>Fecha fin</label>
                   </div>
                 </div>
 
                 {/* Errores */}
-                {errores[`educaciones.${i}.institucion`] && <p className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
-                {errores[`educaciones.${i}.titulo`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
-                {errores[`educaciones.${i}.fecha_inicio`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_inicio`]}</p>}
-                {errores[`educaciones.${i}.fecha_fin`] && <p className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_fin`]}</p>}
+                {errores[`educaciones.${i}.institucion`] && <p id={`educaciones_${i}_institucion_err`} className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
+                {errores[`educaciones.${i}.titulo`] && <p id={`educaciones_${i}_titulo_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
+                {errores[`educaciones.${i}.fecha_inicio`] && <p id={`educaciones_${i}_fecha_inicio_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_inicio`]}</p>}
+                {errores[`educaciones.${i}.fecha_fin`] && <p id={`educaciones_${i}_fecha_fin_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_fin`]}</p>}
               </div>
             ))}
           </section>
@@ -617,6 +793,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       placeholder=" "
                       value={ex.empresa}
                       onChange={e=>setCampo(`experiencias.${i}.empresa`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`experiencias.${i}.empresa`)}
+                      aria-describedby={getDescribedBy(`experiencias.${i}.empresa`)}
+                      maxLength={30}
                     />
                     <label htmlFor={`ex_${i}_empresa`}>Empresa</label>
                   </div>
@@ -629,6 +808,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       placeholder=" "
                       value={ex.puesto}
                       onChange={e=>setCampo(`experiencias.${i}.puesto`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`experiencias.${i}.puesto`)}
+                      aria-describedby={getDescribedBy(`experiencias.${i}.puesto`)}
+                      maxLength={30}
                     />
                     <label htmlFor={`ex_${i}_puesto`}>Puesto</label>
                   </div>
@@ -644,6 +826,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       max={new Date().toISOString().split('T')[0]}
                       value={ex.periodo_inicio ?? ''}
                       onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`experiencias.${i}.periodo_inicio`)}
+                      aria-describedby={getDescribedBy(`experiencias.${i}.periodo_inicio`)}
                     />
                     <label htmlFor={`ex_${i}_periodo_inicio`}>Fecha inicio</label>
                   </div>
@@ -659,6 +843,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       max={new Date().toISOString().split('T')[0]}
                       value={ex.periodo_fin ?? ''}
                       onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`experiencias.${i}.periodo_fin`)}
+                      aria-describedby={getDescribedBy(`experiencias.${i}.periodo_fin`)}
                     />
                     <label htmlFor={`ex_${i}_periodo_fin`}>Fecha fin</label>
                   </div>
@@ -671,16 +857,20 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       placeholder=" "
                       value={ex.funciones ?? ''}
                       onChange={e=>setCampo(`experiencias.${i}.funciones`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`experiencias.${i}.funciones`)}
+                      aria-describedby={getDescribedBy(`experiencias.${i}.funciones`)}
+                      maxLength={150}
                     />
                     <label htmlFor={`ex_${i}_funciones`}>Funciones</label>
                   </div>
                 </div>
 
                 {/* Errores */}
-                {errores[`experiencias.${i}.empresa`] && <p className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
-                {errores[`experiencias.${i}.puesto`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
-                {errores[`experiencias.${i}.periodo_inicio`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_inicio`]}</p>}
-                {errores[`experiencias.${i}.periodo_fin`] && <p className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_fin`]}</p>}
+                {errores[`experiencias.${i}.empresa`] && <p id={`experiencias_${i}_empresa_err`} className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
+                {errores[`experiencias.${i}.puesto`] && <p id={`experiencias_${i}_puesto_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
+                {errores[`experiencias.${i}.periodo_inicio`] && <p id={`experiencias_${i}_periodo_inicio_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_inicio`]}</p>}
+                {errores[`experiencias.${i}.periodo_fin`] && <p id={`experiencias_${i}_periodo_fin_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_fin`]}</p>}
+                {errores[`experiencias.${i}.funciones`] && <p id={`experiencias_${i}_funciones_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.funciones`]}</p>}
               </div>
             ))}
           </section>
@@ -706,8 +896,11 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       id={`hab_${i}_descripcion`}
                       className="peer"
                       placeholder=" "
+                      maxLength={20}
                       value={h.descripcion}
                       onChange={e=>setCampo(`habilidades.${i}.descripcion`, e.target.value)}
+                      aria-invalid={getAriaInvalid(`habilidades.${i}.descripcion`)}
+                      aria-describedby={getDescribedBy(`habilidades.${i}.descripcion`)}
                     />
                     <label htmlFor={`hab_${i}_descripcion`}>Descripción de habilidad</label>
                   </div>
@@ -752,19 +945,24 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`idioma_${idx}_nombre`}
                         className="peer"
                         placeholder=" "
+                        maxLength={15}
                         value={i2.nombre}
                         onChange={e=>setCampo(`idiomas.${idx}.nombre`, e.target.value)}
+                        aria-invalid={getAriaInvalid(`idiomas.${idx}.nombre`)}
+                        aria-describedby={getDescribedBy(`idiomas.${idx}.nombre`)}
                       />
                       <label htmlFor={`idioma_${idx}_nombre`}>Nombre del idioma</label>
                     </div>
 
-                    {/* Nivel (select con label flotante) */}
+                    {/* Nivel */}
                     <div className="float-label-input">
                       <select
                         id={`idioma_${idx}_nivel`}
                         className={`peer ${i2.nivel ? 'has-value':''}`}
                         value={i2.nivel}
                         onChange={e=>setCampo(`idiomas.${idx}.nivel`, e.target.value)}
+                        aria-invalid={getAriaInvalid(`idiomas.${idx}.nivel`)}
+                        aria-describedby={getDescribedBy(`idiomas.${idx}.nivel`)}
                       >
                         <option value="">Seleccione...</option>
                         <option value="A1">A1</option>
@@ -778,6 +976,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       <label htmlFor={`idioma_${idx}_nivel`}>Nivel</label>
                     </div>
                   </div>
+                  {errores[`idiomas.${idx}.nombre`] && <p id={`idiomas_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`idiomas.${idx}.nombre`]}</p>}
+                  {errores[`idiomas.${idx}.nivel`] && <p id={`idiomas_${idx}_nivel_err`} className="text-red-600 text-sm mt-1">{errores[`idiomas.${idx}.nivel`]}</p>}
                 </div>
               ))}
 
@@ -811,8 +1011,11 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`ref_${idx}_nombre`}
                         className="peer"
                         placeholder=" "
+                        maxLength={30}
                         value={r.nombre}
                         onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)}
+                        aria-invalid={getAriaInvalid(`referencias.${idx}.nombre`)}
+                        aria-describedby={getDescribedBy(`referencias.${idx}.nombre`)}
                       />
                       <label htmlFor={`ref_${idx}_nombre`}>Nombre</label>
                     </div>
@@ -832,6 +1035,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
                           const limpio = solo8Digitos(e.target.value);
                           setCampo(`referencias.${idx}.contacto`, limpio);
                         }}
+                        aria-invalid={getAriaInvalid(`referencias.${idx}.contacto`)}
+                        aria-describedby={getDescribedBy(`referencias.${idx}.contacto`)}
                       />
                       <label htmlFor={`ref_${idx}_contacto`}>Teléfono</label>
                     </div>
@@ -842,13 +1047,18 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         id={`ref_${idx}_relacion`}
                         className="peer"
                         placeholder=" "
+                        maxLength={30}
                         value={r.relacion}
                         onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)}
+                        aria-invalid={getAriaInvalid(`referencias.${idx}.relacion`)}
+                        aria-describedby={getDescribedBy(`referencias.${idx}.relacion`)}
                       />
                       <label htmlFor={`ref_${idx}_relacion`}>Relación</label>
                     </div>
                   </div>
-                  {errores[`referencias.${idx}.contacto`] && <p className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
+                  {errores[`referencias.${idx}.nombre`] && <p id={`referencias_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.nombre`]}</p>}
+                  {errores[`referencias.${idx}.contacto`] && <p id={`referencias_${idx}_contacto_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
+                  {errores[`referencias.${idx}.relacion`] && <p id={`referencias_${idx}_relacion_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.relacion`]}</p>}
                 </div>
               ))}
             </div>
@@ -868,7 +1078,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
               type="button"
               className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
               onClick={generar}
-              disabled={cargando || !paso4Completo}
+              disabled={botonGenerarDeshabilitado}
+              title={!paso4Completo ? "Completa las habilidades, idiomas y referencias agregadas." : undefined}
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
             </button>
