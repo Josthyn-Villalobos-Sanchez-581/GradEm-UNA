@@ -19,7 +19,7 @@ use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\DocumentosController;
 use App\Http\Controllers\UsuariosConsultaController;
-
+use App\Http\Controllers\PlataformaExternaController;
 // ==========================================
 // Rutas públicas
 // ==========================================
@@ -163,6 +163,18 @@ Route::middleware('auth')->group(function () {
     // 15 - Reportes de Ofertas y Postulaciones
     // 16 - Gestión de Auditoría/Bitácora
     // 17 - Integraciones externas
+});
+
+
+// cosas de plataforma externa 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/perfil/plataformas', [PlataformaExternaController::class, 'store'])
+        ->name('perfil.plataformas.store');
+    Route::delete('/perfil/plataformas/{id}', [PlataformaExternaController::class, 'destroy'])
+        ->name('perfil.plataformas.destroy');
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index'); // <- nombre agregado
 });
 
 // ==========================================

@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import type { OpcionesModal } from "../components/modal/ModalBase";
-
+//backend/resources/js/context/ModalContext.tsx
 export type ModalAPI = {
   alerta: (opciones: Omit<OpcionesModal, "tipo">) => Promise<void>;
   confirmacion: (opciones: Omit<OpcionesModal, "tipo">) => Promise<boolean>;

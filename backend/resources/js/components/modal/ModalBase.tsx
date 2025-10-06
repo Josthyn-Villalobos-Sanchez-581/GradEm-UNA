@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-
+//backend/resources/js/components/modal/ModalBase.tsx
 type TipoModal = "alerta" | "confirmacion" | "personalizado";
 
 export type OpcionesModal = {
