@@ -21,12 +21,10 @@ class AdminRegistroController extends Controller
      */
    public function index(Request $request)
 {
-    $buscar = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
+    $buscarRoles = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
 
-    $roleIds = Rol::whereIn('nombre_rol', $buscar)->pluck('id_rol')->toArray();
-    if (empty($roleIds)) {
-        $roleIds = [0];
-    }
+    $roleIds = Rol::whereIn('nombre_rol', $buscarRoles)->pluck('id_rol')->toArray();
+    if (empty($roleIds)) $roleIds = [0];
 
     $query = Usuario::with('rol')
         ->whereIn('id_rol', $roleIds)
@@ -43,8 +41,18 @@ class AdminRegistroController extends Controller
         ])
         ->orderByDesc('fecha_registro');
 
-    $users = $query->paginate(15)->withQueryString();
+    // 🔎 Filtrar por nombre o cédula
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function($q) use ($search) {
+            $q->where('nombre_completo', 'like', "%{$search}%")
+              ->orWhere('identificacion', 'like', "%{$search}%");
+        });
+    }
 
+    $users = $query->paginate(5)->withQueryString(); // backend pagination
+
+    // Transformar resultados para frontend
     $users->getCollection()->transform(function ($u) {
         $uni = $u->id_universidad
             ? DB::table('universidades')->where('id_universidad', $u->id_universidad)->first()
@@ -67,7 +75,6 @@ class AdminRegistroController extends Controller
         ];
     });
 
-    // Consumir el flash para que solo se muestre una vez
     $flashSuccess = session()->pull('success');
 
     $usuario = Auth::user();
@@ -80,6 +87,7 @@ class AdminRegistroController extends Controller
         'users' => $users,
         'userPermisos' => $userPermisos,
         'flash' => $flashSuccess ? ['success' => $flashSuccess] : null,
+        'filters' => ['search' => $request->input('search')],
     ]);
 }
     /**
