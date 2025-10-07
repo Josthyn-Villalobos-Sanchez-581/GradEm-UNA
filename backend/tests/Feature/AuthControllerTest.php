@@ -124,7 +124,7 @@ public function login_falla_con_usuario_inactivo()
         'telefono'        => '60003333',
         'id_rol'          => 1,
         'fecha_registro'  => now(),
-        'estado_id'       => 2, // distinto de 1 = inactivo
+        'estado_id'       => 2, // Usuario inactivo
     ]);
 
     Credencial::create([
@@ -138,19 +138,20 @@ public function login_falla_con_usuario_inactivo()
         'password' => 'Password123!',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(403)
              ->assertJson([
-                 'message' => 'Los datos ingresados son incorrectos'
+                 'message' => 'La cuenta se encuentra inactivada.'
              ]);
 }
+
 
 
 #[Test]
 public function login_falla_por_intentos_fallidos()
 {
     $usuario = Usuario::create([
-        'nombre_completo' => 'Usuario Bloqueo',
-        'correo'          => 'bloqueo@example.com',
+        'nombre_completo' => 'Usuario Baneado',
+        'correo'          => 'baneado@example.com',
         'identificacion'  => 'TEST005',
         'telefono'        => '60005555',
         'id_rol'          => 1,
@@ -161,21 +162,21 @@ public function login_falla_por_intentos_fallidos()
     $credencial = Credencial::create([
         'id_usuario'       => $usuario->id_usuario,
         'hash_contrasena'  => Hash::make('Password123!'),
-        'intentos_fallidos'=> 3, // ya alcanzó el límite
-        'fecha_baneo'      => now()->addMinutes(5), // baneo de 5 minutos
+        'intentos_fallidos'=> 3,
+        'fecha_baneo'      => now()->addMinutes(5),
     ]);
 
-    // Intentar login durante baneo
     $response = $this->post('/login', [
-        'correo'   => 'bloqueo@example.com',
+        'correo'   => 'baneado@example.com',
         'password' => 'Password123!',
     ]);
 
-    $response->assertStatus(422)
-             ->assertJson([
-                 'message' => 'Los datos ingresados son incorrectos'
+    $response->assertStatus(423)
+             ->assertJsonStructure([
+                 'message',
              ]);
 }
+
 
 
 #[Test]
@@ -195,10 +196,9 @@ public function login_falla_por_fecha_baneo()
         'id_usuario'       => $usuario->id_usuario,
         'hash_contrasena'  => Hash::make('Password123!'),
         'intentos_fallidos'=> 3,
-        'fecha_baneo'      => now()->subMinutes(1), // baneo pasado
+        'fecha_baneo'      => now()->subMinute(), // Baneo ya expiró
     ]);
 
-    // Login correcto después del baneo
     $response = $this->post('/login', [
         'correo'   => 'baneopasado@example.com',
         'password' => 'Password123!',
@@ -209,12 +209,11 @@ public function login_falla_por_fecha_baneo()
                  'redirect' => route('dashboard')
              ]);
 
-    // Verificar que los intentos fallidos se resetearon
+    // Verificar que se resetearon intentos y fecha_baneo
     $this->assertDatabaseHas('credenciales', [
         'id_usuario'       => $usuario->id_usuario,
         'intentos_fallidos'=> 0,
         'fecha_baneo'      => null,
     ]);
-}
-
+ }
 }

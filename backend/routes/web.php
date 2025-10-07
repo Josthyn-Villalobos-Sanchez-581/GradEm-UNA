@@ -202,6 +202,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index'); 
 });
 
+//HU21 mostrar perfil estudiante a empresa o administrador 
+Route::middleware(['auth', 'permiso:12'])->get('/usuarios/{id}/perfil-json', [UsuariosConsultaController::class, 'perfilJson']);
+
+
 // ==========================================
 // Archivos de configuración adicionales
 // ==========================================

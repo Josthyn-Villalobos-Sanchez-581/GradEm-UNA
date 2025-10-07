@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Usuario;
-
+use Illuminate\Support\Facades\Storage;
 class UsuariosConsultaController extends Controller
 {
     public function index()
@@ -51,4 +51,21 @@ class UsuariosConsultaController extends Controller
                 : 'La cuenta ha sido inactivada correctamente.',
         ]);
     }
+
+    public function perfilJson($id)
+{
+    $usuario = Usuario::with(['rol', 'universidad', 'carrera', 'curriculum'])
+        ->whereHas('rol', function ($q) {
+            $q->whereIn('nombre_rol', ['Estudiante/Egresado']);
+        })
+        ->findOrFail($id);
+if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
+    $path = $usuario->curriculum->ruta_archivo_pdf;
+
+    // Generar URL pública (usa el disco 'public')
+    $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
+}
+    return response()->json(['usuario' => $usuario]);
+}
+
 }

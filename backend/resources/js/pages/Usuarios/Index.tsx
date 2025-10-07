@@ -31,6 +31,7 @@ interface IndexProps {
 }
 
 export default function Index(props: IndexProps) {
+
   const { confirmacion } = useModal();
 
   const [searchInput, setSearchInput] = useState(props.filters?.search ?? "");
