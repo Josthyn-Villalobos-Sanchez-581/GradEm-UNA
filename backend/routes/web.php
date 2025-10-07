@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
 
         // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
     });
 
     // ==========================================
