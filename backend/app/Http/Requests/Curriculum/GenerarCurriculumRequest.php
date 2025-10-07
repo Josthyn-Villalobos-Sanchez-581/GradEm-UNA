@@ -12,9 +12,7 @@ class GenerarCurriculumRequest extends FormRequest
     public function authorize(): bool
     {
         
-        /** @var \Illuminate\Contracts\Auth\Guard $guard */
-    $guard = auth();
-    return $guard->check();
+        return auth()->check();
     }
 
     /**
