@@ -4,7 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from "ziggy-js";
-
+// backend/resources/js/pages/CertificadosCargados/Index.tsx
 interface Documento {
   id_documento: number;
   ruta_archivo: string;

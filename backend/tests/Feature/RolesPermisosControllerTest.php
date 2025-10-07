@@ -34,8 +34,9 @@ public function index_muestra_roles_y_permisos()
     // Verificar que existan los roles y permisos esperados sin asumir cantidad exacta
     $response->assertInertia(fn ($page) =>
         $page->component('Roles_Permisos/Index')
-             ->where('roles.data', fn($roles) => collect($roles)->contains('nombre_rol', 'Administrador del Sistema'))
-             ->where('permisos.data', fn($permisos) => collect($permisos)->contains('nombre', 'Gestión de Currículum'))
+            ->where('roles', fn($roles) => collect($roles)->contains('nombre_rol', 'Administrador del Sistema'))
+->where('permisos', fn($permisos) => collect($permisos)->contains('nombre', 'Gestión de Currículum'))
+
     );
 }
 
@@ -140,8 +141,9 @@ public function filtrar_roles_y_permisos_por_nombre()
     // Verificar que el rol y permiso filtrados aparezcan entre los resultados
     $response->assertInertia(fn ($page) =>
         $page->component('Roles_Permisos/Index')
-             ->where('roles.data', fn($roles) => collect($roles)->contains('nombre_rol', 'Administrador del Sistema'))
-             ->where('permisos.data', fn($permisos) => collect($permisos)->contains('nombre', 'Gestión de Currículum'))
+             ->where('roles', fn($roles) => collect($roles)->contains('nombre_rol', 'Administrador del Sistema'))
+->where('permisos', fn($permisos) => collect($permisos)->contains('nombre', 'Gestión de Currículum'))
+
     );
 }
 }

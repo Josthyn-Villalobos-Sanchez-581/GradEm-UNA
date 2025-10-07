@@ -20,7 +20,6 @@ class CertificadosController extends Controller
             ->where('tipo', 'certificado')
             ->orderByDesc('fecha_subida')
             ->get();
-
         return Inertia::render('CertificadosCargados/Index', [
             'documentos'   => $documentos,
             'userPermisos' => getUserPermisos(),

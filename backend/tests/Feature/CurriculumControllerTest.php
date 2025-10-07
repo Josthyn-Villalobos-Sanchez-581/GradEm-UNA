@@ -114,13 +114,19 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
     $curriculum = Curriculum::where('id_usuario', $this->usuario->id_usuario)->first();
 
     $this->assertNotNull($curriculum);
-    Storage::disk('public')->assertExists($curriculum->ruta_archivo_pdf);  // no afecta el error, porque no es reconocido por laravel pero no afecta
+
+    /** 
+     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
+     */
+    $disk = Storage::disk('public');
+    $disk->assertExists($curriculum->ruta_archivo_pdf);
 
     $this->assertDatabaseHas('curriculum', [
         'id_usuario' => $this->usuario->id_usuario,
         'generado_sistema' => 0,
     ]);
 }
+
 
     #[Test]
     public function no_puede_subir_si_no_envia_archivo()
@@ -151,33 +157,37 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
     }
 
     #[Test]
-    public function puede_eliminar_un_curriculum_existente()
-    {
-        Storage::fake('public');
+public function puede_eliminar_un_curriculum_existente()
+{
+    Storage::fake('public');
 
-        // Creamos un archivo simulado en el disco fake
-        $path = 'CurriculumCargado/test_cv.pdf';
-        Storage::disk('public')->put($path, 'contenido falso');
+    // Creamos un archivo simulado en el disco fake
+    $path = 'CurriculumCargado/test_cv.pdf';
+    Storage::disk('public')->put($path, 'contenido falso');
 
-        // Creamos el registro en base de datos (fake)
-        $curriculum = Curriculum::factory()->create([
-            'id_usuario' => $this->usuario->id_usuario,
-            'ruta_archivo_pdf' => $path,
-            'generado_sistema' => 0,
-        ]);
+    // Creamos el registro en base de datos (fake)
+    $curriculum = Curriculum::factory()->create([
+        'id_usuario' => $this->usuario->id_usuario,
+        'ruta_archivo_pdf' => $path,
+        'generado_sistema' => 0,
+    ]);
 
-        $response = $this->actingAs($this->usuario)
-            ->delete(route('curriculum.delete'));
+    $response = $this->actingAs($this->usuario)
+        ->delete(route('curriculum.delete'));
 
-        $response->assertRedirect();
-        $response->assertSessionHas('success', 'Currículum eliminado correctamente');
+    $response->assertRedirect();
+    $response->assertSessionHas('success', 'Currículum eliminado correctamente');
 
-        // El archivo y el registro deben desaparecer
-        Storage::disk('public')->assertMissing($path);  // no afecta el error, porque no es reconocido por laravel pero no afecta
-        $this->assertDatabaseMissing('curriculum', [
-            'id_curriculum' => $curriculum->id_curriculum,
-        ]);
-    }
+    /** 
+     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
+     */
+    $disk = Storage::disk('public');
+    $disk->assertMissing($path);
+
+    $this->assertDatabaseMissing('curriculum', [
+        'id_curriculum' => $curriculum->id_curriculum,
+    ]);
+}
 
     #[Test]
     public function puede_acceder_a_index_carga_y_obtener_estado_200()

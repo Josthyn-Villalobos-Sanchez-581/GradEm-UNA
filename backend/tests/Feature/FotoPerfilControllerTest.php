@@ -46,23 +46,27 @@ class FotoPerfilControllerTest extends TestCase
      * ✅ Usuario puede subir una foto válida
      */
     public function test_usuario_puede_subir_foto_valida()
-    {
-        $foto = UploadedFile::fake()->image('perfil.jpg', 600, 600);
+{
+    $foto = UploadedFile::fake()->image('perfil.jpg', 600, 600);
 
-        $response = $this->actingAs($this->usuario)
-                         ->post(route('perfil.foto.subir'), ['foto' => $foto]);
+    $response = $this->actingAs($this->usuario)
+                     ->post(route('perfil.foto.subir'), ['foto' => $foto]);
 
-        $response->assertRedirect(route('perfil.index'));
-        $response->assertSessionHas('success', 'Foto de perfil actualizada exitosamente.');
+    $response->assertRedirect(route('perfil.index'));
+    $response->assertSessionHas('success', 'Foto de perfil actualizada exitosamente.');
 
-        // Verifica que el archivo se haya "subido" al disco fake
-        Storage::disk('public')->assertExists('fotos_perfil/' . $foto->hashName());
+    /** 
+     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
+     */
+    $disk = Storage::disk('public');
+    $disk->assertExists('fotos_perfil/' . $foto->hashName());
 
-        // Verifica que exista el registro en BD
-        $this->assertDatabaseHas('fotos_perfil', [
-            'id_usuario' => $this->usuario->id_usuario,
-        ]);
-    }
+    // Verifica que exista el registro en BD
+    $this->assertDatabaseHas('fotos_perfil', [
+        'id_usuario' => $this->usuario->id_usuario,
+    ]);
+}
+
 
     /**
      * 🚫 Falla si no se envía una foto
@@ -91,33 +95,36 @@ class FotoPerfilControllerTest extends TestCase
     /**
      * ✅ Usuario puede eliminar su foto correctamente
      */
-    public function test_usuario_puede_eliminar_foto()
-    {
-        // Simular una foto ya existente
-        $foto = UploadedFile::fake()->image('foto_existente.png', 600, 600);
-        $ruta = $foto->store('fotos_perfil', 'public');
+   public function test_usuario_puede_eliminar_foto()
+{
+    // Simular una foto ya existente
+    $foto = UploadedFile::fake()->image('foto_existente.png', 600, 600);
+    $ruta = $foto->store('fotos_perfil', 'public');
 
-        $fotoPerfil = FotoPerfil::create([
-            'id_usuario' => $this->usuario->id_usuario,
-            'ruta_imagen' => '/storage/' . $ruta,
-            'fecha_subida' => now(),
-        ]);
+    $fotoPerfil = FotoPerfil::create([
+        'id_usuario' => $this->usuario->id_usuario,
+        'ruta_imagen' => '/storage/' . $ruta,
+        'fecha_subida' => now(),
+    ]);
 
-        // Ejecutar eliminación
-        $response = $this->actingAs($this->usuario)
-                         ->post(route('perfil.foto.eliminar'));
+    // Ejecutar eliminación
+    $response = $this->actingAs($this->usuario)
+                     ->post(route('perfil.foto.eliminar'));
 
-        $response->assertRedirect(route('perfil.index'));
-        $response->assertSessionHas('success', 'Foto de perfil eliminada exitosamente.');
+    $response->assertRedirect(route('perfil.index'));
+    $response->assertSessionHas('success', 'Foto de perfil eliminada exitosamente.');
 
-        // Verificar que se haya borrado del almacenamiento simulado
-        Storage::disk('public')->assertMissing($ruta);
+    /** 
+     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
+     */
+    $disk = Storage::disk('public');
+    $disk->assertMissing($ruta);
 
-        // Verificar que ya no exista en la BD
-        $this->assertDatabaseMissing('fotos_perfil', [
-            'id_foto' => $fotoPerfil->id_foto,
-        ]);
-    }
+    // Verificar que ya no exista en la BD
+    $this->assertDatabaseMissing('fotos_perfil', [
+        'id_foto' => $fotoPerfil->id_foto,
+    ]);
+}
 
       /**
      * 🚫 Falla si la imagen es más pequeña que 500x500 píxeles

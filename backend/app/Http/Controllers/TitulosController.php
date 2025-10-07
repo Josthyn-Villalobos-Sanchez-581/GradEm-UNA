@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log; 
 class TitulosController extends Controller
 {
     /**
@@ -23,7 +23,8 @@ class TitulosController extends Controller
             ->where('tipo', 'titulo')
             ->orderByDesc('fecha_subida')
             ->get();
-
+   Log::info('Documentos: ', $documentos->toArray());
+    Log::info('User Permisos: ', getUserPermisos());
         // Pasamos documentos y permisos al componente Inertia
         return Inertia::render('TitulosCargados/Index', [
             'documentos'   => $documentos,
