@@ -12,6 +12,7 @@ interface FotoPerfil {
   ruta_imagen: string;
 }
 
+
 interface Usuario {
   id_usuario: number;
   nombre_completo: string;
@@ -34,6 +35,18 @@ interface Usuario {
   fotoPerfil?: FotoPerfil | null;
 }
 
+interface Empresa {
+  id_empresa: number;
+  nombre: string;
+  correo: string | null;
+  telefono: string | null;
+  persona_contacto: string | null;
+  usuario_id: number;
+  id_pais?: number | null;
+  id_provincia?: number | null;
+  id_canton?: number | null;
+}
+
 interface AreaLaboral { id: number; nombre: string }
 interface Pais { id: number; nombre: string }
 interface Provincia { id: number; nombre: string; id_pais: number }
@@ -49,6 +62,7 @@ interface Plataforma {
 
 interface Props {
   usuario: Usuario;
+  empresa?: Empresa | null;
   areaLaborales: AreaLaboral[];
   paises: Pais[];
   provincias: Provincia[];
@@ -57,10 +71,12 @@ interface Props {
   carreras: Carrera[];
   userPermisos: number[];
   plataformas: Plataforma[];
+  rolNombre: string;
 }
 
 export default function Index({
   usuario,
+  empresa,
   areaLaborales,
   paises,
   provincias,
@@ -68,6 +84,7 @@ export default function Index({
   universidades,
   carreras,
   plataformas,
+  rolNombre,
 }: Props) {
   const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
   const modal = useModal();
@@ -106,7 +123,55 @@ export default function Index({
 
   const renderValor = (valor: any) =>
     valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
+if (rolNombre.toLowerCase() === "empresa") {
+    return (
+      <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
+        <h2 className="text-2xl font-bold mb-6">Perfil de Empresa</h2>
 
+        {/* Datos de la empresa */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Información de la Empresa</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong>Nombre:</strong> {renderValor(empresa?.nombre)}</p>
+            <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
+            <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
+            <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+          </div>
+        </div>
+
+        {/* Ubicación */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Ubicación</h3>
+          <p>
+            {paisActual && provinciaActual && cantonActual
+              ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
+              : <span className="text-gray-400 italic">N/A</span>}
+          </p>
+        </div>
+
+        {/* Datos personales */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Datos Personales del Usuario</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
+            <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+          </div>
+        </div>
+
+        {/* Botón Editar Perfil */}
+        <div className="mt-6">
+          <Link
+            href="/perfil/editar"
+            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded block text-center"
+          >
+            Editar Perfil
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista completa para otros roles (la que ya tenías)
   return (
     <>
       <Head title="Mi Perfil" />
