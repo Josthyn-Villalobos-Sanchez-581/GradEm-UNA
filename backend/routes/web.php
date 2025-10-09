@@ -149,15 +149,14 @@ Route::middleware('auth')->group(function () {
 
         // Usuarios
     Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/crear', fn () => Inertia::render('Usuarios/CrearAdmin', [
-            'userPermisos' => getUserPermisos()
-        ]))->name('usuarios.create');
-    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+    Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+    Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
     Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-    Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-    Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
-    Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-    Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+    Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+    // Toggle estado (activar/inactivar)
+    Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+
             // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
         Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');

@@ -19,86 +19,92 @@ class AdminRegistroController extends Controller
      * Mostrar listado de usuarios (Administradores / Dirección / Subdirección).
      * Devuelve paginador compatible con el Index.tsx frontend.
      */
-   public function index(Request $request)
-{
-    $buscarRoles = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
-
-    $roleIds = Rol::whereIn('nombre_rol', $buscarRoles)->pluck('id_rol')->toArray();
-    if (empty($roleIds)) $roleIds = [0];
-
-    $query = Usuario::with('rol')
-        ->whereIn('id_rol', $roleIds)
-        ->select([
-            'id_usuario',
-            'nombre_completo',
-            'correo',
-            'identificacion',
-            'telefono',
-            'id_rol',
-            'id_universidad',
-            'id_carrera',
-            'fecha_registro'
-        ])
-        ->orderByDesc('fecha_registro');
-
-    // 🔎 Filtrar por nombre o cédula
-    if ($request->filled('search')) {
-        $search = $request->input('search');
-        $query->where(function($q) use ($search) {
-            $q->where('nombre_completo', 'like', "%{$search}%")
-              ->orWhere('identificacion', 'like', "%{$search}%");
-        });
-    }
-
-    $users = $query->paginate(5)->withQueryString(); // backend pagination
-
-    // Transformar resultados para frontend
-    $users->getCollection()->transform(function ($u) {
-        $uni = $u->id_universidad
-            ? DB::table('universidades')->where('id_universidad', $u->id_universidad)->first()
-            : null;
-
-        $carrera = $u->id_carrera
-            ? DB::table('carreras')->where('id_carrera', $u->id_carrera)->value('nombre')
-            : null;
-
-        return [
-            'id' => $u->id_usuario,
-            'nombre_completo' => $u->nombre_completo,
-            'correo' => $u->correo,
-            'identificacion' => $u->identificacion,
-            'telefono' => $u->telefono,
-            'rol' => $u->rol?->nombre_rol ?? null,
-            'universidad' => $uni?->sigla ?? $uni?->nombre ?? null,
-            'carrera' => $carrera ? $this->shortCarreraName($carrera) : null,
-            'fecha_registro' => $u->fecha_registro ?? null,
-        ];
-    });
-
-    $flashSuccess = session()->pull('success');
-
-    $usuario = Auth::user();
-    $userPermisos = DB::table('roles_permisos')
-        ->where('id_rol', $usuario->id_rol)
-        ->pluck('id_permiso')
-        ->toArray();
-
-    return Inertia::render('Usuarios/Index', [
-        'users' => $users,
-        'userPermisos' => $userPermisos,
-        'flash' => $flashSuccess ? ['success' => $flashSuccess] : null,
-        'filters' => ['search' => $request->input('search')],
-    ]);
-}
-    /**
-     * Helper para acortar nombres de carrera.
-     */
-    private function shortCarreraName(string $nombre): string
+    public function index(Request $request)
     {
-        return match ($nombre) {
-            'Ingeniería en Sistemas' => 'Ing. Sistemas',
-            default => $nombre,
-        };
+        $buscarRoles = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
+        $roleIds = Rol::whereIn('nombre_rol', $buscarRoles)->pluck('id_rol')->toArray();
+        if (empty($roleIds)) $roleIds = [0];
+
+        $query = Usuario::with('rol')
+            ->whereIn('id_rol', $roleIds)
+            ->select([
+                'id_usuario',
+                'nombre_completo',
+                'correo',
+                'identificacion',
+                'telefono',
+                'id_rol',
+                'id_universidad',
+                'id_carrera',
+                'fecha_registro',
+                'estado_id' // 🔹 ahora incluimos estado_id
+            ])
+            ->orderByDesc('fecha_registro');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nombre_completo', 'like', "%{$search}%")
+                  ->orWhere('identificacion', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->paginate(5)->withQueryString();
+
+        // Transformar resultados
+        $users->getCollection()->transform(function ($u) {
+            $uni = $u->id_universidad
+                ? DB::table('universidades')->where('id_universidad', $u->id_universidad)->first()
+                : null;
+
+            $carrera = $u->id_carrera
+                ? DB::table('carreras')->where('id_carrera', $u->id_carrera)->value('nombre')
+                : null;
+
+            return [
+                'id' => $u->id_usuario,
+                'nombre_completo' => $u->nombre_completo,
+                'correo' => $u->correo,
+                'identificacion' => $u->identificacion,
+                'telefono' => $u->telefono,
+                'rol' => $u->rol?->nombre_rol ?? null,
+                'universidad' => $uni?->sigla ?? $uni?->nombre ?? null,
+                'carrera' => $carrera ? $this->shortCarreraName($carrera) : null,
+                'fecha_registro' => $u->fecha_registro ?? null,
+                'estado_id' => $u->estado_id ?? 1, // 🔹 default 1
+            ];
+        });
+
+        $flashSuccess = session()->pull('success');
+        $usuario = Auth::user();
+        $userPermisos = DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray();
+
+        return Inertia::render('Usuarios/Index', [
+            'users' => $users,
+            'userPermisos' => $userPermisos,
+            'flash' => $flashSuccess ? ['success' => $flashSuccess] : null,
+            'filters' => ['search' => $request->input('search')],
+        ]);
+    }
+   public function toggleEstado($id)
+    {
+        $usuarioActual = Auth::user();
+
+        if (!in_array($usuarioActual->id_rol, [1, 2])) {
+            return response()->json(['message' => 'No tiene permisos para cambiar estado.'], 403);
+        }
+
+        $usuario = Usuario::findOrFail($id);
+        $usuario->estado_id = $usuario->estado_id === 1 ? 0 : 1;
+        $usuario->save();
+
+        return response()->json([
+            'message' => $usuario->estado_id === 1 ? 'Usuario activado' : 'Usuario inactivado',
+            'nuevo_estado' => $usuario->estado_id
+        ]);
     }
 
 
@@ -331,37 +337,28 @@ public function actualizar(Request $request, $id)
 
 // Eliminar administrador/dirección/subdirección
 public function destroy($id)
-{
-    $usuarioActual = Auth::user();
+    {
+        $usuarioActual = Auth::user();
 
-    // Verificar si el usuario autenticado tiene rol "Administrador del Sistema"
-    if ($usuarioActual->rol?->nombre_rol !== 'Administrador del Sistema') {
-        return redirect()->route('usuarios.index')
-            ->with('error', 'No tiene permisos para eliminar usuarios.');
+        if (!in_array($usuarioActual->id_rol, [1, 2])) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'No tiene permisos para eliminar usuarios.');
+        }
+
+        DB::beginTransaction();
+        try {
+            DB::table('credenciales')->where('id_usuario', $id)->delete();
+            DB::table('usuarios')->where('id_usuario', $id)->delete();
+            DB::commit();
+
+            return redirect()->route('usuarios.index')
+                ->with('success', 'Usuario eliminado correctamente');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar usuario', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Ocurrió un error al eliminar el usuario.');
+        }
     }
-
-    DB::beginTransaction();
-    try {
-        // Eliminar credenciales primero
-        DB::table('credenciales')->where('id_usuario', $id)->delete();
-
-        // Eliminar usuario
-        DB::table('usuarios')->where('id_usuario', $id)->delete();
-
-        DB::commit();
-
-        return redirect()->route('usuarios.index')
-            ->with('success', 'Usuario eliminado correctamente');
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error('Error al eliminar usuario', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-
-        return back()->with('error', 'Ocurrió un error al eliminar el usuario.');
-    }
-}
 
 public function create()
 {
@@ -376,5 +373,12 @@ public function create()
         'userPermisos' => $userPermisos,
     ]);
 }
+ private function shortCarreraName(string $nombre): string
+    {
+        return match ($nombre) {
+            'Ingeniería en Sistemas' => 'Ing. Sistemas',
+            default => $nombre,
+        };
+    }
 
 }

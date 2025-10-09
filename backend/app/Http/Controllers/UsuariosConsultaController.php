@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Usuario;
-use Illuminate\Support\Facades\Storage;
+//use Illuminate\Support\Facades\Storage;
 class UsuariosConsultaController extends Controller
 {
     public function index()

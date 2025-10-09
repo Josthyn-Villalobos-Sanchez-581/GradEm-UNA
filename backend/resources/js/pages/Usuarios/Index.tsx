@@ -3,9 +3,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, Head } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
-import { route } from "ziggy-js";
+import axios from "axios";
+import { usePage } from "@inertiajs/react";
 import { useModal } from "@/hooks/useModal";
-
+import { route } from 'ziggy-js'; 
 interface UsuarioItem {
   id: number;
   nombre_completo?: string;
@@ -16,6 +17,7 @@ interface UsuarioItem {
   universidad?: string | null;
   carrera?: string | null;
   fecha_registro?: string;
+  estado_id?: number; // 👈 agregado
 }
 
 interface IndexProps {
@@ -31,12 +33,11 @@ interface IndexProps {
 }
 
 export default function Index(props: IndexProps) {
-
-  const { confirmacion } = useModal();
-
+  const { auth } = usePage().props as any;
+  const { confirmacion, alerta } = useModal();
+  const [usuarios, setUsuarios] = useState(props.users.data);
   const [searchInput, setSearchInput] = useState(props.filters?.search ?? "");
   const searchTimer = useRef<number | null>(null);
-
   const [visibleCols, setVisibleCols] = useState<string[]>([
     "nombre",
     "correo",
@@ -48,16 +49,12 @@ export default function Index(props: IndexProps) {
     "fecha",
     "acciones",
   ]);
-
   const [successMessage, setSuccessMessage] = useState<string | null>(
     props.flash?.success ?? null
   );
 
-  useEffect(() => {
-    if (props.flash?.success) {
-      setSuccessMessage(props.flash.success);
-    }
-  }, []);
+  // 🔐 Solo roles 1 y 2 pueden activar/inactivar y eliminar
+  const puedeGestionar = [1, 2].includes(auth?.user?.id_rol);
 
   useEffect(() => {
     if (successMessage) {
@@ -66,7 +63,6 @@ export default function Index(props: IndexProps) {
     }
   }, [successMessage]);
 
-  // 🔎 Función para buscar usuarios (backend)
   const buscar = (search: string, page = 1) => {
     Inertia.get(
       route("usuarios.index"),
@@ -81,7 +77,7 @@ export default function Index(props: IndexProps) {
     searchTimer.current = window.setTimeout(() => {
       buscar(value);
       searchTimer.current = null;
-    }, 700);   // Esperar 700ms antes de buscar 
+    }, 700);
   };
 
   const changePage = (page: number) => {
@@ -130,7 +126,7 @@ export default function Index(props: IndexProps) {
             <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
           </div>
 
-          {/* ✅ Seleccionar Columnas */}
+          {/* ✅ Selección de columnas */}
           <div className="bg-[#FFFFFF] shadow rounded-lg p-4 mb-6">
             <h2 className="text-lg font-bold mb-2 text-[#034991]">Seleccionar Columnas</h2>
             <div className="flex flex-wrap gap-4 items-center">
@@ -197,14 +193,14 @@ export default function Index(props: IndexProps) {
                 </tr>
               </thead>
               <tbody>
-                {props.users.data.length === 0 ? (
+                {usuarios.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-4 py-6 text-center text-gray-600">
                       No hay usuarios para mostrar.
                     </td>
                   </tr>
                 ) : (
-                  props.users.data.map((u) => (
+                  usuarios.map((u) => (
                     <tr key={u.id} className="hover:bg-gray-50">
                       {visibleCols.includes("nombre") && <td className="px-4 py-2 border">{u.nombre_completo ?? "-"}</td>}
                       {visibleCols.includes("correo") && <td className="px-4 py-2 border">{u.correo ?? "-"}</td>}
@@ -213,7 +209,11 @@ export default function Index(props: IndexProps) {
                       {visibleCols.includes("rol") && <td className="px-4 py-2 border">{u.rol ?? "-"}</td>}
                       {visibleCols.includes("universidad") && <td className="px-4 py-2 border">{u.universidad ?? "-"}</td>}
                       {visibleCols.includes("carrera") && <td className="px-4 py-2 border">{u.carrera ?? "-"}</td>}
-                      {visibleCols.includes("fecha") && <td className="px-4 py-2 border">{u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString() : "-"}</td>}
+                      {visibleCols.includes("fecha") && (
+                        <td className="px-4 py-2 border">
+                          {u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString() : "-"}
+                        </td>
+                      )}
                       {visibleCols.includes("acciones") && (
                         <td className="px-4 py-2 border flex gap-2">
                           <Link
@@ -222,20 +222,56 @@ export default function Index(props: IndexProps) {
                           >
                             Editar
                           </Link>
-                          <button
-                            onClick={async () => {
-                              const ok = await confirmacion({
-                                titulo: "Confirmar eliminación",
-                                mensaje: "¿Seguro que deseas eliminar este usuario?",
-                                textoAceptar: "Sí, eliminar",
-                                textoCancelar: "Cancelar",
-                              });
-                              if (ok) Inertia.delete(route("admin.eliminar", { id: u.id }));
-                            }}
-                            className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
-                          >
-                            Eliminar
-                          </button>
+
+                          {puedeGestionar && (
+                            <>
+                              {/* 🔴 Activar/Inactivar */}
+                              <button
+                                onClick={async () => {
+                                  const confirmado = await confirmacion({
+                                    titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
+                                    mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"} la cuenta de ${u.nombre_completo}?`,
+                                  });
+                                  if (!confirmado) return;
+
+                                  try {
+                                    const res = await axios.put(`/usuarios/${u.id}/toggle-estado`);
+                                    alerta({ titulo: "Estado actualizado", mensaje: res.data.message });
+
+                                    setUsuarios((prev) =>
+                                      prev.map((usr) =>
+                                        usr.id === u.id ? { ...usr, estado_id: res.data.nuevo_estado } : usr
+                                      )
+                                    );
+                                  } catch (err) {
+                                    console.error(err);
+                                    alerta({ titulo: "Error", mensaje: "Ocurrió un error al cambiar el estado del usuario." });
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${
+                                  u.estado_id === 1 ? "bg-[#CD1719] hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
+                                }`}
+                              >
+                                {u.estado_id === 1 ? "Inactivar" : "Activar"}
+                              </button>
+
+                              {/* 🗑️ Eliminar */}
+                              <button
+                                onClick={async () => {
+                                  const ok = await confirmacion({
+                                    titulo: "Confirmar eliminación",
+                                    mensaje: `¿Seguro que deseas eliminar a ${u.nombre_completo}?`,
+                                    textoAceptar: "Sí, eliminar",
+                                    textoCancelar: "Cancelar",
+                                  });
+                                  if (ok) Inertia.delete(route("admin.eliminar", { id: u.id }));
+                                }}
+                                className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
+                              >
+                                Eliminar
+                              </button>
+                            </>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -245,7 +281,7 @@ export default function Index(props: IndexProps) {
             </table>
           </div>
 
-          {/* 📄 Paginación backend */}
+          {/* Paginación */}
           {props.users.last_page > 1 && (
             <div className="mt-4 flex items-center justify-between">
               <div className="text-sm text-gray-600">
