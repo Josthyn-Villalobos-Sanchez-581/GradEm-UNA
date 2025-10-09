@@ -3,7 +3,8 @@ import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
-
+import { route } from 'ziggy-js'; 
+// backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
 
 interface Usuario {
   id_usuario: number;
@@ -70,6 +71,15 @@ export default function PerfilesUsuarios(props: Props) {
 
   const cambiarPagina = (pagina: number) => {
     if (pagina >= 1 && pagina <= totalPaginas) setPaginaActual(pagina);
+  };
+
+  // ---------- MODAL DE PERFIL ----------
+  const [perfilModalOpen, setPerfilModalOpen] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(null);
+
+  const abrirPerfilModal = (id: number) => {
+    setUsuarioSeleccionado(id);
+    setPerfilModalOpen(true);
   };
 
   return (
@@ -168,12 +178,13 @@ export default function PerfilesUsuarios(props: Props) {
                     <td className="px-4 py-2">{u.carrera?.nombre ?? "-"}</td>
                   )}
                   <td className="px-4 py-2 text-center flex justify-center gap-2">
+                     {/* BOTÓN VER PERFIL (abre modal) */}
                     <Link
-                      href={`/usuarios/perfiles/${u.id_usuario}`}
-                      className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
-                    >
-                      Ver Perfil
-                    </Link>
+  href={route("usuarios.ver", { id: u.id_usuario })}
+  className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
+>
+  Ver Perfil
+</Link>
 
                     <button
                       onClick={async () => {
