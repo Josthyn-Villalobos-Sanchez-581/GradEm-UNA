@@ -3,7 +3,7 @@ import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
-import PerfilModal from "./PerfilModal"; // Importamos la modal
+import { route } from 'ziggy-js'; 
 // backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
 
 interface Usuario {
@@ -179,9 +179,12 @@ export default function PerfilesUsuarios(props: Props) {
                   )}
                   <td className="px-4 py-2 text-center flex justify-center gap-2">
                      {/* BOTÓN VER PERFIL (abre modal) */}
-                    <button onClick={() => abrirPerfilModal(u.id_usuario)} className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap">
-                      Ver Perfil
-                    </button>
+                    <Link
+  href={route("usuarios.ver", { id: u.id_usuario })}
+  className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
+>
+  Ver Perfil
+</Link>
 
                     <button
                       onClick={async () => {
@@ -273,13 +276,6 @@ export default function PerfilesUsuarios(props: Props) {
           </div>
         )}
       </div>
-      {usuarioSeleccionado && (
-  <PerfilModal
-    usuarioId={usuarioSeleccionado}
-    isOpen={perfilModalOpen}
-    onClose={() => setPerfilModalOpen(false)}
-  />
-)}
     </>
   );
 }

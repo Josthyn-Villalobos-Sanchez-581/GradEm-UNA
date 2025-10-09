@@ -52,20 +52,21 @@ class UsuariosConsultaController extends Controller
         ]);
     }
 
-    public function perfilJson($id)
+
+//prueba 2 para ver perfil 
+public function ver($id)
 {
     $usuario = Usuario::with(['rol', 'universidad', 'carrera', 'curriculum'])
-        ->whereHas('rol', function ($q) {
-            $q->whereIn('nombre_rol', ['Estudiante/Egresado']);
-        })
         ->findOrFail($id);
-if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
-    $path = $usuario->curriculum->ruta_archivo_pdf;
 
-    // Generar URL pública (usa el disco 'public')
-    $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
-}
-    return response()->json(['usuario' => $usuario]);
-}
+    if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
+        $path = $usuario->curriculum->ruta_archivo_pdf;
+        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
+    }
 
+    return Inertia::render('Usuarios/VerPerfil', [
+        'usuario' => $usuario,
+        'userPermisos' => getUserPermisos(),
+    ]);
+}
 }
