@@ -18,10 +18,10 @@ class RolController extends Controller
         $searchPermiso = $request->input('searchPermiso');
 
         $roles = Rol::with('permisos')
-            ->when($searchRol, fn($q)=>$q->where('nombre_rol','like',"%$searchRol%"))
+            ->when($searchRol, fn($q) => $q->where('nombre_rol', 'like', "%$searchRol%"))
             ->paginate(10)->withQueryString();
 
-        $permisos = Permiso::when($searchPermiso, fn($q)=>$q->where('nombre','like',"%$searchPermiso%"))
+        $permisos = Permiso::when($searchPermiso, fn($q) => $q->where('nombre', 'like', "%$searchPermiso%"))
             ->paginate(10)->withQueryString();
 
         $usuario = Auth::user();
@@ -39,7 +39,7 @@ class RolController extends Controller
                 'searchRol' => $searchRol,
                 'searchPermiso' => $searchPermiso,
             ],
-            'visibleSections' => $request->input('visibleSections', ['roles','permisos','asignacion']),
+            'visibleSections' => $request->input('visibleSections', ['roles', 'permisos', 'asignacion']),
         ]);
     }
 
@@ -63,7 +63,7 @@ class RolController extends Controller
             'nombre_rol' => $request->nombre_rol,
         ]);
 
-        $this->registrarBitacora('roles', 'crear', 'Rol creado ID '.$rol->id_rol);
+        $this->registrarBitacora('roles', 'crear', 'Rol creado ID ' . $rol->id_rol);
 
         return redirect()->route('roles_permisos.index')->with('success', 'Rol creado correctamente. Recuerda asignarle permisos.');
     }
@@ -76,7 +76,7 @@ class RolController extends Controller
 
         return Inertia::render('Roles_Permisos/Roles/Edit', [
             'rol' => $rol,
-            'todosPermisos' => Permiso::all(['id_permiso','nombre']),
+            'todosPermisos' => Permiso::all(['id_permiso', 'nombre']),
             'userPermisos' => $userPermisos
         ]);
     }
@@ -85,17 +85,16 @@ class RolController extends Controller
     {
         $rol = Rol::findOrFail($id);
 
-        $data = $request->validate([
-            'nombre_rol' => ['required','string','max:50', Rule::unique('roles','nombre_rol')->ignore($rol->id_rol,'id_rol')],
-            'permisos' => 'required|array|min:1',
-            'permisos.*' => 'exists:permisos,id_permiso'
+        $request->validate([
+            'nombre_rol' => ['required', 'string', 'max:50', Rule::unique('roles', 'nombre_rol')->ignore($rol->id_rol, 'id_rol')],
         ]);
 
-        $rol->update(['nombre_rol' => $data['nombre_rol']]);
-        $rol->permisos()->sync($data['permisos']);
-        $this->registrarBitacora('roles','actualizar',"Rol actualizado ID {$rol->id_rol} con permisos: ".implode(',',$data['permisos']));
+        $rol->update(['nombre_rol' => $request->nombre_rol]);
 
-        return back();
+        $this->registrarBitacora('roles', 'actualizar', "Nombre del rol actualizado ID {$rol->id_rol}");
+
+        return redirect()->route('roles_permisos.index')
+            ->with('success', 'Rol actualizado correctamente.');
     }
 
     public function destroy($id)
@@ -103,17 +102,17 @@ class RolController extends Controller
         $rol = Rol::with('permisos')->findOrFail($id);
 
         $permisosAsignados = $rol->permisos->pluck('id_permiso')->toArray();
-        if(count($permisosAsignados) > 0){
+        if (count($permisosAsignados) > 0) {
             $rol->permisos()->detach();
-            $this->registrarBitacora('roles','desasignar',"Permisos desasignados antes de eliminar rol ID {$rol->id_rol}: ".implode(',',$permisosAsignados));
+            $this->registrarBitacora('roles', 'desasignar', "Permisos desasignados antes de eliminar rol ID {$rol->id_rol}: " . implode(',', $permisosAsignados));
         }
 
         $rol->delete();
-        $this->registrarBitacora('roles','eliminar',"Rol eliminado ID {$id}");
+        $this->registrarBitacora('roles', 'eliminar', "Rol eliminado ID {$id}");
         return back();
     }
 
-    private function registrarBitacora($tabla,$operacion,$descripcion)
+    private function registrarBitacora($tabla, $operacion, $descripcion)
     {
         DB::table('bitacora_cambios')->insert([
             'tabla_afectada' => $tabla,
