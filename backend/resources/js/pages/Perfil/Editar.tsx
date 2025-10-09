@@ -208,18 +208,19 @@ export default function Editar({
   }
 
   if (name === "nivel_academico") {
-    if (formData.estado_estudios === "Graduado" && !value) {
+    if (rolNombre?.toLowerCase() === "egresado" && !value) {
       error = "Debe seleccionar un nivel académico.";
     }
   }
 
   if (name === "anio_graduacion") {
     const year = Number(value);
-    // Solo obligatorio si hay nivel académico (Diplomado o superior)
-    if (formData.nivel_academico && !year) {
-      error = "Debe ingresar el año de graduación.";
-    } else if (year && (year < 2007 || year > currentYear)) {
-      error = `El año debe estar entre 2007 y ${currentYear}.`;
+    if (rolNombre?.toLowerCase() === "egresado") {
+      if (!year) {
+        error = "Debe ingresar el año de graduación.";
+      } else if (year < 2007 || year > currentYear) {
+        error = `El año debe estar entre 2007 y ${currentYear}.`;
+      }
     }
   }
 
@@ -239,9 +240,9 @@ export default function Editar({
       error = "Debe seleccionar un tipo de empleo.";
   }
 
-  if (formData.estado_estudios?.toLowerCase() === "finalizado") {
+  if (rolNombre?.toLowerCase() === "egresado") {
     if (name === "nivel_academico" && !value)
-      error = "Debe seleccionar el nivel academico alcanzado.";
+      error = "Debe seleccionar el nivel académico alcanzado.";
     if (name === "anio_graduacion" && !value)
       error = "Debe indicar el año de graduación.";
   }
@@ -376,14 +377,9 @@ export default function Editar({
     "id_canton",
   ];
 
-  // Nivel académico obligatorio si es Graduado
-  if (formData.estado_estudios === "finalizado") {
-    camposObligatorios.push("nivel_academico");
-  }
-
-  // Año de graduación obligatorio si seleccionó nivel académico
-  if (formData.nivel_academico) {
-    camposObligatorios.push("anio_graduacion");
+  // Nivel académico y año graduacion obligatorio si es Graduado
+  if (rolNombre?.toLowerCase() === "egresado") {
+    camposObligatorios.push("nivel_academico", "anio_graduacion");
   }
 
   // Campos extra si es empleado
@@ -925,7 +921,7 @@ export default function Editar({
                 {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
                   <>
                     {/* Estado de estudios — solo visible si el rol es EGRESADO */}
-                    {rolNombre?.toLowerCase() === "egresado" && (
+                    {rolNombre?.toLowerCase() === "egresado" || rolNombre?.toLocaleLowerCase() === "estudiante" && (
                       <div className="flex flex-col">
                         <label className="text-sm">Estado de estudios</label>
                         <select
