@@ -138,7 +138,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
       );
     });
     return habilidadesOk && idiomasOk && referenciasOk;
-  }, [form.habilidades, form.idiomas, form.referencias]);
+  }, [form]); // <- antes: [form.habilidades, form.idiomas, form.referencias]
 
   const botonGenerarDeshabilitado = cargando || !paso4Completo;
 
@@ -248,7 +248,46 @@ export default function Frt_FormularioGeneracionCurriculum() {
   function validarColecciones(formActual: FormCV): ErrorMapa {
     const errs: ErrorMapa = {};
 
-    // EDUCACIÓN y EXPERIENCIA quedan como estaban (no son del paso 4)
+    // EDUCACIÓN - validar en paso 2
+    formActual.educaciones.forEach((edu, i) => {
+      let msg = validarCampoSegunReglas(edu.institucion, validacionesEducacion.institucion, 'Institución');
+      if (msg) errs[`educaciones.${i}.institucion`] = msg;
+
+      msg = validarCampoSegunReglas(edu.titulo, validacionesEducacion.titulo, 'Título');
+      if (msg) errs[`educaciones.${i}.titulo`] = msg;
+
+      msg = validarCampoSegunReglas(edu.fecha_inicio, validacionesEducacion.fecha_inicio, 'Fecha inicio');
+      if (msg) errs[`educaciones.${i}.fecha_inicio`] = msg;
+
+      msg = validarCampoSegunReglas(edu.fecha_fin, validacionesEducacion.fecha_fin, 'Fecha fin', { fecha_inicio: edu.fecha_inicio });
+      if (msg) errs[`educaciones.${i}.fecha_fin`] = msg;
+    });
+
+    // EXPERIENCIA - validar en paso 3
+    formActual.experiencias.forEach((exp, i) => {
+      let msg = validarCampoSegunReglas(exp.empresa, validacionesExperiencia.empresa, 'Empresa');
+      if (msg) errs[`experiencias.${i}.empresa`] = msg;
+
+      msg = validarCampoSegunReglas(exp.puesto, validacionesExperiencia.puesto, 'Puesto');
+      if (msg) errs[`experiencias.${i}.puesto`] = msg;
+
+      if (exp.funciones) {
+        msg = validarCampoSegunReglas(exp.funciones, validacionesExperiencia.funciones, 'Funciones');
+        if (msg) errs[`experiencias.${i}.funciones`] = msg;
+      }
+
+      // Validar SIEMPRE fechas de experiencia (requeridas)
+      msg = validarCampoSegunReglas(exp.periodo_inicio, validacionesExperiencia.periodo_inicio, 'Fecha inicio');
+      if (msg) errs[`experiencias.${i}.periodo_inicio`] = msg;
+
+      msg = validarCampoSegunReglas(
+        exp.periodo_fin,
+        validacionesExperiencia.periodo_fin,
+        'Fecha fin',
+        { periodo_inicio: exp.periodo_inicio }
+      );
+      if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+    });
 
     // HABILIDADES (solo si hay texto)
     formActual.habilidades.forEach((h, i) => {
@@ -389,6 +428,10 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
     const erroresFormateados = formatearErroresConEtiquetas(e);
     setErrores(erroresFormateados);
+
+    // Debug rápido:
+    console.log('Errores al generar:', erroresFormateados);
+
     if (Object.keys(erroresFormateados).length > 0) {
       await modal.alerta({
         titulo: "Validación",
@@ -435,16 +478,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const validacionesEducacion = {
     institucion: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     titulo: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    fecha_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
-    fecha_fin: { required: false, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
+    fecha_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
+    fecha_fin: { required: true, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
   };
 
   const validacionesExperiencia = {
     empresa: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     puesto: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     funciones: { required: false, maxLength: 150 },
-    periodo_inicio: { required: false, validate: (value: string) => !value || new Date(value) <= new Date() },
-    periodo_fin: { required: false, validate: (value: string, { periodo_inicio }: any) => !value || !periodo_inicio || new Date(value) >= new Date(periodo_inicio) }
+    // Ahora son requeridas
+    periodo_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
+    periodo_fin: { required: true, validate: (value: string, { periodo_inicio }: any) => !value || !periodo_inicio || new Date(value) >= new Date(periodo_inicio) }
   };
 
 // === VALIDACIONES (OPCIONAL) ===
