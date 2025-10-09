@@ -26,7 +26,7 @@ class UsuariosConsultaController extends Controller
             ->whereHas('rol', function ($q) {
                 $q->whereIn('nombre_rol', ['Estudiante', 'Egresado']);
             })
-        ->get();
+            ->get();
 
         return Inertia::render('Usuarios/PerfilesUsuarios', [
             'usuarios' => $usuarios,
@@ -43,12 +43,33 @@ class UsuariosConsultaController extends Controller
         $usuario->estado_id = $nuevoEstado;
         $usuario->save();
 
+        // Registrar en bitácora
+        $descripcion = $nuevoEstado == 1
+            ? "Cuenta activada para el usuario ID {$usuario->id_usuario}"
+            : "Cuenta inactivada para el usuario ID {$usuario->id_usuario}";
+
+        $this->registrarBitacora('usuarios', 'estado', $descripcion);
+
         return response()->json([
             'success' => true,
             'nuevo_estado' => $nuevoEstado,
             'message' => $nuevoEstado == 1
                 ? 'La cuenta ha sido activada correctamente.'
                 : 'La cuenta ha sido inactivada correctamente.',
+        ]);
+    }
+
+    /**
+     * Registrar acción en la bitácora de cambios
+     */
+    private function registrarBitacora($tabla, $operacion, $descripcion)
+    {
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada' => $tabla,
+            'operacion' => $operacion,
+            'usuario_responsable' => Auth::id(),
+            'descripcion_cambio' => $descripcion,
+            'fecha_cambio' => now(),
         ]);
     }
 }

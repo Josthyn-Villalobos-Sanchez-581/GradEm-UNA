@@ -191,66 +191,92 @@ export default function Index(props: RolesPermisosIndexProps) {
         className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]"
         style={{ fontFamily: "Open Sans, sans-serif" }}
       >
-        {/* Selección de secciones */}
-        <div className="bg-[#FFFFFF] shadow rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-bold mb-2 text-[#034991]">Seleccionar Secciones</h2>
-          <div className="flex gap-4 items-center flex-wrap">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={sections.includes("roles")}
-                onChange={() => toggleSection("roles")}
-              />
-              Roles
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={sections.includes("permisos")}
-                onChange={() => toggleSection("permisos")}
-              />
-              Permisos
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={sections.includes("asignacion")}
-                onChange={() => toggleSection("asignacion")}
-              />
-              Asignación de Permisos
-            </label>
+        {/* ========================================= */}
+        {/* Selección de Secciones */}
+        {/* ========================================= */}
+        <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 mb-6">
+          {/* Encabezado */}
+          <div className="flex justify-between items-center border-b pb-3 mb-4">
+            <h2 className="text-2xl font-bold text-[#034991]">Seleccionar Secciones</h2>
             <button
-              onClick={() => setSections(["roles", "permisos", "asignacion"])}
-              className="ml-auto bg-[#034991] text-[#FFFFFF] px-3 py-1 rounded hover:bg-[#023163]"
+              onClick={async () => {
+                const confirmar = await modal.confirmacion({
+                  titulo: "Mostrar todas las secciones",
+                  mensaje: "¿Desea mostrar todas las secciones disponibles?",
+                });
+                if (confirmar) setSections(["roles", "permisos", "asignacion"]);
+              }}
+              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
             >
               Mostrar Todo
             </button>
           </div>
-        </div>
+
+          {/* Cuerpo */}
+          <div className="flex flex-wrap gap-5 items-center">
+            {[
+              { id: "roles", label: "Roles" },
+              { id: "permisos", label: "Permisos" },
+              { id: "asignacion", label: "Asignación de Permisos" },
+            ].map((sec) => (
+              <label
+                key={sec.id}
+                className={`flex items-center gap-3 px-4 py-2 border rounded-lg cursor-pointer select-none transition-colors ${sections.includes(sec.id)
+                    ? "bg-[#BEE3F8] border-[#034991] text-[#000000]"
+                    : "border-gray-300 hover:bg-gray-100 text-gray-700"
+                  }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={sections.includes(sec.id)}
+                  onChange={async () => {
+                    // Evita desmarcar todas las secciones
+                    if (sections.length === 1 && sections.includes(sec.id)) {
+                      await modal.alerta({
+                        titulo: "Acción no permitida",
+                        mensaje:
+                          "Debe mantener al menos una sección seleccionada para continuar.",
+                      });
+                      return;
+                    }
+                    toggleSection(sec.id);
+                  }}
+                  className="w-4 h-4 accent-[#034991]"
+                />
+                <span className="font-medium">{sec.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>;
 
 
+        {/* ========================================= */}
         {/* Roles */}
+        {/* ========================================= */}
         {sections.includes("roles") && (
-          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#034991]">Roles</h2>
+          <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
+            {/* Encabezado */}
+            <div className="flex justify-between items-center mb-6 border-b pb-3">
+              <h2 className="text-2xl font-bold text-[#034991]">Gestión de Roles</h2>
               <Link
                 href="/roles/create"
-                className="bg-[#034991] text-[#FFFFFF] px-4 py-2 rounded hover:bg-[#023163]"
+                className="bg-[#034991] hover:bg-[#023366] text-white px-5 py-2 rounded-lg font-semibold transition-colors"
               >
-                Agregar Rol
+                + Agregar Rol
               </Link>
             </div>
-            <div className="flex items-center justify-between mb-4 gap-4">
+
+            {/* Barra de búsqueda y configuración */}
+            <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
               <input
                 type="text"
-                placeholder="Buscar Rol..."
+                placeholder="🔍 Buscar rol..."
                 value={searchRol}
                 onChange={(e) => {
                   setSearchRol(e.target.value);
                   setRolPage(1);
                 }}
-                className="border px-3 py-2 rounded w-64"
+                className="border border-gray-300 px-4 py-2 rounded-lg w-64 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
               />
               <select
                 value={itemsPerPage}
@@ -259,7 +285,7 @@ export default function Index(props: RolesPermisosIndexProps) {
                   setRolPage(1);
                   setPermisoPage(1);
                 }}
-                className="border px-2 py-2 rounded"
+                className="border border-gray-300 px-3 py-2 rounded-lg shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
               >
                 {[5, 10, 20, 50].map((n) => (
                   <option key={n} value={n}>
@@ -268,51 +294,64 @@ export default function Index(props: RolesPermisosIndexProps) {
                 ))}
               </select>
             </div>
-            <table className="w-full border rounded-lg">
-              <thead className="bg-[#A7A7A9] text-[#FFFFFF]">
-                <tr>
-                  <th className="px-4 py-2">ID</th>
-                  <th className="px-4 py-2">Nombre</th>
-                  <th className="px-4 py-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRoles.length === 0 ? (
+
+            {/* Tabla de roles */}
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-left">
+                <thead className="bg-[#A7A7A9] text-white uppercase text-sm">
                   <tr>
-                    <td colSpan={3} className="text-center py-3">
-                      No se encontraron roles
-                    </td>
+                    <th className="px-5 py-3 font-semibold">ID</th>
+                    <th className="px-5 py-3 font-semibold">Nombre</th>
+                    <th className="px-5 py-3 font-semibold text-center">Acciones</th>
                   </tr>
-                ) : (
-                  paginatedRoles.map((rol) => (
-                    <tr key={rol.id_rol} className="hover:bg-[#A7A7A9]">
-                      <td className="px-4 py-2">{rol.id_rol}</td>
-                      <td className="px-4 py-2">{rol.nombre_rol}</td>
-                      <td className="px-4 py-2 flex gap-2">
-                        <Link
-                          href={`/roles/${rol.id_rol}/edit`}
-                          className="bg-[#034991] text-[#FFFFFF] px-3 py-1 rounded"
-                        >
-                          Editar
-                        </Link>
-                        <button
-                          onClick={() => eliminarRol(rol.id_rol)}
-                          className="bg-[#CD1719] text-[#FFFFFF] px-3 py-1 rounded"
-                        >
-                          Eliminar
-                        </button>
+                </thead>
+                <tbody>
+                  {paginatedRoles.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-center py-4 text-gray-500">
+                        No se encontraron roles.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            <div className="flex gap-2 mt-3">
+                  ) : (
+                    paginatedRoles.map((rol) => (
+                      <tr
+                        key={rol.id_rol}
+                        className="hover:bg-[#E8EEF7] transition-colors border-b last:border-none"
+                      >
+                        <td className="px-5 py-3">{rol.id_rol}</td>
+                        <td className="px-5 py-3 font-medium text-gray-800">
+                          {rol.nombre_rol}
+                        </td>
+                        <td className="px-5 py-3 flex justify-center gap-3">
+                          <Link
+                            href={`/roles/${rol.id_rol}/edit`}
+                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
+                          >
+                            Editar
+                          </Link>
+                          <button
+                            onClick={() => eliminarRol(rol.id_rol)}
+                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginación */}
+            <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPagesRoles }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setRolPage(page)}
-                  className={`px-3 py-1 rounded ${rolPage === page ? "bg-[#034991] text-[#FFFFFF]" : "bg-[#A7A7A9] text-[#000000]"
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${rolPage === page
+                    ? "bg-[#034991] text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                     }`}
                 >
                   {page}
@@ -322,28 +361,34 @@ export default function Index(props: RolesPermisosIndexProps) {
           </div>
         )}
 
+
+        {/* ========================================= */}
         {/* Permisos */}
+        {/* ========================================= */}
         {sections.includes("permisos") && (
-          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#034991]">Permisos</h2>
+          <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
+            {/* Encabezado */}
+            <div className="flex justify-between items-center mb-6 border-b pb-3">
+              <h2 className="text-2xl font-bold text-[#034991]">Gestión de Permisos</h2>
               <Link
                 href="/permisos/create"
-                className="bg-[#034991] text-[#FFFFFF] px-4 py-2 rounded hover:bg-[#023163]"
+                className="bg-[#034991] hover:bg-[#023366] text-white px-5 py-2 rounded-lg font-semibold transition-colors"
               >
-                Agregar Permiso
+                + Agregar Permiso
               </Link>
             </div>
-            <div className="flex items-center justify-between mb-4 gap-4">
+
+            {/* Barra de búsqueda y configuración */}
+            <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
               <input
                 type="text"
-                placeholder="Buscar Permiso..."
+                placeholder="🔍 Buscar permiso..."
                 value={searchPermiso}
                 onChange={(e) => {
                   setSearchPermiso(e.target.value);
                   setPermisoPage(1);
                 }}
-                className="border px-3 py-2 rounded w-64"
+                className="border border-gray-300 px-4 py-2 rounded-lg w-64 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
               />
               <select
                 value={itemsPerPage}
@@ -352,7 +397,7 @@ export default function Index(props: RolesPermisosIndexProps) {
                   setRolPage(1);
                   setPermisoPage(1);
                 }}
-                className="border px-2 py-2 rounded"
+                className="border border-gray-300 px-3 py-2 rounded-lg shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
               >
                 {[5, 10, 20, 50].map((n) => (
                   <option key={n} value={n}>
@@ -361,51 +406,64 @@ export default function Index(props: RolesPermisosIndexProps) {
                 ))}
               </select>
             </div>
-            <table className="w-full border rounded-lg">
-              <thead className="bg-[#A7A7A9] text-[#FFFFFF]">
-                <tr>
-                  <th className="px-4 py-2">ID</th>
-                  <th className="px-4 py-2">Nombre</th>
-                  <th className="px-4 py-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedPermisos.length === 0 ? (
+
+            {/* Tabla de permisos */}
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-left">
+                <thead className="bg-[#A7A7A9] text-white uppercase text-sm">
                   <tr>
-                    <td colSpan={3} className="text-center py-3">
-                      No se encontraron permisos
-                    </td>
+                    <th className="px-5 py-3 font-semibold">ID</th>
+                    <th className="px-5 py-3 font-semibold">Nombre</th>
+                    <th className="px-5 py-3 font-semibold text-center">Acciones</th>
                   </tr>
-                ) : (
-                  paginatedPermisos.map((permiso) => (
-                    <tr key={permiso.id_permiso} className="hover:bg-[#A7A7A9]">
-                      <td className="px-4 py-2">{permiso.id_permiso}</td>
-                      <td className="px-4 py-2">{permiso.nombre}</td>
-                      <td className="px-4 py-2 flex gap-2">
-                        <Link
-                          href={`/permisos/${permiso.id_permiso}/edit`}
-                          className="bg-[#034991] text-[#FFFFFF] px-3 py-1 rounded"
-                        >
-                          Editar
-                        </Link>
-                        <button
-                          onClick={() => eliminarPermiso(permiso.id_permiso)}
-                          className="bg-[#CD1719] text-[#FFFFFF] px-3 py-1 rounded"
-                        >
-                          Eliminar
-                        </button>
+                </thead>
+                <tbody>
+                  {paginatedPermisos.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-center py-4 text-gray-500">
+                        No se encontraron permisos.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            <div className="flex gap-2 mt-3">
+                  ) : (
+                    paginatedPermisos.map((permiso) => (
+                      <tr
+                        key={permiso.id_permiso}
+                        className="hover:bg-[#E8EEF7] transition-colors border-b last:border-none"
+                      >
+                        <td className="px-5 py-3">{permiso.id_permiso}</td>
+                        <td className="px-5 py-3 font-medium text-gray-800">
+                          {permiso.nombre}
+                        </td>
+                        <td className="px-5 py-3 flex justify-center gap-3">
+                          <Link
+                            href={`/permisos/${permiso.id_permiso}/edit`}
+                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
+                          >
+                            Editar
+                          </Link>
+                          <button
+                            onClick={() => eliminarPermiso(permiso.id_permiso)}
+                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginación */}
+            <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPagesPermisos }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setPermisoPage(page)}
-                  className={`px-3 py-1 rounded ${permisoPage === page ? "bg-[#034991] text-[#FFFFFF]" : "bg-[#A7A7A9] text-[#000000]"
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${permisoPage === page
+                    ? "bg-[#034991] text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                     }`}
                 >
                   {page}
@@ -415,63 +473,82 @@ export default function Index(props: RolesPermisosIndexProps) {
           </div>
         )}
 
+
+        {/* ========================================= */}
         {/* Asignación de permisos */}
+        {/* ========================================= */}
         {sections.includes("asignacion") && (
-          <div className="bg-[#FFFFFF] shadow rounded-lg p-6">
-            <h2 className="text-xl font-bold mb-4 text-[#034991]">Asignación de Permisos a Roles</h2>
+          <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
+            <h2 className="text-2xl font-bold text-[#034991] mb-6 border-b-2 border-[#A7A7A9] pb-2">
+              Asignación de Permisos a Roles
+            </h2>
+
             {roles.map((rol) => (
-              <div key={rol.id_rol} className="mb-6 border-b pb-4">
+              <div
+                key={rol.id_rol}
+                className="mb-4 rounded-lg border border-gray-200 bg-gray-50 hover:shadow-md transition-shadow duration-300"
+              >
+                {/* Encabezado del rol */}
                 <button
-                  className="w-full text-left font-semibold px-3 py-2 bg-[#A7A7A9] text-[#000000] rounded"
+                  className="w-full flex justify-between items-center px-4 py-3 font-semibold text-[#034991] bg-gray-200 hover:bg-[#034991] hover:text-white rounded-t-lg transition-colors"
                   onClick={() => setRolAbierto((prev) => (prev === rol.id_rol ? null : rol.id_rol))}
                 >
-                  {rol.nombre_rol} {rolAbierto === rol.id_rol ? "▲" : "▼"}
+                  <span>{rol.nombre_rol}</span>
+                  <span className="text-xl">{rolAbierto === rol.id_rol ? "▲" : "▼"}</span>
                 </button>
+
+                {/* Permisos asignados */}
                 {rolAbierto === rol.id_rol && (
-                  <div className="mt-2">
-                    <div className="flex gap-2 mb-2">
+                  <div className="p-4 bg-white rounded-b-lg">
+                    <div className="flex flex-wrap gap-2 mb-4">
                       <button
                         onClick={() => seleccionarTodos(rol.id_rol)}
-                        className="px-3 py-1 bg-[#034991] text-[#FFFFFF] rounded"
+                        className="px-4 py-1.5 text-sm font-medium bg-[#034991] text-white rounded hover:bg-[#023366] transition-colors"
                       >
                         Seleccionar Todo
                       </button>
                       <button
                         onClick={() => deseleccionarTodos(rol.id_rol)}
-                        className="px-3 py-1 bg-[#A7A7A9] text-[#000000] rounded"
+                        className="px-4 py-1.5 text-sm font-medium bg-[#A7A7A9] text-black rounded hover:bg-gray-400 transition-colors"
                       >
                         Deseleccionar Todo
                       </button>
                     </div>
+
                     <div
-                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto border rounded p-2"
+                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded"
                       style={{ fontFamily: "Open Sans, sans-serif" }}
                     >
                       {todosPermisos.map((p) => {
-                        const asignado =
-                          rolPermisos[rol.id_rol]?.includes(p.id_permiso) ?? false;
+                        const asignado = rolPermisos[rol.id_rol]?.includes(p.id_permiso) ?? false;
                         return (
                           <label
                             key={p.id_permiso}
-                            className={`flex items-center gap-2 border rounded px-2 py-1 cursor-pointer ${asignado ? "bg-[#BEE3F8] text-[#000000]" : ""
+                            className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer text-sm transition-colors ${asignado
+                              ? "bg-[#BEE3F8] border-[#034991] text-[#000000]"
+                              : "bg-gray-100 hover:bg-gray-200"
                               }`}
                           >
                             <input
                               type="checkbox"
                               checked={!!asignado}
                               onChange={() => togglePermiso(rol.id_rol, p.id_permiso)}
+                              className="accent-[#034991] w-4 h-4"
                             />
-                            <span>{p.nombre}</span>
+                            <span className="truncate">{p.nombre}</span>
                           </label>
                         );
                       })}
                     </div>
-                    <button
-                      onClick={() => guardarPermisos(rol.id_rol)}
-                      className="bg-[#034991] text-[#FFFFFF] px-4 py-1 mt-3 rounded"
-                    >
-                      Guardar Permisos
-                    </button>
+
+                    <div className="flex justify-end mt-4">
+                      <button
+                        onClick={() => guardarPermisos(rol.id_rol)}
+                        className="bg-[#CD1719] text-white px-5 py-2 rounded font-semibold hover:bg-[#a31314] transition-all"
+                      >
+                        Guardar Permisos
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
