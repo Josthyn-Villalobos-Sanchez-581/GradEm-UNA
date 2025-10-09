@@ -59,7 +59,7 @@ class EmpresaController extends Controller
             'correo'           => $request->correo,
             'telefono'         => $request->telefono,
             'persona_contacto' => $request->persona_contacto,
-            'id_usuario'       => $usuario->id_usuario,
+            'usuario_id'       => $usuario->id_usuario,
         ]);
 
         // Limpiamos sesión OTP

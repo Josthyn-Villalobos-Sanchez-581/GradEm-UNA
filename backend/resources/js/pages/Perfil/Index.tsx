@@ -4,10 +4,14 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+// backend/resources/js/pages/Perfil/Index.tsx
+// 👇 importa tu componente de enlaces externos
+import EnlacesExternos from "./EnlacesExternos";
 
 interface FotoPerfil {
   ruta_imagen: string;
 }
+
 
 interface Usuario {
   id_usuario: number;
@@ -31,6 +35,18 @@ interface Usuario {
   fotoPerfil?: FotoPerfil | null;
 }
 
+interface Empresa {
+  id_empresa: number;
+  nombre: string;
+  correo: string | null;
+  telefono: string | null;
+  persona_contacto: string | null;
+  usuario_id: number;
+  id_pais?: number | null;
+  id_provincia?: number | null;
+  id_canton?: number | null;
+}
+
 interface AreaLaboral { id: number; nombre: string }
 interface Pais { id: number; nombre: string }
 interface Provincia { id: number; nombre: string; id_pais: number }
@@ -38,8 +54,15 @@ interface Canton { id: number; nombre: string; id_provincia: number }
 interface Universidad { id: number; nombre: string; sigla: string }
 interface Carrera { id: number; nombre: string; id_universidad: number; area_conocimiento: string }
 
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
+}
+
 interface Props {
   usuario: Usuario;
+  empresa?: Empresa | null;
   areaLaborales: AreaLaboral[];
   paises: Pais[];
   provincias: Provincia[];
@@ -47,16 +70,21 @@ interface Props {
   universidades: Universidad[];
   carreras: Carrera[];
   userPermisos: number[];
+  plataformas: Plataforma[];
+  rolNombre: string;
 }
 
 export default function Index({
   usuario,
+  empresa,
   areaLaborales,
   paises,
   provincias,
   cantones,
   universidades,
   carreras,
+  plataformas,
+  rolNombre,
 }: Props) {
   const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
   const modal = useModal();
@@ -70,7 +98,7 @@ export default function Index({
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
-  // Función para eliminar foto de perfil
+  // Eliminar foto de perfil
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
       titulo: "Confirmar eliminación",
@@ -78,15 +106,72 @@ export default function Index({
     });
     if (!confirm) return;
 
-    Inertia.post("/perfil/foto/eliminar", {}, {
-      onSuccess: () => modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
-      onError: (errors: any) => modal.alerta({ titulo: "Error", mensaje: errors.foto || "No se pudo eliminar la foto." }),
-    });
+    Inertia.post(
+      "/perfil/foto/eliminar",
+      {},
+      {
+        onSuccess: () =>
+          modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
+        onError: (errors: any) =>
+          modal.alerta({
+            titulo: "Error",
+            mensaje: errors.foto || "No se pudo eliminar la foto.",
+          }),
+      }
+    );
   };
 
   const renderValor = (valor: any) =>
     valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
+if (rolNombre.toLowerCase() === "empresa") {
+    return (
+      <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
+        <h2 className="text-2xl font-bold mb-6">Perfil de Empresa</h2>
 
+        {/* Datos de la empresa */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Información de la Empresa</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong>Nombre:</strong> {renderValor(empresa?.nombre)}</p>
+            <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
+            <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
+            <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+          </div>
+        </div>
+
+        {/* Ubicación */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Ubicación</h3>
+          <p>
+            {paisActual && provinciaActual && cantonActual
+              ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
+              : <span className="text-gray-400 italic">N/A</span>}
+          </p>
+        </div>
+
+        {/* Datos personales */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h3 className="text-lg font-semibold border-b pb-2 mb-4">Datos Personales del Usuario</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
+            <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+          </div>
+        </div>
+
+        {/* Botón Editar Perfil */}
+        <div className="mt-6">
+          <Link
+            href="/perfil/editar"
+            className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded block text-center"
+          >
+            Editar Perfil
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista completa para otros roles (la que ya tenías)
   return (
     <>
       <Head title="Mi Perfil" />
@@ -106,7 +191,10 @@ export default function Index({
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link href="/dashboard" className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded">
+          <Link
+            href="/dashboard"
+            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
+          >
             Volver
           </Link>
         </div>
@@ -133,6 +221,13 @@ export default function Index({
                   Eliminar Foto
                 </button>
               )}
+              {/* Nuevo botón Ver Currículum */}
+              <Link
+                href="/mi-curriculum/ver"
+                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
+              >
+                Ver Currículum
+              </Link>
             </div>
           </div>
 
@@ -191,6 +286,9 @@ export default function Index({
                 </p>
               </div>
             </div>
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
 
             {/* Botón Editar Perfil */}
             <div className="mt-6">

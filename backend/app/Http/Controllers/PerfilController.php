@@ -7,7 +7,9 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Usuario;
+use App\Models\PlataformaExterna;
 
+use Illuminate\Support\Facades\Log; // 👈 aquí
 class PerfilController extends Controller
 {
     /**
@@ -47,11 +49,23 @@ class PerfilController extends Controller
             ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
             ->get();
 
+        $nombreRol = DB::table('roles')
+            ->where('id_rol', $usuario->id_rol)
+            ->value('nombre_rol');
+
+        $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
+
+        // Cargar empresa asociada al usuario
+        $empresa = DB::table('empresas')
+            ->where('usuario_id', $usuario->id_usuario)
+            ->first();
+
         return Inertia::render('Perfil/Index', [
             'usuario' => [
                 ...$usuario->toArray(),
                 'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
             ],
+            'empresa' => $empresa, // 🔹 enviar la empresa a la vista
             'userPermisos' => $userPermisos,
             'areaLaborales' => $areasLaborales,
             'paises' => $paises,
@@ -59,14 +73,24 @@ class PerfilController extends Controller
             'cantones' => $cantones,
             'universidades' => $universidades,
             'carreras' => $carreras,
+            'plataformas' => $plataformas,
+            'rolNombre' => $nombreRol,
         ]);
     }
+
 
     public function edit()
     {
         /** @var Usuario $usuario */
         $usuario = Usuario::with('fotoPerfil')->find(Auth::id());
+        $rolNombre = $usuario->rol->nombre_rol ?? null;
+        $empresa = null;
 
+        if (strtolower($rolNombre) === 'empresa') {
+            $empresa = DB::table('empresas')
+                ->where('usuario_id', $usuario->id_usuario)
+                ->first();
+        }
         $userPermisos = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->pluck('id_permiso')
@@ -96,7 +120,12 @@ class PerfilController extends Controller
             ->select('id_carrera as id', 'nombre', 'id_universidad', 'area_conocimiento')
             ->get();
 
+        $nombreRol = DB::table('roles')
+            ->where('id_rol', $usuario->id_rol)
+            ->value('nombre_rol');
+
         return Inertia::render('Perfil/Editar', [
+            'empresa' => $empresa,
             'usuario' => [
                 ...$usuario->toArray(),
                 'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
@@ -108,6 +137,7 @@ class PerfilController extends Controller
             'cantones' => $cantones,
             'universidades' => $universidades,
             'carreras' => $carreras,
+            'rolNombre' => $nombreRol,
         ]);
     }
 
@@ -116,13 +146,55 @@ class PerfilController extends Controller
         try {
             /** @var Usuario $usuario */
             $usuario = Auth::user();
+            $rolNombre = strtolower($usuario->rol->nombre_rol ?? '');
 
+            // Normalizar campos vacíos
             $dataToValidate = $request->all();
             foreach ($dataToValidate as $key => $value) {
-                if ($value === '') $dataToValidate[$key] = null;
+                if ($value === '') {
+                    $dataToValidate[$key] = null;
+                }
             }
 
-            $data = validator($dataToValidate, [
+            // ======================================================
+            // 🔹 CASO 1: EMPRESA
+            // ======================================================
+            if (trim(strtolower($rolNombre)) === 'empresa') {
+                $validated = validator($dataToValidate, [
+                    'nombre_completo'          => 'required|string|max:100',
+                    'identificacion'           => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
+                    'empresa_nombre'           => 'required|string|max:100',
+                    'empresa_correo'           => 'nullable|email|max:100',
+                    'empresa_telefono'         => 'nullable|string|max:20',
+                    'empresa_persona_contacto' => 'required|string|max:100',
+                    'id_canton'                => 'nullable|integer|exists:cantones,id_canton',
+                ])->validate();
+
+                // Actualizar datos del usuario
+                $usuario->update([
+                    'nombre_completo' => $validated['nombre_completo'],
+                    'identificacion'  => $validated['identificacion'],
+                    'id_canton'       => $validated['id_canton'],
+                ]);
+
+                // Actualizar datos de la empresa
+                DB::table('empresas')
+                    ->where('usuario_id', $usuario->id_usuario)
+                    ->update([
+                        'nombre'           => $validated['empresa_nombre'],
+                        'correo'           => $validated['empresa_correo'] ?? null,
+                        'telefono'         => $validated['empresa_telefono'] ?? null,
+                        'persona_contacto' => $validated['empresa_persona_contacto'],
+                    ]);
+
+                return redirect(route('perfil.index'))
+                    ->with('success', 'Datos de la empresa actualizados con éxito.');
+            }
+
+            // ======================================================
+            // 🔹 CASO 2: EGRESADO / ESTUDIANTE / OTROS
+            // ======================================================
+            $validated = validator($dataToValidate, [
                 'nombre_completo' => 'required|string|max:100',
                 'correo' => 'required|email|max:100|unique:usuarios,correo,' . $usuario->id_usuario . ',id_usuario',
                 'identificacion' => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
@@ -142,14 +214,23 @@ class PerfilController extends Controller
                 'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
             ])->validate();
 
-            $usuario->fill($data);
+            $usuario->fill($validated);
             $usuario->save();
 
-            return redirect(route('perfil.index'))->with('success', 'Datos guardados con éxito');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect(route('perfil.index'))
+                ->with('success', 'Datos personales actualizados con éxito.');
+        }
+
+        // ======================================================
+        // 🔹 MANEJO DE ERRORES
+        // ======================================================
+        catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->validator)->withInput();
         } catch (\Throwable $e) {
+            Log::error('Error al actualizar perfil: ' . $e->getMessage());
             return back()->with('error', 'Ocurrió un error al actualizar los datos.')->withInput();
         }
     }
+
+
 }

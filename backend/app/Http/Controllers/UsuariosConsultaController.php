@@ -24,13 +24,31 @@ class UsuariosConsultaController extends Controller
         // Filtrar usuarios con rol "egresado" o "estudiante"
         $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante/Egresado']); // coincide con tu tabla
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado']);
             })
         ->get();
 
         return Inertia::render('Usuarios/PerfilesUsuarios', [
             'usuarios' => $usuarios,
             'userPermisos' => $permisos,
+        ]);
+    }
+
+    public function toggleEstado($id)
+    {
+        $usuario = Usuario::findOrFail($id);
+
+        // Cambiar estado: 1 = activo, 2 = inactivo
+        $nuevoEstado = $usuario->estado_id == 1 ? 2 : 1;
+        $usuario->estado_id = $nuevoEstado;
+        $usuario->save();
+
+        return response()->json([
+            'success' => true,
+            'nuevo_estado' => $nuevoEstado,
+            'message' => $nuevoEstado == 1
+                ? 'La cuenta ha sido activada correctamente.'
+                : 'La cuenta ha sido inactivada correctamente.',
         ]);
     }
 }

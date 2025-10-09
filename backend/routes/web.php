@@ -19,11 +19,13 @@ use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\DocumentosController;
 use App\Http\Controllers\UsuariosConsultaController;
+use App\Http\Controllers\CertificadosController;
+use App\Http\Controllers\TitulosController;
+use App\Http\Controllers\PlataformaExternaController;
 
 // ==========================================
 // Rutas públicas
 // ==========================================
-
 Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
 
 Route::get('/login', fn () => Inertia::render('Login'))->name('login');
@@ -61,7 +63,6 @@ Route::post('/recuperar/cambiar-contrasena', [RecuperarContrasenaController::cla
 // ==========================================
 // Rutas protegidas (requieren autenticación)
 // ==========================================
-
 Route::middleware('auth')->group(function () {
 
     // ==========================================
@@ -99,6 +100,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');
         Route::post('/curriculum-cargado', [CurriculumController::class, 'upload'])->name('curriculum.upload');
         Route::delete('/curriculum-cargado', [CurriculumController::class, 'delete'])->name('curriculum.delete');
+
+        // 🚀 Nueva ruta: Ver Currículum
+        Route::get('/mi-curriculum/ver', [CurriculumController::class, 'vistaVerCurriculum'])
+            ->name('curriculum.ver');
     });
 
     // ==========================================
@@ -106,6 +111,16 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:3')->group(function () {
         Route::get('/documentos', [DocumentosController::class, 'index'])->name('documentos.index');
+    });
+
+    Route::middleware('auth')->group(function () {
+    Route::get('/titulos-cargados', [TitulosController::class, 'indexCarga'])->name('titulos.index');
+    Route::post('/titulos/upload', [TitulosController::class, 'upload'])->name('titulos.upload');
+    Route::delete('/titulos/delete', [TitulosController::class, 'delete'])->name('titulos.delete');
+
+    Route::get('/certificados-cargados', [CertificadosController::class, 'indexCarga'])->name('certificados.index');
+    Route::post('/certificados/upload', [CertificadosController::class, 'upload'])->name('certificados.upload');
+    Route::delete('/certificados/delete', [CertificadosController::class, 'delete'])->name('certificados.delete');
     });
 
     // ==========================================
@@ -133,18 +148,27 @@ Route::middleware('auth')->group(function () {
         Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
         // Usuarios
-        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/crear', fn () => Inertia::render('Usuarios/CrearAdmin', [
             'userPermisos' => getUserPermisos()
         ]))->name('usuarios.create');
+    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+    Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+    Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+    Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+    Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+    Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+            // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
         Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
         Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
         Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
         Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-            // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
+
+        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
     });
 
     // ==========================================
@@ -163,6 +187,19 @@ Route::middleware('auth')->group(function () {
     // 15 - Reportes de Ofertas y Postulaciones
     // 16 - Gestión de Auditoría/Bitácora
     // 17 - Integraciones externas
+});
+
+// cosas de plataforma externa 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/perfil/plataformas', [PlataformaExternaController::class, 'store'])
+        ->name('perfil.plataformas.store');
+    Route::delete('/perfil/plataformas/{id}', [PlataformaExternaController::class, 'destroy'])
+        ->name('perfil.plataformas.destroy');
+});
+
+// Ruta adicional duplicada de perfil (cuidado con conflicto)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index'); 
 });
 
 // ==========================================
