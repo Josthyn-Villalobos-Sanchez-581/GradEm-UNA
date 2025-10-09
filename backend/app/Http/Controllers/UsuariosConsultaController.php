@@ -24,7 +24,7 @@ class UsuariosConsultaController extends Controller
         // Filtrar usuarios con rol "egresado" o "estudiante"
         $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante/Egresado']); // coincide con tu tabla
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado']);
             })
         ->get();
 

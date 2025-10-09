@@ -68,7 +68,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Los datos ingresados son incorrectos'], 422);
         }
 
-        // 🔹 Si pasa la validación -> login exitoso
+        // Si pasa la validación -> login exitoso
         $credencial->intentos_fallidos = 0;
         $credencial->fecha_baneo = null;
         $credencial->fecha_ultimo_login = now();
