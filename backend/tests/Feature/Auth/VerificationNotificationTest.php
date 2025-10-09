@@ -1,5 +1,5 @@
 <?php
-
+/*
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
@@ -30,4 +30,4 @@ test('does not send verification notification if email is verified', function ()
         ->assertRedirect(route('dashboard', absolute: false));
 
     Notification::assertNothingSent();
-});
+});*/

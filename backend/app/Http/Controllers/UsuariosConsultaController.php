@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Usuario;
-
+//use Illuminate\Support\Facades\Storage;
 class UsuariosConsultaController extends Controller
 {
     public function index()
@@ -51,4 +51,22 @@ class UsuariosConsultaController extends Controller
                 : 'La cuenta ha sido inactivada correctamente.',
         ]);
     }
+
+
+//prueba 2 para ver perfil 
+public function ver($id)
+{
+    $usuario = Usuario::with(['rol', 'universidad', 'carrera', 'curriculum'])
+        ->findOrFail($id);
+
+    if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
+        $path = $usuario->curriculum->ruta_archivo_pdf;
+        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
+    }
+
+    return Inertia::render('Usuarios/VerPerfil', [
+        'usuario' => $usuario,
+        'userPermisos' => getUserPermisos(),
+    ]);
+}
 }
