@@ -231,6 +231,4 @@ class PerfilController extends Controller
             return back()->with('error', 'Ocurrió un error al actualizar los datos.')->withInput();
         }
     }
-
-
 }

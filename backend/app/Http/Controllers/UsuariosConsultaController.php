@@ -56,17 +56,31 @@ class UsuariosConsultaController extends Controller
 //prueba 2 para ver perfil 
 public function ver($id)
 {
-    $usuario = Usuario::with(['rol', 'universidad', 'carrera', 'curriculum'])
-        ->findOrFail($id);
+    $usuario = Usuario::with([
+        'rol',
+        'universidad',
+        'carrera',
+        'curriculum',
+        'fotoPerfil',
+    ])->findOrFail($id);
 
     if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
-        $path = $usuario->curriculum->ruta_archivo_pdf;
-        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
+        $path = ltrim($usuario->curriculum->ruta_archivo_pdf, '/');
+        $usuario->curriculum->ruta_archivo_pdf = asset($path);
+    }
+
+    if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
+        $path = ltrim($usuario->fotoPerfil->ruta_imagen, '/');
+        $usuario->fotoPerfil->ruta_imagen = asset($path);
     }
 
     return Inertia::render('Usuarios/VerPerfil', [
-        'usuario' => $usuario,
+        'usuario' => [
+            ...$usuario->toArray(), // 👈 convierte el modelo y sus relaciones a array
+            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+        ],
         'userPermisos' => getUserPermisos(),
     ]);
 }
+
 }

@@ -52,8 +52,10 @@ export default function VerPerfil({ usuario }: Props) {
   const [mostrarCV, setMostrarCV] = useState(false);
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+
+  // TODOS los datos se muestran en negro
   const renderValor = (valor: any) =>
-    valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
+    valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
   return (
     <>
@@ -61,9 +63,7 @@ export default function VerPerfil({ usuario }: Props) {
 
       <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6 border-b pb-3 border-gray-200">
-          <h2 className="text-2xl font-bold" style={{ color: "#034991" }}>
-            Perfil del Usuario
-          </h2>
+          <h2 className="text-2xl font-bold text-[#034991]">Perfil del Usuario</h2>
           <Link
             href="/usuarios/perfiles"
             className="px-4 py-2 rounded shadow text-white font-semibold transition"
@@ -77,47 +77,43 @@ export default function VerPerfil({ usuario }: Props) {
           {/* Columna izquierda: Foto */}
           <div className="flex flex-col items-center md:w-1/3">
             <div className="h-48 w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm mb-4">
-              <img
-                src={fotoPerfilUrl}
-                alt="Foto de perfil"
-                className="h-full w-full object-cover"
-              />
+              <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
             </div>
           </div>
 
           {/* Columna derecha */}
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-4">{usuario.nombre_completo}</h2>
+            <h2 className="text-2xl font-bold mb-4 text-black">{usuario.nombre_completo}</h2>
 
             {/* Datos personales */}
             <div className="bg-gray-50 rounded-lg p-4 mb-4 border">
-              <h3 className="font-semibold mb-2">Datos personales</h3>
-              <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-              <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
-              <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-              <p><strong>Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
-              <p><strong>Género:</strong> {renderValor(usuario.genero)}</p>
+              <h3 className="font-semibold mb-2 text-black">Datos personales</h3>
+              <p><strong className="text-black">Correo:</strong> {renderValor(usuario.correo)}</p>
+              <p><strong className="text-black">Teléfono:</strong> {renderValor(usuario.telefono)}</p>
+              <p><strong className="text-black">Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+              <p><strong className="text-black">Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
+              <p><strong className="text-black">Género:</strong> {renderValor(usuario.genero)}</p>
             </div>
 
             {/* Datos académicos */}
             <div className="bg-gray-50 rounded-lg p-4 mb-4 border">
-              <h3 className="font-semibold mb-2">Datos académicos</h3>
-              <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-              <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-              <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
-              <p><strong>Universidad:</strong> {renderValor(usuario.universidad?.nombre)}</p>
-              <p><strong>Carrera:</strong> {renderValor(usuario.carrera?.nombre)}</p>
+              <h3 className="font-semibold mb-2 text-black">Datos académicos</h3>
+              <p><strong className="text-black">Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
+              <p><strong className="text-black">Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
+              <p><strong className="text-black">Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+              <p><strong className="text-black">Universidad:</strong> {renderValor(usuario.universidad?.nombre)}</p>
+              <p><strong className="text-black">Carrera:</strong> {renderValor(usuario.carrera?.nombre)}</p>
             </div>
 
             {/* Datos laborales */}
             <div className="bg-gray-50 rounded-lg p-4 mb-4 border">
-              <h3 className="font-semibold mb-2">Datos laborales</h3>
-              <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+              <h3 className="font-semibold mb-2 text-black">Datos laborales</h3>
+              <p><strong className="text-black">Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
               {usuario.estado_empleo?.toLowerCase() === "empleado" && (
                 <>
-                  <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                  <p><strong>Área laboral:</strong> {renderValor(usuario.area_laboral_id)}</p>
-                  <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
+                  <p><strong className="text-black">Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
+                  <p><strong className="text-black">Área laboral:</strong> {renderValor(usuario.area_laboral_id)}</p>
+                  <p><strong className="text-black">Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
                   <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
                 </>
               )}
