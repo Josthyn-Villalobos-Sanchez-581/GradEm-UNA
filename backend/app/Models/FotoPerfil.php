@@ -20,4 +20,10 @@ class FotoPerfil extends Model
     {
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
+    // Accesor para obtener la URL completa de la imagen
+/*public function getRutaImagenAttribute($valor)
+{
+    return $valor ? asset(ltrim($valor, '/')) : null;
+}
+*/
 }

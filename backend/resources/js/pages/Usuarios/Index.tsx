@@ -177,7 +177,7 @@ export default function Index(props: IndexProps) {
           </div>
 
           {/* 📊 Tabla */}
-          <div className="overflow-x-auto w-full">
+       <div className="overflow-x-auto w-full bg-white">
             <table className="table-auto border border-gray-200 w-full min-w-max">
               <thead className="bg-gray-100">
                 <tr>
