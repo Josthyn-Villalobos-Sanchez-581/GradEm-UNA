@@ -124,13 +124,16 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
 }, [propCorreo]);
 
     useEffect(() => {
-    // Verifica si el usuario tiene algo en localStorage (o sessionStorage) indicando que ya validó correo
-    const correoValidado = sessionStorage.getItem("correo_validado_empresa");
+        const correoValidado = sessionStorage.getItem("correo_validado_empresa");
+        const correoGuardado = sessionStorage.getItem("correo_empresa");
 
-    if (!correoValidado) {
-        // 🔹 Si no está validado, redirigir a login
-        router.get("/login");
-    }
+        if (!correoValidado || !correoGuardado) {
+            // Si no hay validación, redirigir al login
+            router.get("/login");
+        } else {
+            // Si está validado, cargar el correo en el input automáticamente
+            setCorreo(correoGuardado);
+        }
     }, []);
 
     const handleRegistroEmpresa = async (e: FormEvent) => {
@@ -176,6 +179,10 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
 
             // 🔹 Redirigir al login
             router.get("/login");
+
+            // Limpiar sessionStorage de validación
+            sessionStorage.removeItem("correo_validado_empresa");
+            sessionStorage.removeItem("correo_empresa");
 
             // 🔹 Limpiar campos
             setNombreEmpresa("");

@@ -49,7 +49,7 @@ export default function CurriculumIndex({ usuario, curriculum }: Props) {
 
     const ok = await modal.confirmacion({
       titulo: "Confirmar carga",
-      mensaje: "¿Está seguro que desea subir este currículum?",
+      mensaje: "¿Está seguro que desea subir este currículum? Se reemplazará el currículum actual si existe.",
     });
     if (!ok) return;
 

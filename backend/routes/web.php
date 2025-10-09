@@ -19,6 +19,8 @@ use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\DocumentosController;
 use App\Http\Controllers\UsuariosConsultaController;
+use App\Http\Controllers\CertificadosController;
+use App\Http\Controllers\TitulosController;
 use App\Http\Controllers\PlataformaExternaController;
 
 // ==========================================
@@ -111,6 +113,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/documentos', [DocumentosController::class, 'index'])->name('documentos.index');
     });
 
+    Route::middleware('auth')->group(function () {
+    Route::get('/titulos-cargados', [TitulosController::class, 'indexCarga'])->name('titulos.index');
+    Route::post('/titulos/upload', [TitulosController::class, 'upload'])->name('titulos.upload');
+    Route::delete('/titulos/delete', [TitulosController::class, 'delete'])->name('titulos.delete');
+
+    Route::get('/certificados-cargados', [CertificadosController::class, 'indexCarga'])->name('certificados.index');
+    Route::post('/certificados/upload', [CertificadosController::class, 'upload'])->name('certificados.upload');
+    Route::delete('/certificados/delete', [CertificadosController::class, 'delete'])->name('certificados.delete');
+    });
+
     // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================
@@ -136,10 +148,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
         // Usuarios
-        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/crear', fn () => Inertia::render('Usuarios/CrearAdmin', [
-            'userPermisos' => getUserPermisos()
-        ]))->name('usuarios.create');
+    Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+    Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+    Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+    Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+    Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+    // Toggle estado (activar/inactivar)
+    Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+
+            // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
         Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
@@ -149,6 +167,7 @@ Route::middleware('auth')->group(function () {
 
         // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
         Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
     });
 
     // ==========================================
@@ -181,6 +200,11 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index'); 
 });
+
+//HU21 mostrar perfil estudiante a empresa o administrador 
+Route::middleware(['auth', 'permiso:12'])
+    ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
+    ->name('usuarios.ver');
 
 // ==========================================
 // Archivos de configuración adicionales
