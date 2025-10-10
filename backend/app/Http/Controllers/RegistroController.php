@@ -72,7 +72,7 @@ class RegistroController extends Controller
             'fecha_nacimiento' => 'nullable|date|before:today',
             'genero' => 'nullable|string|max:20|in:masculino,femenino,otro',
             'estado_empleo' => 'nullable|string|max:50|in:empleado,desempleado',
-            'estado_estudios' => 'nullable|string|max:50|in:activo,finalizado',
+            'estado_estudios' => 'nullable|string|max:50|in:activo,pausado,finalizado',
             'nivel_academico' => 'nullable|string|max:50',
             'anio_graduacion' => 'nullable|digits:4|integer|min:2007|max:' . date('Y'),
             'tiempo_conseguir_empleo' => 'nullable|digits_between:1,3|integer|min:0|max:120',
@@ -80,7 +80,7 @@ class RegistroController extends Controller
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
             'salario_promedio' => 'nullable|digits_between:1,10',
             'tipo_empleo' => 'nullable|string|max:50',
-            'tipoCuenta' => 'required|in:estudiante_egresado,empresa',
+            'tipoCuenta' => 'required|in:estudiante,egresado,empresa',
         ], [
         // ⚡ Mensajes personalizados
         'nombre_completo.regex' => 'El nombre solo puede contener letras y espacios.',
@@ -92,7 +92,7 @@ class RegistroController extends Controller
         'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
         'genero.in' => 'Debe seleccionar una opción válida en género.',
         'estado_empleo.in' => 'Debe ser empleado o desempleado.',
-        'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
+    'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
         'anio_graduacion.digits' => 'El año de graduación debe tener 4 dígitos.',
         'anio_graduacion.min' => 'El año de graduación no puede ser antes de 2007.',
         'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros de entre 1 y 3 dígitos.',
@@ -101,6 +101,13 @@ class RegistroController extends Controller
 
         if (!session('otp_validado') || $request->correo !== session('otp_correo')) {
             return response()->json(['message' => 'Debe validar su correo primero'], 422);
+        }
+
+        // 🔹 Obtener el ID del rol según el nombre del rol
+        $rol = \App\Models\Rol::where('nombre_rol', ucfirst($request->tipoCuenta))->first();
+
+        if (!$rol) {
+            return response()->json(['message' => 'Rol no encontrado para el tipo de cuenta seleccionado'], 422);
         }
 
         $usuario = Usuario::create([
@@ -121,7 +128,7 @@ class RegistroController extends Controller
             'id_canton' => $request->id_canton,
             'salario_promedio' => $request->estado_empleo === 'empleado' ? $request->salario_promedio : null,
             'tipo_empleo' => $request->estado_empleo === 'empleado' ? $request->tipo_empleo : null,
-            'id_rol' => $request->tipoCuenta === 'empresa' ? 5 : 6,
+            'id_rol' => $rol->id_rol,
         ]);
 
         Credencial::create([
@@ -147,7 +154,7 @@ class RegistroController extends Controller
             'correo' => 'required|email'
         ]);
 
-        $exists = \App\Models\User::where('correo', $request->correo)->exists();
+        $exists = \App\Models\Usuario::where('correo', $request->correo)->exists();
 
         return response()->json(['exists' => $exists]);
     }
