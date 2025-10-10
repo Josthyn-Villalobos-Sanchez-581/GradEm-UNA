@@ -49,7 +49,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         { title: 'Roles y Permisos', route: '/roles_permisos', permisoId: 12 },
         { title: 'Gestion ADS', route: '/usuarios', permisoId: 12 },
         { title: 'Ver Usuarios', route: '/usuarios/perfiles', permisoId: 12 },
-        { title: 'Catálogos', route: '/catalogos', permisoId: 13 },
+        { title: 'Catálogos', route: '/catalogo', permisoId: 13 },
         { title: 'Auditoría', route: '/auditoria', permisoId: 16 },
       ],
     },

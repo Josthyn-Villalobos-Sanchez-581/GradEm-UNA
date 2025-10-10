@@ -13,7 +13,7 @@ class Carrera extends Model
     protected $primaryKey = 'id_carrera';
     public $timestamps = false;
 
-    protected $fillable = ['nombre', 'id_universidad', 'area_conocimiento'];
+    protected $fillable = ['nombre', 'id_universidad'];
 
     public function universidad()
     {

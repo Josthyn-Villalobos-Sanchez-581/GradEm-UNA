@@ -60,25 +60,47 @@ class UsuariosConsultaController extends Controller
     }
 
     //prueba 2 para ver perfil 
-    public function ver($id)
+  /*  public function ver($id)
     {
         $usuario = Usuario::with(['rol', 'universidad', 'carrera', 'curriculum'])
-            ->findOrFail($id);
+            ->findOrFail($id);*/
 
-        if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
+
+//prueba 2 para ver perfil 
+public function ver($id)
+{
+    $usuario = Usuario::with([
+        'rol',
+        'universidad',
+        'carrera',
+        'curriculum',
+        'fotoPerfil',
+    ])->findOrFail($id);
+
+    if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
             $path = $usuario->curriculum->ruta_archivo_pdf;
             $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
         }
 
-        return Inertia::render('Usuarios/VerPerfil', [
-            'usuario' => $usuario,
-            'userPermisos' => getUserPermisos(),
-        ]);
+
+    if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
+        $path = ltrim($usuario->fotoPerfil->ruta_imagen, '/');
+        $usuario->fotoPerfil->ruta_imagen = asset($path);
     }
 
-    /**
+    return Inertia::render('Usuarios/VerPerfil', [
+        'usuario' => [
+            ...$usuario->toArray(), // 👈 convierte el modelo y sus relaciones a array
+            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+        ],
+        'userPermisos' => getUserPermisos(),
+    ]);
+
+       /**
      * Registrar acción en la bitácora de cambios
      */
+
+}
     private function registrarBitacora($tabla, $operacion, $descripcion)
     {
         DB::table('bitacora_cambios')->insert([
@@ -90,3 +112,6 @@ class UsuariosConsultaController extends Controller
         ]);
     }
 }
+
+
+
