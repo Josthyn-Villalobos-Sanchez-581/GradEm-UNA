@@ -4,7 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from "ziggy-js";
-// backend/resources/js/pages/CertificadosCargados/Index.tsx
+
 interface Documento {
   id_documento: number;
   ruta_archivo: string;
@@ -17,16 +17,16 @@ interface Props {
   userPermisos: number[];
 }
 
-export default function CertificadosIndex({ documentos = [], userPermisos }: Props) {
+export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
   const modal = useModal();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
+  // Permitir cualquier tipo de archivo común: PDF, imágenes, Word, TXT, ZIP, etc.
   const validarArchivo = (file: File) => {
-    const allowed = ["application/pdf", "image/png", "image/jpeg"];
-    if (!allowed.includes(file.type)) return "Formato no permitido. Solo PDF, PNG o JPG.";
-    if (file.size > 2 * 1024 * 1024) return "Archivo supera el límite de 2MB.";
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) return `El archivo ${file.name} supera los 5MB permitidos.`;
     return null;
   };
 
@@ -36,7 +36,7 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
     for (const f of arr) {
       const err = validarArchivo(f);
       if (err) {
-        modal.alerta({ titulo: "Archivo inválido", mensaje: `${f.name}: ${err}` });
+        modal.alerta({ titulo: "Archivo inválido", mensaje: err });
         continue;
       }
       setFiles((prev) => [...prev, f]);
@@ -60,14 +60,14 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
     files.forEach((f) => formData.append("archivos[]", f));
 
     try {
-      await Inertia.post(route("certificados.upload"), formData, {
+      await Inertia.post(route("otros.upload"), formData, {
         forceFormData: true,
         onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Certificados cargados correctamente." });
+          modal.alerta({ titulo: "Éxito", mensaje: "Archivos cargados correctamente." });
           setFiles([]);
         },
         onError: (errors) => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo cargar. Verifique los archivos." });
+          modal.alerta({ titulo: "Error", mensaje: "No se pudieron cargar los archivos." });
           console.error(errors);
         },
       });
@@ -78,33 +78,34 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
 
   const handleDelete = async (id: number) => {
     const ok = await modal.confirmacion({
-      titulo: "Eliminar Certificado",
-      mensaje: "¿Está seguro que desea eliminar este certificado?",
+      titulo: "Eliminar documento",
+      mensaje: "¿Está seguro que desea eliminar este archivo?",
     });
     if (!ok) return;
 
     try {
-      await Inertia.delete(route("certificados.delete"), {
+      await Inertia.delete(route("otros.delete"), {
         data: { id_documento: id },
         onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Certificado eliminado correctamente." });
+          modal.alerta({ titulo: "Éxito", mensaje: "Archivo eliminado correctamente." });
         },
         onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el certificado." });
+          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el archivo." });
         },
       });
     } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar." });
+      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar el archivo." });
     }
   };
 
   return (
     <>
-      <Head title="Carga de Certificados" />
+      <Head title="Carga de Otros Documentos" />
       <div className="max-w-xl mx-auto p-6 text-gray-900">
         <div className="bg-white shadow-lg rounded-lg p-6">
+          {/* Título y botón volver */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-[#034991]">Carga de Certificados</h2>
+            <h2 className="text-2xl font-bold text-[#034991]">Carga de Otros Documentos</h2>
             <button
               type="button"
               onClick={() => Inertia.get(route("documentos.index"))}
@@ -115,7 +116,8 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
           </div>
 
           <p className="text-gray-600 mb-4">
-            Formatos permitidos: <strong>PDF, PNG, JPG</strong>. Máximo <strong>2MB</strong> por archivo. Se pueden seleccionar varios archivos.
+            Puede subir archivos como <strong>cartas de recomendación</strong>, <strong>constancias</strong> o
+            <strong> documentos adicionales</strong>. Tamaño máximo permitido: <strong>5MB</strong>.
           </p>
 
           {/* Área de carga */}
@@ -137,18 +139,18 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
               onClick={() => inputRef.current?.click()}
             >
               <p className="text-gray-600 mb-2">
-                Arrastre aquí los archivos o haga clic para seleccionarlos
+                Arrastre los archivos aquí o haga clic para seleccionarlos
               </p>
               <input
                 ref={inputRef}
                 type="file"
                 multiple
-                accept=".pdf,.png,.jpg,.jpeg"
                 className="hidden"
                 onChange={(e) => handleAddFiles(e.target.files)}
               />
             </div>
 
+            {/* Archivos seleccionados */}
             {files.length > 0 && (
               <ul className="divide-y divide-gray-200 mt-4">
                 {files.map((f, i) => (
@@ -163,13 +165,13 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
               type="submit"
               className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded shadow w-full"
             >
-              Subir Certificados
+              Subir Archivos
             </button>
           </form>
 
-          {/* Lista de certificados */}
+          {/* Lista de archivos cargados */}
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Certificados cargados</h3>
+            <h3 className="text-lg font-semibold mb-2">Archivos cargados</h3>
             {documentos.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {documentos.map((doc) => (
@@ -191,7 +193,7 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-600">No hay certificados cargados aún.</p>
+              <p className="text-gray-600">No hay archivos cargados aún.</p>
             )}
           </div>
         </div>
@@ -200,7 +202,7 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
   );
 }
 
-CertificadosIndex.layout = (page: React.ReactNode & { props: Props }) => {
+OtrosIndex.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };

@@ -9,6 +9,7 @@ interface Documento {
   id_documento: number;
   ruta_archivo: string;
   fecha_subida: string;
+  nombre_original?: string;
 }
 
 interface Props {
@@ -181,8 +182,12 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
               <ul className="divide-y divide-gray-200">
                 {documentos.map((doc) => (
                   <li key={doc.id_documento} className="flex justify-between items-center py-2">
-                    <a href={`/storage/${doc.ruta_archivo}`} target="_blank" className="text-blue-600 hover:underline">
-                      {doc.ruta_archivo.split('/').pop()}
+                    <a
+                      href={`/storage/${doc.ruta_archivo}`}
+                      target="_blank"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
                     </a>
                     <div className="flex gap-2">
                       <span className="text-sm text-gray-500">{new Date(doc.fecha_subida).toLocaleDateString()}</span>
