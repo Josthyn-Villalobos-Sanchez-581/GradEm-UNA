@@ -15,7 +15,7 @@ class PlataformaExternaController extends Controller
     
     $usuario = Auth::user();
     $estatus = strtolower($usuario->estado_estudios ?? '');
-    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado', 'finalizado'];
+    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado', 'finalizado','empresa'];
     if (!in_array($estatus, $permitidos)) {
         return response()->json(['error' => 'Solo estudiantes o egresados pueden agregar enlaces.'], 403);
     }

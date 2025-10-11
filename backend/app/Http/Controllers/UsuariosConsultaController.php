@@ -25,7 +25,7 @@ class UsuariosConsultaController extends Controller
         // Filtrar usuarios con rol "egresado" o "estudiante"
         $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado']);
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', "Empresa"]);
             })
             ->get();
 
@@ -78,7 +78,12 @@ public function ver($id)
         'carrera',
         'curriculum',
         'fotoPerfil',
-    ])->findOrFail($id);
+        'empresa'
+    ])
+    ->leftJoin('areas_laborales', 'usuarios.area_laboral_id', '=', 'areas_laborales.id_area_laboral')
+    ->select('usuarios.*', 'areas_laborales.nombre as nombre_area_laboral')
+    ->where('usuarios.id_usuario', $id)
+    ->firstOrFail();
 
     // 🔒 Solo roles con permiso o si está viendo su propio perfil
     $rolesPermitidos = [
@@ -112,6 +117,9 @@ public function ver($id)
         'usuario' => [
             ...$usuario->toArray(),
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+            'areaLaboral' => [
+                'nombre_area' => $usuario->nombre_area_laboral, // 👈 se agrega el nombre
+            ],
         ],
         'plataformas' => $plataformas,
         'userPermisos' => getUserPermisos(),

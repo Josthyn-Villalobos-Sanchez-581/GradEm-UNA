@@ -27,4 +27,20 @@ class Empresa extends Model
     {
         return $this->belongsTo(Usuario::class, 'usuario_id', 'id_usuario');
     }
+
+    public function pais()
+    {
+        return $this->belongsTo(Pais::class, 'id_pais');
+    }
+
+    public function provincia()
+    {
+        return $this->belongsTo(Provincia::class, 'id_provincia');
+    }
+
+    public function canton()
+    {
+        return $this->belongsTo(Canton::class, 'id_canton');
+    }
+
 }

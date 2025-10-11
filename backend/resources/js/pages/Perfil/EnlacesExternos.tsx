@@ -37,6 +37,7 @@ export default function EnlacesExternos({
     "graduado",
     "finalizado",
     "estudiando",
+    "empresa",
   ].includes((usuario.estado_estudios || "").trim().toLowerCase());
 
   // ✅ Permitir ver en modo lectura aunque no sea estudiante/egresado

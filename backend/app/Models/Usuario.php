@@ -63,6 +63,14 @@ class Usuario extends Authenticatable
     }
 
     /**
+     * Relación uno a uno con empresa
+     */
+    public function empresa()
+    {
+        return $this->hasOne(Empresa::class, 'usuario_id', 'id_usuario');
+    }
+
+    /**
      * Relación con Rol
      */
     public function rol()
@@ -100,4 +108,8 @@ class Usuario extends Authenticatable
 {
     return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
 }
+    public function areaLaboral()
+    {
+        return $this->belongsTo(AreaLaboral::class, 'area_laboral_id', 'id_area_laboral');
+    }
 }
