@@ -21,6 +21,7 @@ use App\Http\Controllers\DocumentosController;
 use App\Http\Controllers\UsuariosConsultaController;
 use App\Http\Controllers\CertificadosController;
 use App\Http\Controllers\TitulosController;
+use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
 
@@ -123,6 +124,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/certificados-cargados', [CertificadosController::class, 'indexCarga'])->name('certificados.index');
         Route::post('/certificados/upload', [CertificadosController::class, 'upload'])->name('certificados.upload');
         Route::delete('/certificados/delete', [CertificadosController::class, 'delete'])->name('certificados.delete');
+
+        Route::get('/otros-cargados', [OtrosController::class, 'indexCarga'])->name('otros.index');
+        Route::post('/otros-cargados/upload', [OtrosController::class, 'upload'])->name('otros.upload');
+        Route::delete('/otros-cargados/delete', [OtrosController::class, 'delete'])->name('otros.delete');
     });
 
     // ==========================================

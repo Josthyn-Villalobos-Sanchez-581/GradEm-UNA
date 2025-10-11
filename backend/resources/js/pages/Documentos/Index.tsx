@@ -42,6 +42,14 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
           >
             🎓 Cargar Títulos
           </Link>
+
+          {/* Botón Otros */}
+          <Link
+            href="/otros-cargados"
+            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
+          >
+            ⬆️ Cargar Otros Archivos
+          </Link>
         </div>
       </div>
     </>
