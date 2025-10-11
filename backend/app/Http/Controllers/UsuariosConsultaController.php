@@ -24,7 +24,7 @@ class UsuariosConsultaController extends Controller
         // Filtrar usuarios con rol "egresado" o "estudiante"
         $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado']);
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', "Empresa"]);
             })
             ->get();
 
@@ -75,13 +75,18 @@ public function ver($id)
         'carrera',
         'curriculum',
         'fotoPerfil',
-    ])->findOrFail($id);
+        'empresa'
+    ])
+    ->leftJoin('areas_laborales', 'usuarios.area_laboral_id', '=', 'areas_laborales.id_area_laboral')
+    ->select('usuarios.*', 'areas_laborales.nombre as nombre_area_laboral')
+    ->where('usuarios.id_usuario', $id)
+    ->firstOrFail();
 
+    // Resolver rutas completas para archivos
     if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
-            $path = $usuario->curriculum->ruta_archivo_pdf;
-            $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
-        }
-
+        $path = ltrim($usuario->curriculum->ruta_archivo_pdf, '/');
+        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . $path);
+    }
 
     if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
         $path = ltrim($usuario->fotoPerfil->ruta_imagen, '/');
@@ -90,17 +95,22 @@ public function ver($id)
 
     return Inertia::render('Usuarios/VerPerfil', [
         'usuario' => [
-            ...$usuario->toArray(), // 👈 convierte el modelo y sus relaciones a array
+            ...$usuario->toArray(),
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+            'areaLaboral' => [
+                'nombre_area' => $usuario->nombre_area_laboral, // 👈 se agrega el nombre
+            ],
         ],
         'userPermisos' => getUserPermisos(),
     ]);
+}
+
 
        /**
      * Registrar acción en la bitácora de cambios
      */
 
-}
+
     private function registrarBitacora($tabla, $operacion, $descripcion)
     {
         DB::table('bitacora_cambios')->insert([
