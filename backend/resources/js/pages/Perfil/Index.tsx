@@ -223,7 +223,7 @@ if (rolNombre.toLowerCase() === "empresa") {
     </>
   );
 }
-  // Vista completa para otros roles (la que ya tenías)
+  // Vista completa para otros roles
   return (
     <>
       <Head title="Mi Perfil" />
