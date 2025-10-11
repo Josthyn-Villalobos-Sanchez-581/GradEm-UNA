@@ -1,7 +1,7 @@
 // resources/js/pages/Frt_FormularioGeneracionCurriculum.tsx
 
 import React, { useMemo, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
 import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGeneracionCurriculum';
 import { postGenerarCurriculum } from '../services/curriculumService';
@@ -116,6 +116,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [errores, setErrores] = useState<ErrorMapa>({});
   const [rutaPdf, setRutaPdf] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
+  const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
 
   const paso4Completo = useMemo(() => {
     const habilidadesOk = form.habilidades.every(h => {
@@ -440,6 +441,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
       return;
     }
 
+    // Antes de generar, resetea el botón de Dashboard
+    setMostrarBtnDashboard(false);
+
     try {
       setCargando(true);
       const resp = await postGenerarCurriculum(form);
@@ -456,6 +460,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
         } else {
           descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
         }
+        // Tras la elección, mostrar el botón para volver al Dashboard
+        setMostrarBtnDashboard(true);
       } else {
         throw new Error("No se pudo generar el PDF");
       }
@@ -1130,9 +1136,21 @@ const validacionesReferencia = {
           )}
         </div>
 
-        {rutaPdf && (
+        {rutaPdf && !mostrarBtnDashboard && (
           <div className="mt-3">
             <a className="text-[#034991] underline" href={rutaPdf} target="_blank" rel="noreferrer">Descargar PDF</a>
+          </div>
+        )}
+
+        {mostrarBtnDashboard && (
+          <div className="mt-4">
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-800 text-white rounded"
+              onClick={() => router.visit('/dashboard')}
+            >
+              Ir al Dashboard
+            </button>
           </div>
         )}
       </div>
