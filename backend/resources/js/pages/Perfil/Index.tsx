@@ -4,6 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+
 // backend/resources/js/pages/Perfil/Index.tsx
 // 👇 importa tu componente de enlaces externos
 import EnlacesExternos from "./EnlacesExternos";
@@ -295,7 +296,7 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Enlaces a plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+             <EnlacesExternos enlaces={plataformas} usuario={usuario} />
           </div>
         </div>
       </div>

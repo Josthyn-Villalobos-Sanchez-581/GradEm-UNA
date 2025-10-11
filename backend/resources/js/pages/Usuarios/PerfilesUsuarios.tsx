@@ -1,10 +1,10 @@
+// backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
 import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
-import { route } from 'ziggy-js'; 
-// backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
+import { route } from 'ziggy-js';
 
 interface Usuario {
   id_usuario: number;
@@ -178,22 +178,42 @@ export default function PerfilesUsuarios(props: Props) {
                     <td className="px-4 py-2">{u.carrera?.nombre ?? "-"}</td>
                   )}
                   <td className="px-4 py-2 text-center flex justify-center gap-2">
-                     {/* BOTÓN VER PERFIL (abre modal) */}
-                    <Link
+                    {/* BOTÓN VER PERFIL (abre modal) */}
+                  <Link
   href={route("usuarios.ver", { id: u.id_usuario })}
+  onClick={async (e) => {
+    e.preventDefault(); // ⚡️ evitar navegación automática
+    try {
+      await axios.get(route("usuarios.ver", { id: u.id_usuario }));
+      // Si todo va bien, navegar usando Inertia
+      window.location.href = route("usuarios.ver", { id: u.id_usuario });
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        // Mostrar modal con el mensaje de acceso denegado
+        modal.alerta({
+          titulo: err.response.data.titulo || "Acceso denegado",
+          mensaje: err.response.data.mensaje || "No tiene permiso para ver este perfil.",
+        });
+      } else {
+        console.error(err);
+        modal.alerta({
+          titulo: "Error",
+          mensaje: "Ocurrió un error al intentar acceder al perfil.",
+        });
+      }
+    }
+  }}
   className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
 >
   Ver Perfil
 </Link>
-
                     <button
                       onClick={async () => {
                         // Mostrar modal de confirmación institucional
                         const confirmado = await modal.confirmacion({
                           titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
-                          mensaje: `¿Está seguro que desea ${
-                            u.estado_id === 1 ? "inactivar" : "activar"
-                          } la cuenta de ${u.nombre_completo}?`,
+                          mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"
+                            } la cuenta de ${u.nombre_completo}?`,
                         });
 
                         if (!confirmado) return;
@@ -221,11 +241,10 @@ export default function PerfilesUsuarios(props: Props) {
                           });
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${
-                        u.estado_id === 1
+                      className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${u.estado_id === 1
                           ? "bg-[#CD1719] hover:bg-red-700 text-white"
                           : "bg-green-600 hover:bg-green-700 text-white"
-                      }`}
+                        }`}
                     >
                       {u.estado_id === 1 ? "Inactivar" : "Activar"}
                     </button>
@@ -257,11 +276,10 @@ export default function PerfilesUsuarios(props: Props) {
               <button
                 key={i + 1}
                 onClick={() => cambiarPagina(i + 1)}
-                className={`px-3 py-1 rounded ${
-                  paginaActual === i + 1
+                className={`px-3 py-1 rounded ${paginaActual === i + 1
                     ? "bg-[#CD1719] text-white"
                     : "bg-gray-200 hover:bg-gray-300"
-                }`}
+                  }`}
               >
                 {i + 1}
               </button>

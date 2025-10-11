@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Usuario;
 //use Illuminate\Support\Facades\Storage;
+use App\Models\PlataformaExterna;
 class UsuariosConsultaController extends Controller
 {
     public function index()
@@ -69,6 +70,8 @@ class UsuariosConsultaController extends Controller
 //prueba 2 para ver perfil 
 public function ver($id)
 {
+    $authUser = Auth::user();
+
     $usuario = Usuario::with([
         'rol',
         'universidad',
@@ -77,30 +80,47 @@ public function ver($id)
         'fotoPerfil',
     ])->findOrFail($id);
 
-    if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
-            $path = $usuario->curriculum->ruta_archivo_pdf;
-            $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($path, '/'));
-        }
+    // 🔒 Solo roles con permiso o si está viendo su propio perfil
+    $rolesPermitidos = [
+        'Super Usuario',
+        'Administrador del Sistema',
+        'Empresa',
+    ];
 
-
-    if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
-        $path = ltrim($usuario->fotoPerfil->ruta_imagen, '/');
-        $usuario->fotoPerfil->ruta_imagen = asset($path);
+    if ($authUser->id_usuario !== $usuario->id_usuario && !in_array($authUser->rol->nombre_rol, $rolesPermitidos)) {
+        return response()->json([
+            'error' => true,
+            'titulo' => 'Acceso denegado',
+            'mensaje' => 'No tiene permisos para ver el perfil de otro usuario.',
+        ], 403);
     }
 
+    // 🖼️ Ajustar rutas de archivos
+    if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
+        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($usuario->curriculum->ruta_archivo_pdf, '/'));
+    }
+
+    if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
+        $usuario->fotoPerfil->ruta_imagen = asset(ltrim($usuario->fotoPerfil->ruta_imagen, '/'));
+    }
+
+    // 🔗 Cargar plataformas externas
+    $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
+
+    // 🔹 Render Inertia normal para todos los que sí pueden ver el perfil
     return Inertia::render('Usuarios/VerPerfil', [
         'usuario' => [
-            ...$usuario->toArray(), // 👈 convierte el modelo y sus relaciones a array
+            ...$usuario->toArray(),
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
         ],
+        'plataformas' => $plataformas,
         'userPermisos' => getUserPermisos(),
     ]);
-
-       /**
-     * Registrar acción en la bitácora de cambios
-     */
-
 }
+
+/**
+ * Registrar acción en la bitácora de cambios
+ */
     private function registrarBitacora($tabla, $operacion, $descripcion)
     {
         DB::table('bitacora_cambios')->insert([

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
+import EnlacesExternos from "@/pages/Perfil/EnlacesExternos"; // ✅ Import correcto
 
 interface FotoPerfil {
   ruta_imagen: string;
@@ -19,6 +20,12 @@ interface Universidad {
 
 interface Carrera {
   nombre: string;
+}
+
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
 }
 
 interface Usuario {
@@ -45,15 +52,15 @@ interface Usuario {
 
 interface Props {
   usuario: Usuario;
+  plataformas: Plataforma[];
   userPermisos: number[];
 }
 
-export default function VerPerfil({ usuario }: Props) {
+export default function VerPerfil({ usuario, plataformas }: Props) {
   const [mostrarCV, setMostrarCV] = useState(false);
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
-  // TODOS los datos se muestran en negro
   const renderValor = (valor: any) =>
     valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
@@ -114,7 +121,7 @@ export default function VerPerfil({ usuario }: Props) {
                   <p><strong className="text-black">Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
                   <p><strong className="text-black">Área laboral:</strong> {renderValor(usuario.area_laboral_id)}</p>
                   <p><strong className="text-black">Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                  <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                  <p><strong className="text-black">Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
                 </>
               )}
             </div>
@@ -140,6 +147,15 @@ export default function VerPerfil({ usuario }: Props) {
                 )}
               </div>
             )}
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <div className="mt-6">
+              <EnlacesExternos
+                enlaces={plataformas || []}
+                usuario={usuario}
+                soloLectura={true} // 👈 modo lectura solo
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -147,7 +163,7 @@ export default function VerPerfil({ usuario }: Props) {
   );
 }
 
-// ✅ Asignar layout principal
+// ✅ Layout principal
 VerPerfil.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;

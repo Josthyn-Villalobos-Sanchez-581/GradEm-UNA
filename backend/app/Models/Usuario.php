@@ -95,4 +95,9 @@ class Usuario extends Authenticatable
     {
         return $this->hasOne(Curriculum::class, 'id_usuario', 'id_usuario');
     }
+
+    public function plataformasExternas()
+{
+    return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
+}
 }

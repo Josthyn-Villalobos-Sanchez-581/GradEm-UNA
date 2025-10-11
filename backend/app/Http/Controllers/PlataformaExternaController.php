@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PlataformaExternaRequest;
 use App\Models\PlataformaExterna;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 class PlataformaExternaController extends Controller
 {
     /**
@@ -13,10 +12,10 @@ class PlataformaExternaController extends Controller
      */
    public function store(PlataformaExternaRequest $request)
 {
+    
     $usuario = Auth::user();
     $estatus = strtolower($usuario->estado_estudios ?? '');
-    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado'];
-
+    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado', 'finalizado'];
     if (!in_array($estatus, $permitidos)) {
         return response()->json(['error' => 'Solo estudiantes o egresados pueden agregar enlaces.'], 403);
     }
