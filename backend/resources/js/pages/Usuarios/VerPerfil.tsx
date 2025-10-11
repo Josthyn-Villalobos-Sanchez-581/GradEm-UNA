@@ -81,7 +81,7 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const renderValor = (valor: any) =>
     valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
-  // ✅ Si el usuario tiene rol Empresa, mostrar diseño distinto
+  // Si el usuario tiene rol Empresa, mostrar diseño distinto
   if (usuario.rol?.nombre_rol?.toLowerCase() === "empresa") {
     return (
       <>
@@ -132,8 +132,6 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
                   <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-                  <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-                  <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
                 </div>
               </div>
 

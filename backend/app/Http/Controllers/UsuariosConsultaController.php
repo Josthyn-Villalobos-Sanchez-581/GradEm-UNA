@@ -16,15 +16,15 @@ class UsuariosConsultaController extends Controller
         // Obtener permisos del usuario autenticado
         $permisos = $usuario
             ? DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray()
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray()
             : [];
 
-        // Filtrar usuarios con rol "egresado" o "estudiante"
-        $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
+        // 🔹 Cargar usuarios junto con empresa
+        $usuarios = Usuario::with(['rol', 'universidad', 'carrera', 'empresa'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', "Empresa"]);
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', 'Empresa']);
             })
             ->get();
 
@@ -33,6 +33,7 @@ class UsuariosConsultaController extends Controller
             'userPermisos' => $permisos,
         ]);
     }
+
 
     public function toggleEstado($id)
     {

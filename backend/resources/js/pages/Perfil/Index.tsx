@@ -139,15 +139,29 @@ if (rolNombre.toLowerCase() === "empresa") {
             {flash.error}
           </div>
         )}
+        
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Perfil de Empresa</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
+          
+          {/* Contenedor para los dos botones a la derecha */}
+          <div className="flex space-x-4">
+              {/* Botón Editar Perfil */}
+              <Link
+                href="/perfil/editar"
+                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center"
+              >
+                Editar Perfil
+              </Link>
+              
+              {/* Botón Volver */}
+              <Link
+                href="/dashboard"
+                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded text-center"
+              >
+                Volver
+              </Link>
+          </div>
+      </div>
 
         <div className="flex flex-col md:flex-row gap-8">
           {/* Columna izquierda igual que otros roles */}
@@ -172,14 +186,6 @@ if (rolNombre.toLowerCase() === "empresa") {
                   Eliminar Foto
                 </button>
               )}
-
-              {/* Botón para editar perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center block"
-              >
-                Editar Perfil
-              </Link>
             </div>
           </div>
 
@@ -241,15 +247,28 @@ if (rolNombre.toLowerCase() === "empresa") {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6">
+       <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
+          
+          {/* Contenedor para los dos botones */}
+          <div className="flex space-x-4">
+              {/* Botón Editar Perfil */}
+              <Link
+                href="/perfil/editar"
+                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center"
+              >
+                Editar Perfil
+              </Link>
+              
+              {/* Botón Volver */}
+              <Link
+                href="/dashboard"
+                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded text-center"
+              >
+                Volver
+              </Link>
+          </div>
+      </div>
 
         {/* Panel principal con 2 columnas */}
         <div className="flex flex-col md:flex-row gap-8">
@@ -279,13 +298,6 @@ if (rolNombre.toLowerCase() === "empresa") {
                 className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
               >
                 Ver Currículum
-              </Link>
-              {/* Botón Editar Perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2 text-center block"
-              >
-                Editar Perfil
               </Link>
             </div>
           </div>
