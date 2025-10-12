@@ -7,6 +7,7 @@ import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGener
 import { postGenerarCurriculum } from '../services/curriculumService';
 import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
 import { useModal } from '../hooks/useModal';
+import FotoXDefecto from '../assets/FotoXDefecto.png'; // NUEVO: imagen por defecto
 
 // ================== Tipos ==================
 type Educacion = {
@@ -46,10 +47,17 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  incluirFotoPerfil?: boolean; // NUEVO: bandera para incluir foto
   [key: string]: any;
 };
 
-type UsuarioActual = { id_usuario:number; nombre_completo:string; correo:string; telefono?:string };
+type UsuarioActual = {
+  id_usuario:number;
+  nombre_completo:string;
+  correo:string;
+  telefono?:string;
+  fotoPerfil?: { ruta_imagen: string } | null; // NUEVO: foto de perfil
+};
 // ===========================================================
 
 // ================== Utilidades locales (sin diálogos nativos) ==================
@@ -93,6 +101,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
         nombre_completo: page.props.auth.user.nombre_completo,
         correo: page.props.auth.user.correo,
         telefono: page.props.auth.user.telefono,
+        fotoPerfil: page.props.auth.user.fotoPerfil || null, // NUEVO
       }
     : null;
 
@@ -108,7 +117,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
     experiencias: [],
     habilidades: [],
     idiomas: [],
-    referencias: []
+    referencias: [],
+    incluirFotoPerfil: false, // NUEVO: valor por defecto
   }), [usuario]);
 
   const [form, setForm] = useState<FormCV>(prefill);
@@ -601,6 +611,11 @@ const validacionesReferencia = {
   const getAriaInvalid = (key: string) => (errores[key] ? true : undefined);
   const getDescribedBy = (key: string) => (errores[key] ? `${key.replace(/[^\w-]/g,'_')}_err` : undefined);
 
+  // NUEVO: resolver URL de foto (absoluta o por defecto)
+  const fotoPerfilUrl = usuario?.fotoPerfil?.ruta_imagen
+    ? getAbsoluteUrl(usuario.fotoPerfil.ruta_imagen)
+    : FotoXDefecto;
+
   return (
     <PpLayout
       userPermisos={userPermisos}
@@ -638,7 +653,6 @@ const validacionesReferencia = {
                 <p id="datosPersonales_nombreCompleto_err" className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>
               }
             </div>
-
             {/* Correo */}
             <div className="float-label-input">
               <input
@@ -656,7 +670,6 @@ const validacionesReferencia = {
                 <p id="datosPersonales_correo_err" className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>
               }
             </div>
-
             {/* Teléfono */}
             <div className="float-label-input">
               <input
@@ -680,6 +693,44 @@ const validacionesReferencia = {
               {errores['datosPersonales.telefono'] &&
                 <p id="datosPersonales_telefono_err" className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>
               }
+            </div>
+
+            {/* NUEVO: Foto de Perfil */}
+            <div className="bg-gray-50 p-4 rounded-lg border col-span-2">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Foto de Perfil</h3>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <img
+                    src={fotoPerfilUrl}
+                    alt="Foto de perfil"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      id="incluirFotoPerfil"
+                      checked={!!form.incluirFotoPerfil}
+                      onChange={e => setCampo('incluirFotoPerfil', e.target.checked)}
+                      className="rounded border-gray-300 text-[#034991] focus:ring-[#034991]"
+                    />
+                    <label htmlFor="incluirFotoPerfil" className="text-sm font-medium text-gray-700">
+                      Incluir foto de perfil en el currículum
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {usuario?.fotoPerfil?.ruta_imagen
+                      ? "Tu foto de perfil actual se incluirá si activas esta opción."
+                      : "No tienes una foto de perfil configurada. Se usará una imagen por defecto."}
+                  </p>
+                  {!usuario?.fotoPerfil?.ruta_imagen && (
+                    <a href="/perfil/foto" className="text-[#034991] text-xs hover:underline">
+                      Subir foto de perfil →
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Resumen profesional */}
