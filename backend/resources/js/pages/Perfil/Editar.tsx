@@ -328,7 +328,7 @@ export default function Editar({
     router.put(
       route("perfil.update"),
       {
-        // 🔹 Campos del usuario
+        // Campos del usuario
         id_usuario: formData.id_usuario,
         nombre_completo: formData.nombre_completo,
         identificacion: formData.identificacion,
@@ -336,7 +336,7 @@ export default function Editar({
         id_provincia: empresaData?.id_provincia ?? null,
         id_canton: empresaData?.id_canton ?? null,
 
-        // 🔹 Campos de empresa
+        // Campos de empresa
         empresa_nombre: empresaData?.nombre ?? "",
         empresa_correo: empresaData?.correo ?? "",
         empresa_telefono: empresaData?.telefono ?? "",
@@ -344,13 +344,13 @@ export default function Editar({
       },
       {
         preserveScroll: true,
-        onSuccess: () => {
-          modal.alerta({
-            titulo: "Actualización exitosa",
-            mensaje: "Datos de la empresa actualizados correctamente.",
-          });
-          window.location.href = route("perfil.index");
-        },
+        onSuccess: async () => {
+        await modal.alerta({
+          titulo: "Actualización exitosa",
+          mensaje: "Datos de la empresa actualizados correctamente.",
+        });
+        window.location.href = route("perfil.index");
+      },
         onError: (errors) => {
           console.error("Errores de validación:", errors);
           modal.alerta({
@@ -425,20 +425,23 @@ export default function Editar({
     if (!ok) return;
 
     // 5. Envío con Inertia y mensaje de éxito
-   router.put(route("perfil.update"), { ...formData }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      window.location.href = route("perfil.index"); // redirección tradicional
-    },
-    onError: (errors) => {
-      console.error("Errores de validación:", errors);
-      modal.alerta({
-        titulo: "Error de validación",
-        mensaje: "Por favor revise los campos e intente nuevamente.",
-      });
-    },
-  }
-);
+    router.put(route("perfil.update"), { ...formData }, {
+      preserveScroll: true,
+      onSuccess: async () => {
+        await modal.alerta({
+          titulo: "Actualización exitosa",
+          mensaje: "Sus datos se han actualizado correctamente.",
+        });
+        window.location.href = route("perfil.index"); // redirige solo al aceptar el modal
+      },
+      onError: (errors) => {
+        console.error("Errores de validación:", errors);
+        modal.alerta({
+          titulo: "Error de validación",
+          mensaje: "Por favor revise los campos e intente nuevamente.",
+        });
+      },
+    });
 
 };
   return (
@@ -546,10 +549,13 @@ export default function Editar({
                     type="text"
                     name="telefono"
                     value={empresaData?.telefono ?? ""}
-                    onChange={(e) =>
-                      setEmpresaData({ ...empresaData!, telefono: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const soloNumeros = e.target.value.replace(/\D/g, ""); //elimina todo lo que no sea dígito
+                      setEmpresaData({ ...empresaData!, telefono: soloNumeros });
+                    }}
                     onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                    maxLength={8}
+                    inputMode="numeric" //muestra teclado numérico en móviles
                     className={`border p-1 rounded w-full text-sm ${
                       errores.telefono ? "border-red-500" : "border-gray-300"
                     }`}
@@ -674,7 +680,7 @@ export default function Editar({
               </div>
             </div>
 
-            {/* 🔹 Botón general */}
+            {/* Botón general */}
             <div className="mt-6 text-right">
               <button
                 type="submit"
@@ -688,7 +694,7 @@ export default function Editar({
         </div>
       </>
     ) : (
-      /* 🔹 Formulario normal para estudiante/egresado/etc */
+      /* Formulario normal para estudiante/egresado/etc */
       <>
         <Head title="Editar Perfil" />
         <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
@@ -770,8 +776,14 @@ export default function Editar({
                     type="text"
                     name="telefono"
                     value={formData.telefono ?? ""}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      //Permite solo números eliminando cualquier otro carácter
+                      const soloNumeros = e.target.value.replace(/\D/g, "");
+                      setFormData({ ...formData, telefono: soloNumeros });
+                    }}
                     onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                    maxLength={8} // límite de 8 dígitos
+                    inputMode="numeric" // teclado numérico en móviles
                     className={`border p-1 rounded w-full text-sm ${
                       errores.telefono ? "border-red-500" : "border-gray-300"
                     }`}

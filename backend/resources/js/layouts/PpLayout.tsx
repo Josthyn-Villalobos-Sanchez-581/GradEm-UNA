@@ -236,6 +236,16 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                 </Link>
               )
             )}
+
+            {/* Botón Mi Perfil */}
+            <Link
+              href="/perfil"
+              className="block px-2 py-1 hover:bg-red-800 rounded transition-colors"
+              onClick={() => setOpenMenu(null)}
+            >
+              Mi Perfil
+            </Link>
+
             <button
               onClick={handleLogout}
               className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm transition-colors mt-2"

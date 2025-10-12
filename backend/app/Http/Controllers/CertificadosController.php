@@ -46,6 +46,7 @@ class CertificadosController extends Controller
                     'id_usuario'   => $user->id_usuario,
                     'tipo'         => 'certificado',
                     'ruta_archivo' => $path,
+                    'nombre_original'  => $file->getClientOriginalName(),
                 ]);
 
                 $guardados[] = $doc;
