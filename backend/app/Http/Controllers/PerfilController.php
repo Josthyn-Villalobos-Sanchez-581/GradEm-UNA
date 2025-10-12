@@ -53,8 +53,8 @@ class PerfilController extends Controller
             ->where('id_rol', $usuario->id_rol)
             ->value('nombre_rol');
 
+            
         $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
-
         // Cargar empresa asociada al usuario
         $empresa = DB::table('empresas')
             ->where('usuario_id', $usuario->id_usuario)

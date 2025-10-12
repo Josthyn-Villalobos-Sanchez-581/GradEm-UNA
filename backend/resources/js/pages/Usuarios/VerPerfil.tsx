@@ -263,7 +263,6 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
     </>
   );
 }
-
 // ✅ Layout principal
 VerPerfil.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];

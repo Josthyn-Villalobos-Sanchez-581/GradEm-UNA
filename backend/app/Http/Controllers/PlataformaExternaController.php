@@ -10,14 +10,21 @@ class PlataformaExternaController extends Controller
     /**
      * Agregar un enlace externo
      */
-   public function store(PlataformaExternaRequest $request)
+  public function store(PlataformaExternaRequest $request)
 {
-    
     $usuario = Auth::user();
+
+    // 🔹 Detectar estado y rol
     $estatus = strtolower($usuario->estado_estudios ?? '');
-    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado', 'finalizado','empresa'];
-    if (!in_array($estatus, $permitidos)) {
-        return response()->json(['error' => 'Solo estudiantes o egresados pueden agregar enlaces.'], 403);
+    $rol = strtolower($usuario->rol->nombre_rol ?? '');
+
+    // 🔹 Permitir estudiantes, egresados y empresas
+    $permitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
+
+    if (!in_array($estatus, $permitidos) && $rol !== 'empresa') {
+        return response()->json([
+            'error' => 'Solo estudiantes, egresados o empresas pueden agregar enlaces.'
+        ], 403);
     }
 
     $plataforma = PlataformaExterna::create([

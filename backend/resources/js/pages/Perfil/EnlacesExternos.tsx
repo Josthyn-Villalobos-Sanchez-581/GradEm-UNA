@@ -11,13 +11,16 @@ interface Enlace {
 interface Props {
   enlaces: Enlace[];
   usuario: any;
+   rolNombre?: string; // 👈 agregar esto
   soloLectura?: boolean; // 👈 Modo lectura opcional
 }
 
 export default function EnlacesExternos({
+  
   enlaces: initialEnlaces = [],
   usuario,
   soloLectura = false,
+  rolNombre = "", // 👈 valor por defecto para evitar errores
 }: Props) {
   const modal = useModal();
   const [enlaces, setEnlaces] = useState<Enlace[]>(initialEnlaces ?? []);
@@ -29,16 +32,36 @@ export default function EnlacesExternos({
   const [tipo, setTipo] = useState("");
   const [url, setUrl] = useState("");
 
+useEffect(() => {
+  setEnlaces(initialEnlaces ?? []);
+  setUrlsPredefinidas({ LinkedIn: "", Instagram: "", GitHub: "" });
+  setTipo("");
+  setUrl("");
+  // 🔹 DEBUG: Revisar props que llegan al componente
+}, [initialEnlaces, usuario]);
+
+// Validar si el usuario puede ver enlaces externos
+const puedeVerEnlaces = [
+  "estudiante",
+  "egresado",
+  "activo",
+  "pausado",
+  "finalizado",
+].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
+(usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
+
+// Si no puede ver enlaces, no renderizar nada
+if (!puedeVerEnlaces) return null;
+
   // Verifica si el usuario es estudiante o egresado
   const esEstudianteOEgresado = [
     "estudiante",
     "egresado",
     "activo",
-    "graduado",
+    "pausado",
     "finalizado",
-    "estudiando",
-    "empresa",
-  ].includes((usuario.estado_estudios || "").trim().toLowerCase());
+  ].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
+  (usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
 
   // ✅ Permitir ver en modo lectura aunque no sea estudiante/egresado
   if (!esEstudianteOEgresado && !soloLectura) return null;

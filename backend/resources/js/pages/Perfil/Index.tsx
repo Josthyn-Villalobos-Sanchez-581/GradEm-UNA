@@ -215,7 +215,13 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+<EnlacesExternos
+  key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
+  enlaces={plataformas || []}
+  usuario={usuario}
+  rolNombre={rolNombre}
+/>
+
           </div>
         </div>
       </div>
@@ -346,7 +352,11 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Enlaces a plataformas externas */}
-             <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+                 <EnlacesExternos
+                             enlaces={plataformas || []}
+                             usuario={usuario}
+                             soloLectura={false} // 👈 modo lectura solo
+                           />
           </div>
         </div>
       </div>

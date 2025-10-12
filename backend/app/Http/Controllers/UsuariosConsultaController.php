@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Models\Usuario;
 //use Illuminate\Support\Facades\Storage;
 use App\Models\PlataformaExterna;
+use Illuminate\Support\Facades\Log; // 👈 aquí
 class UsuariosConsultaController extends Controller
 {
     public function index()
@@ -85,22 +86,51 @@ public function ver($id)
     ->where('usuarios.id_usuario', $id)
     ->firstOrFail();
 
-    // 🔒 Solo roles con permiso o si está viendo su propio perfil
-    $rolesPermitidos = [
-        'Super Usuario',
-        'Administrador del Sistema',
-        'Empresa',
-    ];
+    // 🔒 Verificar acceso
+    $rolAuth = strtolower($authUser->rol->nombre_rol ?? '');
+    $rolUsuarioVer = strtolower($usuario->rol->nombre_rol ?? '');
+    $estadoEstudios = strtolower($authUser->estado_estudios ?? '');
 
-    if ($authUser->id_usuario !== $usuario->id_usuario && !in_array($authUser->rol->nombre_rol, $rolesPermitidos)) {
+    // Estados válidos para considerar estudiante/egresado
+    $estadosEstudiosPermitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
+
+    $puedeVer = false;
+
+    // 1️⃣ Puede ver su propio perfil
+    if ($authUser->id_usuario === $usuario->id_usuario) {
+        $puedeVer = true;
+    }
+    // 2️⃣ Administradores o superusuarios pueden ver cualquier perfil
+    elseif (in_array($rolAuth, ['administrador del sistema', 'super usuario'])) {
+        $puedeVer = true;
+    }
+    // 3️⃣ Estudiantes o egresados pueden ver perfiles de empresas
+    elseif (in_array($estadoEstudios, $estadosEstudiosPermitidos) && $rolUsuarioVer === 'empresa') {
+        $puedeVer = true;
+    }
+// 4️⃣ Empresas pueden ver perfiles de estudiantes o egresados
+    elseif ($rolAuth === 'empresa' && in_array($rolUsuarioVer, ['estudiante', 'egresado'])) {
+    $puedeVer = true;
+}
+
+    Log::info('Verificación de permiso', [
+        'puedeVer' => $puedeVer,
+        'authUser_id' => $authUser->id_usuario,
+        'rolAuth' => $rolAuth,
+        'estadoEstudios' => $estadoEstudios,
+        'usuarioVer_id' => $usuario->id_usuario,
+        'rolUsuarioVer' => $rolUsuarioVer,
+    ]);
+
+    if (!$puedeVer) {
         return response()->json([
             'error' => true,
             'titulo' => 'Acceso denegado',
-            'mensaje' => 'No tiene permisos para ver el perfil de otro usuario.',
+            'mensaje' => 'No tiene permisos para ver el perfil de este usuario.',
         ], 403);
     }
 
-    // 🖼️ Ajustar rutas de archivos
+    // 🖼 Ajustar rutas de archivos
     if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
         $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($usuario->curriculum->ruta_archivo_pdf, '/'));
     }
@@ -109,22 +139,24 @@ public function ver($id)
         $usuario->fotoPerfil->ruta_imagen = asset(ltrim($usuario->fotoPerfil->ruta_imagen, '/'));
     }
 
-    // 🔗 Cargar plataformas externas
+    // 🔗 Plataformas externas
     $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
 
-    // 🔹 Render Inertia normal para todos los que sí pueden ver el perfil
     return Inertia::render('Usuarios/VerPerfil', [
         'usuario' => [
             ...$usuario->toArray(),
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
             'areaLaboral' => [
-                'nombre_area' => $usuario->nombre_area_laboral, // 👈 se agrega el nombre
+                'nombre_area' => $usuario->nombre_area_laboral ?? null,
             ],
         ],
         'plataformas' => $plataformas,
         'userPermisos' => getUserPermisos(),
     ]);
 }
+
+
+
 
 /**
  * Registrar acción en la bitácora de cambios
