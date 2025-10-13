@@ -15,7 +15,10 @@ interface Usuario {
   rol: { nombre_rol: string };
   universidad?: { nombre: string };
   carrera?: { nombre: string };
-  estado_id: number; // 1 = activo, 0 = inactivo
+  estado_id: number;
+  empresa?: {
+    telefono?: string;
+  };
 }
 
 interface Props {
@@ -234,7 +237,11 @@ export default function PerfilesUsuarios(props: Props) {
                       <td className="px-4 py-2">{u.identificacion}</td>
                     )}
                     {columnasVisibles.telefono && (
-                      <td className="px-4 py-2">{u.telefono}</td>
+                      <td className="px-4 py-2">
+                        {u.rol?.nombre_rol?.toLowerCase() === "empresa"
+                          ? u.empresa?.telefono ?? "-"
+                          : u.telefono ?? "-"}
+                      </td>
                     )}
                     {columnasVisibles.rol && (
                       <td className="px-4 py-2 capitalize">{u.rol?.nombre_rol}</td>

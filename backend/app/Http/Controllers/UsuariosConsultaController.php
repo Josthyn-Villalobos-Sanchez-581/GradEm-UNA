@@ -18,15 +18,15 @@ class UsuariosConsultaController extends Controller
         // Obtener permisos del usuario autenticado
         $permisos = $usuario
             ? DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray()
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray()
             : [];
 
-        // Filtrar usuarios con rol "egresado" o "estudiante"
-        $usuarios = Usuario::with(['rol', 'universidad', 'carrera'])
+        // 🔹 Cargar usuarios junto con empresa
+        $usuarios = Usuario::with(['rol', 'universidad', 'carrera', 'empresa'])
             ->whereHas('rol', function ($q) {
-                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', "Empresa"]);
+                $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', 'Empresa']);
             })
             ->get();
 
@@ -35,6 +35,7 @@ class UsuariosConsultaController extends Controller
             'userPermisos' => $permisos,
         ]);
     }
+
 
     public function toggleEstado($id)
     {
@@ -94,41 +95,13 @@ public function ver($id)
     // Estados válidos para considerar estudiante/egresado
     $estadosEstudiosPermitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
 
-    $puedeVer = false;
-
-    // 1️⃣ Puede ver su propio perfil
-    if ($authUser->id_usuario === $usuario->id_usuario) {
-        $puedeVer = true;
-    }
-    // 2️⃣ Administradores o superusuarios pueden ver cualquier perfil
-    elseif (in_array($rolAuth, ['administrador del sistema', 'super usuario'])) {
-        $puedeVer = true;
-    }
-    // 3️⃣ Estudiantes o egresados pueden ver perfiles de empresas
-    elseif (in_array($estadoEstudios, $estadosEstudiosPermitidos) && $rolUsuarioVer === 'empresa') {
-        $puedeVer = true;
-    }
-// 4️⃣ Empresas pueden ver perfiles de estudiantes o egresados
-    elseif ($rolAuth === 'empresa' && in_array($rolUsuarioVer, ['estudiante', 'egresado'])) {
-    $puedeVer = true;
-}
-
     Log::info('Verificación de permiso', [
-        'puedeVer' => $puedeVer,
         'authUser_id' => $authUser->id_usuario,
         'rolAuth' => $rolAuth,
         'estadoEstudios' => $estadoEstudios,
         'usuarioVer_id' => $usuario->id_usuario,
         'rolUsuarioVer' => $rolUsuarioVer,
     ]);
-
-    if (!$puedeVer) {
-        return response()->json([
-            'error' => true,
-            'titulo' => 'Acceso denegado',
-            'mensaje' => 'No tiene permisos para ver el perfil de este usuario.',
-        ], 403);
-    }
 
     // 🖼 Ajustar rutas de archivos
     if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
