@@ -95,9 +95,19 @@ Route::middleware('auth')->group(function () {
     // Gestión de Currículum (Permiso 2)
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
-        Route::get('/curriculum/generar', fn() => Inertia::render('Frt_FormularioGeneracionCurriculum', [
-            'userPermisos' => getUserPermisos()
-        ]))->name('curriculum.generar');
+        Route::get('/curriculum/generar', function () {
+    $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+    return Inertia::render('Frt_FormularioGeneracionCurriculum', [
+        'userPermisos' => getUserPermisos(),
+        'usuario' => [
+            'id_usuario' => $usuario->id_usuario,
+            'nombre_completo' => $usuario->nombre_completo,
+            'correo' => $usuario->correo,
+            'telefono' => $usuario->telefono,
+            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+        ]
+    ]);
+})->name('curriculum.generar');
 
         Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])->name('api.curriculum.generate');
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');
@@ -138,49 +148,55 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================
-    Route::middleware('permiso:12')->group(function () {
-        // Roles
-        Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
-        Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
-        Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
-        Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
-        Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
-        Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
+ Route::middleware('permiso:12')->group(function () {
 
-        // Permisos
-        Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
-        Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
-        Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
-        Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
-        Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
-        Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
+    // --- ROLES ---
+    Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
+    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
+    Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
+    Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
+    Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
+    Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
 
-        // Roles_Permisos
-        Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
-        Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
+    // --- PERMISOS ---
+    Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
+    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
+    Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
+    Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
+    Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
+    Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
 
-        // Usuarios
-        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-        Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-        Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-        Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
-        // Toggle estado (activar/inactivar)
-        Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+    // --- ROLES_PERMISOS ---
+    Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
+    Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
-        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
-        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
-        Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-        Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-        Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
-        Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-        Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+   // Usuarios - CRUD principal
+Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
-        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
-        Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
-        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
-    });
+// Toggle estado (activar/inactivar)
+Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+
+// Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
+Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+
+// Rutas alternativas bajo prefijo /admin (si aplica)
+Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+
+    
+    // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
+    Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+    Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
+});
+
 
     // ==========================================
     // Gestión de Catálogos (Permiso 13)

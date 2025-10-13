@@ -1,12 +1,13 @@
 // resources/js/pages/Frt_FormularioGeneracionCurriculum.tsx
 
 import React, { useMemo, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
 import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGeneracionCurriculum';
 import { postGenerarCurriculum } from '../services/curriculumService';
 import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
 import { useModal } from '../hooks/useModal';
+import FotoXDefecto from '../assets/FotoXDefecto.png'; // NUEVO: imagen por defecto
 
 // ================== Tipos ==================
 type Educacion = {
@@ -46,10 +47,33 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  incluirFotoPerfil?: boolean; // NUEVO: bandera para incluir foto
   [key: string]: any;
 };
 
-type UsuarioActual = { id_usuario:number; nombre_completo:string; correo:string; telefono?:string };
+type UsuarioActual = {
+  id_usuario:number;
+  nombre_completo:string;
+  correo:string;
+  telefono?:string;
+  fotoPerfil?: { ruta_imagen: string } | null; // NUEVO: foto de perfil
+};
+
+// NUEVO: Tipado de props de página
+interface PageProps {
+  auth: { 
+    user?: {
+      id_usuario: number;
+      nombre_completo: string;
+      correo: string;
+      telefono: string;
+      fotoPerfil?: { ruta_imagen: string } | null;
+    } 
+  };
+  userPermisos?: number[];
+  usuario?: UsuarioActual; // Nuevo campo
+  [key: string]: unknown; // <- requerido por Inertia PageProps
+}
 // ===========================================================
 
 // ================== Utilidades locales (sin diálogos nativos) ==================
@@ -82,19 +106,21 @@ function abrirEnPestanaNueva(url: string) {
 // ==============================================================================
 
 export default function Frt_FormularioGeneracionCurriculum() {
-  const page = usePage<{ auth: { user?: any }, userPermisos?: number[] }>();
+  const page = usePage<PageProps>();
   const userPermisos = page.props.userPermisos ?? [];
 
   const modal = useModal();
 
-  const usuario: UsuarioActual | null = page.props.auth?.user
+  // Actualizado: preferir page.props.usuario y luego caer a auth.user
+  const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
     ? {
         id_usuario: page.props.auth.user.id_usuario,
         nombre_completo: page.props.auth.user.nombre_completo,
         correo: page.props.auth.user.correo,
         telefono: page.props.auth.user.telefono,
+        fotoPerfil: page.props.auth.user.fotoPerfil || null,
       }
-    : null;
+    : null);
 
   const prefill: FormCV = useMemo(() => ({
     usuarioId: usuario?.id_usuario ?? 0,
@@ -108,7 +134,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
     experiencias: [],
     habilidades: [],
     idiomas: [],
-    referencias: []
+    referencias: [],
+    incluirFotoPerfil: false, // NUEVO: valor por defecto
   }), [usuario]);
 
   const [form, setForm] = useState<FormCV>(prefill);
@@ -116,6 +143,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [errores, setErrores] = useState<ErrorMapa>({});
   const [rutaPdf, setRutaPdf] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
+  const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
 
   const paso4Completo = useMemo(() => {
     const habilidadesOk = form.habilidades.every(h => {
@@ -440,6 +468,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
       return;
     }
 
+    // Antes de generar, resetea el botón de Dashboard
+    setMostrarBtnDashboard(false);
+
     try {
       setCargando(true);
       const resp = await postGenerarCurriculum(form);
@@ -456,6 +487,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
         } else {
           descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
         }
+        // Tras la elección, mostrar el botón para volver al Dashboard
+        setMostrarBtnDashboard(true);
       } else {
         throw new Error("No se pudo generar el PDF");
       }
@@ -476,8 +509,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
   };
 
   const validacionesEducacion = {
-    institucion: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    titulo: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    institucion: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    titulo: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     fecha_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
     fecha_fin: { required: true, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
   };
@@ -595,6 +628,11 @@ const validacionesReferencia = {
   const getAriaInvalid = (key: string) => (errores[key] ? true : undefined);
   const getDescribedBy = (key: string) => (errores[key] ? `${key.replace(/[^\w-]/g,'_')}_err` : undefined);
 
+  // NUEVO: resolver URL de foto (absoluta o por defecto)
+  const fotoPerfilUrl = usuario?.fotoPerfil?.ruta_imagen
+    ? getAbsoluteUrl(usuario.fotoPerfil.ruta_imagen)
+    : FotoXDefecto;
+
   return (
     <PpLayout
       userPermisos={userPermisos}
@@ -632,7 +670,6 @@ const validacionesReferencia = {
                 <p id="datosPersonales_nombreCompleto_err" className="text-red-600 text-sm">{errores['datosPersonales.nombreCompleto']}</p>
               }
             </div>
-
             {/* Correo */}
             <div className="float-label-input">
               <input
@@ -650,7 +687,6 @@ const validacionesReferencia = {
                 <p id="datosPersonales_correo_err" className="text-red-600 text-sm">{errores['datosPersonales.correo']}</p>
               }
             </div>
-
             {/* Teléfono */}
             <div className="float-label-input">
               <input
@@ -674,6 +710,44 @@ const validacionesReferencia = {
               {errores['datosPersonales.telefono'] &&
                 <p id="datosPersonales_telefono_err" className="text-red-600 text-sm">{errores['datosPersonales.telefono']}</p>
               }
+            </div>
+
+            {/* NUEVO: Foto de Perfil */}
+            <div className="bg-gray-50 p-4 rounded-lg border col-span-2">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Foto de Perfil</h3>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <img
+                    src={fotoPerfilUrl}
+                    alt="Foto de perfil"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      id="incluirFotoPerfil"
+                      checked={!!form.incluirFotoPerfil}
+                      onChange={e => setCampo('incluirFotoPerfil', e.target.checked)}
+                      className="rounded border-gray-300 text-[#034991] focus:ring-[#034991]"
+                    />
+                    <label htmlFor="incluirFotoPerfil" className="text-sm font-medium text-gray-700">
+                      Incluir foto de perfil en el currículum
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {usuario?.fotoPerfil?.ruta_imagen
+                      ? "Tu foto de perfil actual se incluirá si activas esta opción."
+                      : "No tienes una foto de perfil configurada. Se usará una imagen por defecto."}
+                  </p>
+                  {!usuario?.fotoPerfil?.ruta_imagen && (
+                    <a href="/perfil/foto" className="text-[#034991] text-xs hover:underline">
+                      Subir foto de perfil →
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Resumen profesional */}
@@ -735,7 +809,7 @@ const validacionesReferencia = {
                       onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)}
                       aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
-                      maxLength={30}
+                      maxLength={50}
                     />
                     <label htmlFor={`ed_${i}_institucion`}>Institución</label>
                   </div>
@@ -750,7 +824,7 @@ const validacionesReferencia = {
                       onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)}
                       aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
-                      maxLength={30}
+                      maxLength={50}
                     />
                     <label htmlFor={`ed_${i}_titulo`}>Título</label>
                   </div>
@@ -1130,9 +1204,21 @@ const validacionesReferencia = {
           )}
         </div>
 
-        {rutaPdf && (
+        {rutaPdf && !mostrarBtnDashboard && (
           <div className="mt-3">
             <a className="text-[#034991] underline" href={rutaPdf} target="_blank" rel="noreferrer">Descargar PDF</a>
+          </div>
+        )}
+
+        {mostrarBtnDashboard && (
+          <div className="mt-4">
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-800 text-white rounded"
+              onClick={() => router.visit('/dashboard')}
+            >
+              Ir al Dashboard
+            </button>
           </div>
         )}
       </div>

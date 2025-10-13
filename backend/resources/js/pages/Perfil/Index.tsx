@@ -4,6 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+
 // backend/resources/js/pages/Perfil/Index.tsx
 // 👇 importa tu componente de enlaces externos
 import EnlacesExternos from "./EnlacesExternos";
@@ -11,8 +12,6 @@ import EnlacesExternos from "./EnlacesExternos";
 interface FotoPerfil {
   ruta_imagen: string;
 }
-
-
 interface Usuario {
   id_usuario: number;
   nombre_completo: string;
@@ -216,7 +215,13 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+<EnlacesExternos
+  key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
+  enlaces={plataformas || []}
+  usuario={usuario}
+  rolNombre={rolNombre}
+/>
+
           </div>
         </div>
       </div>
@@ -347,7 +352,11 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Enlaces a plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+                 <EnlacesExternos
+                             enlaces={plataformas || []}
+                             usuario={usuario}
+                             soloLectura={false} // 👈 modo lectura solo
+                           />
           </div>
         </div>
       </div>
