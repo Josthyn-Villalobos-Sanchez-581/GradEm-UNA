@@ -95,9 +95,19 @@ Route::middleware('auth')->group(function () {
     // Gestión de Currículum (Permiso 2)
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
-        Route::get('/curriculum/generar', fn() => Inertia::render('Frt_FormularioGeneracionCurriculum', [
-            'userPermisos' => getUserPermisos()
-        ]))->name('curriculum.generar');
+        Route::get('/curriculum/generar', function () {
+    $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+    return Inertia::render('Frt_FormularioGeneracionCurriculum', [
+        'userPermisos' => getUserPermisos(),
+        'usuario' => [
+            'id_usuario' => $usuario->id_usuario,
+            'nombre_completo' => $usuario->nombre_completo,
+            'correo' => $usuario->correo,
+            'telefono' => $usuario->telefono,
+            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+        ]
+    ]);
+})->name('curriculum.generar');
 
         Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])->name('api.curriculum.generate');
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');
