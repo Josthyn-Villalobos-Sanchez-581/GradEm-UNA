@@ -104,6 +104,10 @@ class Usuario extends Authenticatable
         return $this->hasOne(Curriculum::class, 'id_usuario', 'id_usuario');
     }
 
+    public function plataformasExternas()
+{
+    return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
+}
     public function areaLaboral()
     {
         return $this->belongsTo(AreaLaboral::class, 'area_laboral_id', 'id_area_laboral');

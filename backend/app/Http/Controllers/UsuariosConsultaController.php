@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Usuario;
 //use Illuminate\Support\Facades\Storage;
+use App\Models\PlataformaExterna;
+use Illuminate\Support\Facades\Log; // 👈 aquí
 class UsuariosConsultaController extends Controller
 {
     public function index()
@@ -69,6 +71,8 @@ class UsuariosConsultaController extends Controller
 //prueba 2 para ver perfil 
 public function ver($id)
 {
+    $authUser = Auth::user();
+
     $usuario = Usuario::with([
         'rol',
         'universidad',
@@ -82,35 +86,81 @@ public function ver($id)
     ->where('usuarios.id_usuario', $id)
     ->firstOrFail();
 
-    // Resolver rutas completas para archivos
+    // 🔒 Verificar acceso
+    $rolAuth = strtolower($authUser->rol->nombre_rol ?? '');
+    $rolUsuarioVer = strtolower($usuario->rol->nombre_rol ?? '');
+    $estadoEstudios = strtolower($authUser->estado_estudios ?? '');
+
+    // Estados válidos para considerar estudiante/egresado
+    $estadosEstudiosPermitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
+
+    $puedeVer = false;
+
+    // 1️⃣ Puede ver su propio perfil
+    if ($authUser->id_usuario === $usuario->id_usuario) {
+        $puedeVer = true;
+    }
+    // 2️⃣ Administradores o superusuarios pueden ver cualquier perfil
+    elseif (in_array($rolAuth, ['administrador del sistema', 'super usuario'])) {
+        $puedeVer = true;
+    }
+    // 3️⃣ Estudiantes o egresados pueden ver perfiles de empresas
+    elseif (in_array($estadoEstudios, $estadosEstudiosPermitidos) && $rolUsuarioVer === 'empresa') {
+        $puedeVer = true;
+    }
+// 4️⃣ Empresas pueden ver perfiles de estudiantes o egresados
+    elseif ($rolAuth === 'empresa' && in_array($rolUsuarioVer, ['estudiante', 'egresado'])) {
+    $puedeVer = true;
+}
+
+    Log::info('Verificación de permiso', [
+        'puedeVer' => $puedeVer,
+        'authUser_id' => $authUser->id_usuario,
+        'rolAuth' => $rolAuth,
+        'estadoEstudios' => $estadoEstudios,
+        'usuarioVer_id' => $usuario->id_usuario,
+        'rolUsuarioVer' => $rolUsuarioVer,
+    ]);
+
+    if (!$puedeVer) {
+        return response()->json([
+            'error' => true,
+            'titulo' => 'Acceso denegado',
+            'mensaje' => 'No tiene permisos para ver el perfil de este usuario.',
+        ], 403);
+    }
+
+    // 🖼 Ajustar rutas de archivos
     if ($usuario->curriculum && $usuario->curriculum->ruta_archivo_pdf) {
-        $path = ltrim($usuario->curriculum->ruta_archivo_pdf, '/');
-        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . $path);
+        $usuario->curriculum->ruta_archivo_pdf = asset('storage/' . ltrim($usuario->curriculum->ruta_archivo_pdf, '/'));
     }
 
     if ($usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
-        $path = ltrim($usuario->fotoPerfil->ruta_imagen, '/');
-        $usuario->fotoPerfil->ruta_imagen = asset($path);
+        $usuario->fotoPerfil->ruta_imagen = asset(ltrim($usuario->fotoPerfil->ruta_imagen, '/'));
     }
+
+    // 🔗 Plataformas externas
+    $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
 
     return Inertia::render('Usuarios/VerPerfil', [
         'usuario' => [
             ...$usuario->toArray(),
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
             'areaLaboral' => [
-                'nombre_area' => $usuario->nombre_area_laboral, // 👈 se agrega el nombre
+                'nombre_area' => $usuario->nombre_area_laboral ?? null,
             ],
         ],
+        'plataformas' => $plataformas,
         'userPermisos' => getUserPermisos(),
     ]);
 }
 
 
-       /**
-     * Registrar acción en la bitácora de cambios
-     */
 
 
+/**
+ * Registrar acción en la bitácora de cambios
+ */
     private function registrarBitacora($tabla, $operacion, $descripcion)
     {
         DB::table('bitacora_cambios')->insert([
