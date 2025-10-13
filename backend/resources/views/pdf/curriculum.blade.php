@@ -13,6 +13,23 @@
       $nivel  = trim($i['nivel'] ?? '');
       return $nombre !== '' || $nivel !== '' ? ($nivel ? "{$nombre} ({$nivel})" : $nombre) : null;
   })->filter()->values()->all();
+
+    // Alias para mantener compatibilidad si el resto de la vista usa $d
+    $d = $datos ?? [];
+
+    $srcFoto = null;
+    if (!empty($d['fotoPerfil'])) {
+        $rutaCompleta = $d['fotoPerfil']['ruta_completa'] ?? null;
+        $rutaPublica  = $d['fotoPerfil']['ruta_imagen'] ?? null;
+
+        if ($rutaCompleta && file_exists($rutaCompleta)) {
+            $mime = function_exists('mime_content_type') ? (mime_content_type($rutaCompleta) ?: 'image/jpeg') : 'image/jpeg';
+            $srcFoto = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($rutaCompleta));
+        } elseif ($rutaPublica) {
+            // Asegurar URL absoluta para Dompdf (requiere isRemoteEnabled=true)
+            $srcFoto = filter_var($rutaPublica, FILTER_VALIDATE_URL) ? $rutaPublica : url($rutaPublica);
+        }
+    }
 @endphp
 
 <!DOCTYPE html>
@@ -33,9 +50,15 @@
   .chip{ display:inline-block; border:1px solid var(--azul-una); padding:3px 6px; margin:2px; border-radius:4px; font-size:11px;}
   footer{ position:fixed; bottom:10px; left:0; right:0; text-align:center; font-size:10px; color:#555; }
   
-  /* Estilos para la foto de perfil */
+  /* Estilos para la foto de perfil - CUADRADA */
   .header-con-foto{ display: flex; align-items: flex-start; gap: 20px; }
-  .foto-perfil{ width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--azul-una); }
+  .foto-perfil{ 
+    width: 80px; 
+    height: 80px; 
+    border-radius: 8px; /* esquinas redondeadas suaves */
+    object-fit: cover; 
+    border: 2px solid var(--azul-una); 
+  }
   .info-personal{ flex: 1; }
 </style>
 </head>
@@ -50,7 +73,7 @@
     {{-- Contenedor con o sin foto según corresponda --}}
     @if(isset($d['fotoPerfil']) && $d['fotoPerfil'])
       <div class="header-con-foto">
-        <img src="{{ $d['fotoPerfil']['ruta_completa'] }}" alt="Foto de perfil" class="foto-perfil">
+        <img src="{{ $srcFoto }}" alt="Foto de perfil" class="foto-perfil">
         <div class="info-personal">
           <div><strong>{{ $d['datosPersonales']['nombreCompleto'] ?? '' }}</strong></div>
           @if($lineaContacto !== '')

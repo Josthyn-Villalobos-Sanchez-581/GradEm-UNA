@@ -58,6 +58,22 @@ type UsuarioActual = {
   telefono?:string;
   fotoPerfil?: { ruta_imagen: string } | null; // NUEVO: foto de perfil
 };
+
+// NUEVO: Tipado de props de página
+interface PageProps {
+  auth: { 
+    user?: {
+      id_usuario: number;
+      nombre_completo: string;
+      correo: string;
+      telefono: string;
+      fotoPerfil?: { ruta_imagen: string } | null;
+    } 
+  };
+  userPermisos?: number[];
+  usuario?: UsuarioActual; // Nuevo campo
+  [key: string]: unknown; // <- requerido por Inertia PageProps
+}
 // ===========================================================
 
 // ================== Utilidades locales (sin diálogos nativos) ==================
@@ -90,20 +106,21 @@ function abrirEnPestanaNueva(url: string) {
 // ==============================================================================
 
 export default function Frt_FormularioGeneracionCurriculum() {
-  const page = usePage<{ auth: { user?: any }, userPermisos?: number[] }>();
+  const page = usePage<PageProps>();
   const userPermisos = page.props.userPermisos ?? [];
 
   const modal = useModal();
 
-  const usuario: UsuarioActual | null = page.props.auth?.user
+  // Actualizado: preferir page.props.usuario y luego caer a auth.user
+  const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
     ? {
         id_usuario: page.props.auth.user.id_usuario,
         nombre_completo: page.props.auth.user.nombre_completo,
         correo: page.props.auth.user.correo,
         telefono: page.props.auth.user.telefono,
-        fotoPerfil: page.props.auth.user.fotoPerfil || null, // NUEVO
+        fotoPerfil: page.props.auth.user.fotoPerfil || null,
       }
-    : null;
+    : null);
 
   const prefill: FormCV = useMemo(() => ({
     usuarioId: usuario?.id_usuario ?? 0,
@@ -492,8 +509,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
   };
 
   const validacionesEducacion = {
-    institucion: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    titulo: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    institucion: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
+    titulo: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
     fecha_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
     fecha_fin: { required: true, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
   };
@@ -792,7 +809,7 @@ const validacionesReferencia = {
                       onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)}
                       aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
-                      maxLength={30}
+                      maxLength={50}
                     />
                     <label htmlFor={`ed_${i}_institucion`}>Institución</label>
                   </div>
@@ -807,7 +824,7 @@ const validacionesReferencia = {
                       onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)}
                       aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
-                      maxLength={30}
+                      maxLength={50}
                     />
                     <label htmlFor={`ed_${i}_titulo`}>Título</label>
                   </div>

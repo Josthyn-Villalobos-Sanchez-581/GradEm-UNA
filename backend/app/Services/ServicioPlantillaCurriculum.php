@@ -7,6 +7,7 @@ use Dompdf\Options;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log; // NUEVO
 use App\Models\Usuario;
 
 class ServicioPlantillaCurriculum
@@ -20,26 +21,39 @@ class ServicioPlantillaCurriculum
         $payload['educaciones']  = $payload['educaciones']  ?? [];
         $payload['experiencias'] = $payload['experiencias'] ?? [];
 
-        // NUEVO: Manejar la foto de perfil
+        // ✅ Manejar la foto de perfil con logs de debug
         $payload['fotoPerfil'] = null;
-        if (isset($payload['incluirFotoPerfil']) && $payload['incluirFotoPerfil']) {
-            $usuario = Usuario::with('fotoPerfil')->find($payload['usuarioId']);
+        Log::info('[CV] incluirFotoPerfil:', ['valor' => $payload['incluirFotoPerfil'] ?? null]);
+        Log::info('[CV] usuarioId en payload:', ['usuarioId' => $payload['usuarioId'] ?? null]);
+
+        if (!empty($payload['incluirFotoPerfil'])) {
+            $usuario = Usuario::with('fotoPerfil')->find($payload['usuarioId'] ?? null);
+            Log::info('[CV] Usuario encontrado:', ['ok' => (bool)$usuario]);
+            Log::info('[CV] Usuario tiene fotoPerfil:', ['ok' => (bool)($usuario?->fotoPerfil)]);
+
             if ($usuario && $usuario->fotoPerfil && $usuario->fotoPerfil->ruta_imagen) {
                 // Convertir la ruta pública a ruta del sistema de archivos
                 $rutaFoto = str_replace('/storage/', '', $usuario->fotoPerfil->ruta_imagen);
                 $rutaCompleta = storage_path('app/public/' . $rutaFoto);
+
+                Log::info('[CV] Ruta pública foto:', ['ruta_imagen' => $usuario->fotoPerfil->ruta_imagen]);
+                Log::info('[CV] Ruta absoluta foto:', ['ruta_completa' => $rutaCompleta, 'existe' => file_exists($rutaCompleta)]);
 
                 if (file_exists($rutaCompleta)) {
                     $payload['fotoPerfil'] = [
                         'ruta_imagen'   => $usuario->fotoPerfil->ruta_imagen, // pública (/storage/...)
                         'ruta_completa' => $rutaCompleta,                      // absoluta (filesystem)
                     ];
+                    Log::info('[CV] Foto agregada al payload con ruta_completa');
                 } else {
-                    // Si no existe localmente, aún se puede usar la ruta pública con isRemoteEnabled
+                    // Fallback: usar la ruta pública con isRemoteEnabled
                     $payload['fotoPerfil'] = [
                         'ruta_imagen' => $usuario->fotoPerfil->ruta_imagen,
                     ];
+                    Log::warning('[CV] Archivo de foto no existe localmente; usando ruta pública');
                 }
+            } else {
+                Log::warning('[CV] No hay fotoPerfil asociada al usuario o ruta_imagen vacía');
             }
         }
 
@@ -61,6 +75,8 @@ class ServicioPlantillaCurriculum
         $rutaArchivo = 'curriculums/' . $nombreArchivo;
 
         Storage::disk('public')->put($rutaArchivo, $contenidoPdf);
+
+        Log::info('[CV] PDF generado y guardado', ['ruta' => $rutaArchivo]);
 
         return $rutaArchivo;
     }
