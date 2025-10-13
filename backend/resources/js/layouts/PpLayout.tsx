@@ -57,9 +57,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       title: 'Currículum',
       subMenu: [
         { title: 'Generar CV', route: '/curriculum/generar', permisoId: 2 },
-        { title: 'Gestión', route: '/curriculum', permisoId: 2 },
         { title: 'Carga de Documentos', route: '/documentos', permisoId: 3 },
-        { title: 'Mi Currículum', route: '/ver-curriculum', permisoId: 4 },
+        { title: 'Mi Currículum', route: '/mi-curriculum/ver', permisoId: 4 },
       ],
     },
     {

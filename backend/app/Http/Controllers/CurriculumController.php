@@ -177,4 +177,27 @@ class CurriculumController extends Controller
             ],
         ]);
     }
+
+    public function obtenerAdjuntos()
+    {
+        $usuario = Auth::user();
+
+        $adjuntos = DB::table('documentos_adjuntos')
+            ->where('id_usuario', $usuario->id_usuario)
+            ->select(
+                'id_documento',
+                'tipo',
+                'ruta_archivo',
+                'nombre_original',
+                'fecha_subida'
+            )
+            ->orderBy('fecha_subida', 'desc')
+            ->get()
+            ->map(function ($doc) {
+                $doc->rutaPublica = asset('storage/' . $doc->ruta_archivo);
+                return $doc;
+            });
+
+        return response()->json($adjuntos);
+    }
 }

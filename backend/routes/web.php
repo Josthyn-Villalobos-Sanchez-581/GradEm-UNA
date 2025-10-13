@@ -114,10 +114,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/curriculum-cargado', [CurriculumController::class, 'upload'])->name('curriculum.upload');
         Route::delete('/curriculum-cargado', [CurriculumController::class, 'delete'])->name('curriculum.delete');
 
-        // 🚀 Nueva ruta: Ver Currículum
+        // Nueva ruta: Ver Currículum
         Route::get('/mi-curriculum/ver', [CurriculumController::class, 'vistaVerCurriculum'])
             ->name('curriculum.ver');
+
+        // Nueva ruta: Obtener archivos adjuntos del usuario autenticado
+        Route::get('/curriculum/adjuntos', [CurriculumController::class, 'obtenerAdjuntos'])
+            ->name('curriculum.adjuntos');
     });
+
 
     // ==========================================
     // Carga de Documentos y Fotos (Permiso 3)
@@ -240,7 +245,6 @@ Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'
     // ==========================================
     // 🚧 Pendientes (cuando estén desarrollados)
     // ==========================================
-    // 4 - Visualización de Currículum de Egresados
     // 5 - Publicación de Ofertas Laborales
     // 6 - Postulación a Ofertas Laborales
     // 7 - Gestión de Postulaciones
