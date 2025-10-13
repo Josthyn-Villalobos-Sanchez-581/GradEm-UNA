@@ -95,12 +95,14 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      modal.alerta({
-        titulo: "Éxito",
-        mensaje: "Foto de perfil actualizada exitosamente.",
-      }).then(() => {
-        Inertia.visit("/perfil");
-      });
+      modal
+        .alerta({
+          titulo: "Éxito",
+          mensaje: "Foto de perfil actualizada exitosamente.",
+        })
+        .then(() => {
+          Inertia.visit("/perfil");
+        });
 
       setFoto(null);
       setPreview(null);
@@ -120,6 +122,22 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
         className="max-w-md mx-auto p-6 space-y-6"
         style={{ color: COLORS.negro, fontFamily: FONT.texto }}
       >
+        {/* Botón Volver arriba a la derecha */}
+        <div className="flex justify-end mb-2">
+          <button
+            type="button"
+            onClick={() => Inertia.visit("/perfil")}
+            className="px-4 py-2 rounded shadow hover:opacity-90 transition"
+            style={{
+              backgroundColor: COLORS.gris,
+              color: COLORS.blanco,
+              fontFamily: FONT.titulo,
+            }}
+          >
+            ← Volver
+          </button>
+        </div>
+
         <div
           className="bg-white shadow-md rounded-lg p-6"
           style={{ backgroundColor: COLORS.blanco }}
@@ -185,7 +203,10 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
           </div>
 
           {/* Botones */}
-          <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
+          <form
+            onSubmit={handleUpload}
+            className="mt-6 flex justify-center gap-3"
+          >
             <button
               type="submit"
               className="px-6 py-2 rounded shadow"
@@ -226,4 +247,3 @@ PerfilFoto.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
-
