@@ -11,7 +11,6 @@ class GenerarCurriculumRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        
         return auth()->check();
     }
 
@@ -26,10 +25,13 @@ class GenerarCurriculumRequest extends FormRequest
 
             'datosPersonales.nombreCompleto' => 'required|string|max:255',
             'datosPersonales.correo'        => 'required|email',
-            // ✅ Teléfono CR: exactamente 8 dígitos numéricos
+            // Teléfono CR: exactamente 8 dígitos numéricos
             'datosPersonales.telefono'      => ['nullable','regex:/^[0-9]{8}$/'],
 
             'resumenProfesional' => 'nullable|string|max:2000',
+
+            // NUEVO: bandera para incluir foto en el CV
+            'incluirFotoPerfil' => 'boolean',
 
             'educaciones' => 'array',
             'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|max:255',
@@ -45,18 +47,19 @@ class GenerarCurriculumRequest extends FormRequest
             'experiencias.*.funciones'      => 'nullable|string|max:1000',
 
             'habilidades' => 'array',
-            'habilidades.*.descripcion' => 'required|string|max:255',
+            // Requerido solo si se agrega una habilidad
+            'habilidades.*.descripcion' => 'required_with:habilidades|string|max:255',
 
-            // ✅ Idiomas (nombre + nivel MCER)
+            // Idiomas: par nombre/nivel opcional, pero si se envía uno se exige el otro
             'idiomas' => 'array',
-            'idiomas.*.nombre' => 'required|string|max:100',
-            'idiomas.*.nivel'  => 'required|in:A1,A2,B1,B2,C1,C2,Nativo',
+            'idiomas.*.nombre' => 'required_with:idiomas.*.nivel|string|max:100',
+            'idiomas.*.nivel'  => 'required_with:idiomas.*.nombre|string|max:50',
 
+            // Referencias: par nombre/contacto opcional, si se envía uno se exige el otro
             'referencias' => 'array',
-            'referencias.*.nombre'   => 'required|string|max:255',
-            // ✅ Teléfono CR para contacto en referencias (obligatorio)
-            'referencias.*.contacto' => ['required','regex:/^[0-9]{8}$/'],
-            'referencias.*.relacion' => 'nullable|string|max:255',
+            'referencias.*.nombre'    => 'required_with:referencias.*.contacto|string|max:255',
+            'referencias.*.contacto'  => ['required_with:referencias.*.nombre','regex:/^[0-9]{8}$/'],
+            'referencias.*.relacion'  => 'nullable|string|max:255',
         ];
     }
 
@@ -66,11 +69,16 @@ class GenerarCurriculumRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'datosPersonales.telefono.regex'   => 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).',
-            'referencias.*.contacto.regex'     => 'El teléfono de la referencia debe tener exactamente 8 dígitos (Costa Rica).',
+            'datosPersonales.telefono.regex' => 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).',
 
-            'idiomas.*.nombre.required' => 'El nombre del idioma es obligatorio.',
-            'idiomas.*.nivel.required'  => 'Debe seleccionar el nivel MCER.',
+            'habilidades.*.descripcion.required_with' => 'La descripción de la habilidad es obligatoria cuando agregas una habilidad.',
+
+            'idiomas.*.nombre.required_with' => 'El nombre del idioma es obligatorio cuando especificas el nivel.',
+            'idiomas.*.nivel.required_with'  => 'Debes indicar el nivel del idioma cuando especificas el nombre.',
+
+            'referencias.*.contacto.regex'        => 'El teléfono de la referencia debe tener exactamente 8 dígitos (Costa Rica).',
+            'referencias.*.nombre.required_with'  => 'El nombre de la referencia es obligatorio cuando indicas el teléfono.',
+            'referencias.*.contacto.required_with'=> 'El teléfono de la referencia es obligatorio cuando indicas el nombre.',
         ];
     }
 }

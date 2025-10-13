@@ -1,3 +1,4 @@
+// backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
 import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
@@ -73,14 +74,12 @@ export default function PerfilesUsuarios(props: Props) {
       );
     })
     .filter((u) => {
-      // Filtro por rol
       if (filtroRol !== "todos") {
         return u.rol?.nombre_rol?.toLowerCase() === filtroRol.toLowerCase();
       }
       return true;
     })
     .filter((u) => {
-      // Filtro por estado
       if (filtroEstado === "activos") return u.estado_id === 1;
       if (filtroEstado === "inactivos") return u.estado_id !== 1;
       return true;
@@ -152,9 +151,12 @@ export default function PerfilesUsuarios(props: Props) {
         {/* 🔹 Checkboxes para columnas */}
         <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 p-3 rounded-lg shadow-sm mb-4">
           {(Object.entries(columnasVisibles) as [ColumnaKey, boolean][])
-            .filter(([col]) => col !== "nombre_completo") // <-- excluimos nombre_completo
+            .filter(([col]) => col !== "nombre_completo")
             .map(([col, visible]) => (
-              <label key={col} className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition">
+              <label
+                key={col}
+                className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition"
+              >
                 <input
                   type="checkbox"
                   checked={visible}
@@ -224,10 +226,7 @@ export default function PerfilesUsuarios(props: Props) {
                 </tr>
               ) : (
                 usuariosPaginados.map((u) => (
-                  <tr
-                    key={u.id_usuario}
-                    className="hover:bg-gray-50 transition even:bg-gray-50/40"
-                  >
+                  <tr key={u.id_usuario} className="border-t hover:bg-gray-50">
                     {columnasVisibles.nombre_completo && (
                       <td className="px-4 py-2">{u.nombre_completo}</td>
                     )}
@@ -245,9 +244,7 @@ export default function PerfilesUsuarios(props: Props) {
                       </td>
                     )}
                     {columnasVisibles.rol && (
-                      <td className="px-4 py-2 capitalize">
-                        {u.rol?.nombre_rol}
-                      </td>
+                      <td className="px-4 py-2 capitalize">{u.rol?.nombre_rol}</td>
                     )}
                     {columnasVisibles.universidad && (
                       <td className="px-4 py-2">{u.universidad?.nombre ?? "-"}</td>
@@ -256,15 +253,40 @@ export default function PerfilesUsuarios(props: Props) {
                       <td className="px-4 py-2">{u.carrera?.nombre ?? "-"}</td>
                     )}
                     <td className="px-4 py-2 text-center flex justify-center gap-2">
-                      {/* Ver perfil */}
+                      {/* BOTÓN VER PERFIL */}
                       <Link
                         href={route("usuarios.ver", { id: u.id_usuario })}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await axios.get(route("usuarios.ver", { id: u.id_usuario }));
+                            window.location.href = route("usuarios.ver", {
+                              id: u.id_usuario,
+                            });
+                          } catch (err: any) {
+                            if (err.response?.status === 403) {
+                              modal.alerta({
+                                titulo: err.response.data.titulo || "Acceso denegado",
+                                mensaje:
+                                  err.response.data.mensaje ||
+                                  "No tiene permiso para ver este perfil.",
+                              });
+                            } else {
+                              console.error(err);
+                              modal.alerta({
+                                titulo: "Error",
+                                mensaje:
+                                  "Ocurrió un error al intentar acceder al perfil.",
+                              });
+                            }
+                          }
+                        }}
                         className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
                       >
                         Ver Perfil
                       </Link>
 
-                      {/* Activar/Inactivar */}
+                      {/* BOTÓN ACTIVAR/INACTIVAR */}
                       <button
                         onClick={async () => {
                           const confirmado = await modal.confirmacion({
@@ -287,7 +309,6 @@ export default function PerfilesUsuarios(props: Props) {
                               mensaje: res.data.message,
                             });
 
-                            // Actualizamos estado local sin recargar
                             const nuevos = usuarios.map((usr) =>
                               usr.id_usuario === u.id_usuario
                                 ? { ...usr, estado_id: res.data.nuevo_estado }

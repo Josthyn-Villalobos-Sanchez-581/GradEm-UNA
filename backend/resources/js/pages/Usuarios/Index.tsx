@@ -6,7 +6,7 @@ import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { usePage } from "@inertiajs/react";
 import { useModal } from "@/hooks/useModal";
-import { route } from 'ziggy-js'; 
+import { route } from 'ziggy-js';
 interface UsuarioItem {
   id: number;
   nombre_completo?: string;
@@ -177,7 +177,7 @@ export default function Index(props: IndexProps) {
           </div>
 
           {/* 📊 Tabla */}
-       <div className="overflow-x-auto w-full bg-white">
+          <div className="overflow-x-auto w-full bg-white">
             <table className="table-auto border border-gray-200 w-full min-w-max">
               <thead className="bg-gray-100">
                 <tr>
@@ -248,9 +248,8 @@ export default function Index(props: IndexProps) {
                                     alerta({ titulo: "Error", mensaje: "Ocurrió un error al cambiar el estado del usuario." });
                                   }
                                 }}
-                                className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${
-                                  u.estado_id === 1 ? "bg-[#CD1719] hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
-                                }`}
+                                className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${u.estado_id === 1 ? "bg-[#CD1719] hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
+                                  }`}
                               >
                                 {u.estado_id === 1 ? "Inactivar" : "Activar"}
                               </button>
@@ -264,7 +263,35 @@ export default function Index(props: IndexProps) {
                                     textoAceptar: "Sí, eliminar",
                                     textoCancelar: "Cancelar",
                                   });
-                                  if (ok) Inertia.delete(route("admin.eliminar", { id: u.id }));
+
+                                  if (!ok) return;
+
+                                  try {
+                                    const res = await axios.delete(route("admin.eliminar", { id: u.id }));
+
+                                    if (res.data.status === "success") {
+                                      alerta({
+                                        titulo: "Eliminado",
+                                        mensaje: res.data.message,
+                                      });
+
+                                      // 💡 Quitar el usuario eliminado del estado
+                                      setUsuarios((prev) => prev.filter((usr) => usr.id !== u.id));
+                                    } else {
+                                      alerta({
+                                        titulo: "Error",
+                                        mensaje: res.data.message,
+                                      });
+                                    }
+                                  } catch (err: any) {
+                                    const msg =
+                                      err.response?.data?.message ||
+                                      "Ocurrió un error inesperado al eliminar el usuario.";
+                                    alerta({
+                                      titulo: "Error",
+                                      mensaje: msg,
+                                    });
+                                  }
                                 }}
                                 className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
                               >

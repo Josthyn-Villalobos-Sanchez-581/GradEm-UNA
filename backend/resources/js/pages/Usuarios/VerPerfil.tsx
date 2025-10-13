@@ -22,6 +22,11 @@ interface Carrera {
   nombre: string;
 }
 
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
+}
 interface Empresa {
   id_empresa?: number;
   nombre?: string;
@@ -70,10 +75,19 @@ interface Plataforma {
 
 interface Props {
   usuario: Usuario;
-  plataformas?: Plataforma[];
+  plataformas: Plataforma[];
   userPermisos: number[];
 }
 
+/*export default function VerPerfil({ usuario, plataformas }: Props) {
+  const [mostrarCV, setMostrarCV] = useState(false);
+
+  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+
+  plataformas?: Plataforma[];
+  userPermisos: number[];
+}
+*/
 export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const [mostrarCV, setMostrarCV] = useState(false);
 
@@ -136,7 +150,11 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
               </div>
 
               {/* Enlaces externos */}
-              <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+              <EnlacesExternos
+                enlaces={plataformas || []}
+                usuario={usuario}
+                soloLectura={true} // 👈 modo lectura solo
+              />
             </div>
           </div>
         </div>
@@ -228,13 +246,21 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 )}
               </div>
             )}
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <div className="mt-6">
+              <EnlacesExternos
+                enlaces={plataformas || []}
+                usuario={usuario}
+                soloLectura={true} // 👈 modo lectura solo
+              />
+            </div>
           </div>
         </div>
       </div>
     </>
   );
 }
-
 // ✅ Layout principal
 VerPerfil.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];

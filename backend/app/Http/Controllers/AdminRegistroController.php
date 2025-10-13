@@ -316,30 +316,47 @@ class AdminRegistroController extends Controller
      * Eliminar usuario
      */
     public function destroy($id)
-    {
-        $usuarioActual = Auth::user();
+{
+    $usuarioActual = Auth::user();
 
-        if (!in_array($usuarioActual->id_rol, [1, 2])) {
-            return redirect()->route('usuarios.index')
-                ->with('error', 'No tiene permisos para eliminar usuarios.');
-        }
-
-        DB::beginTransaction();
-        try {
-            DB::table('credenciales')->where('id_usuario', $id)->delete();
-            DB::table('usuarios')->where('id_usuario', $id)->delete();
-            DB::commit();
-
-            $this->registrarBitacora('usuarios', 'eliminar', "Usuario eliminado ID {$id}");
-
-            return redirect()->route('usuarios.index')
-                ->with('success', 'Usuario eliminado correctamente');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('Error al eliminar usuario', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Ocurrió un error al eliminar el usuario.');
-        }
+    if (!in_array($usuarioActual->id_rol, [1, 2])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'No tiene permisos para eliminar usuarios.'
+        ], 403);
     }
+
+    DB::beginTransaction();
+    try {
+        DB::table('credenciales')->where('id_usuario', $id)->delete();
+        DB::table('usuarios')->where('id_usuario', $id)->delete();
+        DB::commit();
+
+        $this->registrarBitacora('usuarios', 'eliminar', "Usuario eliminado ID {$id}");
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Usuario eliminado correctamente.'
+        ]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        if (str_contains($e->getMessage(), '1451')) {
+            // 🔒 Bloqueado por FK en bitácora
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se puede eliminar este usuario porque posee registros en la bitácora.'
+            ], 409);
+        }
+
+        Log::error('Error al eliminar usuario', ['error' => $e->getMessage()]);
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Ocurrió un error inesperado al eliminar el usuario.'
+        ], 500);
+    }
+}
+
 
     /**
      * Mostrar formulario de creación

@@ -13,6 +13,9 @@ const RecuperarContrasena: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [reenviarCount, setReenviarCount] = useState<number>(0);
+  const [bloqueado, setBloqueado] = useState<boolean>(false);
+  const [bloqueoTime, setBloqueoTime] = useState<number>(0);
 
   const modal = useModal();
 
@@ -43,37 +46,58 @@ const RecuperarContrasena: React.FC = () => {
     [password, confirmPassword]
   );
 
-  const calcularFuerza = (pass: string): number => {
-    let fuerza = 0;
-    if (pass.length >= 8) fuerza++;
-    if (/[a-z]/.test(pass)) fuerza++;
-    if (/[A-Z]/.test(pass)) fuerza++;
-    if (/\d/.test(pass)) fuerza++;
-    if (/[$@$!%?&]/.test(pass)) fuerza++;
-    return fuerza;
-  };
-
-  const fuerza = useMemo(() => calcularFuerza(password), [password]);
-
+  // Contador del tiempo de código
   useEffect(() => {
     if (codigoEnviado && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [codigoEnviado, timeLeft]);
 
+  // Contador del tiempo de bloqueo
+  useEffect(() => {
+    if (bloqueado && bloqueoTime > 0) {
+      const timer = setTimeout(() => setBloqueoTime((t) => t - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (bloqueado && bloqueoTime === 0) {
+      setBloqueado(false);
+      setReenviarCount(0);
+    }
+  }, [bloqueado, bloqueoTime]);
+
   const handleEnviarCodigo = async () => {
+    if (bloqueado) {
+      await modal.alerta({
+        titulo: "Bloqueo activo",
+        mensaje: `Debe esperar ${Math.floor(bloqueoTime / 60)}:${(
+          "0" + (bloqueoTime % 60)
+        ).slice(-2)} minutos antes de intentar de nuevo.`,
+      });
+      return;
+    }
+
+    if (reenviarCount >= 3) {
+      setBloqueado(true);
+      setBloqueoTime(300); // 5 minutos de bloqueo
+      await modal.alerta({
+        titulo: "Límite alcanzado",
+        mensaje: "Ha alcanzado el máximo de 3 reenvíos. Espere 5 minutos para intentar de nuevo.",
+      });
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
       const resp = await axios.post("/recuperar/enviar-codigo", { correo });
       setCodigoEnviado(true);
       setTimeLeft(300);
+      setReenviarCount((prev) => prev + 1);
       await modal.alerta({ titulo: "Proceso iniciado", mensaje: resp.data.message });
     } catch {
       await modal.alerta({
         titulo: "Atención",
-        mensaje: "Hubo un problema al verificar el correo o enviar el código."
+        mensaje: "Hubo un problema al verificar el correo o enviar el código.",
       });
       setError("Error al procesar la solicitud.");
     } finally {
@@ -88,14 +112,14 @@ const RecuperarContrasena: React.FC = () => {
     if (errorPassword || errorConfirm) {
       await modal.alerta({
         titulo: "Advertencia",
-        mensaje: errorPassword || errorConfirm || "Revise los campos."
+        mensaje: errorPassword || errorConfirm || "Revise los campos.",
       });
       return;
     }
 
     const ok = await modal.confirmacion({
       titulo: "Confirmar cambio",
-      mensaje: "¿Está seguro que desea cambiar la contraseña?"
+      mensaje: "¿Está seguro que desea cambiar la contraseña?",
     });
     if (!ok) return;
 
@@ -112,7 +136,7 @@ const RecuperarContrasena: React.FC = () => {
     } catch {
       await modal.alerta({
         titulo: "Error",
-        mensaje: "El código es inválido o hubo un error al cambiar la contraseña."
+        mensaje: "El código es inválido o hubo un error al cambiar la contraseña.",
       });
       setError("Error al cambiar la contraseña.");
     } finally {
@@ -131,7 +155,7 @@ const RecuperarContrasena: React.FC = () => {
   };
   const cardStyle: React.CSSProperties = {
     width: "100%",
-    maxWidth: "650px",
+    maxWidth: "750px",
     backgroundColor: "#F6F6F6",
     display: "flex",
     flexDirection: "column",
@@ -139,16 +163,12 @@ const RecuperarContrasena: React.FC = () => {
     padding: "30px 20px",
     borderRadius: "10px",
   };
-  const formGroupStyle: React.CSSProperties = {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  };
   const inputWrapperStyle: React.CSSProperties = {
     width: "100%",
     maxWidth: "358px",
     marginBottom: "20px",
+    marginLeft: "auto",
+    marginRight: "auto",
   };
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -192,13 +212,12 @@ const RecuperarContrasena: React.FC = () => {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        {/* Logos arriba igual que en Login */}
+        {/* Logos */}
         <div style={logosContainerStyle}>
           <img src={grademLogo} alt="Logo GradEm" style={logoStyle} />
           <img src={unaLogo} alt="Logo UNA" style={logoStyle} />
         </div>
 
-        {/* Título más pequeño igual que Login */}
         <h1
           style={{
             fontFamily: "'Goudy Old Style', serif",
@@ -211,114 +230,145 @@ const RecuperarContrasena: React.FC = () => {
           Recuperar Contraseña
         </h1>
 
-        <form style={{ width: "100%", maxWidth: "500px" }} onSubmit={handleCambiarContrasena}>
+        <form style={{ width: "100%", maxWidth: "500px", textAlign: "center" }} onSubmit={handleCambiarContrasena}>
           {/* Correo */}
-          <div style={formGroupStyle}>
-            <div style={inputWrapperStyle}>
-              <label htmlFor="correo" style={labelStyle}>Correo Electrónico</label>
-              <input
-                id="correo"
-                type="email"
-                placeholder="ejemplo@est.una.ac.cr"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                style={inputStyle}
-                disabled={codigoEnviado}
-                required
-              />
-            </div>
-            {!codigoEnviado && (
-              <button
-                type="button"
-                onClick={handleEnviarCodigo}
-                disabled={!correo || loading}
-                style={{
-                  width: "100%",
-                  maxWidth: "358px",
-                  height: "50px",
-                  backgroundColor: "#CD1719",
-                  color: "#FFF",
-                  border: "none",
-                  borderRadius: "5px",
-                  fontSize: "18px",
-                  cursor: loading ? "wait" : "pointer",
-                  marginBottom: "20px",
-                }}
-              >
-                {loading ? "Procesando..." : "Enviar Código"}
-              </button>
-            )}
+          <div style={inputWrapperStyle}>
+            <label htmlFor="correo" style={labelStyle}>
+              Correo Electrónico
+            </label>
+            <input
+              id="correo"
+              type="email"
+              placeholder="ejemplo@est.una.ac.cr"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              style={inputStyle}
+              disabled={codigoEnviado}
+              required
+            />
           </div>
 
-          {/* Código + Contraseña */}
+          {!codigoEnviado && (
+            <button
+              type="button"
+              onClick={handleEnviarCodigo}
+              disabled={!correo || loading || bloqueado}
+              style={{
+                width: "100%",
+                maxWidth: "358px",
+                height: "50px",
+                backgroundColor: bloqueado ? "#A7A7A9" : "#CD1719",
+                color: "#FFF",
+                border: "none",
+                borderRadius: "5px",
+                fontSize: "18px",
+                cursor: bloqueado ? "not-allowed" : loading ? "wait" : "pointer",
+                marginBottom: "20px",
+              }}
+            >
+              {bloqueado
+                ? `Bloqueado (${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)})`
+                : loading
+                ? "Procesando..."
+                : "Enviar Código"}
+            </button>
+          )}
+
           {codigoEnviado && (
             <>
-              <p style={{ fontSize: "14px", color: "#000", marginBottom: "10px" }}>
+              {/* Tiempo */}
+              <p
+                style={{
+                  fontSize: "14px",
+                  textAlign: "center",
+                  color: timeLeft > 0 && timeLeft <= 60 ? "#CD1719" : "#000",
+                  marginBottom: "10px",
+                }}
+              >
                 {timeLeft > 0
                   ? `El código expirará en ${Math.floor(timeLeft / 60)}:${("0" + (timeLeft % 60)).slice(-2)}`
                   : "El código ha expirado, solicite uno nuevo."}
               </p>
 
-              <div style={formGroupStyle}>
-                <div style={inputWrapperStyle}>
-                  <label htmlFor="codigo" style={labelStyle}>Código de Verificación</label>
-                  <input
-                    id="codigo"
-                    type="text"
-                    placeholder="Ingrese el código recibido"
-                    value={codigo}
-                    onChange={(e) => setCodigo(e.target.value)}
-                    style={inputStyle}
-                    required
-                  />
-                </div>
+              {/* Reenviar */}
+              {timeLeft <= 0 && (
+                <button
+                  type="button"
+                  onClick={handleEnviarCodigo}
+                  disabled={loading || bloqueado}
+                  style={{
+                    width: "100%",
+                    maxWidth: "200px",
+                    height: "45px",
+                    backgroundColor: bloqueado ? "#A7A7A9" : "#CD1719",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "5px",
+                    fontSize: "16px",
+                    cursor: bloqueado ? "not-allowed" : loading ? "wait" : "pointer",
+                    marginBottom: "15px",
+                  }}
+                >
+                  {bloqueado
+                    ? `Bloqueado (${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)})`
+                    : loading
+                    ? "Reenviando..."
+                    : "Reenviar Código"}
+                </button>
+              )}
+
+              {/* Código y contraseñas */}
+              <div style={inputWrapperStyle}>
+                <label htmlFor="codigo" style={labelStyle}>
+                  Código de Verificación
+                </label>
+                <input
+                  id="codigo"
+                  type="text"
+                  placeholder="Ingrese el código recibido"
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  style={inputStyle}
+                  required
+                />
               </div>
 
-              <div style={formGroupStyle}>
-                <div style={inputWrapperStyle}>
-                  <label htmlFor="password" style={labelStyle}>Nueva Contraseña</label>
-                  <input
-                    id="password"
-                    type="password"
-                    placeholder="Nueva contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={inputStyle}
-                    required
-                  />
-                  <p style={helpStyle}>
-                    8–15 caracteres, incluir minúscula, mayúscula, número y un caracter especial ($@$!%?&).
-                  </p>
-                  <div style={{ height: "8px", width: "100%", background: "#ddd", borderRadius: "4px", marginBottom: "10px" }}>
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${(fuerza / 5) * 100}%`,
-                        background: fuerza < 3 ? "red" : fuerza === 3 ? "orange" : "green",
-                        borderRadius: "4px",
-                      }}
-                    ></div>
-                  </div>
-                  {errorPassword && <p style={fieldErrorStyle}>{errorPassword}</p>}
-                </div>
+              <div style={inputWrapperStyle}>
+                <label htmlFor="password" style={labelStyle}>
+                  Nueva Contraseña
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Nueva contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={inputStyle}
+                  required
+                />
+                <p style={helpStyle}>
+                  8–15 caracteres, incluir minúscula, mayúscula, número y un caracter especial ($@$!%?&).
+                </p>
+                {errorPassword && <p style={fieldErrorStyle}>{errorPassword}</p>}
               </div>
 
-              <div style={formGroupStyle}>
-                <div style={inputWrapperStyle}>
-                  <label htmlFor="confirmPassword" style={labelStyle}>Confirmar Nueva Contraseña</label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirmar contraseña"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    style={inputStyle}
-                    required
-                  />
-                  {errorConfirm && <p style={fieldErrorStyle}>{errorConfirm}</p>}
-                </div>
+              <div style={inputWrapperStyle}>
+                <label htmlFor="confirmPassword" style={labelStyle}>
+                  Confirmar Nueva Contraseña
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirmar contraseña"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={inputStyle}
+                  required
+                />
+                {errorConfirm && <p style={fieldErrorStyle}>{errorConfirm}</p>}
               </div>
 
+              {/* Botón cambiar contraseña */}
               <button
                 type="submit"
                 disabled={submitDisabled || loading}
@@ -348,4 +398,3 @@ const RecuperarContrasena: React.FC = () => {
 };
 
 export default RecuperarContrasena;
-
