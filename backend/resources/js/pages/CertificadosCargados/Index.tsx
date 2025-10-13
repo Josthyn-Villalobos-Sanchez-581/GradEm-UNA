@@ -107,7 +107,7 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
             <h2 className="text-2xl font-bold text-[#034991]">Carga de Certificados</h2>
             <button
               type="button"
-              onClick={() => Inertia.get(route("documentos.index"))}
+              onClick={() => router.get(route("documentos.index"))}
               className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-1 rounded shadow text-sm"
             >
               Ir a Documentos
@@ -118,59 +118,72 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
             Formatos permitidos: <strong>PDF, PNG, JPG</strong>. Máximo <strong>2MB</strong> por archivo. Se pueden seleccionar varios archivos.
           </p>
 
-          {/* Área de carga */}
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                dragOver ? "border-[#034991] bg-blue-50" : "border-gray-300"
-              }`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                handleAddFiles(e.dataTransfer.files);
-              }}
-              onClick={() => inputRef.current?.click()}
-            >
-              <p className="text-gray-600 mb-2">
-                Arrastre aquí los archivos o haga clic para seleccionarlos
+          {/* Dropzone */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
+              dragOver ? "border-red-500 bg-red-50" : files.length ? "border-green-400" : "border-gray-300"
+            }`}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDragEnter={() => setDragOver(true)}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              handleAddFiles(e.dataTransfer.files);
+            }}
+          >
+            {!files.length ? (
+              <p className="text-gray-500">
+                Arrastre sus archivos aquí o{" "}
+                <span className="text-[#034991] font-semibold">haga clic</span> para seleccionar
               </p>
-              <input
-                ref={inputRef}
-                type="file"
-                multiple
-                accept=".pdf,.png,.jpg,.jpeg"
-                className="hidden"
-                onChange={(e) => handleAddFiles(e.target.files)}
-              />
-            </div>
-
-            {files.length > 0 && (
-              <ul className="divide-y divide-gray-200 mt-4">
-                {files.map((f, i) => (
-                  <li key={i} className="py-1 text-sm text-gray-700">
-                    {f.name}
-                  </li>
-                ))}
-              </ul>
+            ) : (
+              <div className="text-left">
+                <p className="font-medium text-green-700 mb-2">{files.length} archivo(s) listo(s) para subir:</p>
+                <ul className="list-disc pl-5 text-sm">
+                  {files.map((f, i) => (
+                    <li key={i}>
+                      {f.name} ({Math.round(f.size / 1024)} KB)
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              multiple
+              onChange={(e) => handleAddFiles(e.target.files)}
+            />
+          </div>
 
+          {/* Botones */}
+          <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
             <button
               type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded shadow w-full"
+              className="bg-[#034991] hover:bg-[#0563c1] text-white px-6 py-2 rounded shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={!files.length}
             >
               Subir Certificados
             </button>
+            {files.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setFiles([])}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
+              >
+                Cancelar
+              </button>
+            )}
           </form>
 
-          {/* Lista de certificados */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Certificados cargados</h3>
-            {documentos.length > 0 ? (
+          {/* Lista existente */}
+          <div className="mt-8 border-t pt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Certificados cargados:</h3>
+            {documentos && documentos.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {documentos.map((doc) => (
                   <li key={doc.id_documento} className="flex justify-between items-center py-2">
@@ -181,17 +194,22 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
                     >
                       {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
                     </a>
-                    <button
-                      onClick={() => handleDelete(doc.id_documento)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                    >
-                      Eliminar
-                    </button>
+                    <div className="flex gap-2">
+                      <span className="text-sm text-gray-500">
+                        {new Date(doc.fecha_subida).toLocaleDateString()}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(doc.id_documento)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-600">No hay certificados cargados aún.</p>
+              <p className="text-gray-600">No tiene certificados cargados.</p>
             )}
           </div>
         </div>
