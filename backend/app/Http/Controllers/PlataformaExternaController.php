@@ -5,20 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PlataformaExternaRequest;
 use App\Models\PlataformaExterna;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 class PlataformaExternaController extends Controller
 {
     /**
      * Agregar un enlace externo
      */
-   public function store(PlataformaExternaRequest $request)
+  public function store(PlataformaExternaRequest $request)
 {
     $usuario = Auth::user();
-    $estatus = strtolower($usuario->estado_estudios ?? '');
-    $permitidos = ['estudiante', 'egresado', 'activo', 'graduado'];
 
-    if (!in_array($estatus, $permitidos)) {
-        return response()->json(['error' => 'Solo estudiantes o egresados pueden agregar enlaces.'], 403);
+    // 🔹 Detectar estado y rol
+    $estatus = strtolower($usuario->estado_estudios ?? '');
+    $rol = strtolower($usuario->rol->nombre_rol ?? '');
+
+    // 🔹 Permitir estudiantes, egresados y empresas
+    $permitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
+
+    if (!in_array($estatus, $permitidos) && $rol !== 'empresa') {
+        return response()->json([
+            'error' => 'Solo estudiantes, egresados o empresas pueden agregar enlaces.'
+        ], 403);
     }
 
     $plataforma = PlataformaExterna::create([

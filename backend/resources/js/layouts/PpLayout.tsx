@@ -47,10 +47,9 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       title: 'Administración',
       subMenu: [
         { title: 'Roles y Permisos', route: '/roles_permisos', permisoId: 12 },
-        { title: 'Usuarios', route: '/usuarios', permisoId: 12 },
-        { title: 'Ver Usuarios', route: '/usuarios/perfiles', permisoId: 12 }, // Nueva ruta para perfiles de usuarios, esto es para ver funcionalidad
-        //probablemente haya que agregarle un nuevo permiso en la base de datos
-        { title: 'Catálogos', route: '/catalogos', permisoId: 13 },
+        { title: 'Gestion ADS', route: '/usuarios', permisoId: 12 },
+        { title: 'Ver Usuarios', route: '/usuarios/perfiles', permisoId: 12 },
+        { title: 'Catálogos', route: '/catalogo', permisoId: 13 },
         { title: 'Auditoría', route: '/auditoria', permisoId: 16 },
       ],
     },
@@ -58,9 +57,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       title: 'Currículum',
       subMenu: [
         { title: 'Generar CV', route: '/curriculum/generar', permisoId: 2 },
-        { title: 'Gestión', route: '/curriculum', permisoId: 2 },
         { title: 'Carga de Documentos', route: '/documentos', permisoId: 3 },
-        { title: 'Visualización', route: '/ver-curriculum', permisoId: 4 },
+        { title: 'Mi Currículum', route: '/mi-curriculum/ver', permisoId: 4 },
       ],
     },
     {
@@ -92,7 +90,6 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         { title: 'Ofertas/Postulaciones', route: '/reportes-ofertas', permisoId: 15 },
       ],
     },
-    { title: 'Integraciones', route: '/integraciones', permisoId: 17 },
   ];
 
   const permisos = userPermisos ?? [];
@@ -167,9 +164,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                     {item.title} ▾
                   </button>
                   <div
-                    className={`absolute right-0 mt-2 bg-white text-gray-800 rounded shadow-lg overflow-hidden transition-all duration-300 origin-top-right ${
-                      openMenu === item.title ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                    }`}
+                    className={`absolute right-0 mt-2 bg-white text-gray-800 rounded shadow-lg overflow-hidden transition-all duration-300 origin-top-right ${openMenu === item.title ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
                   >
                     {item.subMenu.map((sub) => (
                       <Link
@@ -193,12 +189,12 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
               Mi Perfil
             </Link>
 
-{/*   <button
+            {/*   <button
               onClick={handleLogout}
-              className="bg-red-800 hover:bg-red-900 px-4 py-1 rounded text-white text-sm transition-colors" */} 
+              className="bg-red-800 hover:bg-red-900 px-4 py-1 rounded text-white text-sm transition-colors" */}
 
             {/* Botón de Cerrar Sesión usando axios */}
-               {/*  className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition mt-2"  */}
+            {/*  className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition mt-2"  */}
             <button
               onClick={handleLogout}
               className="cursor-pointer bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm font-medium transition"
@@ -239,6 +235,16 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
                 </Link>
               )
             )}
+
+            {/* Botón Mi Perfil */}
+            <Link
+              href="/perfil"
+              className="block px-2 py-1 hover:bg-red-800 rounded transition-colors"
+              onClick={() => setOpenMenu(null)}
+            >
+              Mi Perfil
+            </Link>
+
             <button
               onClick={handleLogout}
               className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-white text-sm transition-colors mt-2"
@@ -263,12 +269,12 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
         )}
       </header>
 
-     {/*  <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
+      {/*  <main className="flex-1 max-w-7xl mx-auto p-6 w-full">
         <div className="bg-white shadow-xl rounded-2xl p-6 text-gray-900">{children}</div> 
       </main> */}
-      
-  {/* Contenido principal */}
-    <main className="flex-1 max-w-none w-full p-6">
+
+      {/* Contenido principal */}
+      <main className="flex-1 max-w-none w-full p-6">
         <div className="bg-white shadow rounded-xl p-6 w-full">{children}</div>
       </main>
       {/* Footer */}

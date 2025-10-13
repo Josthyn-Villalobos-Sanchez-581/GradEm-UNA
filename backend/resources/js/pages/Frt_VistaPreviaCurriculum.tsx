@@ -1,8 +1,8 @@
 // resources/js/pages/Frt_VistaPreviaCurriculum.tsx
-// ✅ Vista previa actualizada: ahora renderiza Idiomas (nombre + nivel) y Referencias.
-//    Mantiene estilos simples y condicionales por sección.
 
 import React from 'react';
+import { usePage } from '@inertiajs/react';
+import FotoXDefecto from '../assets/FotoXDefecto.png';
 
 // Tipos alineados con el formulario
 type Educacion = {
@@ -37,9 +37,32 @@ type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  incluirFotoPerfil?: boolean; // ✅ CAMBIO: ahora es opcional como en el otro archivo
+  [key: string]: any; // ✅ NUEVO: agregar esta línea para que coincida
+};
+
+// ✅ NUEVO: Tipo para el usuario con foto
+type UsuarioActual = {
+  id_usuario: number;
+  nombre_completo: string;
+  correo: string;
+  telefono?: string; // ✅ CAMBIO: hacer opcional como en el otro archivo
+  fotoPerfil?: { ruta_imagen: string } | null;
 };
 
 export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) {
+  // ✅ NUEVO: Obtener información del usuario desde el contexto de la página
+  const page = usePage<{ auth: { user?: any }, usuario?: UsuarioActual }>();
+  const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
+    ? {
+        id_usuario: page.props.auth.user.id_usuario,
+        nombre_completo: page.props.auth.user.nombre_completo,
+        correo: page.props.auth.user.correo,
+        telefono: page.props.auth.user.telefono,
+        fotoPerfil: page.props.auth.user.fotoPerfil || null,
+      }
+    : null);
+
   const {
     datosPersonales,
     resumenProfesional,
@@ -48,7 +71,11 @@ export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) 
     habilidades = [],
     idiomas = [],
     referencias = [],
+    incluirFotoPerfil, // ✅ CAMBIO: sin valor por defecto porque es opcional
   } = datos;
+
+  // ✅ NUEVO: Obtener URL de la foto
+  const fotoPerfilUrl = usuario?.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
   return (
     <aside className="border rounded-lg p-4">
@@ -61,15 +88,41 @@ export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) 
       {/* Datos personales */}
       <section className="mb-3">
         <h3 className="text-[#CD1719] font-semibold">Datos personales</h3>
-        <p className="font-semibold">{datosPersonales.nombreCompleto}</p>
-        <p className="text-sm">
-          {datosPersonales.correo}
-          {datosPersonales.telefono ? (
-            <>
-              {' '}&middot; {datosPersonales.telefono}
-            </>
-          ) : null}
-        </p>
+        
+        {/* ✅ NUEVO: Contenedor con o sin foto */}
+        {incluirFotoPerfil ? (
+          <div className="flex items-start gap-4 mb-2">
+            <img
+              src={fotoPerfilUrl}
+              alt="Foto de perfil"
+              className="w-16 h-16 rounded-lg object-cover border-2 border-[#034991] flex-shrink-0"
+            />
+            <div className="flex-1">
+              <p className="font-semibold">{datosPersonales.nombreCompleto}</p>
+              <p className="text-sm">
+                {datosPersonales.correo}
+                {datosPersonales.telefono ? (
+                  <>
+                    {' '}&middot; {datosPersonales.telefono}
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="font-semibold">{datosPersonales.nombreCompleto}</p>
+            <p className="text-sm">
+              {datosPersonales.correo}
+              {datosPersonales.telefono ? (
+                <>
+                  {' '}&middot; {datosPersonales.telefono}
+                </>
+              ) : null}
+            </p>
+          </>
+        )}
+
         {resumenProfesional?.trim() && (
           <p className="mt-2 text-sm">{resumenProfesional}</p>
         )}
@@ -131,7 +184,7 @@ export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) 
         </section>
       )}
 
-      {/* ✅ Idiomas (nombre + nivel MCER) */}
+      {/* Idiomas */}
       {idiomas.length > 0 && (
         <section className="mb-3">
           <h3 className="text-[#CD1719] font-semibold">Idiomas</h3>
@@ -151,7 +204,7 @@ export default function Frt_VistaPreviaCurriculum({ datos }: { datos: FormCV }) 
         </section>
       )}
 
-      {/* ✅ Referencias */}
+      {/* Referencias */}
       {referencias.length > 0 && (
         <section className="mb-1">
           <h3 className="text-[#CD1719] font-semibold">Referencias</h3>

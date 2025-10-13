@@ -7,7 +7,7 @@ use App\Models\PlataformaExterna;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-
+use PHPUnit\Framework\Attributes\Test;
 class PlataformaExternaTest extends TestCase
 {
     use DatabaseTransactions;
@@ -20,7 +20,7 @@ class PlataformaExternaTest extends TestCase
 
         // ⚠️ Usar un usuario ya existente en tu BD de pruebas
         // Ejemplo: el que me pasaste con id_usuario = 8
-        $this->usuario = Usuario::find(8);
+        $this->usuario = Usuario::find(5);
 
         // Seguridad: si no existe, lo creamos manualmente
         if (!$this->usuario) {
@@ -41,7 +41,7 @@ class PlataformaExternaTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function test_usuario_puede_agregar_un_enlace()
     {
         $payload = [
@@ -65,7 +65,7 @@ class PlataformaExternaTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function test_usuario_puede_eliminar_su_enlace()
     {
         $plataforma = PlataformaExterna::create([
@@ -88,7 +88,7 @@ class PlataformaExternaTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function test_no_puede_agregar_enlace_si_estado_invalido()
     {
         $this->usuario->estado_estudios = 'suspendido';
@@ -108,7 +108,7 @@ class PlataformaExternaTest extends TestCase
                  ]);
     }
 
-    /** @test */
+    #[Test]
     public function test_no_puede_eliminar_enlace_de_otro_usuario()
     {
         // Creamos un usuario falso diferente

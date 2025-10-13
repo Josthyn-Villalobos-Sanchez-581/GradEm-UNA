@@ -6,10 +6,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory; 
 
 class Usuario extends Authenticatable
 {
+       use HasFactory;
     use HasApiTokens;
 
     protected $table = 'usuarios';
@@ -62,6 +63,14 @@ class Usuario extends Authenticatable
     }
 
     /**
+     * Relación uno a uno con empresa
+     */
+    public function empresa()
+    {
+        return $this->hasOne(Empresa::class, 'usuario_id', 'id_usuario');
+    }
+
+    /**
      * Relación con Rol
      */
     public function rol()
@@ -88,5 +97,19 @@ class Usuario extends Authenticatable
     public function carrera(): BelongsTo
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function curriculum(): HasOne
+    {
+        return $this->hasOne(Curriculum::class, 'id_usuario', 'id_usuario');
+    }
+
+    public function plataformasExternas()
+{
+    return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
+}
+    public function areaLaboral()
+    {
+        return $this->belongsTo(AreaLaboral::class, 'area_laboral_id', 'id_area_laboral');
     }
 }

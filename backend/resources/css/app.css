@@ -248,9 +248,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   background-repeat: no-repeat;
   padding-right: 2.5rem;
 }
-
 /* Textarea altura mínima cómoda */
 .float-label-input textarea.peer {
   min-height: 110px;
   resize: vertical;
 }
+

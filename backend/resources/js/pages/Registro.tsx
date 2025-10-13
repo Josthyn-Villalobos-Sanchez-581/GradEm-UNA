@@ -272,7 +272,7 @@ const Registro: React.FC = () => {
     const errorTipoEmpleo = useMemo(() => validarTipoEmpleo(tipoEmpleo), [tipoEmpleo]);
 
     // MOD: Formulario válido (para deshabilitar submit)
-    const formularioValido =
+    const formularioValidoBase =
         codigoValidado &&
         !errorPassword &&
         !errorConfirm &&
@@ -282,8 +282,6 @@ const Registro: React.FC = () => {
         !errorGenero &&
         !errorEstadoEmpleo &&
         !errorEstadoEstudios &&
-        !errorNivelAcademico &&
-        !errorAnioGraduacion &&
         !errorTiempoConseguirEmpleo &&
         !errorSalarioPromedio &&
         !errorTipoEmpleo &&
@@ -291,6 +289,13 @@ const Registro: React.FC = () => {
         confirmPassword.length > 0 &&
         nombreCompleto.length > 0 &&
         numeroIdentificacion.length > 0;
+
+    const formularioValido = formularioValidoBase && (
+        // Si es egresado, nivel académico y año de graduación son obligatorios y deben ser válidos
+        tipoCuenta === 'egresado'
+            ? (!errorNivelAcademico && !errorAnioGraduacion && nivelAcademico.length > 0 && anioGraduacion.length > 0)
+            : true
+    );
 
     const verificarCorreo = async (email: string) => {
         try {
@@ -352,6 +357,18 @@ const Registro: React.FC = () => {
             return;
         }
 
+        // Validación adicional: si es egresado, aseguramos que nivel y año estén completos y válidos
+        if (tipoCuenta === 'egresado') {
+            if (!nivelAcademico || !anioGraduacion) {
+                await modal.alerta({ titulo: "Advertencia", mensaje: "Para egresados, el nivel académico y el año de graduación son obligatorios." });
+                return;
+            }
+            if (errorNivelAcademico || errorAnioGraduacion) {
+                await modal.alerta({ titulo: "Advertencia", mensaje: errorNivelAcademico || errorAnioGraduacion });
+                return;
+            }
+        }
+
         try {
             const userData = {
                 nombre_completo: nombreCompleto,
@@ -360,35 +377,52 @@ const Registro: React.FC = () => {
                 password_confirmation: confirmPassword,
                 tipoCuenta,
                 identificacion: numeroIdentificacion,
-                telefono,
-                fecha_nacimiento: fechaNacimiento,
-                genero,
-                id_universidad: universidad,
-                id_carrera: carrera,
-                estado_empleo: estadoEmpleo,
-                estado_estudios: estadoEstudios,
-                nivel_academico: nivelAcademico,
-                anio_graduacion: anioGraduacion ? parseInt(anioGraduacion, 10) : null,
+                // Enviar null en lugar de cadena vacía para campos opcionales
+                telefono: telefono || null,
+                fecha_nacimiento: fechaNacimiento || null,
+                genero: genero || null,
+                id_universidad: universidad || null,
+                id_carrera: carrera || null,
+                estado_empleo: estadoEmpleo || null,
+                estado_estudios: estadoEstudios || null,
+                ...(tipoCuenta === 'egresado' ? {
+                    nivel_academico: nivelAcademico || null,
+                    anio_graduacion: anioGraduacion ? parseInt(anioGraduacion, 10) : null,
+                } : {}),
                 id_canton: canton || null,
                 ...(estadoEmpleo === "empleado"
                     ? {
-                        tiempo_conseguir_empleo: tiempoConseguirEmpleo,
-                        area_laboral_id: areaLaboral,
-                        salario_promedio: salarioPromedio,
-                        tipo_empleo: tipoEmpleo,
+                        tiempo_conseguir_empleo: tiempoConseguirEmpleo || null,
+                        area_laboral_id: areaLaboral || null,
+                        salario_promedio: salarioPromedio || null,
+                        tipo_empleo: tipoEmpleo || null,
                     }
                     : {}),
             };
 
         // Solo mostrar modal si todo salió bien
         const response = await axios.post("/registro", userData);
-        await modal.alerta({
-            titulo: "Éxito",
-            mensaje: response.data.message || "Registro exitoso",
-        });
+        try {
+            await modal.alerta({
+                titulo: "Éxito",
+                mensaje: response.data.message || "Registro exitoso",
+            });
+        } catch (mErr) {
+            // Si el modal falla inesperadamente, logueamos y continuamos con redirección
+            // eslint-disable-next-line no-console
+            console.error('Modal alerta falló tras registro:', mErr);
+        }
 
         // 🔹 Redirigir después de cerrar el modal
-        router.get("/login");
+        try {
+            // Intentamos usar Inertia (mejor UX). Si falla, caemos a window.location
+            router.get("/login");
+        } catch (navErr) {
+            // Fallback robusto: navegación completa
+            // eslint-disable-next-line no-console
+            console.error('Inertia navigation failed, falling back to full redirect', navErr);
+            window.location.href = '/login';
+        }
 
         // 🔹 limpiar formulario
         setNombreCompleto("");
@@ -412,8 +446,15 @@ const Registro: React.FC = () => {
         setTipoEmpleo("");
     } catch (error: any) {
         if (error.response?.status === 422) {
-            // Laravel devolvió errores de validación
-            setErrors(error.response.data.errors);
+            // Laravel devolvió errores de validación. Aseguramos un objeto por defecto.
+            const serverErrors = error.response.data.errors || {};
+            // Log completo para debugging (Network ya lo muestra, pero útil aquí)
+            // eslint-disable-next-line no-console
+            console.warn('Registro: errores del servidor 422', error.response.data);
+            setErrors(serverErrors);
+            // Mostrar el primer error en modal para feedback inmediato
+            const firstError = (Object.values(serverErrors as any)[0] as any)?.[0] || 'Errores de validación';
+            try { await modal.alerta({ titulo: 'Advertencia', mensaje: firstError }); } catch {}
         } else {
             await modal.alerta({
                 titulo: "Error",
@@ -457,25 +498,53 @@ const Registro: React.FC = () => {
                             <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
                                 Complete la información a continuación para crear su cuenta.
                             </p>
+                            <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
+                                Seleccione la opción de cuenta a crear:
+                            </p>
                         </div>
 
-                        {/* Selección de tipo de cuenta */}
-                        {["estudiante_egresado", "empresa"].map((tipo) => (
-                        <label key={tipo} className="inline-flex items-center">
-                            <input
-                            type="radio"
-                            className="form-radio text-una-red"
-                            value={tipo}
-                            checked={tipoCuenta === tipo}
-                            onChange={(e) => setTipoCuenta(e.target.value)}
+                        {/* 🔹 Selección de tipo de cuenta separada */}
+                        <div className="flex flex-col sm:flex-row justify-center gap-6 mt-4 mb-6">
+                        {[
+                            { tipo: "estudiante", label: "Estudiante" },
+                            { tipo: "egresado", label: "Egresado" },
+                            { tipo: "empresa", label: "Empresa" },
+                        ].map(({ tipo, label }) => (
+                            <button
+                            key={tipo}
+                            type="button"
+                            onClick={() => {
+                                setTipoCuenta(tipo);
+
+                                // Comportamiento por defecto según tipo de cuenta
+                                if (tipo === "egresado") {
+                                    // Egresado: estado de estudios finalizado y bloqueado
+                                    setEstadoEstudios("finalizado");
+                                    // dejar los campos de egresado para que el usuario los complete
+                                } else if (tipo === "estudiante") {
+                                    // Estudiante: estado de estudios por defecto activo (editable)
+                                    setEstadoEstudios("activo");
+                                    // Limpiar campos exclusivos de egresado
+                                    setNivelAcademico("");
+                                    setAnioGraduacion("");
+                                } else {
+                                    // Si selecciona empresa u otro, limpiar
+                                    setEstadoEstudios("");
+                                    setNivelAcademico("");
+                                    setAnioGraduacion("");
+                                }
+                            }}
                             disabled={codigoValidado}
-                            required={tipoCuenta === ""} // Obliga a seleccionar una opción
-                            />
-                            <span className="ml-2 font-open-sans text-black">
-                            {tipo === "estudiante_egresado" ? "Estudiante / Egresado" : "Empresa"}
-                            </span>
-                        </label>
+                            className={`px-6 py-2 rounded-md font-open-sans font-bold border transition 
+                                ${tipoCuenta === tipo
+                                ? "bg-una-red text-white border-una-red"
+                                : "bg-white text-una-red border-una-red hover:bg-red-50"}
+                                disabled:opacity-60`}
+                            >
+                            {label}
+                            </button>
                         ))}
+                        </div>
 
                         {/* Formulario */}
                         <form className="mt-8 space-y-6" onSubmit={handleRegistro}>
@@ -505,8 +574,8 @@ const Registro: React.FC = () => {
                                         </button>
                                     )}
                                 </div>
-                                {errors.correo && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.correo[0]}</p>
+                                {errors?.correo && (
+                                    <p className="text-red-500">{errors.correo[0]}</p>
                                 )}
                             </div>
 
@@ -1022,12 +1091,27 @@ const Registro: React.FC = () => {
                                             id="estadoEstudios"
                                             value={estadoEstudios}
                                             onChange={(e) => setEstadoEstudios(e.target.value)}
-                                            className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                            // Si es egresado, el select queda deshabilitado porque por defecto es "finalizado"
+                                            disabled={tipoCuenta === "egresado"}
+                                            className={`mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm ${
+                                                tipoCuenta === "egresado" ? "bg-gray-100 cursor-not-allowed" : ""
+                                            }`}
                                         >
-                                            <option value="">Seleccione...</option>
-                                            <option value="activo">Activo</option>
-                                            <option value="pausado">Pausado</option>
-                                            <option value="finalizado">Finalizado</option>
+                                            {tipoCuenta === "estudiante" ? (
+                                                <>
+                                                    <option value="activo">Activo</option>
+                                                    <option value="pausado">Pausado</option>
+                                                </>
+                                            ) : tipoCuenta === "egresado" ? (
+                                                <option value="finalizado">Finalizado</option>
+                                            ) : (
+                                                <>
+                                                    <option value="">Seleccione...</option>
+                                                    <option value="activo">Activo</option>
+                                                    <option value="pausado">Pausado</option>
+                                                    <option value="finalizado">Finalizado</option>
+                                                </>
+                                            )}
                                         </select>
                                         </div>
 
@@ -1158,12 +1242,10 @@ const Registro: React.FC = () => {
                                     <div className="mt-6">
                                         <button
                                             type="submit"
-                                            // MOD: Deshabilitar envío si el formulario no es válido
-                                            disabled={Object.keys(errors).length > 0} // 🔒 Bloquea si hay errores
-                                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white bg-una-red hover:bg-red-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans
-                                                ${Object.keys(errors).length > 0 
-                                                ? "bg-gray-400 cursor-not-allowed" 
-                                                : "bg-una-red hover:bg-red-800"}`}
+                                            // Deshabilitar envío si el formulario no es válido (usamos formularioValido calculado)
+                                            disabled={!formularioValido}
+                                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans
+                                                ${!formularioValido ? "bg-gray-400 cursor-not-allowed" : "bg-una-red hover:bg-red-800"}`}
                                         >
                                             Registrarse
                                         </button>
@@ -1178,7 +1260,12 @@ const Registro: React.FC = () => {
                                     <br />
                                     <button
                                         type="button"
-                                        onClick={() => router.get("/registro-empresa")}
+                                        onClick={() => {
+                                            // Guardar validación antes de ir al formulario
+                                            sessionStorage.setItem("correo_validado_empresa", "true");
+                                            sessionStorage.setItem("correo_empresa", correo);
+                                            router.get("/registro-empresa");
+                                        }}
                                         className="text-una-red hover:underline"
                                     >
                                         Continuar al formulario de registro de empresa

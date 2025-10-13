@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+
 class CurriculumController extends Controller
 {
     /**
@@ -62,9 +63,9 @@ class CurriculumController extends Controller
         // Obtener permisos del usuario autenticado para PpLayout
         $permisos = $usuario
             ? DB::table('roles_permisos')
-                ->where('id_rol', $usuario->id_rol)
-                ->pluck('id_permiso')
-                ->toArray()
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray()
             : [];
 
         return inertia('CurriculumCargado/Index', [
@@ -128,5 +129,75 @@ class CurriculumController extends Controller
         }
 
         return redirect()->back()->with('success', 'Currículum eliminado correctamente');
+    }
+
+    public function verMiCurriculum()
+    {
+        $usuario = Auth::user();
+        $curriculum = $usuario->curriculum; // relación uno a uno
+
+        if (!$curriculum || !$curriculum->ruta_archivo_pdf) {
+            return response()->json(['error' => 'No se encontró el currículum'], 404);
+        }
+
+        $path = $curriculum->ruta_archivo_pdf;
+
+        if (!Storage::disk('public')->exists($path)) {
+            return response()->json(['error' => 'Archivo no disponible'], 404);
+        }
+
+        return response()->file(storage_path("app/public/" . $path));
+    }
+
+    public function vistaVerCurriculum()
+    {
+        $usuario = Auth::user();
+        $curriculum = $usuario->curriculum; // relación uno a uno
+
+        $permisos = $usuario
+            ? DB::table('roles_permisos')
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray()
+            : [];
+
+        if (!$curriculum || !$curriculum->ruta_archivo_pdf) {
+            return inertia('Curriculum/VerCurriculum', [
+                'userPermisos' => $permisos,
+                'curriculum'   => null,
+            ]);
+        }
+
+        $rutaPublica = asset('storage/' . $curriculum->ruta_archivo_pdf);
+
+        return inertia('Curriculum/VerCurriculum', [
+            'userPermisos' => $permisos,
+            'curriculum'   => [
+                'rutaPublica' => $rutaPublica,
+            ],
+        ]);
+    }
+
+    public function obtenerAdjuntos()
+    {
+        $usuario = Auth::user();
+
+        $adjuntos = DB::table('documentos_adjuntos')
+            ->where('id_usuario', $usuario->id_usuario)
+            ->select(
+                'id_documento',
+                'tipo',
+                'ruta_archivo',
+                'nombre_original',
+                'fecha_subida'
+            )
+            ->orderBy('fecha_subida', 'desc')
+            ->get()
+            ->map(function ($doc) {
+                $doc->rutaPublica = asset('storage/' . $doc->ruta_archivo);
+                return $doc;
+            });
+
+        return response()->json($adjuntos);
     }
 }
