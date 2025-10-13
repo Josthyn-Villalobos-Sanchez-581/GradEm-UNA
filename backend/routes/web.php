@@ -238,8 +238,8 @@ Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'
         Route::delete('/catalogo/idiomas/{id}', [CatalogoController::class, 'eliminarIdioma'])->name('catalogo.idiomas.eliminar');
 
         // ======== ÁREAS LABORALES ========
-        Route::post('/catalogo/areas-laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
-        Route::delete('/catalogo/areas-laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
+        Route::post('/catalogo/areas_laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
+        Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
     });
 
     // ==========================================
