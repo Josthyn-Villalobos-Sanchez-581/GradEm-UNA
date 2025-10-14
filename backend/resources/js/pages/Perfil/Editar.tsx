@@ -363,19 +363,21 @@ export default function Editar({
       return;
   }
   // 1. Definir campos obligatorios base
-  const camposObligatorios: string[] = [
+  let camposObligatorios: string[] = [
     "nombre_completo",
     "correo",
     "identificacion",
     "telefono",
     "fecha_nacimiento",
     "genero",
-    "estado_estudios",
-    "estado_empleo",
+    "id_canton",
     "id_universidad",
     "id_carrera",
-    "id_canton",
   ];
+
+  if (["estudiante", "egresado"].includes(rolNombre?.toLowerCase() ?? "")) {
+    camposObligatorios.push("estado_estudios", "estado_empleo");
+  }
 
   // Nivel académico y año graduacion obligatorio si es Graduado
   if (rolNombre?.toLowerCase() === "egresado") {
