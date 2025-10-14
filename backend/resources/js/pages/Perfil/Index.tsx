@@ -323,32 +323,44 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* Datos académicos */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-                <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-                <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
-                <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
-                <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") ? (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                  <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
+                  <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
+                  <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                </div>
+              </div>
+            )}
 
             {/* Datos laborales */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
-                {usuario.estado_empleo?.toLowerCase() === "empleado" && (
-                  <>
-                    <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                    <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
-                    <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                    <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
-                  </>
-                )}
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+                  {usuario.estado_empleo?.toLowerCase() === "empleado" && (
+                    <>
+                      <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
+                      <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
+                      <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
+                      <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ubicación */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
