@@ -368,49 +368,41 @@ export default function PerfilesUsuarios(props: Props) {
         {/* 🔹 Paginación */}
         {totalPaginas > 1 && (
           <div className="flex justify-center mt-4 space-x-2">
-            {/* Botón Anterior */}
-            <Button
-              type="button"
-              onClick={() => cambiarPagina(paginaActual - 1)}
-              disabled={paginaActual === 1}
-              variant="default"
-              className={`px-4 py-2 font-semibold text-white bg-[#034991] hover:bg-[#02336e] rounded shadow transition ${
-                paginaActual === 1 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              Anterior
-            </Button>
+          {/* Botón Anterior */}
+          <Button
+            type="button"
+            onClick={() => cambiarPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            variant="default"
+            size="sm"
+          >
+            Anterior
+          </Button>
 
-            {/* Botones numéricos */}
-            {Array.from({ length: totalPaginas }, (_, i) => (
-              <Button
-                key={i + 1}
-                type="button"
-                onClick={() => cambiarPagina(i + 1)}
-                variant="default"
-                className={`px-4 py-2 font-semibold rounded shadow transition ${
-                  paginaActual === i + 1
-                    ? "bg-[#CD1719] text-white hover:bg-[#b31214]"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }`}
-              >
-                {i + 1}
-              </Button>
-            ))}
-
-            {/* Botón Siguiente */}
+          {/* Botones numéricos */}
+          {Array.from({ length: totalPaginas }, (_, i) => (
             <Button
+              key={i + 1}
               type="button"
-              onClick={() => cambiarPagina(paginaActual + 1)}
-              disabled={paginaActual === totalPaginas}
-              variant="default"
-              className={`px-4 py-2 font-semibold text-white bg-[#034991] hover:bg-[#02336e] rounded shadow transition ${
-                paginaActual === totalPaginas ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              onClick={() => cambiarPagina(i + 1)}
+              size="sm"
+              variant={paginaActual === i + 1 ? "destructive" : "outline"}
             >
-              Siguiente
+              {i + 1}
             </Button>
-          </div>
+          ))}
+
+          {/* Botón Siguiente */}
+          <Button
+            type="button"
+            onClick={() => cambiarPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            variant="default"
+            size="sm"
+          >
+            Siguiente
+          </Button>
+        </div>
         )}
       </div>
     </>
