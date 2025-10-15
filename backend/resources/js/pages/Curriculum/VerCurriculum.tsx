@@ -3,6 +3,7 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Inertia } from "@inertiajs/inertia";
+import { Button } from "@/components/ui/button";
 
 interface Curriculum {
   rutaPublica?: string;
@@ -92,41 +93,43 @@ export default function VerCurriculum({ curriculum }: Props) {
             Mi Información Profesional
           </h1>
           <div className="flex gap-3">
-            <Link
-              href="/perfil"
-              className="px-4 py-2 rounded shadow text-white font-semibold transition"
-              style={{ backgroundColor: "#A7A7A9" }}
+            <Button
+              onClick={() => window.location.href = "/perfil"}
+              variant="outline"
+              size="default"
+              className="shadow"
+              style={{ backgroundColor: "#A7A7A9", color: "#FFFFFF" }}
             >
               Volver
-            </Link>
-            <button
+            </Button>
+            <Button
               onClick={handleActualizar}
-              className="px-4 py-2 rounded shadow text-white font-semibold transition"
+              variant="default"
+              size="default"
+              className="shadow"
               style={{ backgroundColor: "#034991" }}
             >
               Actualizar Currículum
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Navegación entre secciones */}
         <div className="flex justify-center gap-4 border-b pb-3">
-          <button
+          <Button
             onClick={() => cambiarSeccion("curriculum")}
-            className={`px-5 py-2 rounded font-semibold transition ${
-              seccion === "curriculum" ? "bg-blue-900 text-white" : "bg-gray-200 text-gray-700"
-            }`}
+            size="sm"
+            variant={seccion === "curriculum" ? "default" : "outline"}
           >
             Currículum
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => cambiarSeccion("adjuntos")}
-            className={`px-5 py-2 rounded font-semibold transition ${
-              seccion === "adjuntos" ? "bg-red-700 text-white" : "bg-gray-200 text-gray-700"
-            }`}
+            size="sm"
+            variant={seccion === "adjuntos" ? "destructive" : "outline"}
           >
             Documentos Adjuntos
-          </button>
+          </Button>
         </div>
 
         {/* ============================= */}

@@ -4,6 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import { PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
 
 interface Item {
   id: number;
@@ -201,23 +202,27 @@ export default function CatalogoIndex({
                   className="border border-gray-300 px-4 py-2 rounded-lg w-72 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
                 />
               </div>
-              <button
+              <Button
                 onClick={guardar}
-                className="flex items-center gap-2 bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                variant="default"
+                size="default"
+                className="flex items-center gap-2 transition-colors"
               >
                 <PlusCircle className="w-5 h-5" />
                 {editingItem ? "Actualizar" : "Agregar"}
-              </button>
+              </Button>
               {editingItem && (
-                <button
+                <Button
                   onClick={() => {
-                    setEditingItem(null);
-                    setNombreNuevo("");
+                    setEditingItem(null)
+                    setNombreNuevo("")
                   }}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                  variant="secondary"
+                  size="default"
+                  className="transition-colors"
                 >
                   Cancelar
-                </button>
+                </Button>
               )}
             </div>
 
@@ -278,21 +283,23 @@ export default function CatalogoIndex({
                         <td className="px-5 py-3">{item.id}</td>
                         <td className="px-5 py-3">{item[nombreCampo]}</td>
                         <td className="px-5 py-3 flex justify-center gap-3">
-                          <button
+                          <Button
                             onClick={() => {
-                              setEditingItem(item);
-                              setNombreNuevo(item[nombreCampo]);
+                              setEditingItem(item)
+                              setNombreNuevo(item[nombreCampo])
                             }}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
+                            variant="default"
+                            size="sm"
                           >
                             Editar
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => eliminar(item.id)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
+                            variant="destructive"
+                            size="sm"
                           >
                             Eliminar
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -304,17 +311,14 @@ export default function CatalogoIndex({
             {/* Paginación */}
             <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <button
+                <Button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    pageNum === page
-                      ? "bg-[#034991] text-white"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
+                  size="sm"
+                  variant={pageNum === page ? "default" : "outline"}
                 >
                   {pageNum}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -334,12 +338,14 @@ export default function CatalogoIndex({
         <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 mb-6">
           <div className="flex justify-between items-center border-b pb-3 mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Seleccionar Secciones</h2>
-            <button
+            <Button
               onClick={mostrarTodas}
-              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              variant="default"
+              size="default"
+              className="transition-colors"
             >
               Mostrar Todo
-            </button>
+            </Button>
           </div>
 
           <div className="flex flex-wrap gap-4">
