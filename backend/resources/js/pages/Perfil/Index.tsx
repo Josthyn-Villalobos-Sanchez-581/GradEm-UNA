@@ -4,6 +4,8 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
+
 
 // backend/resources/js/pages/Perfil/Index.tsx
 // 👇 importa tu componente de enlaces externos
@@ -145,20 +147,14 @@ if (rolNombre.toLowerCase() === "empresa") {
           {/* Contenedor para los dos botones a la derecha */}
           <div className="flex space-x-4">
               {/* Botón Editar Perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center"
-              >
-                Editar Perfil
-              </Link>
+              <Button asChild variant="default">
+                <Link href="/perfil/editar">Editar Perfil</Link>
+              </Button>
               
               {/* Botón Volver */}
-              <Link
-                href="/dashboard"
-                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded text-center"
-              >
-                Volver
-              </Link>
+              <Button asChild variant="secondary">
+                <Link href="/dashboard">Volver</Link>
+              </Button>
           </div>
       </div>
 
@@ -170,20 +166,17 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Link
-                href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Actualizar Foto
-              </Link>
-
+              <Button asChild variant="default">
+                <Link href="/perfil/foto">Actualizar Foto</Link>
+              </Button>
+              {/* 🔹 Botón Eliminar Foto */}
               {usuario.fotoPerfil && (
-                <button
+                <Button
+                  variant="destructive"
                   onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
                 >
                   Eliminar Foto
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -258,20 +251,14 @@ if (rolNombre.toLowerCase() === "empresa") {
           {/* Contenedor para los dos botones */}
           <div className="flex space-x-4">
               {/* Botón Editar Perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center"
-              >
-                Editar Perfil
-              </Link>
+              <Button asChild variant="default">
+                <Link href="/perfil/editar">Editar Perfil</Link>
+              </Button>
               
               {/* Botón Volver */}
-              <Link
-                href="/dashboard"
-                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded text-center"
-              >
-                Volver
-              </Link>
+              <Button asChild variant="secondary">
+                <Link href="/dashboard">Volver</Link>
+              </Button>
           </div>
       </div>
 
@@ -283,27 +270,25 @@ if (rolNombre.toLowerCase() === "empresa") {
               <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
             </div>
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Link
-                href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Actualizar Foto
-              </Link>
+              <Button asChild variant="default">
+                <Link href="/perfil/foto">Actualizar Foto</Link>
+              </Button>
+              {/* 🔹 Botón Eliminar Foto */}
               {usuario.fotoPerfil && (
-                <button
+                <Button
+                  variant="destructive"
                   onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
                 >
                   Eliminar Foto
-                </button>
+                </Button>
               )}
+              
               {/* Nuevo botón Ver Currículum */}
-              <Link
-                href="/mi-curriculum/ver"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Ver Currículum
-              </Link>
+              {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+                <Button asChild variant="default">
+                  <Link href="/mi-curriculum/ver">Ver Currículum</Link>
+                </Button>
+              )}
             </div>
           </div>
 

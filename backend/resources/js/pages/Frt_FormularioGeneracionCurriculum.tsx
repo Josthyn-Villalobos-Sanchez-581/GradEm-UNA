@@ -8,6 +8,7 @@ import { postGenerarCurriculum } from '../services/curriculumService';
 import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
 import { useModal } from '../hooks/useModal';
 import FotoXDefecto from '../assets/FotoXDefecto.png'; // NUEVO: imagen por defecto
+import { Button } from '../components/ui/button';
 
 // ================== Tipos ==================
 type Educacion = {
@@ -772,30 +773,34 @@ const validacionesReferencia = {
 
         {paso===2 && (
           <section>
-            <button
+            <Button
               type="button"
-              className="mb-2 px-3 py-1 border rounded"
-              onClick={()=>{
+              variant="default"
+              size="sm"
+              className="mb-2"
+              onClick={() => {
                 setForm(prev => ({
                   ...prev,
                   educaciones:[...prev.educaciones, {institucion:'', titulo:'', fecha_inicio:'', fecha_fin:''}]
-                }));
+                }))
               }}
             >
               + Agregar educación
-            </button>
+            </Button>
 
             {form.educaciones.map((ed, i)=>(
               <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Educación {i+1}</span>
-                  <button
+                  <Button
                     type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs"
                     onClick={() => removeArrayItem('educaciones', i)}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2">
@@ -876,30 +881,34 @@ const validacionesReferencia = {
 
         {paso===3 && (
           <section>
-            <button
+            <Button
               type="button"
-              className="mb-2 px-3 py-1 border rounded"
-              onClick={()=>{
+              variant="default"
+              size="sm"
+              className="mb-2"
+              onClick={() => {
                 setForm(prev => ({
                   ...prev,
                   experiencias:[...prev.experiencias, {empresa:'', puesto:'', periodo_inicio:'', periodo_fin:'', funciones:''}]
-                }));
+                }))
               }}
             >
               + Agregar experiencia
-            </button>
+            </Button>
 
             {form.experiencias.map((ex, i)=>(
               <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Experiencia {i+1}</span>
-                  <button
+                  <Button
                     type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs"
                     onClick={() => removeArrayItem('experiencias', i)}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-5 gap-2">
@@ -998,15 +1007,15 @@ const validacionesReferencia = {
           <section className="grid md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-bold text-[#034991] mb-1">Habilidades</h3>
-              <button
+              <Button
                 type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, habilidades:[...prev.habilidades, {descripcion:''}]}));
-                }}
+                variant="default"
+                size="sm"
+                className="mb-2"
+                onClick={() => setForm(prev => ({...prev, habilidades:[...prev.habilidades, {descripcion:''}]}))}
               >
                 + Habilidad
-              </button>
+              </Button>
               {form.habilidades.map((h,i)=>(
                 <div key={i} className="flex gap-2 mb-2">
                   <div className="float-label-input w-full">
@@ -1022,38 +1031,42 @@ const validacionesReferencia = {
                     />
                     <label htmlFor={`hab_${i}_descripcion`}>Descripción de habilidad</label>
                   </div>
-                  <button
+                  <Button
                     type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded whitespace-nowrap"
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs whitespace-nowrap"
                     onClick={() => removeArrayItem('habilidades', i)}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
               ))}
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
-              <button
+              <Button
                 type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, idiomas:[...prev.idiomas, { nombre:'', nivel:'' }]}));
-                }}
+                variant="default"
+                size="sm"
+                className="mb-2"
+                onClick={() => setForm(prev => ({...prev, idiomas:[...prev.idiomas, {nombre:'', nivel:''}]}))}
               >
                 + Idioma
-              </button>
+              </Button>
 
               {form.idiomas.map((i2,idx)=>(
                 <div key={idx} className="mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Idioma {idx+1}</span>
-                    <button
+                    <Button
                       type="button"
-                      className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                      variant="destructive"
+                      size="sm"
+                      className="text-xs"
                       onClick={() => removeArrayItem('idiomas', idx)}
                     >
                       Eliminar
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -1100,26 +1113,28 @@ const validacionesReferencia = {
               ))}
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Referencias</h3>
-              <button
+              <Button
                 type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, referencias:[...prev.referencias, {nombre:'', contacto:'', relacion:''}]}));
-                }}
+                variant="default"
+                size="sm"
+                className="mb-2"
+                onClick={() => setForm(prev => ({...prev, referencias:[...prev.referencias, {nombre:'', contacto:'', relacion:''}]}))}
               >
                 + Referencia
-              </button>
+              </Button>
               {form.referencias.map((r,idx)=>(
                 <div key={idx} className="mb-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Referencia {idx+1}</span>
-                    <button
+                    <Button
                       type="button"
-                      className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                      variant="destructive"
+                      size="sm"
+                      className="text-xs"
                       onClick={() => removeArrayItem('referencias', idx)}
                     >
                       Eliminar
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -1188,19 +1203,36 @@ const validacionesReferencia = {
         )}
 
         <div className="mt-6 flex justify-between">
-          {paso>1 ? <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
-          {paso<4 ? (
-            <button type="button" className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
-          ) : (
-            <button
+          {paso > 1 ? (
+            <Button
               type="button"
-              className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
+              variant="secondary"
+              size="default"
+              onClick={anterior}
+            >
+              Anterior
+            </Button>
+          ) : <div/>}
+          {paso < 4 ? (
+            <Button
+              type="button"
+              variant="default"
+              size="default"
+              onClick={siguiente}
+            >
+              Siguiente
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="destructive"
+              size="default"
               onClick={generar}
               disabled={botonGenerarDeshabilitado}
               title={!paso4Completo ? "Completa las habilidades, idiomas y referencias agregadas." : undefined}
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -1212,13 +1244,14 @@ const validacionesReferencia = {
 
         {mostrarBtnDashboard && (
           <div className="mt-4">
-            <button
+            <Button
               type="button"
-              className="px-4 py-2 bg-gray-800 text-white rounded"
+              variant="secondary"
+              size="default"
               onClick={() => router.visit('/dashboard')}
             >
               Ir al Dashboard
-            </button>
+            </Button>
           </div>
         )}
       </div>

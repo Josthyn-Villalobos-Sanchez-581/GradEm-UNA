@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 //backend/resources/js/pages/Perfil/EnlacesExternos.tsx
 interface Enlace {
   id_plataforma: number;
@@ -149,18 +150,14 @@ if (!puedeVerEnlaces) return null;
                     }`}
                     placeholder={`https://${t.toLowerCase()}.com/usuario`}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant={deshabilitado ? "secondary" : "default"}
                     onClick={() => agregarEnlace(t, urlsPredefinidas[t], true)}
                     disabled={deshabilitado}
-                    className={`px-4 py-2 rounded shadow font-semibold ${
-                      deshabilitado
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#034991] hover:bg-[#0563c1] text-white"
-                    }`}
                   >
                     {deshabilitado ? "Agregado" : "Agregar"}
-                  </button>
+                  </Button>
                 </div>
               );
             })}
@@ -200,12 +197,9 @@ if (!puedeVerEnlaces) return null;
               />
             </div>
             <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow"
-              >
+              <Button type="submit" variant="default" className="w-full">
                 Agregar
-              </button>
+              </Button>
             </div>
           </form>
         </>
@@ -233,12 +227,12 @@ if (!puedeVerEnlaces) return null;
               </a>
             </div>
             {!soloLectura && (
-              <button
+              <Button
+                variant="destructive"
                 onClick={() => eliminarEnlace(e.id_plataforma)}
-                className="bg-[#CD1719] hover:bg-[#a21514] text-white px-3 py-1 rounded"
               >
                 Eliminar
-              </button>
+              </Button>
             )}
           </li>
         ))}

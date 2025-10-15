@@ -4,6 +4,7 @@ import { Head, useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import PpLayout from "@/layouts/PpLayout";
 import { Link } from "@inertiajs/react";
+import { Button } from "@/components/ui/button";
 
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
@@ -491,11 +492,10 @@ const telefonoError =
             <p className="section-sub">Modifique los datos y guarde los cambios.</p>
           </div>
 
-          <Link
-            href={route("usuarios.index")}
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
+          <Link href={route("usuarios.index")}>
+            <Button variant="secondary" size="sm">
+              Volver
+            </Button>
           </Link>
         </div>
 
@@ -607,10 +607,15 @@ const telefonoError =
             </div>
           </div>
 
-          <div className="mt-6">
-            <button type="submit" className="btn-primary" disabled={processing || !valid} aria-disabled={processing || !valid}>
+          <div className="mt-6 flex justify-center">
+            <Button
+              type="submit"
+              variant="default"
+              size="default"
+              disabled={processing || !valid}
+            >
               {processing ? "Actualizando..." : "Actualizar"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

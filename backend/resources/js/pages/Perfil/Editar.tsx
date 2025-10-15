@@ -4,7 +4,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
 import { router } from '@inertiajs/react';
-
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 
 interface Usuario {
@@ -454,12 +454,10 @@ export default function Editar({
         <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Editar empresa</h2>
-            <Link
-              href="/perfil"
-              className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-            >
-              Volver
-            </Link>
+            {/* Botón Volver */}
+            <Button asChild variant="secondary">
+              <Link href="/perfil">Volver</Link>
+            </Button>
           </div>
           <form onSubmit={handleSubmit}>
             {/* Datos personales reducidos */}
@@ -682,15 +680,11 @@ export default function Editar({
               </div>
             </div>
 
-            {/* Botón general */}
-            <div className="mt-6 text-right">
-              <button
-                type="submit"
-                onClick={handleSubmit}
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-3 py-2 rounded"
-              >
+            {/* Botón general centrado */}
+            <div className="mt-6 flex justify-center">
+              <Button type="submit" variant="default" size="default" onClick={handleSubmit}>
                 Guardar cambios
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -702,12 +696,9 @@ export default function Editar({
         <div className="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 text-black">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Editar mi perfil</h2>
-            <Link
-              href="/perfil"
-              className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-            >
-              Volver
-            </Link>
+            <Button asChild variant="secondary">
+              <Link href="/perfil">Volver</Link>
+            </Button>
           </div>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
@@ -1185,13 +1176,12 @@ export default function Editar({
               </div>
             )}
 
-            {/* BOTÓN */}
-            <button
-              type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-3 py-2 rounded"
-            >
-              Guardar cambios
-            </button>
+            {/* Botón general centrado */}
+            <div className="mt-6 flex justify-center">
+              <Button type="submit" variant="default" size="default" onClick={handleSubmit}>
+                Guardar cambios
+              </Button>
+            </div>
           </form>
         </div>
 
