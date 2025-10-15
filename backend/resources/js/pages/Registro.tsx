@@ -4,7 +4,7 @@ import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
 import { useModal } from "../hooks/useModal";
-
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 // Estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -565,13 +565,14 @@ const Registro: React.FC = () => {
                                         disabled={codigoValidado}
                                     />
                                     {!codigoEnviado && (
-                                        <button
+                                       <Button
                                             type="button"
+                                            variant="destructive"
+                                            size="default"
                                             onClick={handleEnviarCodigo}
-                                            className="py-2 px-4 rounded-md text-white bg-una-red hover:bg-red-800 font-open-sans"
                                         >
                                             Enviar código
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                                 {errors?.correo && (
@@ -594,13 +595,14 @@ const Registro: React.FC = () => {
                                             className="appearance-none rounded-md w-full px-3 py-2 border border-una-gray text-gray-900 focus:ring-una-blue focus:border-una-blue sm:text-sm"
                                             placeholder="Ingrese el código"
                                         />
-                                        <button
+                                        <Button
                                             type="button"
+                                            variant="default"
+                                            size="default"
                                             onClick={handleValidarCodigo}
-                                            className="py-2 px-4 rounded-md text-white bg-una-blue hover:bg-blue-800 font-open-sans"
                                         >
                                             Validar
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -1240,15 +1242,15 @@ const Registro: React.FC = () => {
                                     </div>
 
                                     <div className="mt-6">
-                                        <button
+                                        <Button
                                             type="submit"
-                                            // Deshabilitar envío si el formulario no es válido (usamos formularioValido calculado)
+                                            variant={formularioValido ? "destructive" : "secondary"}
+                                            size="default"
                                             disabled={!formularioValido}
-                                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-md text-white disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans
-                                                ${!formularioValido ? "bg-gray-400 cursor-not-allowed" : "bg-una-red hover:bg-red-800"}`}
+                                            className="w-full"
                                         >
                                             Registrarse
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -1258,18 +1260,18 @@ const Registro: React.FC = () => {
                                 <div className="mt-6 text-center text-lg font-bold text-una-blue">
                                     ¡Correo verificado!
                                     <br />
-                                    <button
-                                        type="button"
+                                    <Button asChild variant="link" size="default">
+                                    <span
                                         onClick={() => {
-                                            // Guardar validación antes de ir al formulario
-                                            sessionStorage.setItem("correo_validado_empresa", "true");
-                                            sessionStorage.setItem("correo_empresa", correo);
-                                            router.get("/registro-empresa");
+                                        sessionStorage.setItem("correo_validado_empresa", "true");
+                                        sessionStorage.setItem("correo_empresa", correo);
+                                        router.get("/registro-empresa");
                                         }}
-                                        className="text-una-red hover:underline"
+                                        style={{ cursor: "pointer" }}
                                     >
                                         Continuar al formulario de registro de empresa
-                                    </button>
+                                    </span>
+                                    </Button>
                                 </div>
                             )}
                         </form>

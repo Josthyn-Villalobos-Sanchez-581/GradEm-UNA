@@ -1,6 +1,8 @@
 import React from "react";
 import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
+import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
 
 interface DocumentosIndexProps {
   userPermisos: number[];
@@ -20,36 +22,44 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Botón Currículum */}
-          <Link
-            href="/curriculum-cargado"
-            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
+          <Button
+            onClick={() => window.location.href = "/curriculum-cargado"}
+            variant="default"
+            size="lg"
+            className="block shadow-md text-center"
           >
             📄 Cargar Currículum
-          </Link>
+          </Button>
 
-          {/* Botón Certificados */}
-          <Link
-            href="/certificados-cargados"
-            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
+          {/* Botón Cargar Certificados */}
+          <Button
+            onClick={() => window.location.href = "/certificados-cargados"}
+            variant="default"
+            size="lg"
+            className="block shadow-md text-center"
           >
             📑 Cargar Certificados
-          </Link>
+          </Button>
 
-          {/* Botón Títulos */}
-          <Link
-            href="/titulos-cargados"
-            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
+          {/* Botón Cargar Títulos */}
+          <Button
+            onClick={() => window.location.href = "/titulos-cargados"}
+            variant="default"
+            size="lg"
+            className="block shadow-md text-center"
           >
             🎓 Cargar Títulos
-          </Link>
+          </Button>
 
-          {/* Botón Otros */}
-          <Link
-            href="/otros-cargados"
-            className="block bg-[#034991] hover:bg-[#0563c1] text-white font-semibold py-4 px-6 rounded-lg shadow-md text-center transition"
+          {/* Botón Cargar Otros Archivos */}
+          <Button
+            onClick={() => window.location.href = "/otros-cargados"}
+            variant="default"
+            size="lg"
+            className="block shadow-md text-center"
           >
             ⬆️ Cargar Otros Archivos
-          </Link>
+          </Button>
         </div>
       </div>
     </>

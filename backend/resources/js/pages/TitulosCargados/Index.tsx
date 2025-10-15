@@ -4,6 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from "ziggy-js";
+import { Button } from "@/components/ui/button";
 
 interface Documento {
   id_documento: number;
@@ -104,13 +105,16 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Carga de Títulos</h2>
-            <button
+            <Button
               type="button"
               onClick={() => Inertia.get(route("documentos.index"))}
-              className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-1 rounded shadow text-sm"
+              variant="default"
+              size="sm"
+              className="shadow"
+              style={{ backgroundColor: "#034991" }}
             >
               Ir a Documentos
-            </button>
+            </Button>
           </div>
 
           <p className="text-gray-600 mb-4">
@@ -157,21 +161,25 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
 
           {/* Botones */}
           <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
-            <button
+            <Button
               type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-6 py-2 rounded shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+              variant="default"
+              size="default"
               disabled={!files.length}
+              className="shadow"
             >
               Subir Títulos
-            </button>
+            </Button>
             {files.length > 0 && (
-              <button
+              <Button
                 type="button"
                 onClick={() => setFiles([])}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
+                variant="destructive"
+                size="default"
+                className="shadow"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </form>
 
@@ -182,18 +190,25 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
               <ul className="divide-y divide-gray-200">
                 {documentos.map((doc) => (
                   <li key={doc.id_documento} className="flex justify-between items-center py-2">
-                    <a
-                      href={`/storage/${doc.ruta_archivo}`}
-                      target="_blank"
-                      className="text-blue-600 hover:underline"
+                    <Button
+                      type="button"
+                      onClick={() => window.open(`/storage/${doc.ruta_archivo}`, "_blank")}
+                      variant="default"
+                      size="sm"
+                      className="text-center"
                     >
                       {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
-                    </a>
+                    </Button>
                     <div className="flex gap-2">
                       <span className="text-sm text-gray-500">{new Date(doc.fecha_subida).toLocaleDateString()}</span>
-                      <button onClick={() => handleDelete(doc.id_documento)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
+                      <Button
+                        type="button"
+                        onClick={() => handleDelete(doc.id_documento)}
+                        variant="destructive"
+                        size="sm"
+                      >
                         Eliminar
-                      </button>
+                      </Button>
                     </div>
                   </li>
                 ))}

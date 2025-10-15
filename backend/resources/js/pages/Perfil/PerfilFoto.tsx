@@ -5,6 +5,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { Inertia } from "@inertiajs/inertia";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 interface Props {
   userPermisos: number[];
@@ -124,18 +125,13 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
       >
         {/* Botón Volver arriba a la derecha */}
         <div className="flex justify-end mb-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => Inertia.visit("/perfil")}
-            className="px-4 py-2 rounded shadow hover:opacity-90 transition"
-            style={{
-              backgroundColor: COLORS.gris,
-              color: COLORS.blanco,
-              fontFamily: FONT.titulo,
-            }}
           >
             ← Volver
-          </button>
+          </Button>
         </div>
 
         <div
@@ -207,34 +203,27 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
             onSubmit={handleUpload}
             className="mt-6 flex justify-center gap-3"
           >
-            <button
+            <Button
               type="submit"
-              className="px-6 py-2 rounded shadow"
-              style={{
-                backgroundColor: COLORS.azul,
-                color: COLORS.blanco,
-                fontFamily: FONT.titulo,
-              }}
+              variant="default"
+              size="default"
               disabled={!foto}
             >
               Subir Foto
-            </button>
+            </Button>
+
             {foto && (
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="default"
                 onClick={() => {
                   setFoto(null);
                   setPreview(null);
                 }}
-                className="px-6 py-2 rounded shadow"
-                style={{
-                  backgroundColor: COLORS.rojo,
-                  color: COLORS.blanco,
-                  fontFamily: FONT.titulo,
-                }}
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </form>
         </div>

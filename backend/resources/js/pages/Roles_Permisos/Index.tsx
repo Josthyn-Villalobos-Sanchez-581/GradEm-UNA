@@ -4,6 +4,8 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
+
 
 interface Permiso {
   id_permiso: number;
@@ -198,18 +200,15 @@ export default function Index(props: RolesPermisosIndexProps) {
           {/* Encabezado */}
           <div className="flex justify-between items-center border-b pb-3 mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Seleccionar Secciones</h2>
-            <button
-              onClick={async () => {
-                const confirmar = await modal.confirmacion({
-                  titulo: "Mostrar todas las secciones",
-                  mensaje: "¿Desea mostrar todas las secciones disponibles?",
-                });
-                if (confirmar) setSections(["roles", "permisos", "asignacion"]);
-              }}
-              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-            >
+            <Button variant="default" size="default" onClick={async () => {
+              const confirmar = await modal.confirmacion({
+                titulo: "Mostrar todas las secciones",
+                mensaje: "¿Desea mostrar todas las secciones disponibles?",
+              });
+              if (confirmar) setSections(["roles", "permisos", "asignacion"]);
+            }}>
               Mostrar Todo
-            </button>
+            </Button>
           </div>
 
           {/* Cuerpo */}
@@ -258,12 +257,9 @@ export default function Index(props: RolesPermisosIndexProps) {
             {/* Encabezado */}
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h2 className="text-2xl font-bold text-[#034991]">Gestión de Roles</h2>
-              <Link
-                href="/roles/create"
-                className="bg-[#034991] hover:bg-[#023366] text-white px-5 py-2 rounded-lg font-semibold transition-colors"
-              >
-                + Agregar Rol
-              </Link>
+              <Button asChild variant="default" size="default">
+                <Link href="/roles/create">+ Agregar Rol</Link>
+              </Button>
             </div>
 
             {/* Barra de búsqueda y configuración */}
@@ -323,18 +319,12 @@ export default function Index(props: RolesPermisosIndexProps) {
                           {rol.nombre_rol}
                         </td>
                         <td className="px-5 py-3 flex justify-center gap-3">
-                          <Link
-                            href={`/roles/${rol.id_rol}/edit`}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
-                            Editar
-                          </Link>
-                          <button
-                            onClick={() => eliminarRol(rol.id_rol)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
+                          <Button asChild variant="default" size="sm">
+                            <Link href={`/roles/${rol.id_rol}/edit`}>Editar</Link>
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => eliminarRol(rol.id_rol)}>
                             Eliminar
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -346,16 +336,14 @@ export default function Index(props: RolesPermisosIndexProps) {
             {/* Paginación */}
             <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPagesRoles }, (_, i) => i + 1).map((page) => (
-                <button
+                <Button
                   key={page}
+                  size="sm"
+                  variant={rolPage === page ? "default" : "secondary"}
                   onClick={() => setRolPage(page)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${rolPage === page
-                    ? "bg-[#034991] text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                    }`}
                 >
                   {page}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -370,12 +358,9 @@ export default function Index(props: RolesPermisosIndexProps) {
             {/* Encabezado */}
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h2 className="text-2xl font-bold text-[#034991]">Gestión de Permisos</h2>
-              <Link
-                href="/permisos/create"
-                className="bg-[#034991] hover:bg-[#023366] text-white px-5 py-2 rounded-lg font-semibold transition-colors"
-              >
-                + Agregar Permiso
-              </Link>
+              <Button asChild variant="default" size="default">
+                <Link href="/permisos/create">+ Agregar Permiso</Link>
+              </Button>
             </div>
 
             {/* Barra de búsqueda y configuración */}
@@ -435,18 +420,12 @@ export default function Index(props: RolesPermisosIndexProps) {
                           {permiso.nombre}
                         </td>
                         <td className="px-5 py-3 flex justify-center gap-3">
-                          <Link
-                            href={`/permisos/${permiso.id_permiso}/edit`}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
-                            Editar
-                          </Link>
-                          <button
-                            onClick={() => eliminarPermiso(permiso.id_permiso)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
+                          <Button asChild variant="default" size="sm">
+                            <Link href={`/permisos/${permiso.id_permiso}/edit`}>Editar</Link>
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => eliminarPermiso(permiso.id_permiso)}>
                             Eliminar
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -458,16 +437,14 @@ export default function Index(props: RolesPermisosIndexProps) {
             {/* Paginación */}
             <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPagesPermisos }, (_, i) => i + 1).map((page) => (
-                <button
+                <Button
                   key={page}
+                  size="sm"
+                  variant={permisoPage === page ? "default" : "secondary"}
                   onClick={() => setPermisoPage(page)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${permisoPage === page
-                    ? "bg-[#034991] text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                    }`}
                 >
                   {page}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -489,30 +466,28 @@ export default function Index(props: RolesPermisosIndexProps) {
                 className="mb-4 rounded-lg border border-gray-200 bg-gray-50 hover:shadow-md transition-shadow duration-300"
               >
                 {/* Encabezado del rol */}
-                <button
-                  className="w-full flex justify-between items-center px-4 py-3 font-semibold text-[#034991] bg-gray-200 hover:bg-[#034991] hover:text-white rounded-t-lg transition-colors"
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full flex justify-between items-center text-[#034991] hover:bg-[#034991] hover:text-white rounded-t-lg"
                   onClick={() => setRolAbierto((prev) => (prev === rol.id_rol ? null : rol.id_rol))}
                 >
                   <span>{rol.nombre_rol}</span>
                   <span className="text-xl">{rolAbierto === rol.id_rol ? "▲" : "▼"}</span>
-                </button>
+                </Button>
+
 
                 {/* Permisos asignados */}
                 {rolAbierto === rol.id_rol && (
                   <div className="p-4 bg-white rounded-b-lg">
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <button
-                        onClick={() => seleccionarTodos(rol.id_rol)}
-                        className="px-4 py-1.5 text-sm font-medium bg-[#034991] text-white rounded hover:bg-[#023366] transition-colors"
-                      >
+                      <Button variant="default" size="sm" onClick={() => seleccionarTodos(rol.id_rol)}>
                         Seleccionar Todo
-                      </button>
-                      <button
-                        onClick={() => deseleccionarTodos(rol.id_rol)}
-                        className="px-4 py-1.5 text-sm font-medium bg-[#A7A7A9] text-black rounded hover:bg-gray-400 transition-colors"
-                      >
+                      </Button>
+
+                      <Button variant="secondary" size="sm" onClick={() => deseleccionarTodos(rol.id_rol)}>
                         Deseleccionar Todo
-                      </button>
+                      </Button>
                     </div>
 
                     <div
@@ -542,12 +517,9 @@ export default function Index(props: RolesPermisosIndexProps) {
                     </div>
 
                     <div className="flex justify-end mt-4">
-                      <button
-                        onClick={() => guardarPermisos(rol.id_rol)}
-                        className="bg-[#CD1719] text-white px-5 py-2 rounded font-semibold hover:bg-[#a31314] transition-all"
-                      >
+                      <Button variant="destructive" size="default" onClick={() => guardarPermisos(rol.id_rol)}>
                         Guardar Permisos
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
