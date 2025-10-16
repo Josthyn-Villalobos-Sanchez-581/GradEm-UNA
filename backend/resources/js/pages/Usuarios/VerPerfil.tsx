@@ -3,6 +3,7 @@ import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import EnlacesExternos from "@/pages/Perfil/EnlacesExternos"; // ✅ usa el mismo componente
+import { Button } from "@/components/ui/button";
 // backend/resources/js/pages/Usuarios/VerPerfil.tsx
 
 interface FotoPerfil {
@@ -22,6 +23,11 @@ interface Carrera {
   nombre: string;
 }
 
+interface Plataforma {
+  id_plataforma: number;
+  tipo: string;
+  url: string;
+}
 interface Empresa {
   id_empresa?: number;
   nombre?: string;
@@ -70,10 +76,19 @@ interface Plataforma {
 
 interface Props {
   usuario: Usuario;
-  plataformas?: Plataforma[];
+  plataformas: Plataforma[];
   userPermisos: number[];
 }
 
+/*export default function VerPerfil({ usuario, plataformas }: Props) {
+  const [mostrarCV, setMostrarCV] = useState(false);
+
+  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+
+  plataformas?: Plataforma[];
+  userPermisos: number[];
+}
+*/
 export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const [mostrarCV, setMostrarCV] = useState(false);
 
@@ -81,7 +96,7 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const renderValor = (valor: any) =>
     valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
-  // ✅ Si el usuario tiene rol Empresa, mostrar diseño distinto
+  // Si el usuario tiene rol Empresa, mostrar diseño distinto
   if (usuario.rol?.nombre_rol?.toLowerCase() === "empresa") {
     return (
       <>
@@ -89,12 +104,10 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
         <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6 text-black">
           <div className="flex justify-between items-center mb-6 border-b pb-3 border-gray-200">
             <h2 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h2>
-            <Link
-              href="/usuarios/perfiles"
-              className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-            >
-              Volver
-            </Link>
+            {/* Botón Volver */}
+            <Button asChild variant="secondary">
+              <Link href="/usuarios/perfiles">Volver</Link>
+            </Button>
           </div>
 
           <div className="flex flex-col md:flex-row gap-8">
@@ -132,13 +145,15 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
                   <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-                  <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-                  <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
                 </div>
               </div>
 
               {/* Enlaces externos */}
-              <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+              <EnlacesExternos
+                enlaces={plataformas || []}
+                usuario={usuario}
+                soloLectura={true} // 👈 modo lectura solo
+              />
             </div>
           </div>
         </div>
@@ -154,13 +169,10 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
       <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6 border-b pb-3 border-gray-200">
           <h2 className="text-2xl font-bold text-[#034991]">Perfil del Usuario</h2>
-          <Link
-    href="/usuarios/perfiles"
-    className="px-6 py-2 **rounded-full** shadow text-white font-semibold transition"
-    style={{ backgroundColor: "#A7A7A9" }}
->
-    Volver
-</Link>
+            {/* Botón Volver */}
+            <Button asChild variant="secondary">
+              <Link href="/usuarios/perfiles">Volver</Link>
+            </Button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -212,12 +224,12 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
             {/* Currículum */}
             {usuario.curriculum?.ruta_archivo_pdf && (
               <div className="mt-4">
-                <button
+                <Button
                   onClick={() => setMostrarCV(!mostrarCV)}
-                  className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
+                  variant="default"
                 >
                   {mostrarCV ? "Ocultar Currículum" : "Ver Currículum"}
-                </button>
+                </Button>
 
                 {mostrarCV && (
                   <div className="mt-3 border rounded-lg shadow overflow-hidden">
@@ -230,13 +242,21 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 )}
               </div>
             )}
+
+            {/* 🔗 Enlaces a plataformas externas */}
+            <div className="mt-6">
+              <EnlacesExternos
+                enlaces={plataformas || []}
+                usuario={usuario}
+                soloLectura={true} // 👈 modo lectura solo
+              />
+            </div>
           </div>
         </div>
       </div>
     </>
   );
 }
-
 // ✅ Layout principal
 VerPerfil.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];

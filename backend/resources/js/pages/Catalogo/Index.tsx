@@ -4,10 +4,11 @@ import { Inertia } from "@inertiajs/inertia";
 import { PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
+
 
 interface Item {
   id: number;
-  nombre: string;
   [key: string]: any;
 }
 
@@ -42,18 +43,17 @@ export default function CatalogoIndex({
 }: CatalogoProps) {
   const modal = useModal();
 
-  // ==========================
-  // MENSAJES DEL BACKEND
-  // ==========================
+  // ========================= MENSAJES =========================
   useEffect(() => {
-    if (flash?.error) modal.alerta({ titulo: "Error", mensaje: flash.error });
-    if (flash?.success) modal.alerta({ titulo: "Éxito", mensaje: flash.success });
-    if (errors?.error) modal.alerta({ titulo: "Error", mensaje: errors.error });
+    if (flash?.error)
+      modal.alerta({ titulo: "Error", mensaje: flash.error });
+    if (flash?.success)
+      modal.alerta({ titulo: "Éxito", mensaje: flash.success });
+    if (errors?.error)
+      modal.alerta({ titulo: "Error", mensaje: errors.error });
   }, [flash, errors]);
 
-  // ==========================
-  // SECCIONES
-  // ==========================
+  // ========================= SECCIONES =========================
   const allSections = [
     "paises",
     "provincias",
@@ -69,7 +69,6 @@ export default function CatalogoIndex({
   const [sections, setSections] = useState<string[]>([...allSections]);
   const [openSection, setOpenSection] = useState<string | null>(null);
 
-  // Checkbox + doble clic
   const handleClick = (section: string) => {
     setSections((prev) =>
       prev.includes(section)
@@ -90,50 +89,86 @@ export default function CatalogoIndex({
     setOpenSection(null);
   };
 
-  // ==========================
-  // COMPONENTE TABLA
-  // ==========================
+  // ========================= TABLA =========================
   const TablaCatalogo = ({
     titulo,
     nombreCampo,
     endpoint,
     data,
+    camposAdicionales = [],
+    relacionesSelect = [] as { name: string; label: string; options: Item[] }[],
   }: {
     titulo: string;
     nombreCampo: string;
     endpoint: string;
     data: Item[];
+    camposAdicionales?: { name: string; label: string; placeholder?: string }[];
+    relacionesSelect?: { name: string; label: string; options: Item[] }[];
   }) => {
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [editingItem, setEditingItem] = useState<Item | null>(null);
-    const [nombreNuevo, setNombreNuevo] = useState("");
+    const [formValues, setFormValues] = useState<Record<string, string>>({});
 
     const filtered = data.filter((d) =>
       d[nombreCampo]?.toLowerCase().includes(search.toLowerCase())
     );
-    const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const paginated = filtered.slice(
+      (page - 1) * itemsPerPage,
+      page * itemsPerPage
+    );
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
+    const handleChange = (field: string, value: string) => {
+      setFormValues((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const startEditing = (item: Item) => {
+      setEditingItem(item);
+      const values: Record<string, string> = {
+        [nombreCampo]: item[nombreCampo],
+      };
+      camposAdicionales.forEach((c) => {
+        values[c.name] = item[c.name] || "";
+      });
+      relacionesSelect.forEach((r) => {
+        values[r.name] = item[r.name] || "";
+      });
+      setFormValues(values);
+    };
+
+    // ========================= GUARDAR =========================
     const guardar = async () => {
-      if (!nombreNuevo.trim()) {
+      // Validación principal
+      if (!formValues[nombreCampo]?.trim()) {
         modal.alerta({
           titulo: "Error",
-          mensaje: "Debe ingresar un nombre válido.",
+          mensaje: `Debe ingresar un nombre válido para ${titulo.toLowerCase()}.`,
         });
         return;
       }
 
+      // Validar selects
+      for (const rel of relacionesSelect) {
+        if (!formValues[rel.name]) {
+          modal.alerta({
+            titulo: "Error",
+            mensaje: `Debe seleccionar ${rel.label}.`,
+          });
+          return;
+        }
+      }
+
       const ok = await modal.confirmacion({
-        titulo: editingItem ? "Actualizar registro" : "Agregar nuevo",
+        titulo: editingItem ? "Actualizar registro" : "Agregar nuevo registro",
         mensaje: editingItem
           ? `¿Desea actualizar este ${titulo.toLowerCase()}?`
           : `¿Desea agregar un nuevo ${titulo.toLowerCase()}?`,
       });
       if (!ok) return;
 
-      const payload: Record<string, any> = { nombre: nombreNuevo };
+      const payload: Record<string, any> = { ...formValues };
       if (editingItem?.id !== undefined) payload.id = editingItem.id;
 
       Inertia.post(`/catalogo/${endpoint}`, payload, {
@@ -146,12 +181,21 @@ export default function CatalogoIndex({
               ? "Registro actualizado correctamente."
               : "Registro agregado correctamente.",
           });
-          setNombreNuevo("");
+          setFormValues({});
           setEditingItem(null);
+        },
+        onError: (error) => {
+          modal.alerta({
+            titulo: "Error",
+            mensaje:
+              error?.error ||
+              "Ocurrió un error al guardar el registro. Verifique los datos.",
+          });
         },
       });
     };
 
+    // ========================= ELIMINAR =========================
     const eliminar = async (id: number) => {
       const ok = await modal.confirmacion({
         titulo: "Eliminar registro",
@@ -166,9 +210,17 @@ export default function CatalogoIndex({
             titulo: "Éxito",
             mensaje: "Registro eliminado correctamente.",
           }),
+        onError: (error) =>
+          modal.alerta({
+            titulo: "Error",
+            mensaje:
+              error?.error ||
+              "No se pudo eliminar el registro. Verifique dependencias o permisos.",
+          }),
       });
     };
 
+    // ========================= RENDER TABLA =========================
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4">
         <div
@@ -185,7 +237,7 @@ export default function CatalogoIndex({
 
         {openSection === titulo && (
           <div className="p-5 border-t border-gray-200 space-y-4">
-            {/* Formulario Inline */}
+            {/* Formulario */}
             <div className="flex flex-wrap items-end gap-3 border-b pb-3">
               <div>
                 <label className="block text-gray-700 font-medium mb-1">
@@ -195,33 +247,71 @@ export default function CatalogoIndex({
                 </label>
                 <input
                   type="text"
-                  placeholder={`Nombre del ${titulo.toLowerCase().slice(0, -1)}`}
-                  value={nombreNuevo}
-                  onChange={(e) => setNombreNuevo(e.target.value)}
+                  placeholder={`Nombre del ${titulo
+                    .toLowerCase()
+                    .slice(0, -1)}`}
+                  value={formValues[nombreCampo] || ""}
+                  onChange={(e) => handleChange(nombreCampo, e.target.value)}
                   className="border border-gray-300 px-4 py-2 rounded-lg w-72 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
                 />
               </div>
-              <button
-                onClick={guardar}
-                className="flex items-center gap-2 bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-              >
+
+              {/* Campos adicionales */}
+              {camposAdicionales.map((c) => (
+                <div key={c.name}>
+                  <label className="block text-gray-700 font-medium mb-1">
+                    {c.label}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={c.placeholder || c.label}
+                    value={formValues[c.name] || ""}
+                    onChange={(e) => handleChange(c.name, e.target.value)}
+                    className="border border-gray-300 px-4 py-2 rounded-lg w-48 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
+                  />
+                </div>
+              ))}
+
+              {/* Relaciones select */}
+              {relacionesSelect.map((r) => (
+                <div key={r.name}>
+                  <label className="block text-gray-700 font-medium mb-1">
+                    {r.label}
+                  </label>
+                  <select
+                    value={formValues[r.name] || ""}
+                    onChange={(e) => handleChange(r.name, e.target.value)}
+                    className="border border-gray-300 px-4 py-2 rounded-lg shadow-sm"
+                  >
+                    <option value="">Seleccione {r.label}</option>
+                    {r.options.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+
+              <Button onClick={guardar} className="flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" />
                 {editingItem ? "Actualizar" : "Agregar"}
-              </button>
+              </Button>
+
               {editingItem && (
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setEditingItem(null);
-                    setNombreNuevo("");
+                    setFormValues({});
                   }}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
                 >
                   Cancelar
-                </button>
+                </Button>
               )}
             </div>
 
-            {/* Buscador y tabla */}
+            {/* Buscador */}
             <div className="flex justify-between items-center flex-wrap gap-4">
               <input
                 type="text"
@@ -256,14 +346,33 @@ export default function CatalogoIndex({
                   <tr>
                     <th className="px-5 py-3 font-semibold">ID</th>
                     <th className="px-5 py-3 font-semibold">Nombre</th>
-                    <th className="px-5 py-3 font-semibold text-center">Acciones</th>
+                    {camposAdicionales.map((c) => (
+                      <th
+                        key={c.name}
+                        className="px-5 py-3 font-semibold"
+                      >
+                        {c.label}
+                      </th>
+                    ))}
+                    {relacionesSelect.map((r) => (
+                      <th key={r.name} className="px-5 py-3 font-semibold">
+                        {r.label}
+                      </th>
+                    ))}
+                    <th className="px-5 py-3 font-semibold text-center">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={
+                          2 +
+                          camposAdicionales.length +
+                          relacionesSelect.length
+                        }
                         className="text-center py-4 text-gray-500 italic"
                       >
                         No se encontraron registros.
@@ -277,22 +386,28 @@ export default function CatalogoIndex({
                       >
                         <td className="px-5 py-3">{item.id}</td>
                         <td className="px-5 py-3">{item[nombreCampo]}</td>
+                        {camposAdicionales.map((c) => (
+                          <td key={c.name} className="px-5 py-3">
+                            {item[c.name]}
+                          </td>
+                        ))}
+                        {relacionesSelect.map((r) => {
+                          const selected = r.options.find(
+                            (o) => o.id == item[r.name]
+                          );
+                          return (
+                            <td key={r.name} className="px-5 py-3">
+                              {selected?.nombre || ""}
+                            </td>
+                          );
+                        })}
                         <td className="px-5 py-3 flex justify-center gap-3">
-                          <button
-                            onClick={() => {
-                              setEditingItem(item);
-                              setNombreNuevo(item[nombreCampo]);
-                            }}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
+                          <Button onClick={() => startEditing(item)} size="sm">
                             Editar
-                          </button>
-                          <button
-                            onClick={() => eliminar(item.id)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
+                          </Button>
+                          <Button onClick={() => eliminar(item.id)} variant="destructive" size="sm">
                             Eliminar
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -303,19 +418,18 @@ export default function CatalogoIndex({
 
             {/* Paginación */}
             <div className="flex justify-center gap-2 mt-5">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    pageNum === page
-                      ? "bg-[#034991] text-white"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (pageNum) => (
+                  <Button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    variant={pageNum === page ? "default" : "outline"}
+                    size="sm"
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              )}
             </div>
           </div>
         )}
@@ -323,36 +437,33 @@ export default function CatalogoIndex({
     );
   };
 
-  // ==========================
-  // RENDERIZADO PRINCIPAL
-  // ==========================
   return (
     <>
       <Head title="Gestión de Catálogos" />
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]">
-        {/* SELECCIÓN DE SECCIONES */}
+        {/* Selección de secciones */}
         <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 mb-6">
           <div className="flex justify-between items-center border-b pb-3 mb-4">
-            <h2 className="text-2xl font-bold text-[#034991]">Seleccionar Secciones</h2>
-            <button
+            <h2 className="text-2xl font-bold text-[#034991]">
+              Seleccionar Secciones
+            </h2>
+            <Button
               onClick={mostrarTodas}
-              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              variant="default"
             >
               Mostrar Todo
-            </button>
+            </Button>
           </div>
-
           <div className="flex flex-wrap gap-4">
             {allSections.map((sec) => (
               <label
                 key={sec}
                 onClick={() => handleClick(sec)}
                 onDoubleClick={() => handleDoubleClick(sec)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer transition-colors ${
-                  sections.includes(sec)
-                    ? "bg-[#BEE3F8] border-[#034991]"
-                    : "border-gray-300 hover:bg-gray-100 text-gray-700"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer transition-colors ${sections.includes(sec)
+                  ? "bg-[#BEE3F8] border-[#034991]"
+                  : "border-gray-300 hover:bg-gray-100 text-gray-700"
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -360,39 +471,96 @@ export default function CatalogoIndex({
                   onChange={() => handleClick(sec)}
                   className="w-4 h-4 accent-[#034991]"
                 />
-                <span className="font-medium capitalize">{sec.replace("_", " ")}</span>
+                <span className="font-medium capitalize">
+                  {sec.replace("_", " ")}
+                </span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* SECCIONES */}
+        {/* Renderizado de tablas */}
         {sections.includes("paises") && (
-          <TablaCatalogo titulo="Países" nombreCampo="nombre" endpoint="paises" data={paises} />
+          <TablaCatalogo
+            titulo="Países"
+            nombreCampo="nombre"
+            endpoint="paises"
+            data={paises}
+          />
         )}
         {sections.includes("provincias") && (
-          <TablaCatalogo titulo="Provincias" nombreCampo="nombre" endpoint="provincias" data={provincias} />
+          <TablaCatalogo
+            titulo="Provincias"
+            nombreCampo="nombre"
+            endpoint="provincias"
+            data={provincias}
+            relacionesSelect={[
+              { name: "id_pais", label: "País", options: paises },
+            ]}
+          />
         )}
         {sections.includes("cantones") && (
-          <TablaCatalogo titulo="Cantones" nombreCampo="nombre" endpoint="cantones" data={cantones} />
+          <TablaCatalogo
+            titulo="Cantones"
+            nombreCampo="nombre"
+            endpoint="cantones"
+            data={cantones}
+            relacionesSelect={[
+              { name: "id_provincia", label: "Provincia", options: provincias },
+            ]}
+          />
         )}
         {sections.includes("universidades") && (
-          <TablaCatalogo titulo="Universidades" nombreCampo="nombre" endpoint="universidades" data={universidades} />
+          <TablaCatalogo
+            titulo="Universidades"
+            nombreCampo="nombre"
+            endpoint="universidades"
+            data={universidades}
+            camposAdicionales={[{ name: "sigla", label: "Sigla" }]}
+          />
         )}
         {sections.includes("carreras") && (
-          <TablaCatalogo titulo="Carreras" nombreCampo="nombre" endpoint="carreras" data={carreras} />
+          <TablaCatalogo
+            titulo="Carreras"
+            nombreCampo="nombre"
+            endpoint="carreras"
+            data={carreras}
+            relacionesSelect={[
+              { name: "id_universidad", label: "Universidad", options: universidades },
+            ]}
+          />
         )}
         {sections.includes("estados") && (
-          <TablaCatalogo titulo="Estados" nombreCampo="nombre_estado" endpoint="estados" data={estados} />
+          <TablaCatalogo
+            titulo="Estados"
+            nombreCampo="nombre_estado"
+            endpoint="estados"
+            data={estados}
+          />
         )}
         {sections.includes("modalidades") && (
-          <TablaCatalogo titulo="Modalidades" nombreCampo="nombre_modalidad" endpoint="modalidades" data={modalidades} />
+          <TablaCatalogo
+            titulo="Modalidades"
+            nombreCampo="nombre"
+            endpoint="modalidades"
+            data={modalidades}
+          />
         )}
         {sections.includes("idiomas") && (
-          <TablaCatalogo titulo="Idiomas" nombreCampo="nombre" endpoint="idiomas" data={idiomas} />
+          <TablaCatalogo
+            titulo="Idiomas"
+            nombreCampo="nombre"
+            endpoint="idiomas"
+            data={idiomas}
+          />
         )}
         {sections.includes("areas_laborales") && (
-          <TablaCatalogo titulo="Áreas Laborales" nombreCampo="nombre" endpoint="areas-laborales" data={areas_laborales} />
+          <TablaCatalogo
+            titulo="Áreas Laborales"
+            nombreCampo="nombre"
+            endpoint="areas_laborales"
+            data={areas_laborales}
+          />
         )}
       </div>
     </>
@@ -403,4 +571,3 @@ CatalogoIndex.layout = (page: React.ReactNode & { props: CatalogoProps }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
-

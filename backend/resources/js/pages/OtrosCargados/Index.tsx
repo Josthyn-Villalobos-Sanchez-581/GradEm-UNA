@@ -18,16 +18,16 @@ interface Props {
   userPermisos: number[];
 }
 
-export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
+export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
   const modal = useModal();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
+  // Permitir cualquier tipo de archivo común: PDF, imágenes, Word, TXT, ZIP, etc.
   const validarArchivo = (file: File) => {
-    const allowed = ["application/pdf", "image/png", "image/jpeg"];
-    if (!allowed.includes(file.type)) return "Formato no permitido. Solo PDF, PNG o JPG.";
-    if (file.size > 2 * 1024 * 1024) return "Archivo supera el límite de 2MB.";
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) return `El archivo ${file.name} supera los 5MB permitidos.`;
     return null;
   };
 
@@ -37,7 +37,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
     for (const f of arr) {
       const err = validarArchivo(f);
       if (err) {
-        modal.alerta({ titulo: "Archivo inválido", mensaje: `${f.name}: ${err}` });
+        modal.alerta({ titulo: "Archivo inválido", mensaje: err });
         continue;
       }
       setFiles((prev) => [...prev, f]);
@@ -61,14 +61,15 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
     files.forEach((f) => formData.append("archivos[]", f));
 
     try {
-      await Inertia.post(route("titulos.upload"), formData, {
+      await Inertia.post(route("otros.upload"), formData, {
         forceFormData: true,
         onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Títulos cargados correctamente." });
+          modal.alerta({ titulo: "Éxito", mensaje: "Archivos cargados correctamente." });
           setFiles([]);
         },
         onError: (errors) => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo cargar. Verifique los archivos." });
+          modal.alerta({ titulo: "Error", mensaje: "No se pudieron cargar los archivos." });
+          console.error(errors);
         },
       });
     } catch {
@@ -78,33 +79,33 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
 
   const handleDelete = async (id: number) => {
     const ok = await modal.confirmacion({
-      titulo: "Eliminar Título",
-      mensaje: "¿Está seguro que desea eliminar este título?",
+      titulo: "Eliminar documento",
+      mensaje: "¿Está seguro que desea eliminar este archivo?",
     });
     if (!ok) return;
 
     try {
-      await Inertia.delete(route("titulos.delete"), {
+      await Inertia.delete(route("otros.delete"), {
         data: { id_documento: id },
         onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Título eliminado correctamente." });
+          modal.alerta({ titulo: "Éxito", mensaje: "Archivo eliminado correctamente." });
         },
         onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el título." });
+          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el archivo." });
         },
       });
     } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar." });
+      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar el archivo." });
     }
   };
 
   return (
     <>
-      <Head title="Carga de Títulos" />
+      <Head title="Carga de Otros Archivos" />
       <div className="max-w-xl mx-auto p-6 text-gray-900">
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-[#034991]">Carga de Títulos</h2>
+            <h2 className="text-2xl font-bold text-[#034991]">Carga de Otros Archivos</h2>
             <Button
               type="button"
               onClick={() => Inertia.get(route("documentos.index"))}
@@ -118,12 +119,15 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
           </div>
 
           <p className="text-gray-600 mb-4">
-            Formatos permitidos: <strong>PDF, PNG, JPG</strong>. Máximo <strong>2MB</strong> por archivo. Se pueden seleccionar varios archivos.
+            Formatos permitidos: <strong>PDF, PNG, JPG, DOC, DOCX, ZIP, RAR, TXT</strong>. Máximo{" "}
+            <strong>5MB</strong> por archivo. Se pueden seleccionar varios archivos.
           </p>
 
           {/* Dropzone */}
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${dragOver ? "border-red-500 bg-red-50" : files.length ? "border-green-400" : "border-gray-300"}`}
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
+              dragOver ? "border-red-500 bg-red-50" : files.length ? "border-green-400" : "border-gray-300"
+            }`}
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDragEnter={() => setDragOver(true)}
@@ -144,7 +148,9 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
                 <p className="font-medium text-green-700 mb-2">{files.length} archivo(s) listo(s) para subir:</p>
                 <ul className="list-disc pl-5 text-sm">
                   {files.map((f, i) => (
-                    <li key={i}>{f.name} ({Math.round(f.size / 1024)} KB)</li>
+                    <li key={i}>
+                      {f.name} ({Math.round(f.size / 1024)} KB)
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -152,7 +158,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.rar,.txt"
               className="hidden"
               multiple
               onChange={(e) => handleAddFiles(e.target.files)}
@@ -168,7 +174,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
               disabled={!files.length}
               className="shadow"
             >
-              Subir Títulos
+              Subir Archivos
             </Button>
             {files.length > 0 && (
               <Button
@@ -185,7 +191,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
 
           {/* Lista existente */}
           <div className="mt-8 border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Títulos cargados:</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Otros archivos cargados:</h3>
             {documentos && documentos.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {documentos.map((doc) => (
@@ -195,12 +201,15 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
                       onClick={() => window.open(`/storage/${doc.ruta_archivo}`, "_blank")}
                       variant="default"
                       size="sm"
-                      className="text-center"
+                      className="shadow text-center"
+                      style={{ backgroundColor: "#034991" }}
                     >
-                      {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
+                      Ver Currículum
                     </Button>
                     <div className="flex gap-2">
-                      <span className="text-sm text-gray-500">{new Date(doc.fecha_subida).toLocaleDateString()}</span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(doc.fecha_subida).toLocaleDateString()}
+                      </span>
                       <Button
                         type="button"
                         onClick={() => handleDelete(doc.id_documento)}
@@ -214,7 +223,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-600">No tiene títulos cargados.</p>
+              <p className="text-gray-600">No tiene otros archivos cargados.</p>
             )}
           </div>
         </div>
@@ -223,7 +232,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
   );
 }
 
-TitulosIndex.layout = (page: React.ReactNode & { props: Props }) => {
+OtrosIndex.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };

@@ -5,6 +5,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { Inertia } from "@inertiajs/inertia";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 interface Props {
   userPermisos: number[];
@@ -95,12 +96,14 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      modal.alerta({
-        titulo: "Éxito",
-        mensaje: "Foto de perfil actualizada exitosamente.",
-      }).then(() => {
-        Inertia.visit("/perfil");
-      });
+      modal
+        .alerta({
+          titulo: "Éxito",
+          mensaje: "Foto de perfil actualizada exitosamente.",
+        })
+        .then(() => {
+          Inertia.visit("/perfil");
+        });
 
       setFoto(null);
       setPreview(null);
@@ -120,6 +123,17 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
         className="max-w-md mx-auto p-6 space-y-6"
         style={{ color: COLORS.negro, fontFamily: FONT.texto }}
       >
+        {/* Botón Volver arriba a la derecha */}
+        <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => Inertia.visit("/perfil")}
+          >
+            ← Volver
+          </Button>
+        </div>
+
         <div
           className="bg-white shadow-md rounded-lg p-6"
           style={{ backgroundColor: COLORS.blanco }}
@@ -185,35 +199,31 @@ export default function PerfilFoto({ userPermisos, fotoPerfil }: Props) {
           </div>
 
           {/* Botones */}
-          <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
-            <button
+          <form
+            onSubmit={handleUpload}
+            className="mt-6 flex justify-center gap-3"
+          >
+            <Button
               type="submit"
-              className="px-6 py-2 rounded shadow"
-              style={{
-                backgroundColor: COLORS.azul,
-                color: COLORS.blanco,
-                fontFamily: FONT.titulo,
-              }}
+              variant="default"
+              size="default"
               disabled={!foto}
             >
               Subir Foto
-            </button>
+            </Button>
+
             {foto && (
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="default"
                 onClick={() => {
                   setFoto(null);
                   setPreview(null);
                 }}
-                className="px-6 py-2 rounded shadow"
-                style={{
-                  backgroundColor: COLORS.rojo,
-                  color: COLORS.blanco,
-                  fontFamily: FONT.titulo,
-                }}
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </form>
         </div>
@@ -226,4 +236,3 @@ PerfilFoto.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
-

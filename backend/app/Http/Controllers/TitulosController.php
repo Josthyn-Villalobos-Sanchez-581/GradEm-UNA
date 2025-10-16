@@ -55,6 +55,7 @@ class TitulosController extends Controller
                     'id_usuario'   => $user->id_usuario,
                     'tipo'         => 'titulo',
                     'ruta_archivo' => $path,
+                    'nombre_original'  => $file->getClientOriginalName(),
                     // fecha_subida se maneja por default en DB
                 ]);
 

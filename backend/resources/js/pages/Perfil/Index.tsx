@@ -4,6 +4,9 @@ import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
+
+
 // backend/resources/js/pages/Perfil/Index.tsx
 // 👇 importa tu componente de enlaces externos
 import EnlacesExternos from "./EnlacesExternos";
@@ -11,8 +14,6 @@ import EnlacesExternos from "./EnlacesExternos";
 interface FotoPerfil {
   ruta_imagen: string;
 }
-
-
 interface Usuario {
   id_usuario: number;
   nombre_completo: string;
@@ -139,15 +140,23 @@ if (rolNombre.toLowerCase() === "empresa") {
             {flash.error}
           </div>
         )}
+        
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Perfil de Empresa</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
+          
+          {/* Contenedor para los dos botones a la derecha */}
+          <div className="flex space-x-4">
+              {/* Botón Editar Perfil */}
+              <Button asChild variant="default">
+                <Link href="/perfil/editar">Editar Perfil</Link>
+              </Button>
+              
+              {/* Botón Volver */}
+              <Button asChild variant="secondary">
+                <Link href="/dashboard">Volver</Link>
+              </Button>
+          </div>
+      </div>
 
         <div className="flex flex-col md:flex-row gap-8">
           {/* Columna izquierda igual que otros roles */}
@@ -157,29 +166,18 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Link
-                href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Actualizar Foto
-              </Link>
-
+              <Button asChild variant="default">
+                <Link href="/perfil/foto">Actualizar Foto</Link>
+              </Button>
+              {/* 🔹 Botón Eliminar Foto */}
               {usuario.fotoPerfil && (
-                <button
+                <Button
+                  variant="destructive"
                   onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
                 >
                   Eliminar Foto
-                </button>
+                </Button>
               )}
-
-              {/* Botón para editar perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center block"
-              >
-                Editar Perfil
-              </Link>
             </div>
           </div>
 
@@ -216,7 +214,13 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+<EnlacesExternos
+  key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
+  enlaces={plataformas || []}
+  usuario={usuario}
+  rolNombre={rolNombre}
+/>
+
           </div>
         </div>
       </div>
@@ -241,15 +245,22 @@ if (rolNombre.toLowerCase() === "empresa") {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6">
+       <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
+          
+          {/* Contenedor para los dos botones */}
+          <div className="flex space-x-4">
+              {/* Botón Editar Perfil */}
+              <Button asChild variant="default">
+                <Link href="/perfil/editar">Editar Perfil</Link>
+              </Button>
+              
+              {/* Botón Volver */}
+              <Button asChild variant="secondary">
+                <Link href="/dashboard">Volver</Link>
+              </Button>
+          </div>
+      </div>
 
         {/* Panel principal con 2 columnas */}
         <div className="flex flex-col md:flex-row gap-8">
@@ -259,34 +270,25 @@ if (rolNombre.toLowerCase() === "empresa") {
               <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
             </div>
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Link
-                href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Actualizar Foto
-              </Link>
+              <Button asChild variant="default">
+                <Link href="/perfil/foto">Actualizar Foto</Link>
+              </Button>
+              {/* 🔹 Botón Eliminar Foto */}
               {usuario.fotoPerfil && (
-                <button
+                <Button
+                  variant="destructive"
                   onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
                 >
                   Eliminar Foto
-                </button>
+                </Button>
               )}
+              
               {/* Nuevo botón Ver Currículum */}
-              <Link
-                href="/mi-curriculum/ver"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Ver Currículum
-              </Link>
-              {/* Botón Editar Perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2 text-center block"
-              >
-                Editar Perfil
-              </Link>
+              {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+                <Button asChild variant="default">
+                  <Link href="/mi-curriculum/ver">Ver Currículum</Link>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -306,32 +308,44 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* Datos académicos */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-                <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-                <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
-                <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
-                <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") ? (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                  <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
+                  <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
+                  <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                </div>
+              </div>
+            )}
 
             {/* Datos laborales */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
-                {usuario.estado_empleo?.toLowerCase() === "empleado" && (
-                  <>
-                    <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                    <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
-                    <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                    <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
-                  </>
-                )}
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+                  {usuario.estado_empleo?.toLowerCase() === "empleado" && (
+                    <>
+                      <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
+                      <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
+                      <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
+                      <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ubicación */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
@@ -347,7 +361,11 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Enlaces a plataformas externas */}
-            <EnlacesExternos enlaces={plataformas} usuario={usuario} />
+                 <EnlacesExternos
+                             enlaces={plataformas || []}
+                             usuario={usuario}
+                             soloLectura={false} // 👈 modo lectura solo
+                           />
           </div>
         </div>
       </div>

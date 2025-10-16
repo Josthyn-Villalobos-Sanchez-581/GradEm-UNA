@@ -17,6 +17,7 @@ class DocumentoAdjunto extends Model
         'id_usuario',
         'tipo',
         'ruta_archivo',
+        'nombre_original',
         'fecha_subida',
     ];
 
