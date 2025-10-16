@@ -4,6 +4,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Inertia } from "@inertiajs/inertia";
 import { route } from "ziggy-js";
+import { Button } from "@/components/ui/button";
 
 
 interface Curriculum {
@@ -100,13 +101,16 @@ export default function CurriculumIndex({ usuario, curriculum }: Props) {
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Carga de Currículum</h2>
-            <button
-                type="button"
-                onClick={() => Inertia.get(route("documentos.index"))}
-                className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-1 rounded shadow text-sm"
+            <Button
+              type="button"
+              onClick={() => Inertia.get(route("documentos.index"))}
+              variant="default"
+              size="sm"
+              className="shadow"
+              style={{ backgroundColor: "#034991" }}
             >
-                Ir a Documentos
-            </button>
+              Ir a Documentos
+            </Button>
           </div>
           <p className="text-gray-600 mb-4">
             Solo se permiten archivos <strong>PDF</strong> de máximo <strong>10MB</strong>.
@@ -153,21 +157,26 @@ export default function CurriculumIndex({ usuario, curriculum }: Props) {
 
           {/* Botones */}
           <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
-            <button
+            <Button
               type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-6 py-2 rounded shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+              variant="default"
+              size="default"
               disabled={!file}
+              className="shadow"
+              style={{ backgroundColor: "#034991" }}
             >
               Subir Currículum
-            </button>
+            </Button>
             {file && (
-              <button
+              <Button
                 type="button"
                 onClick={() => setFile(null)}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
+                variant="destructive"
+                size="default"
+                className="shadow"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </form>
 
@@ -179,20 +188,25 @@ export default function CurriculumIndex({ usuario, curriculum }: Props) {
                 Subido el {new Date(curriculum.fecha_creacion).toLocaleDateString()}
               </p>
               <div className="flex gap-3">
-                <a
-                  href={`/storage/${curriculum.ruta_archivo_pdf}`}
-                  target="_blank"
-                  className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-2 rounded shadow text-center"
+                <Button
+                  type="button"
+                  onClick={() => window.open(`/storage/${curriculum.ruta_archivo_pdf}`, "_blank")}
+                  variant="default"
+                  size="sm"
+                  className="shadow text-center"
+                  style={{ backgroundColor: "#034991" }}
                 >
                   Ver Currículum
-                </a>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow"
+                  variant="destructive"
+                  size="sm"
+                  className="shadow"
                 >
                   Eliminar
-                </button>
+                </Button>
               </div>
             </div>
           )}

@@ -4,6 +4,7 @@ import { Inertia } from "@inertiajs/inertia";
 import { PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
 
 interface Item {
   id: number;
@@ -293,22 +294,26 @@ export default function CatalogoIndex({
 
               <button
                 onClick={guardar}
-                className="flex items-center gap-2 bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                variant="default"
+                size="default"
+                className="flex items-center gap-2 transition-colors"
               >
                 <PlusCircle className="w-5 h-5" />
                 {editingItem ? "Actualizar" : "Agregar"}
               </button>
 
               {editingItem && (
-                <button
+                <Button
                   onClick={() => {
                     setEditingItem(null);
                     setFormValues({});
                   }}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                  variant="secondary"
+                  size="default"
+                  className="transition-colors"
                 >
                   Cancelar
-                </button>
+                </Button>
               )}
             </div>
 
@@ -408,13 +413,14 @@ export default function CatalogoIndex({
                             className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
                           >
                             Editar
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => eliminar(item.id)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
+                            variant="destructive"
+                            size="sm"
                           >
                             Eliminar
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -458,10 +464,12 @@ export default function CatalogoIndex({
             </h2>
             <button
               onClick={mostrarTodas}
-              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              variant="default"
+              size="default"
+              className="transition-colors"
             >
               Mostrar Todo
-            </button>
+            </Button>
           </div>
           <div className="flex flex-wrap gap-4">
             {allSections.map((sec) => (

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Link } from "@inertiajs/react";
+import { Button } from "@/components/ui/button";
 
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
@@ -430,11 +431,10 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           </h2>
           <p className="section-sub">Complete los datos para crear la cuenta.</p>
         </div>
-        <Link
-          href={route("usuarios.index")}
-          className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-        >
-          Volver
+        <Link href={route("usuarios.index")}>
+          <Button variant="secondary" size="sm">
+            Volver
+          </Button>
         </Link>
       </div>
 
@@ -550,15 +550,16 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           <div className="full-row help-text">Campos con * son obligatorios. La contraseña debe tener mínimo 8 caracteres y cumplir las reglas.</div>
         </div>
 
-        <div className="mt-6">
-          <button
+        <div className="mt-6 flex justify-center">
+          <Button
             type="submit"
+            variant="default"
+            size="default"
             disabled={form.processing || !valid}
-            className="btn-primary"
             title={valid ? "Registrar" : "Complete todos los campos correctamente"}
           >
             {form.processing ? "Enviando..." : "Registrar"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

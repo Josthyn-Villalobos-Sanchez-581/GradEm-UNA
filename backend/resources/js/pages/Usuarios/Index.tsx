@@ -7,6 +7,7 @@ import axios from "axios";
 import { usePage } from "@inertiajs/react";
 import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
+import { Button } from "@/components/ui/button";
 interface UsuarioItem {
   id: number;
   nombre_completo?: string;
@@ -100,11 +101,10 @@ export default function Index(props: IndexProps) {
             <h2 className="text-xl font-bold text-[#034991]">
               Administradores / Dirección / Subdirección
             </h2>
-            <Link
-              href={route("admin.crear")}
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
-            >
-              Crear Usuario
+            <Link href={route("admin.crear")} >
+              <Button variant="default" size="default">
+                Crear Usuario
+              </Button>
             </Link>
           </div>
 
@@ -155,8 +155,10 @@ export default function Index(props: IndexProps) {
                   {col.label}
                 </label>
               ))}
-              <button
-                className="ml-auto bg-[#034991] hover:bg-[#0563c1] active:bg-[#023163] text-white px-3 py-1 rounded"
+              <Button
+                className="ml-auto"
+                variant="secondary"
+                size="sm"
                 onClick={() =>
                   setVisibleCols([
                     "nombre",
@@ -172,7 +174,7 @@ export default function Index(props: IndexProps) {
                 }
               >
                 Mostrar Todo
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -216,87 +218,78 @@ export default function Index(props: IndexProps) {
                       )}
                       {visibleCols.includes("acciones") && (
                         <td className="px-4 py-2 border flex gap-2">
-                          <Link
-                            href={route("admin.editar", { id: u.id })}
-                            className="bg-[#0D47A1] hover:bg-blue-800 text-white px-4 py-2 rounded"
-                          >
-                            Editar
+                          <Link href={route("admin.editar", { id: u.id })}>
+                            <Button variant="default" size="default">
+                              Editar
+                            </Button>
                           </Link>
 
                           {puedeGestionar && (
                             <>
                               {/* 🔴 Activar/Inactivar */}
-                              <button
+                              <Button
+                                size="sm"
+                                variant={u.estado_id === 1 ? "destructive" : "success"}
                                 onClick={async () => {
                                   const confirmado = await confirmacion({
                                     titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
                                     mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"} la cuenta de ${u.nombre_completo}?`,
-                                  });
-                                  if (!confirmado) return;
+                                  })
+                                  if (!confirmado) return
 
                                   try {
-                                    const res = await axios.put(`/usuarios/${u.id}/toggle-estado`);
-                                    alerta({ titulo: "Estado actualizado", mensaje: res.data.message });
-
+                                    const res = await axios.put(`/usuarios/${u.id}/toggle-estado`)
+                                    alerta({ titulo: "Estado actualizado", mensaje: res.data.message })
                                     setUsuarios((prev) =>
                                       prev.map((usr) =>
                                         usr.id === u.id ? { ...usr, estado_id: res.data.nuevo_estado } : usr
                                       )
-                                    );
+                                    )
                                   } catch (err) {
-                                    console.error(err);
-                                    alerta({ titulo: "Error", mensaje: "Ocurrió un error al cambiar el estado del usuario." });
+                                    console.error(err)
+                                    alerta({
+                                      titulo: "Error",
+                                      mensaje: "Ocurrió un error al cambiar el estado del usuario.",
+                                    })
                                   }
                                 }}
-                                className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${u.estado_id === 1 ? "bg-[#CD1719] hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
-                                  }`}
                               >
                                 {u.estado_id === 1 ? "Inactivar" : "Activar"}
-                              </button>
+                              </Button>
 
                               {/* 🗑️ Eliminar */}
-                              <button
+                              <Button
+                                size="sm"
+                                variant="destructive"
                                 onClick={async () => {
                                   const ok = await confirmacion({
                                     titulo: "Confirmar eliminación",
                                     mensaje: `¿Seguro que deseas eliminar a ${u.nombre_completo}?`,
                                     textoAceptar: "Sí, eliminar",
                                     textoCancelar: "Cancelar",
-                                  });
-
-                                  if (!ok) return;
+                                  })
+                                  if (!ok) return
 
                                   try {
-                                    const res = await axios.delete(route("admin.eliminar", { id: u.id }));
-
+                                    const res = await axios.delete(route("admin.eliminar", { id: u.id }))
                                     if (res.data.status === "success") {
-                                      alerta({
-                                        titulo: "Eliminado",
-                                        mensaje: res.data.message,
-                                      });
-
-                                      // 💡 Quitar el usuario eliminado del estado
-                                      setUsuarios((prev) => prev.filter((usr) => usr.id !== u.id));
+                                      alerta({ titulo: "Eliminado", mensaje: res.data.message })
+                                      setUsuarios((prev) =>
+                                        prev.filter((usr) => usr.id !== u.id)
+                                      )
                                     } else {
-                                      alerta({
-                                        titulo: "Error",
-                                        mensaje: res.data.message,
-                                      });
+                                      alerta({ titulo: "Error", mensaje: res.data.message })
                                     }
                                   } catch (err: any) {
                                     const msg =
                                       err.response?.data?.message ||
-                                      "Ocurrió un error inesperado al eliminar el usuario.";
-                                    alerta({
-                                      titulo: "Error",
-                                      mensaje: msg,
-                                    });
+                                      "Ocurrió un error inesperado al eliminar el usuario."
+                                    alerta({ titulo: "Error", mensaje: msg })
                                   }
                                 }}
-                                className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
                               >
                                 Eliminar
-                              </button>
+                              </Button>
                             </>
                           )}
                         </td>

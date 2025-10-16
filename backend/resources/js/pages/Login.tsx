@@ -3,6 +3,7 @@ import axios from "axios";
 import { router } from "@inertiajs/react"; // Import de Inertia para redirección
 import unaLogo from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 
 const Login: React.FC = () => {
@@ -169,23 +170,15 @@ const Login: React.FC = () => {
      </p>
     )}
     {/* Botón login - Centrado por cardStyle, pero el ancho está limitado por maxWidth */}
-    <button
-     onClick={handleLogin}
-     style={{
-      width: "100%",
-      maxWidth: "358px", // Mantiene el ancho
-      height: "60px",
-      backgroundColor: "#CD1719",
-      color: "#FFFFFF",
-      border: "none",
-      borderRadius: "5px",
-      fontSize: "20px",
-      cursor: "pointer",
-      marginBottom: "20px",
-     }}
+    <Button
+      type="button"
+      variant="destructive"
+      size="default"
+      className="w-full max-w-[358px] h-14 mb-5"
+      onClick={handleLogin}
     >
-     Iniciar Sesión
-    </button>
+      Iniciar Sesión
+    </Button>
     {/* Links */}
     <div
      style={{
@@ -196,19 +189,25 @@ const Login: React.FC = () => {
       textAlign: "center",
      }}
     >
-     {/* 🔹 Link de recuperar contraseña usando Inertia */}
-     <span
-      onClick={() => router.get("/recuperar")}
-      style={{ color: "#034991", cursor: "pointer", textDecoration: "underline" }}
-     >
-      ¿Olvidó su contraseña?
-     </span>
-     <span
-      onClick={() => router.get("/registro")}
-      style={{ color: "#034991", cursor: "pointer", textDecoration: "underline" }}
-     >
-      Crear Cuenta
-     </span>
+      {/* Links */}
+      <div className="flex flex-col gap-2 text-center text-base">
+        <Button asChild variant="link" size="default">
+          <span
+            onClick={() => router.get("/recuperar")}
+            style={{ cursor: "pointer" }}
+          >
+            ¿Olvidó su contraseña?
+          </span>
+        </Button>
+        <Button asChild variant="link" size="default">
+          <span
+            onClick={() => router.get("/registro")}
+            style={{ cursor: "pointer" }}
+          >
+            Crear Cuenta
+          </span>
+        </Button>
+      </div>
     </div>
    </div>
   </div>
