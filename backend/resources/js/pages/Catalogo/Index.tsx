@@ -6,6 +6,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
 
+
 interface Item {
   id: number;
   [key: string]: any;
@@ -292,25 +293,18 @@ export default function CatalogoIndex({
                 </div>
               ))}
 
-              <button
-                onClick={guardar}
-                variant="default"
-                size="default"
-                className="flex items-center gap-2 transition-colors"
-              >
+              <Button onClick={guardar} className="flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" />
                 {editingItem ? "Actualizar" : "Agregar"}
-              </button>
+              </Button>
 
               {editingItem && (
                 <Button
+                  variant="secondary"
                   onClick={() => {
                     setEditingItem(null);
                     setFormValues({});
                   }}
-                  variant="secondary"
-                  size="default"
-                  className="transition-colors"
                 >
                   Cancelar
                 </Button>
@@ -408,17 +402,10 @@ export default function CatalogoIndex({
                           );
                         })}
                         <td className="px-5 py-3 flex justify-center gap-3">
-                          <button
-                            onClick={() => startEditing(item)}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
+                          <Button onClick={() => startEditing(item)} size="sm">
                             Editar
                           </Button>
-                          <Button
-                            onClick={() => eliminar(item.id)}
-                            variant="destructive"
-                            size="sm"
-                          >
+                          <Button onClick={() => eliminar(item.id)} variant="destructive" size="sm">
                             Eliminar
                           </Button>
                         </td>
@@ -433,16 +420,14 @@ export default function CatalogoIndex({
             <div className="flex justify-center gap-2 mt-5">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (pageNum) => (
-                  <button
+                  <Button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${pageNum === page
-                        ? "bg-[#034991] text-white"
-                        : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                      }`}
+                    variant={pageNum === page ? "default" : "outline"}
+                    size="sm"
                   >
                     {pageNum}
-                  </button>
+                  </Button>
                 )
               )}
             </div>
@@ -462,11 +447,9 @@ export default function CatalogoIndex({
             <h2 className="text-2xl font-bold text-[#034991]">
               Seleccionar Secciones
             </h2>
-            <button
+            <Button
               onClick={mostrarTodas}
               variant="default"
-              size="default"
-              className="transition-colors"
             >
               Mostrar Todo
             </Button>
@@ -478,8 +461,8 @@ export default function CatalogoIndex({
                 onClick={() => handleClick(sec)}
                 onDoubleClick={() => handleDoubleClick(sec)}
                 className={`flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer transition-colors ${sections.includes(sec)
-                    ? "bg-[#BEE3F8] border-[#034991]"
-                    : "border-gray-300 hover:bg-gray-100 text-gray-700"
+                  ? "bg-[#BEE3F8] border-[#034991]"
+                  : "border-gray-300 hover:bg-gray-100 text-gray-700"
                   }`}
               >
                 <input
