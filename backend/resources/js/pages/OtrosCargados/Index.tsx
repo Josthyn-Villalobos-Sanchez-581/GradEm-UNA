@@ -202,7 +202,7 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
                     <Button
                       type="button"
                       onClick={() => window.open(`/storage/${doc.ruta_archivo}`, "_blank")}
-                      variant="default"
+                      variant="outline"
                       size="sm"
                       className="text-center"
                     >
