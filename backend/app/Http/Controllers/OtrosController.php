@@ -8,6 +8,7 @@ use App\Models\DocumentoAdjunto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OtrosController extends Controller
 {
@@ -49,7 +50,7 @@ class OtrosController extends Controller
                 'ruta_archivo'     => $path,
                 'nombre_original'  => $archivo->getClientOriginalName(),
                 'tipo'             => 'otro', // ✅ coherente
-                'fecha_subida'     => now(),
+                'fecha_subida' => Carbon::now('America/Costa_Rica'),
             ]);
         }
 

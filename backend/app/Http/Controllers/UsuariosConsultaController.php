@@ -115,6 +115,11 @@ public function ver($id)
     // 🔗 Plataformas externas
     $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
 
+    // 📎 Indicar si tiene adjuntos (sin cargarlos todavía)
+    $usuario->tiene_adjuntos = DB::table('documentos_adjuntos')
+        ->where('id_usuario', $usuario->id_usuario)
+        ->exists();
+
     return Inertia::render('Usuarios/VerPerfil', [
         'usuario' => [
             ...$usuario->toArray(),
