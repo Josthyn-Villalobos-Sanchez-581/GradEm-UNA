@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+
 class TitulosController extends Controller
 {
     /**
@@ -56,6 +58,7 @@ class TitulosController extends Controller
                     'tipo'         => 'titulo',
                     'ruta_archivo' => $path,
                     'nombre_original'  => $file->getClientOriginalName(),
+                    'fecha_subida' => Carbon::now('America/Costa_Rica'),
                     // fecha_subida se maneja por default en DB
                 ]);
 

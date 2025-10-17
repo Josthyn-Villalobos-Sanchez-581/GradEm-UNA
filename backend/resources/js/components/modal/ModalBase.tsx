@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+
 //backend/resources/js/components/modal/ModalBase.tsx
 type TipoModal = "alerta" | "confirmacion" | "personalizado";
 
@@ -87,13 +89,22 @@ export default function ModalBase({
 
         <footer className="modal-pie">
           {tipo === "confirmacion" && (
-            <button className="btn btn-secundario" onClick={onCancelar}>
+            <Button
+              variant="outline" // ❕ botón secundario institucional
+              onClick={onCancelar}
+              size="default"
+            >
               {textoCancelar}
-            </button>
+            </Button>
           )}
-          <button className="btn btn-primario" onClick={onAceptar} ref={btnAceptarRef}>
+          <Button
+            variant="default" //botón principal institucional
+            onClick={onAceptar}
+            ref={btnAceptarRef}
+            size="default"
+          >
             {textoAceptar}
-          </button>
+          </Button>
         </footer>
       </div>
     </div>

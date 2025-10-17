@@ -119,6 +119,9 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
           </div>
 
           <p className="text-gray-600 mb-4">
+            Puede subir archivos como <strong>cartas de recomendación</strong>, <strong>constancias</strong> o
+            <strong> documentos adicionales</strong>.
+            <br />
             Formatos permitidos: <strong>PDF, PNG, JPG, DOC, DOCX, ZIP, RAR, TXT</strong>. Máximo{" "}
             <strong>5MB</strong> por archivo. Se pueden seleccionar varios archivos.
           </p>
@@ -201,10 +204,9 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
                       onClick={() => window.open(`/storage/${doc.ruta_archivo}`, "_blank")}
                       variant="default"
                       size="sm"
-                      className="shadow text-center"
-                      style={{ backgroundColor: "#034991" }}
+                      className="text-center"
                     >
-                      Ver Currículum
+                      {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
                     </Button>
                     <div className="flex gap-2">
                       <span className="text-sm text-gray-500">

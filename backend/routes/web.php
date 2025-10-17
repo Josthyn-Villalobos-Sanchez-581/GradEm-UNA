@@ -123,6 +123,11 @@ Route::middleware('auth')->group(function () {
             ->name('curriculum.adjuntos');
     });
 
+    // Ruta para obtener los documentos adjuntos de un usuario (permiso autenticado)
+    Route::get('/usuarios/{id}/adjuntos', [DocumentosController::class, 'obtenerAdjuntos'])
+        ->name('usuarios.adjuntos')
+        ->middleware(['auth']);
+
 
     // ==========================================
     // Carga de Documentos y Fotos (Permiso 3)
@@ -238,8 +243,8 @@ Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'
         Route::delete('/catalogo/idiomas/{id}', [CatalogoController::class, 'eliminarIdioma'])->name('catalogo.idiomas.eliminar');
 
         // ======== ÁREAS LABORALES ========
-        Route::post('/catalogo/areas-laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
-        Route::delete('/catalogo/areas-laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
+        Route::post('/catalogo/areas_laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
+        Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
     });
 
     // ==========================================

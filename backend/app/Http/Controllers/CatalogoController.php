@@ -13,7 +13,6 @@ use App\Models\CatalogoEstado;
 use App\Models\Modalidad;
 use App\Models\IdiomaCatalogo;
 use App\Models\AreaLaboral;
-use Illuminate\Support\Facades\DB;
 
 class CatalogoController extends Controller
 {
@@ -23,22 +22,20 @@ class CatalogoController extends Controller
     public function index()
     {
         return Inertia::render('Catalogo/Index', [
-            'paises' => Pais::orderBy('id_pais', 'asc')->get(),
-            'provincias' => Provincia::orderBy('id_provincia', 'asc')->get(),
-            'cantones' => Canton::orderBy('id_canton', 'asc')->get(),
-            'universidades' => Universidad::orderBy('id_universidad', 'asc')->get(),
-            'carreras' => Carrera::orderBy('id_carrera', 'asc')->get(),
-            'estados' => CatalogoEstado::orderBy('id_estado', 'asc')->get(),
-            'modalidades' => Modalidad::orderBy('id_modalidad', 'asc')->get(),
-            'idiomas' => IdiomaCatalogo::orderBy('id_idioma_catalogo', 'asc')->get(),
-            'areas_laborales' => AreaLaboral::orderBy('id_area_laboral', 'asc')->get(),
-            'userPermisos' => getUserPermisos(), 
+            'paises' => Pais::orderBy('id_pais')->get()->map(fn($p) => ['id' => $p->id_pais, 'nombre' => $p->nombre]),
+            'provincias' => Provincia::orderBy('id_provincia')->get()->map(fn($p) => ['id' => $p->id_provincia, 'nombre' => $p->nombre, 'id_pais' => $p->id_pais]),
+            'cantones' => Canton::orderBy('id_canton')->get()->map(fn($c) => ['id' => $c->id_canton, 'nombre' => $c->nombre, 'id_provincia' => $c->id_provincia]),
+            'universidades' => Universidad::orderBy('id_universidad')->get()->map(fn($u) => ['id' => $u->id_universidad, 'nombre' => $u->nombre, 'sigla' => $u->sigla]),
+            'carreras' => Carrera::orderBy('id_carrera')->get()->map(fn($c) => ['id' => $c->id_carrera, 'nombre' => $c->nombre, 'id_universidad' => $c->id_universidad]),
+            'estados' => CatalogoEstado::orderBy('id_estado')->get()->map(fn($e) => ['id' => $e->id_estado, 'nombre_estado' => $e->nombre_estado]),
+            'modalidades' => Modalidad::orderBy('id_modalidad')->get()->map(fn($m) => ['id' => $m->id_modalidad, 'nombre' => $m->nombre]),
+            'idiomas' => IdiomaCatalogo::orderBy('id_idioma_catalogo')->get()->map(fn($i) => ['id' => $i->id_idioma_catalogo, 'nombre' => $i->nombre]),
+            'areas_laborales' => AreaLaboral::orderBy('id_area_laboral')->get()->map(fn($a) => ['id' => $a->id_area_laboral, 'nombre' => $a->nombre]),
+            'userPermisos' => getUserPermisos(),
         ]);
     }
 
-    // =======================================================
-    // 🔹 PAISES
-    // =======================================================
+    // ========================= PAISES =========================
     public function guardarPais(Request $request)
     {
         $request->validate(['nombre' => 'required|string|max:100']);
@@ -53,18 +50,21 @@ class CatalogoController extends Controller
 
     public function eliminarPais($id)
     {
+        $tieneProvincias = Provincia::where('id_pais', $id)->exists();
+        if ($tieneProvincias) {
+            return redirect()->back()->with('error', 'No se puede eliminar este país, tiene provincias asociadas.');
+        }
+
         Pais::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'País eliminado correctamente.');
     }
 
-    // =======================================================
-    // 🔹 PROVINCIAS
-    // =======================================================
+    // ========================= PROVINCIAS =========================
     public function guardarProvincia(Request $request)
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'id_pais' => 'required|integer'
+            'id_pais' => 'required|integer|exists:paises,id_pais'
         ]);
 
         Provincia::updateOrCreate(
@@ -77,18 +77,21 @@ class CatalogoController extends Controller
 
     public function eliminarProvincia($id)
     {
+        $tieneCantones = Canton::where('id_provincia', $id)->exists();
+        if ($tieneCantones) {
+            return redirect()->back()->with('error', 'No se puede eliminar esta provincia, tiene cantones asociados.');
+        }
+
         Provincia::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Provincia eliminada correctamente.');
     }
 
-    // =======================================================
-    // 🔹 CANTONES
-    // =======================================================
+    // ========================= CANTONES =========================
     public function guardarCanton(Request $request)
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'id_provincia' => 'required|integer'
+            'id_provincia' => 'required|integer|exists:provincias,id_provincia'
         ]);
 
         Canton::updateOrCreate(
@@ -105,9 +108,7 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Cantón eliminado correctamente.');
     }
 
-    // =======================================================
-    // 🔹 UNIVERSIDADES
-    // =======================================================
+    // ========================= UNIVERSIDADES =========================
     public function guardarUniversidad(Request $request)
     {
         $request->validate([
@@ -129,22 +130,17 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Universidad eliminada correctamente.');
     }
 
-    // =======================================================
-    // 🔹 CARRERAS
-    // =======================================================
+    // ========================= CARRERAS =========================
     public function guardarCarrera(Request $request)
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'id_universidad' => 'nullable|integer',
+            'id_universidad' => 'required|integer|exists:universidades,id_universidad'
         ]);
 
         Carrera::updateOrCreate(
             ['id_carrera' => $request->id ?? null],
-            [
-                'nombre' => $request->nombre,
-                'id_universidad' => $request->id_universidad,
-            ]
+            ['nombre' => $request->nombre, 'id_universidad' => $request->id_universidad]
         );
 
         return redirect()->back()->with('success', 'Carrera guardada correctamente.');
@@ -156,9 +152,7 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Carrera eliminada correctamente.');
     }
 
-    // =======================================================
-    // 🔹 ESTADOS
-    // =======================================================
+    // ========================= ESTADOS =========================
     public function guardarEstado(Request $request)
     {
         $request->validate(['nombre_estado' => 'required|string|max:50']);
@@ -177,22 +171,16 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Estado eliminado correctamente.');
     }
 
-    // =======================================================
-    // 🔹 MODALIDADES
-    // =======================================================
+    // ========================= MODALIDADES =========================
     public function guardarModalidad(Request $request)
     {
         $request->validate([
-            'nombre_modalidad' => 'required|string|max:100',
-            'descripcion' => 'nullable|string|max:255'
+            'nombre' => 'required|string|max:255',
         ]);
 
         Modalidad::updateOrCreate(
             ['id_modalidad' => $request->id ?? null],
-            [
-                'nombre_modalidad' => $request->nombre_modalidad,
-                'descripcion' => $request->descripcion
-            ]
+            ['nombre' => $request->nombre]
         );
 
         return redirect()->back()->with('success', 'Modalidad guardada correctamente.');
@@ -204,9 +192,7 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Modalidad eliminada correctamente.');
     }
 
-    // =======================================================
-    // 🔹 IDIOMAS
-    // =======================================================
+    // ========================= IDIOMAS =========================
     public function guardarIdioma(Request $request)
     {
         $request->validate(['nombre' => 'required|string|max:50']);
@@ -225,9 +211,7 @@ class CatalogoController extends Controller
         return redirect()->back()->with('success', 'Idioma eliminado correctamente.');
     }
 
-    // =======================================================
-    // 🔹 ÁREAS LABORALES
-    // =======================================================
+    // ========================= ÁREAS LABORALES =========================
     public function guardarAreaLaboral(Request $request)
     {
         $request->validate(['nombre' => 'required|string|max:100']);
