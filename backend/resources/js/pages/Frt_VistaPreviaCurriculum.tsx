@@ -112,6 +112,29 @@ export default function Frt_VistaPreviaCurriculum({ datos, fotoPerfilUrl }: Vist
         </div>
       )}
 
+      {/* Certificaciones */}
+      {datos.certificaciones && datos.certificaciones.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Certificaciones</h4>
+          {datos.certificaciones.map((cert, i) => (
+            <div key={i} className="mb-2">
+              <p className="text-sm font-medium text-gray-800">{cert.nombre}</p>
+              {cert.institucion && (
+                <p className="text-sm text-gray-600">{cert.institucion}</p>
+              )}
+              {cert.fecha_obtencion && (
+                <p className="text-xs text-gray-500">
+                  {new Date(cert.fecha_obtencion).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long'
+                  })}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Idiomas */}
       {datos.idiomas && datos.idiomas.length > 0 && (
         <div className="mb-4">
