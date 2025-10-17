@@ -200,54 +200,86 @@ export default function Index(props: RolesPermisosIndexProps) {
           {/* Encabezado */}
           <div className="flex justify-between items-center border-b pb-3 mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Seleccionar Secciones</h2>
-            <Button variant="default" size="default" onClick={async () => {
-              const confirmar = await modal.confirmacion({
-                titulo: "Mostrar todas las secciones",
-                mensaje: "¿Desea mostrar todas las secciones disponibles?",
-              });
-              if (confirmar) setSections(["roles", "permisos", "asignacion"]);
-            }}>
-              Mostrar Todo
+            <Button
+              variant="default"
+              size="default"
+              onClick={async () => {
+                const confirmar = await modal.confirmacion({
+                  titulo: "Mostrar todas las secciones",
+                  mensaje: "¿Desea mostrar todas las secciones disponibles?",
+                });
+                if (confirmar) setSections(["roles", "permisos", "asignacion"]);
+              }}
+              className="bg-[#034991] hover:bg-[#023b73] text-white font-semibold rounded-full px-5 py-2 transition-all duration-200"
+            >
+              + Mostrar Todo
             </Button>
           </div>
 
           {/* Cuerpo */}
-          <div className="flex flex-wrap gap-5 items-center">
+          <div className="flex flex-wrap gap-4 items-center justify-start">
             {[
               { id: "roles", label: "Roles" },
               { id: "permisos", label: "Permisos" },
               { id: "asignacion", label: "Asignación de Permisos" },
-            ].map((sec) => (
-              <label
-                key={sec.id}
-                className={`flex items-center gap-3 px-4 py-2 border rounded-lg cursor-pointer select-none transition-colors ${sections.includes(sec.id)
-                    ? "bg-[#BEE3F8] border-[#034991] text-[#000000]"
-                    : "border-gray-300 hover:bg-gray-100 text-gray-700"
-                  }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={sections.includes(sec.id)}
-                  onChange={async () => {
-                    // Evita desmarcar todas las secciones
-                    if (sections.length === 1 && sections.includes(sec.id)) {
-                      await modal.alerta({
-                        titulo: "Acción no permitida",
-                        mensaje:
-                          "Debe mantener al menos una sección seleccionada para continuar.",
-                      });
-                      return;
-                    }
-                    toggleSection(sec.id);
-                  }}
-                  className="w-4 h-4 accent-[#034991]"
-                />
-                <span className="font-medium">{sec.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>;
+            ].map((sec) => {
+              const activo = sections.includes(sec.id);
+              return (
+                <label
+                  key={sec.id}
+                  className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 cursor-pointer select-none transition-all duration-200 
+            ${activo
+                      ? "bg-white border-[#034991] text-[#034991]"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-[#034991]/70"
+                    }`}
+                >
+                  {/* Checkbox circular refinado */}
+                  <div
+                    className={`relative flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 
+              ${activo
+                        ? "border-[#034991] bg-[#034991]"
+                        : "border-[#034991] bg-white"
+                      }`}
+                  >
+                    {activo && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="white"
+                        className="w-3 h-3"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.704 5.292a1 1 0 0 1 0 1.416l-7.5 7.5a1 1 0 0 1-1.416 0l-3.5-3.5a1 1 0 0 1 1.416-1.416L8.5 11.086l6.792-6.794a1 1 0 0 1 1.412 0Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
 
+                  <input
+                    type="checkbox"
+                    checked={activo}
+                    onChange={async () => {
+                      if (sections.length === 1 && activo) {
+                        await modal.alerta({
+                          titulo: "Acción no permitida",
+                          mensaje:
+                            "Debe mantener al menos una sección seleccionada para continuar.",
+                        });
+                        return;
+                      }
+                      toggleSection(sec.id);
+                    }}
+                    className="hidden"
+                  />
+
+                  <span className="font-medium text-sm">{sec.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ========================================= */}
         {/* Roles */}
@@ -291,40 +323,65 @@ export default function Index(props: RolesPermisosIndexProps) {
               </select>
             </div>
 
-            {/* Tabla de roles */}
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-left">
-                <thead className="bg-[#A7A7A9] text-white uppercase text-sm">
+            {/* 🔹 Tabla de Roles con formato uniforme */}
+            <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
+              <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">ID</th>
-                    <th className="px-5 py-3 font-semibold">Nombre</th>
-                    <th className="px-5 py-3 font-semibold text-center">Acciones</th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 first:rounded-tl-2xl">
+                      ID
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
+                      Nombre del Rol
+                    </th>
+                    <th className="px-4 py-2 text-center text-gray-500 border border-gray-300 last:rounded-tr-2xl">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedRoles.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="text-center py-4 text-gray-500">
+                      <td
+                        colSpan={3}
+                        className="text-center py-4 text-gray-500 italic border border-gray-300 rounded-b-2xl"
+                      >
                         No se encontraron roles.
                       </td>
                     </tr>
                   ) : (
-                    paginatedRoles.map((rol) => (
+                    paginatedRoles.map((rol, idx) => (
                       <tr
                         key={rol.id_rol}
-                        className="hover:bg-[#E8EEF7] transition-colors border-b last:border-none"
+                        className={`hover:bg-gray-50 ${idx === paginatedRoles.length - 1 ? "last-row" : ""
+                          }`}
                       >
-                        <td className="px-5 py-3">{rol.id_rol}</td>
-                        <td className="px-5 py-3 font-medium text-gray-800">
+                        <td
+                          className={`px-4 py-2 border border-gray-300 ${idx === paginatedRoles.length - 1 ? "rounded-bl-2xl" : ""
+                            }`}
+                        >
+                          {rol.id_rol}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300">
                           {rol.nombre_rol}
                         </td>
-                        <td className="px-5 py-3 flex justify-center gap-3">
-                          <Button asChild variant="default" size="sm">
-                            <Link href={`/roles/${rol.id_rol}/edit`}>Editar</Link>
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => eliminarRol(rol.id_rol)}>
-                            Eliminar
-                          </Button>
+                        <td
+                          className={`px-4 py-2 text-center border border-gray-300 ${idx === paginatedRoles.length - 1 ? "rounded-br-2xl" : ""
+                            }`}
+                        >
+                          <div className="flex justify-center gap-2">
+                            <Button asChild variant="default" size="sm" className="font-semibold">
+                              <Link href={`/roles/${rol.id_rol}/edit`}>Editar</Link>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="font-semibold"
+                              onClick={() => eliminarRol(rol.id_rol)}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -333,19 +390,42 @@ export default function Index(props: RolesPermisosIndexProps) {
               </table>
             </div>
 
-            {/* Paginación */}
-            <div className="flex justify-center gap-2 mt-5">
-              {Array.from({ length: totalPagesRoles }, (_, i) => i + 1).map((page) => (
+            {/* 🔹 Paginación de Roles */}
+            {totalPagesRoles > 1 && (
+              <div className="flex justify-center mt-4 space-x-2">
                 <Button
-                  key={page}
+                  type="button"
+                  onClick={() => setRolPage(rolPage - 1)}
+                  disabled={rolPage === 1}
+                  variant="default"
                   size="sm"
-                  variant={rolPage === page ? "default" : "secondary"}
-                  onClick={() => setRolPage(page)}
                 >
-                  {page}
+                  Anterior
                 </Button>
-              ))}
-            </div>
+
+                {Array.from({ length: totalPagesRoles }, (_, i) => (
+                  <Button
+                    key={i + 1}
+                    type="button"
+                    onClick={() => setRolPage(i + 1)}
+                    size="sm"
+                    variant={rolPage === i + 1 ? "destructive" : "outline"}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+
+                <Button
+                  type="button"
+                  onClick={() => setRolPage(rolPage + 1)}
+                  disabled={rolPage === totalPagesRoles}
+                  variant="default"
+                  size="sm"
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -392,40 +472,63 @@ export default function Index(props: RolesPermisosIndexProps) {
               </select>
             </div>
 
-            {/* Tabla de permisos */}
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-left">
-                <thead className="bg-[#A7A7A9] text-white uppercase text-sm">
+            {/* 🔹 Tabla de Permisos con formato uniforme */}
+            <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
+              <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">ID</th>
-                    <th className="px-5 py-3 font-semibold">Nombre</th>
-                    <th className="px-5 py-3 font-semibold text-center">Acciones</th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 first:rounded-tl-2xl">
+                      ID
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
+                      Nombre del Permiso
+                    </th>
+                    <th className="px-4 py-2 text-center text-gray-500 border border-gray-300 last:rounded-tr-2xl">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedPermisos.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="text-center py-4 text-gray-500">
+                      <td
+                        colSpan={3}
+                        className="text-center py-4 text-gray-500 italic border border-gray-300 rounded-b-2xl"
+                      >
                         No se encontraron permisos.
                       </td>
                     </tr>
                   ) : (
-                    paginatedPermisos.map((permiso) => (
+                    paginatedPermisos.map((permiso, idx) => (
                       <tr
                         key={permiso.id_permiso}
-                        className="hover:bg-[#E8EEF7] transition-colors border-b last:border-none"
+                        className={`hover:bg-gray-50 ${idx === paginatedPermisos.length - 1 ? "last-row" : ""
+                          }`}
                       >
-                        <td className="px-5 py-3">{permiso.id_permiso}</td>
-                        <td className="px-5 py-3 font-medium text-gray-800">
-                          {permiso.nombre}
+                        <td
+                          className={`px-4 py-2 border border-gray-300 ${idx === paginatedPermisos.length - 1 ? "rounded-bl-2xl" : ""
+                            }`}
+                        >
+                          {permiso.id_permiso}
                         </td>
-                        <td className="px-5 py-3 flex justify-center gap-3">
-                          <Button asChild variant="default" size="sm">
-                            <Link href={`/permisos/${permiso.id_permiso}/edit`}>Editar</Link>
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => eliminarPermiso(permiso.id_permiso)}>
-                            Eliminar
-                          </Button>
+                        <td className="px-4 py-2 border border-gray-300">{permiso.nombre}</td>
+                        <td
+                          className={`px-4 py-2 text-center border border-gray-300 ${idx === paginatedPermisos.length - 1 ? "rounded-br-2xl" : ""
+                            }`}
+                        >
+                          <div className="flex justify-center gap-2">
+                            <Button asChild variant="default" size="sm" className="font-semibold">
+                              <Link href={`/permisos/${permiso.id_permiso}/edit`}>Editar</Link>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="font-semibold"
+                              onClick={() => eliminarPermiso(permiso.id_permiso)}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -434,19 +537,43 @@ export default function Index(props: RolesPermisosIndexProps) {
               </table>
             </div>
 
-            {/* Paginación */}
-            <div className="flex justify-center gap-2 mt-5">
-              {Array.from({ length: totalPagesPermisos }, (_, i) => i + 1).map((page) => (
+            {/* 🔹 Paginación de Permisos */}
+            {totalPagesPermisos > 1 && (
+              <div className="flex justify-center mt-4 space-x-2">
                 <Button
-                  key={page}
+                  type="button"
+                  onClick={() => setPermisoPage(permisoPage - 1)}
+                  disabled={permisoPage === 1}
+                  variant="default"
                   size="sm"
-                  variant={permisoPage === page ? "default" : "secondary"}
-                  onClick={() => setPermisoPage(page)}
                 >
-                  {page}
+                  Anterior
                 </Button>
-              ))}
-            </div>
+
+                {Array.from({ length: totalPagesPermisos }, (_, i) => (
+                  <Button
+                    key={i + 1}
+                    type="button"
+                    onClick={() => setPermisoPage(i + 1)}
+                    size="sm"
+                    variant={permisoPage === i + 1 ? "destructive" : "outline"}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+
+                <Button
+                  type="button"
+                  onClick={() => setPermisoPage(permisoPage + 1)}
+                  disabled={permisoPage === totalPagesPermisos}
+                  variant="default"
+                  size="sm"
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
+
           </div>
         )}
 
@@ -480,18 +607,30 @@ export default function Index(props: RolesPermisosIndexProps) {
                 {/* Permisos asignados */}
                 {rolAbierto === rol.id_rol && (
                   <div className="p-4 bg-white rounded-b-lg">
+                    {/* Botones de acción */}
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <Button variant="default" size="sm" onClick={() => seleccionarTodos(rol.id_rol)}>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => seleccionarTodos(rol.id_rol)}
+                        className="bg-[#034991] hover:bg-[#023b73] text-white font-semibold rounded-full transition-all duration-200"
+                      >
                         Seleccionar Todo
                       </Button>
 
-                      <Button variant="secondary" size="sm" onClick={() => deseleccionarTodos(rol.id_rol)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deseleccionarTodos(rol.id_rol)}
+                        className="text-[#034991] border-[#034991] hover:bg-[#E6F2FB] rounded-full transition-all duration-200"
+                      >
                         Deseleccionar Todo
                       </Button>
                     </div>
 
+                    {/* Lista de permisos */}
                     <div
-                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded"
+                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg"
                       style={{ fontFamily: "Open Sans, sans-serif" }}
                     >
                       {todosPermisos.map((p) => {
@@ -499,30 +638,63 @@ export default function Index(props: RolesPermisosIndexProps) {
                         return (
                           <label
                             key={p.id_permiso}
-                            className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer text-sm transition-colors ${asignado
-                              ? "bg-[#BEE3F8] border-[#034991] text-[#000000]"
-                              : "bg-gray-100 hover:bg-gray-200"
+                            className={`flex items-center gap-3 px-4 py-2 rounded-full border-2 cursor-pointer text-sm transition-all duration-200
+              ${asignado
+                                ? "bg-white border-[#034991] text-[#034991]"
+                                : "bg-white border-gray-300 text-gray-700 hover:border-[#034991]/70"
                               }`}
                           >
+                            {/* Checkbox circular refinado */}
+                            <div
+                              className={`relative flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 
+                ${asignado
+                                  ? "border-[#034991] bg-[#034991]"
+                                  : "border-[#034991] bg-white"
+                                }`}
+                            >
+                              {asignado && (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="white"
+                                  className="w-3 h-3"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.704 5.292a1 1 0 0 1 0 1.416l-7.5 7.5a1 1 0 0 1-1.416 0l-3.5-3.5a1 1 0 0 1 1.416-1.416L8.5 11.086l6.792-6.794a1 1 0 0 1 1.412 0Z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+
                             <input
                               type="checkbox"
                               checked={!!asignado}
                               onChange={() => togglePermiso(rol.id_rol, p.id_permiso)}
-                              className="accent-[#034991] w-4 h-4"
+                              className="hidden"
                             />
-                            <span className="truncate">{p.nombre}</span>
+
+                            <span className="truncate font-medium">{p.nombre}</span>
                           </label>
                         );
                       })}
                     </div>
 
+                    {/* Botón guardar */}
                     <div className="flex justify-end mt-4">
-                      <Button variant="destructive" size="default" onClick={() => guardarPermisos(rol.id_rol)}>
+                      <Button
+                        variant="default"
+                        size="default"
+                        onClick={() => guardarPermisos(rol.id_rol)}
+                        className="rounded-full font-semibold"
+                      >
                         Guardar Permisos
                       </Button>
                     </div>
                   </div>
                 )}
+
               </div>
             ))}
           </div>
