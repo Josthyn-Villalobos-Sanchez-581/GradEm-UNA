@@ -123,6 +123,11 @@ Route::middleware('auth')->group(function () {
             ->name('curriculum.adjuntos');
     });
 
+    // Ruta para obtener los documentos adjuntos de un usuario (permiso autenticado)
+    Route::get('/usuarios/{id}/adjuntos', [DocumentosController::class, 'obtenerAdjuntos'])
+        ->name('usuarios.adjuntos')
+        ->middleware(['auth']);
+
 
     // ==========================================
     // Carga de Documentos y Fotos (Permiso 3)

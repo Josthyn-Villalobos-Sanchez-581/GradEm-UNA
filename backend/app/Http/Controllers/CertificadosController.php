@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CertificadosController extends Controller
 {
@@ -47,6 +48,7 @@ class CertificadosController extends Controller
                     'tipo'         => 'certificado',
                     'ruta_archivo' => $path,
                     'nombre_original'  => $file->getClientOriginalName(),
+                    'fecha_subida' => Carbon::now('America/Costa_Rica'),
                 ]);
 
                 $guardados[] = $doc;
