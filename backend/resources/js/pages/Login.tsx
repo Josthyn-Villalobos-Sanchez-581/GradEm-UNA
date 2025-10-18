@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react";
 import unaLogo from "../assets/logoUNA.png";
@@ -11,12 +11,47 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [mostrarOpcionForzar, setMostrarOpcionForzar] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
+
+  const correoInputRef = useRef<HTMLInputElement>(null);
+  const contrasenaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     axios.get("/sanctum/csrf-cookie").catch(() => console.warn("No se pudo generar la cookie CSRF"));
   }, []);
 
+  useEffect(() => {
+    if (cooldownSeconds === null) {
+      return;
+    }
+
+    if (cooldownSeconds <= 0) {
+      setCooldownSeconds(null);
+      setError("");
+      return;
+    }
+
+    setError(`Cuenta bloqueada por intentos fallidos. Puede intentar de nuevo en ${cooldownSeconds}s.`);
+
+    const timeoutId = window.setTimeout(() => {
+      setCooldownSeconds((prev) => {
+        if (prev === null) return null;
+        const siguiente = prev - 1;
+        return siguiente <= 0 ? 0 : siguiente;
+      });
+    }, 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [cooldownSeconds]);
+
+  const estaEnCooldown = cooldownSeconds !== null && cooldownSeconds > 0;
+
   const intentarLogin = async (forzar = false) => {
+    if (estaEnCooldown) {
+      setError(`Debe esperar ${cooldownSeconds}s antes de volver a intentar iniciar sesion.`);
+      return;
+    }
+
     setError("");
     setMostrarOpcionForzar(false);
     setIsSubmitting(true);
@@ -35,6 +70,14 @@ const Login: React.FC = () => {
       if (respuesta?.status === 423 && respuesta?.data?.requiresForce) {
         setError(userFriendlyMessage || "La cuenta ya tiene una sesion activa.");
         setMostrarOpcionForzar(true);
+      } else if (respuesta?.status === 423 && respuesta?.data?.code === "too_many_attempts") {
+        const retryAfterRaw = Number(respuesta?.data?.retryAfter);
+        const segundos = Number.isFinite(retryAfterRaw) && retryAfterRaw > 0 ? Math.floor(retryAfterRaw) : 60;
+        setCooldownSeconds(segundos);
+        setError(
+          userFriendlyMessage ||
+            `Cuenta bloqueada por intentos fallidos. Puede intentar de nuevo en ${segundos}s.`
+        );
       } else if (respuesta?.status === 419) {
         setError(
           userFriendlyMessage ||
@@ -157,6 +200,13 @@ const Login: React.FC = () => {
               placeholder="Ingrese su correo"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  contrasenaInputRef.current?.focus();
+                }
+              }}
+              ref={correoInputRef}
               style={inputStyle}
             />
           </div>
@@ -173,6 +223,13 @@ const Login: React.FC = () => {
               placeholder="Ingrese su contrasena"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  intentarLogin();
+                }
+              }}
+              ref={contrasenaInputRef}
               style={inputStyle}
             />
           </div>
@@ -186,7 +243,7 @@ const Login: React.FC = () => {
           size="default"
           className="w-full max-w-[358px] h-14 mb-5"
           onClick={() => intentarLogin()}
-          disabled={isSubmitting}
+          disabled={isSubmitting || estaEnCooldown}
         >
           Iniciar Sesion
         </Button>
@@ -198,7 +255,7 @@ const Login: React.FC = () => {
             size="default"
             className="w-full max-w-[358px] h-14 mb-5"
             onClick={() => intentarLogin(true)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || estaEnCooldown}
           >
             Cerrar otras sesiones e ingresar
           </Button>
@@ -214,12 +271,22 @@ const Login: React.FC = () => {
           }}
         >
           <div className="flex flex-col gap-2 text-center text-base">
-            <Button asChild variant="link" size="default" disabled={isSubmitting}>
+            <Button
+              asChild
+              variant="link"
+              size="default"
+              disabled={isSubmitting || estaEnCooldown}
+            >
               <span onClick={() => router.get("/recuperar")} style={{ cursor: "pointer" }}>
                 Olvido su contrasena?
               </span>
             </Button>
-            <Button asChild variant="link" size="default" disabled={isSubmitting}>
+            <Button
+              asChild
+              variant="link"
+              size="default"
+              disabled={isSubmitting || estaEnCooldown}
+            >
               <span onClick={() => router.get("/registro")} style={{ cursor: "pointer" }}>
                 Crear Cuenta
               </span>

@@ -319,7 +319,7 @@ export default function PerfilesUsuarios(props: Props) {
                         </Link>
 
                         <Button
-                          variant={u.estado_id === 1 ? "destructive" : "secondary"}
+                          variant={u.estado_id === 1 ? "destructive" : "success"}
                           size="sm"
                           className="font-semibold"
                           onClick={async () => {

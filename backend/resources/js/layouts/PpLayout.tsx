@@ -1,6 +1,6 @@
-import { type BreadcrumbItem } from '@/types';
+﻿import { type BreadcrumbItem } from '@/types';
 import { type ReactNode, useEffect, useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
 
 interface PpLayoutProps {
@@ -21,28 +21,136 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
   const [menuTimeout, setMenuTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const csrfToken =
-      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
     axios.defaults.withCredentials = true;
     axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-    if (csrfToken) {
-      axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
-    }
 
-    const handleBeforeUnload = async () => {
-    try {
-      await axios.post("/logout");
-    } catch (error) {
-      console.error("Error cerrando sesión automáticamente:", error);
-    }
-  };
+     const SKIP_LOGOUT_STORAGE_KEY = 'skip-logout-on-unload';
 
-  window.addEventListener("beforeunload", handleBeforeUnload);
+    const safeStorage = (() => {
+      try {
+        return window.sessionStorage;
+      } catch {
+        return null;
+      }
+    })();
 
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-  };
+    const getSkipFlag = () => safeStorage?.getItem(SKIP_LOGOUT_STORAGE_KEY) === '1';
+    const setSkipFlag = () => {
+      if (!safeStorage) {
+        return;
+      }
+      safeStorage.setItem(SKIP_LOGOUT_STORAGE_KEY, '1');
+    };
+    const clearSkipFlag = () => {
+      if (!safeStorage) {
+        return;
+      }
+      safeStorage.removeItem(SKIP_LOGOUT_STORAGE_KEY);
+    };
+
+    clearSkipFlag();
+
+    let shouldLogoutOnUnload = true;
+    let skipLogoutTimeoutId: number | null = null;
+
+    const clearSkipTimer = () => {
+      if (skipLogoutTimeoutId) {
+        window.clearTimeout(skipLogoutTimeoutId);
+        skipLogoutTimeoutId = null;
+      }
+    };
+
+    const skipLogoutTemporarily = () => {
+      shouldLogoutOnUnload = false;
+      setSkipFlag();
+      clearSkipTimer();
+      skipLogoutTimeoutId = window.setTimeout(() => {
+        shouldLogoutOnUnload = true;
+        clearSkipFlag();
+        clearSkipTimer();
+      }, 800);
+    };
+
+    const handleBeforeUnload = () => {
+      const shouldSkip = !shouldLogoutOnUnload || getSkipFlag();
+      if (shouldSkip) {
+        clearSkipFlag();
+        return;
+      }
+
+      const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
+
+      if (!csrfToken) {
+        return;
+      }
+
+      const logoutPayload = `_token=${encodeURIComponent(csrfToken)}`;
+
+      if (typeof navigator.sendBeacon === 'function') {
+        const payload = new FormData();
+        payload.append('_token', csrfToken);
+        navigator.sendBeacon('/logout', payload);
+        return;
+      }
+
+      if (typeof fetch === 'function') {
+        void fetch('/logout', {
+          method: 'POST',
+          credentials: 'include',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: logoutPayload,
+        }).catch(() => {});
+        return;
+      }
+
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/logout', false);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.send(logoutPayload);
+      } catch (error) {
+        console.error('No fue posible cerrar la sesion automaticamente:', error);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const isReloadKey = key === 'f5' || (key === 'r' && (event.ctrlKey || event.metaKey));
+
+      if (isReloadKey) {
+        skipLogoutTemporarily();
+      }
+    };
+
+    const handleClickCapture = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+
+      const anchor = target.closest('a');
+      if (anchor) {
+        skipLogoutTemporarily();
+      }
+    };
+
+    const removeInertiaListener = router.on('start', skipLogoutTemporarily);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleClickCapture, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleClickCapture, true);
+      removeInertiaListener();
+      clearSkipTimer();
+      clearSkipFlag();
+    };
   }, []);
 
   const handleMouseEnter = (menu: string) => {
@@ -135,7 +243,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       );
       if (res.data.redirect) window.location.href = res.data.redirect;
     } catch (err) {
-      console.error('Error al cerrar sesión', err);
+      console.error('Error al cerrar sesiÃ³n', err);
     }
   };
 
@@ -298,3 +406,4 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     </div>
   );
 }
+
