@@ -25,6 +25,7 @@ use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
 
+
 // ==========================================
 // Rutas públicas
 // ==========================================

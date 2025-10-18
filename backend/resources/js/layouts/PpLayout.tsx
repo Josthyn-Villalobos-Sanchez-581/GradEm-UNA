@@ -29,6 +29,20 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
     if (csrfToken) {
       axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
     }
+
+    const handleBeforeUnload = async () => {
+    try {
+      await axios.post("/logout");
+    } catch (error) {
+      console.error("Error cerrando sesión automáticamente:", error);
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
   }, []);
 
   const handleMouseEnter = (menu: string) => {
