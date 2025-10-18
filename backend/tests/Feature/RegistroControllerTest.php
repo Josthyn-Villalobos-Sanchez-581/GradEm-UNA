@@ -125,7 +125,7 @@ class RegistroControllerTest extends TestCase
             'password_confirmation' => 'Password123!',
             'nombre_completo' => 'Juan Perez',
             'identificacion' => '12345678',
-            'tipoCuenta' => 'estudiante_egresado'
+            'tipoCuenta' => 'estudiante'
         ]);
 
         $response->assertStatus(200)
@@ -155,7 +155,7 @@ class RegistroControllerTest extends TestCase
             'password_confirmation' => 'Password123!',
             'nombre_completo' => 'Juan Perez',
             'identificacion' => '12345678',
-            'tipoCuenta' => 'estudiante_egresado'
+            'tipoCuenta' => 'estudiante'
         ]);
 
         $response->assertStatus(422)
@@ -179,7 +179,7 @@ class RegistroControllerTest extends TestCase
             'password_confirmation' => 'Password123!',
             'nombre_completo' => 'Juan Perez',
             'identificacion' => '87654321',
-            'tipoCuenta' => 'estudiante_egresado'
+            'tipoCuenta' => 'estudiante'
         ], ['Accept' => 'application/json']);
         $response->assertStatus(422)
                   ->assertJsonFragment([
