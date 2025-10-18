@@ -104,6 +104,11 @@ class Usuario extends Authenticatable
         return $this->hasOne(Curriculum::class, 'id_usuario', 'id_usuario');
     }
 
+    public function documentosAdjuntos()
+    {
+        return $this->hasMany(DocumentoAdjunto::class, 'id_usuario', 'id_usuario');
+    }
+
     public function plataformasExternas()
 {
     return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');

@@ -127,26 +127,46 @@ const Registro: React.FC = () => {
         return undefined;
     }
 
-    // Tiempo conseguir empleo: solo números, máximo 3 dígitos, rango 0-120
-    function validarTiempoConseguirEmpleo(valor: string): string | undefined {
-        if (!valor) return undefined;
-        if (!/^[0-9]{1,3}$/.test(valor)) return 'Solo números, máximo 3 dígitos.';
+    // Tiempo conseguir empleo: requerido si empleado, solo números, máximo 3 dígitos, rango 0-120
+    function validarTiempoConseguirEmpleo(valor: string, estadoEmpleo: string): string | undefined {
+        if (estadoEmpleo === "empleado" && (!valor || valor.trim() === "")) {
+            return "Este campo es obligatorio si está empleado.";
+        }
+        if (valor && !/^[0-9]{1,3}$/.test(valor)) return "Solo números, máximo 3 dígitos.";
         const n = parseInt(valor, 10);
-        if (n < 0 || n > 120) return 'El tiempo debe estar entre 0 y 120 meses.';
+        if (valor && (n < 0 || n > 120)) return "El tiempo debe estar entre 0 y 120 meses.";
         return undefined;
     }
 
-    // Salario promedio: solo números, máximo 10 dígitos
-    function validarSalarioPromedio(valor: string): string | undefined {
-        if (!valor) return undefined;
-        if (!/^[0-9]{1,10}$/.test(valor)) return 'Solo números, máximo 10 dígitos.';
+    // Salario promedio: requerido si empleado, debe coincidir con una opción válida
+    function validarSalarioPromedio(valor: string, estadoEmpleo: string): string | undefined {
+        const opcionesValidas = ["<300000", "300000-600000", "600000-1000000", ">1000000"];
+        if (estadoEmpleo === "empleado" && (!valor || valor === "")) {
+            return "Debe seleccionar un rango salarial.";
+        }
+        if (valor && !opcionesValidas.includes(valor)) {
+            return "Debe seleccionar un rango salarial válido.";
+        }
         return undefined;
     }
 
-    // Tipo empleo: nullable|string|max:50
-    function validarTipoEmpleo(valor: string): string | undefined {
-        if (!valor) return undefined;
-        if (valor.length > 50) return 'El tipo de empleo no puede superar 50 caracteres.';
+    // Tipo de empleo: requerido si empleado, debe coincidir con una opción válida
+    function validarTipoEmpleo(valor: string, estadoEmpleo: string): string | undefined {
+        const opcionesValidas = ["Tiempo completo", "Medio tiempo", "Temporal", "Independiente", "Práctica"];
+        if (estadoEmpleo === "empleado" && (!valor || valor === "")) {
+            return "Debe seleccionar un tipo de empleo.";
+        }
+        if (valor && !opcionesValidas.includes(valor)) {
+            return "Debe seleccionar un tipo de empleo válido.";
+        }
+        return undefined;
+    }
+
+    // Área laboral: requerida si empleado
+    function validarAreaLaboral(valor: string, estadoEmpleo: string): string | undefined {
+        if (estadoEmpleo === "empleado" && (!valor || valor.trim() === "")) {
+            return "Debe seleccionar un área laboral.";
+        }
         return undefined;
     }
 
@@ -267,9 +287,10 @@ const Registro: React.FC = () => {
     const errorEstadoEstudios = useMemo(() => validarEstadoEstudios(estadoEstudios), [estadoEstudios]);
     const errorNivelAcademico = useMemo(() => validarNivelAcademico(nivelAcademico), [nivelAcademico]);
     const errorAnioGraduacion = useMemo(() => validarAnioGraduacion(anioGraduacion), [anioGraduacion]);
-    const errorTiempoConseguirEmpleo = useMemo(() => validarTiempoConseguirEmpleo(tiempoConseguirEmpleo), [tiempoConseguirEmpleo]);
-    const errorSalarioPromedio = useMemo(() => validarSalarioPromedio(salarioPromedio), [salarioPromedio]);
-    const errorTipoEmpleo = useMemo(() => validarTipoEmpleo(tipoEmpleo), [tipoEmpleo]);
+    const errorTiempoConseguirEmpleo = useMemo(() => validarTiempoConseguirEmpleo(tiempoConseguirEmpleo, estadoEmpleo), [tiempoConseguirEmpleo, estadoEmpleo]);
+    const errorSalarioPromedio = useMemo(() => validarSalarioPromedio(salarioPromedio, estadoEmpleo), [salarioPromedio, estadoEmpleo]);
+    const errorTipoEmpleo = useMemo(() => validarTipoEmpleo(tipoEmpleo, estadoEmpleo), [tipoEmpleo, estadoEmpleo]);
+    const errorAreaLaboral = useMemo(() => validarAreaLaboral(areaLaboral, estadoEmpleo),[areaLaboral, estadoEmpleo]);
 
     // MOD: Formulario válido (para deshabilitar submit)
     const formularioValidoBase =
@@ -289,13 +310,22 @@ const Registro: React.FC = () => {
         confirmPassword.length > 0 &&
         nombreCompleto.length > 0 &&
         numeroIdentificacion.length > 0;
+        (
+        estadoEmpleo !== "empleado" ||
+        (
+            tiempoConseguirEmpleo.length > 0 &&
+            salarioPromedio.length > 0 &&
+            tipoEmpleo.length > 0 &&
+            areaLaboral.length > 0
+        )
+        );
 
-    const formularioValido = formularioValidoBase && (
-        // Si es egresado, nivel académico y año de graduación son obligatorios y deben ser válidos
-        tipoCuenta === 'egresado'
-            ? (!errorNivelAcademico && !errorAnioGraduacion && nivelAcademico.length > 0 && anioGraduacion.length > 0)
-            : true
-    );
+        const formularioValido = formularioValidoBase && (
+            // Si es egresado, nivel académico y año de graduación son obligatorios y deben ser válidos
+            tipoCuenta === 'egresado'
+                ? (!errorNivelAcademico && !errorAnioGraduacion && nivelAcademico.length > 0 && anioGraduacion.length > 0)
+                : true
+        );
 
     const verificarCorreo = async (email: string) => {
         try {
@@ -948,28 +978,31 @@ const Registro: React.FC = () => {
                                                 min={0}
                                                 maxLength={3}
                                                 onChange={(e) => {
-                                                    // Solo permitir hasta 3 dígitos y solo números
-                                                    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 3);
-                                                    setTiempoConseguirEmpleo(v);
-                                                    const err = validarTiempoConseguirEmpleo(v);
-                                                    setErrors((prev: any) => {
-                                                        if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
-                                                        const { tiempo_conseguir_empleo, ...rest } = prev;
-                                                        return rest;
-                                                    });
+                                                const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+                                                setTiempoConseguirEmpleo(v);
+                                                const err = validarTiempoConseguirEmpleo(v, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
+                                                    const { tiempo_conseguir_empleo, ...rest } = prev;
+                                                    return rest;
+                                                });
                                                 }}
                                                 onBlur={(e) => {
-                                                    const err = validarTiempoConseguirEmpleo(e.target.value);
-                                                    setErrors((prev: any) => {
-                                                        if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
-                                                        const { tiempo_conseguir_empleo, ...rest } = prev;
-                                                        return rest;
-                                                    });
+                                                const err = validarTiempoConseguirEmpleo(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, tiempo_conseguir_empleo: [err] };
+                                                    const { tiempo_conseguir_empleo, ...rest } = prev;
+                                                    return rest;
+                                                });
                                                 }}
-                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).tiempo_conseguir_empleo ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                                                (errors as any).tiempo_conseguir_empleo ? "border-red-500" : "border-una-gray"
+                                                } placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
                                                 placeholder="Ej: 6"
                                                 aria-invalid={!!(errors as any).tiempo_conseguir_empleo}
-                                                aria-describedby={(errors as any).tiempo_conseguir_empleo ? 'tiempo-conseguir-empleo-error' : undefined}
+                                                aria-describedby={
+                                                (errors as any).tiempo_conseguir_empleo ? "tiempo-conseguir-empleo-error" : undefined
+                                                }
                                             />
                                             {errors.tiempo_conseguir_empleo && (
                                                 <p className="mt-1 text-sm text-red-600">{errors.tiempo_conseguir_empleo[0]}</p>
@@ -986,8 +1019,30 @@ const Registro: React.FC = () => {
                                             <select
                                                 id="areaLaboral"
                                                 value={areaLaboral}
-                                                onChange={(e) => setAreaLaboral(e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-una-gray rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                                onChange={(e) => {
+                                                setAreaLaboral(e.target.value);
+                                                const err = validarAreaLaboral(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, area_laboral: [err] };
+                                                    const { area_laboral, ...rest } = prev;
+                                                    return rest;
+                                                });
+                                                }}
+                                                onBlur={(e) => {
+                                                const err = validarAreaLaboral(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, area_laboral: [err] };
+                                                    const { area_laboral, ...rest } = prev;
+                                                    return rest;
+                                                });
+                                                }}
+                                                className={`mt-1 block w-full px-3 py-2 border ${
+                                                (errors as any).area_laboral ? "border-red-500" : "border-una-gray"
+                                                } rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                aria-invalid={!!(errors as any).area_laboral}
+                                                aria-describedby={
+                                                (errors as any).area_laboral ? "area-laboral-error" : undefined
+                                                }
                                             >
                                                 <option value="">Seleccione...</option>
                                                 <option value="1">Tecnología</option>
@@ -998,6 +1053,11 @@ const Registro: React.FC = () => {
                                                 <option value="6">Idiomas</option>
                                                 <option value="7">Otra</option>
                                             </select>
+                                            {(errors as any).area_laboral && (
+                                                <p id="area-laboral-error" className="mt-1 text-sm text-red-600">
+                                                {(errors as any).area_laboral[0]}
+                                                </p>
+                                            )}
                                             </div>
 
                                             <div>
@@ -1007,80 +1067,108 @@ const Registro: React.FC = () => {
                                             >
                                                 Salario promedio
                                             </label>
-                                            <input
+                                            <select
                                                 id="salarioPromedio"
-                                                type="text"
                                                 value={salarioPromedio}
-                                                maxLength={10}
                                                 onChange={(e) => {
-                                                    // Solo permitir hasta 10 dígitos y solo números
-                                                    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
-                                                    setSalarioPromedio(v);
-                                                    const err = validarSalarioPromedio(v);
-                                                    setErrors((prev: any) => {
-                                                        if (err) return { ...prev, salario_promedio: [err] };
-                                                        const { salario_promedio, ...rest } = prev;
-                                                        return rest;
-                                                    });
+                                                setSalarioPromedio(e.target.value);
+                                                const err = validarSalarioPromedio(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, salario_promedio: [err] };
+                                                    const { salario_promedio, ...rest } = prev;
+                                                    return rest;
+                                                });
                                                 }}
                                                 onBlur={(e) => {
-                                                    const err = validarSalarioPromedio(e.target.value);
-                                                    setErrors((prev: any) => {
-                                                        if (err) return { ...prev, salario_promedio: [err] };
-                                                        const { salario_promedio, ...rest } = prev;
-                                                        return rest;
-                                                    });
+                                                const err = validarSalarioPromedio(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, salario_promedio: [err] };
+                                                    const { salario_promedio, ...rest } = prev;
+                                                    return rest;
+                                                });
                                                 }}
-                                                className={`mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).salario_promedio ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
-                                                placeholder="Ej: 500000"
+                                                className={`mt-1 block w-full px-3 py-2 border ${
+                                                (errors as any).salario_promedio ? "border-red-500" : "border-una-gray"
+                                                } rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
                                                 aria-invalid={!!(errors as any).salario_promedio}
-                                                aria-describedby={(errors as any).salario_promedio ? 'salario-promedio-error' : undefined}
-                                            />
+                                                aria-describedby={
+                                                (errors as any).salario_promedio ? "salario-promedio-error" : undefined
+                                                }
+                                            >
+                                                <option value="">Seleccione rango salarial</option>
+                                                <option value="<300000">Menor a ₡300,000</option>
+                                                <option value="300000-600000">₡300,000 - ₡600,000</option>
+                                                <option value="600000-1000000">₡600,000 - ₡1,000,000</option>
+                                                <option value=">1000000">Mayor a ₡1,000,000</option>
+                                            </select>
+                                            {(errors as any).salario_promedio && (
+                                                <p
+                                                id="salario-promedio-error"
+                                                className="mt-1 text-sm text-red-600"
+                                                role="alert"
+                                                aria-live="assertive"
+                                                >
+                                                {(errors as any).salario_promedio[0]}
+                                                </p>
+                                            )}
                                             </div>
 
                                             <div>
-                                                <label
-                                                    htmlFor="tipoEmpleo"
-                                                    className="block text-sm font-bold text-black font-open-sans"
+                                            <label
+                                                htmlFor="tipoEmpleo"
+                                                className="block text-sm font-bold text-black font-open-sans"
+                                            >
+                                                Tipo de empleo
+                                            </label>
+                                            <select
+                                                id="tipoEmpleo"
+                                                value={tipoEmpleo}
+                                                onChange={(e) => {
+                                                setTipoEmpleo(e.target.value);
+                                                const err = validarTipoEmpleo(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, tipo_empleo: [err] };
+                                                    const { tipo_empleo, ...rest } = prev;
+                                                    return rest;
+                                                });
+                                                }}
+                                                onBlur={(e) => {
+                                                const err = validarTipoEmpleo(e.target.value, estadoEmpleo);
+                                                setErrors((prev: any) => {
+                                                    if (err) return { ...prev, tipo_empleo: [err] };
+                                                    const { tipo_empleo, ...rest } = prev;
+                                                    return rest;
+                                                });
+                                                }}
+                                                className={`mt-1 block w-full px-3 py-2 border ${
+                                                (errors as any).tipo_empleo ? "border-red-500" : "border-una-gray"
+                                                } rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                                aria-invalid={!!(errors as any).tipo_empleo}
+                                                aria-describedby={
+                                                (errors as any).tipo_empleo ? "tipo-empleo-error" : undefined
+                                                }
+                                            >
+                                                <option value="">Seleccione tipo de empleo</option>
+                                                <option value="Tiempo completo">Tiempo completo</option>
+                                                <option value="Medio tiempo">Medio tiempo</option>
+                                                <option value="Temporal">Temporal</option>
+                                                <option value="Independiente">Independiente</option>
+                                                <option value="Práctica">Práctica</option>
+                                            </select>
+                                            {(errors as any).tipo_empleo && (
+                                                <p
+                                                id="tipo-empleo-error"
+                                                className="mt-1 text-sm text-red-600"
+                                                role="alert"
+                                                aria-live="assertive"
                                                 >
-                                                    Tipo de empleo
-                                                </label>
-                                                <select
-                                                    id="tipoEmpleo"
-                                                    value={tipoEmpleo}
-                                                    onChange={(e) => {
-                                                        setTipoEmpleo(e.target.value);
-                                                        const err = validarTipoEmpleo(e.target.value);
-                                                        setErrors((prev: any) => {
-                                                            if (err) return { ...prev, tipo_empleo: [err] };
-                                                            const { tipo_empleo, ...rest } = prev;
-                                                            return rest;
-                                                        });
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        const err = validarTipoEmpleo(e.target.value);
-                                                        setErrors((prev: any) => {
-                                                            if (err) return { ...prev, tipo_empleo: [err] };
-                                                            const { tipo_empleo, ...rest } = prev;
-                                                            return rest;
-                                                        });
-                                                    }}
-                                                    className={`mt-1 block w-full px-3 py-2 border ${(errors as any).tipo_empleo ? 'border-red-500' : 'border-una-gray'} rounded-md shadow-sm text-una-dark-gray focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
-                                                    aria-invalid={!!(errors as any).tipo_empleo}
-                                                    aria-describedby={(errors as any).tipo_empleo ? 'tipo-empleo-error' : undefined}
-                                                >
-                                                    <option value="">Seleccione...</option>
-                                                    <option value="Tiempo completo">Tiempo completo</option>
-                                                    <option value="Medio tiempo">Medio tiempo</option>
-                                                </select>
-                                                {(errors as any).tipo_empleo && (
-                                                    <p id="tipo-empleo-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">
-                                                        {(errors as any).tipo_empleo[0]}
-                                                    </p>
-                                                )}
+                                                {(errors as any).tipo_empleo[0]}
+                                                </p>
+                                            )}
                                             </div>
                                         </>
                                         )}
+
                                         {/* Estado de estudios */}
                                         <div>
                                         <label
