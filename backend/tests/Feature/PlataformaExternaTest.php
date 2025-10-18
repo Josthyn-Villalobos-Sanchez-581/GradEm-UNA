@@ -102,10 +102,10 @@ class PlataformaExternaTest extends TestCase
         $response = $this->actingAs($this->usuario)
             ->postJson(route('perfil.plataformas.store'), $payload);
 
-        $response->assertStatus(403)
-                 ->assertJson([
-                     'error' => 'Solo estudiantes o egresados pueden agregar enlaces.'
-                 ]);
+       $response->assertStatus(403)
+         ->assertJson([
+             'error' => 'Solo estudiantes, egresados o empresas pueden agregar enlaces.'
+         ]);
     }
 
     #[Test]
