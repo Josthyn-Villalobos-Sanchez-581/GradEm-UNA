@@ -34,6 +34,12 @@ export type Referencia = {
   relacion: string;
 };
 
+export type Certificacion = {
+  nombre: string;
+  institucion?: string;
+  fecha_obtencion?: string;
+};
+
 export type FormCV = {
   usuarioId: number;
   datosPersonales: {
@@ -47,6 +53,7 @@ export type FormCV = {
   habilidades: Habilidad[];
   idiomas: Idioma[];
   referencias: Referencia[];
+  certificaciones: Certificacion[];
   incluirFotoPerfil?: boolean;
   [key: string]: unknown;
 };

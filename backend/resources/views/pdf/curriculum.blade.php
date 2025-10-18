@@ -174,6 +174,36 @@
   </section>
   @endif
 
+  @if(!empty($d['certificaciones']))
+  <section>
+    <h3 class="sub">Certificaciones</h3>
+    @foreach($d['certificaciones'] as $c)
+      @php
+        $nombre = trim($c['nombre'] ?? '');
+        $institucion = trim($c['institucion'] ?? '');
+        $fechaObtencion = trim($c['fecha_obtencion'] ?? '');
+        
+        $fechaFormateada = '';
+        if ($fechaObtencion) {
+            try {
+                $fechaFormateada = date('F Y', strtotime($fechaObtencion));
+            } catch (Exception $e) {
+                $fechaFormateada = $fechaObtencion;
+            }
+        }
+      @endphp
+      
+      @if($nombre)
+        <div style="margin-bottom:8px;">
+          <strong>{{ $nombre }}</strong>
+          @if($institucion) - {{ $institucion }} @endif
+          @if($fechaFormateada) <em>({{ $fechaFormateada }})</em> @endif
+        </div>
+      @endif
+    @endforeach
+  </section>
+  @endif
+
   @if(!empty($idiomasNormalizados))
   <section>
     <h3 class="sub">Idiomas</h3>

@@ -1,5 +1,3 @@
-// resources/js/pages/Frt_FormularioGeneracionCurriculum.tsx
-
 import React, { useMemo, useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
@@ -11,12 +9,14 @@ import FotoXDefecto from '../assets/FotoXDefecto.png';
 import { Button } from "@/components/ui/button";
 
 //  IMPORTAR TIPOS COMPARTIDOS
-import type { FormCV, Educacion, Experiencia, Funcion, Habilidad, Idioma, Referencia } from '../types/curriculum';
+import type { FormCV, Educacion, Experiencia, Funcion, Habilidad, Idioma, Referencia, Certificacion } from '../types/curriculum';
 
 // ================== Constantes ==================
 const FECHA_MINIMA_CURRICULUM = '1960-01-01';
 const MAX_FUNCIONES_POR_EXPERIENCIA = 10;
+const MAX_ELEMENTOS_CV = 5;
 
+// ================== Definición de Tipos ==================
 type UsuarioActual = {
   id_usuario: number;
   nombre_completo: string;
@@ -109,7 +109,7 @@ function validarCampoSegunReglas(
 
 // ================== Validaciones ==================
 const validacionesDatosPersonales = {
-nombreCompleto: { 
+  nombreCompleto: { 
     required: true, 
     minLength: 3,   
     maxLength: 80,    
@@ -127,13 +127,13 @@ nombreCompleto: {
 };
 
 const validacionesEducacion = {
-institucion: { 
+  institucion: { 
     required: true, 
     minLength: 3, 
     maxLength: 100,  
     pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
   },
-titulo: { 
+  titulo: { 
     required: true, 
     minLength: 3, 
     maxLength: 100, 
@@ -265,6 +265,32 @@ const validacionesReferencia = {
   }
 };
 
+const validacionesCertificacion = {
+  nombre: { 
+    required: false, 
+    minLength: 3, 
+    maxLength: 100, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'-]+$/ 
+  },
+  institucion: { 
+    required: false, 
+    minLength: 2, 
+    maxLength: 80, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&'-]+$/ 
+  },
+  fecha_obtencion: { 
+    required: false, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      const fecha = new Date(value);
+      const hoy = new Date();
+      if (fecha > hoy) return 'La fecha no puede ser futura';
+      if (fecha < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
+      return true;
+    }
+  }
+};
+
 // ===========================================================
 
 export default function Frt_FormularioGeneracionCurriculum() {
@@ -296,6 +322,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
     habilidades: [],
     idiomas: [],
     referencias: [],
+    certificaciones: [],
     incluirFotoPerfil: false,
   }), [usuario]);
 
@@ -306,27 +333,56 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
 
   const paso4Completo = useMemo(() => {
-  const habilidadesOk = form.habilidades.every(h => {
-    const desc = (h.descripcion ?? '').trim();
-    return desc && desc.length >= 2 && desc.length <= 40;  // ⭐ ACTUALIZADO: 2-40
-  });
-  const idiomasOk = form.idiomas.every(i => {
-    const nombre = (i.nombre ?? '').trim();
-    const nivel = (i.nivel ?? '').trim();
-    return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
-  });
-  const referenciasOk = form.referencias.every(r => {
-    const nombre = (r.nombre ?? '').trim();
-    const contacto = solo8Digitos(r.contacto ?? '');
-    const relacion = (r.relacion ?? '').trim();
-    return (
-      nombre && nombre.length >= 3 && nombre.length <= 80 &&  // ⭐ ACTUALIZADO: 3-80
-      contacto.length === 8 &&
-      relacion && relacion.length <= 50  // ⭐ ACTUALIZADO: 50
-    );
-  });
-  return habilidadesOk && idiomasOk && referenciasOk;
-}, [form.habilidades, form.idiomas, form.referencias]);
+    // Validar habilidades: si hay alguna agregada, todas deben estar completas
+    const habilidadesOk = form.habilidades.length === 0 || form.habilidades.every(h => {
+      const desc = (h.descripcion ?? '').trim();
+      return desc && desc.length >= 2 && desc.length <= 40;
+    });
+
+    // Validar idiomas: si hay alguno agregado, todos deben estar completos
+    const idiomasOk = form.idiomas.length === 0 || form.idiomas.every(i => {
+      const nombre = (i.nombre ?? '').trim();
+      const nivel = (i.nivel ?? '').trim();
+      return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
+    });
+
+    // Validar referencias: si hay alguna agregada, todas deben estar completas
+    const referenciasOk = form.referencias.length === 0 || form.referencias.every(r => {
+      const nombre = (r.nombre ?? '').trim();
+      const contacto = solo8Digitos(r.contacto ?? '');
+      const relacion = (r.relacion ?? '').trim();
+      return (
+        nombre && nombre.length >= 3 && nombre.length <= 80 &&
+        contacto.length === 8 &&
+        relacion && relacion.length <= 50
+      );
+    });
+
+    // Validar certificaciones: si hay alguna agregada, todas deben estar completas
+    const certificacionesOk = form.certificaciones.length === 0 || form.certificaciones.every(c => {
+      const nombre = (c.nombre ?? '').trim();
+      const institucion = (c.institucion ?? '').trim();
+      const fecha = (c.fecha_obtencion ?? '').trim();
+      
+      if (nombre || institucion || fecha) {
+        return nombre && nombre.length >= 3 && nombre.length <= 100;
+      }
+      return true;
+    });
+
+    // El botón se habilita solo si TODAS las validaciones pasan
+    return habilidadesOk && idiomasOk && referenciasOk && certificacionesOk;
+  }, [
+    form.habilidades, 
+    form.idiomas, 
+    form.referencias,
+    form.certificaciones,
+    // NUEVO: Agregar los valores individuales para re-calcular en tiempo real
+    ...form.habilidades.map(h => h.descripcion),
+    ...form.idiomas.map(i => `${i.nombre}|${i.nivel}`),
+    ...form.referencias.map(r => `${r.nombre}|${r.contacto}|${r.relacion}`),
+    ...form.certificaciones.map(c => `${c.nombre}|${c.institucion}|${c.fecha_obtencion}`)
+  ]);
 
   const botonGenerarDeshabilitado = cargando || !paso4Completo;
 
@@ -513,6 +569,33 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
     });
 
+    // CERTIFICACIONES
+    formActual.certificaciones.forEach((cert, i) => {
+      const nombre = (cert.nombre ?? '').trim();
+      const institucion = (cert.institucion ?? '').trim();
+      const fecha = (cert.fecha_obtencion ?? '').trim();
+      const tieneAlgunValor = nombre || institucion || fecha;
+
+      if (tieneAlgunValor) {
+        if (!nombre) {
+          errs[`certificaciones.${i}.nombre`] = 'Completa el nombre de la certificación o elimínala';
+        } else {
+          const msgNombre = validarCampoSegunReglas(nombre, validacionesCertificacion.nombre, 'Nombre de certificación');
+          if (msgNombre) errs[`certificaciones.${i}.nombre`] = msgNombre;
+        }
+
+        if (institucion) {
+          const msgInstitucion = validarCampoSegunReglas(institucion, validacionesCertificacion.institucion, 'Institución');
+          if (msgInstitucion) errs[`certificaciones.${i}.institucion`] = msgInstitucion;
+        }
+
+        if (fecha) {
+          const msgFecha = validarCampoSegunReglas(fecha, validacionesCertificacion.fecha_obtencion, 'Fecha de obtención');
+          if (msgFecha) errs[`certificaciones.${i}.fecha_obtencion`] = msgFecha;
+        }
+      }
+    });
+
     return errs;
   }
 
@@ -627,7 +710,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   };
 
   async function removeArrayItem(
-    key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias',
+    key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias' | 'certificaciones',
     idx: number
   ) {
     const continuar = await modal.confirmacion({
@@ -771,6 +854,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
     'referencias.nombre': 'Nombre',
     'referencias.contacto': 'Teléfono',
     'referencias.relacion': 'Relación',
+    'certificaciones.nombre': 'Nombre de certificación',
+    'certificaciones.institucion': 'Institución',
+    'certificaciones.fecha_obtencion': 'Fecha de obtención',
   };
 
   function obtenerEtiquetaDeClave(clave: string): string {
@@ -802,14 +888,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
     : FotoXDefecto;
 
   return (
-    <PpLayout
-      userPermisos={userPermisos}
-      breadcrumbs={[
-        { title: 'Inicio', href: '/' },
-        { title: 'Currículum', href: '/curriculum' },
-        { title: 'Generar CV', href: '/curriculum/generar' },
-      ]}
-    >
+    <PpLayout userPermisos={userPermisos}>
       <h1 className="text-2xl font-bold text-[#034991] mb-4">Generación de Currículum</h1>
 
       <div className="max-w-6xl mx-auto p-4 text-gray-900">
@@ -951,9 +1030,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 }));
               }}
               className="mb-2"
+              disabled={form.educaciones.length >= MAX_ELEMENTOS_CV}
+              title={form.educaciones.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} educaciones permitidas` : undefined}
             >
-              + Agregar educación
+              + Agregar educación ({form.educaciones.length}/{MAX_ELEMENTOS_CV})
             </Button>
+            
+            {form.educaciones.length >= MAX_ELEMENTOS_CV && (
+              <p className="text-amber-600 text-sm mb-2">
+                Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} educaciones.
+              </p>
+            )}
 
             {form.educaciones.map((ed, i) => (
               <div key={i} className="mb-3 p-4 border rounded bg-white">
@@ -1062,9 +1149,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 }));
               }}
               className="mb-2"
+              disabled={form.experiencias.length >= MAX_ELEMENTOS_CV}
+              title={form.experiencias.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} experiencias permitidas` : undefined}
             >
-              + Agregar experiencia
+              + Agregar experiencia ({form.experiencias.length}/{MAX_ELEMENTOS_CV})
             </Button>
+            
+            {form.experiencias.length >= MAX_ELEMENTOS_CV && (
+              <p className="text-amber-600 text-sm mb-2">
+                Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} experiencias laborales.
+              </p>
+            )}
 
             {form.experiencias.map((ex, i) => (
               <div key={i} className="mb-4 p-4 border rounded bg-white shadow-sm">
@@ -1170,7 +1265,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   </div>
 
                   {(ex.funciones || []).map((func, fIdx) => (
-                    <div key={fIdx} className="flex gap-2 mb-2">
+                                        <div key={fIdx} className="flex gap-2 mb-2">
                       <div className="flex-1 relative">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500 font-medium w-6">
@@ -1241,9 +1336,18 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   setForm(prev => ({ ...prev, habilidades: [...prev.habilidades, { descripcion: '' }] }));
                 }}
                 className="mb-2"
+                disabled={form.habilidades.length >= MAX_ELEMENTOS_CV}
+                title={form.habilidades.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} habilidades permitidas` : undefined}
               >
-                + Habilidad
+                + Habilidad ({form.habilidades.length}/{MAX_ELEMENTOS_CV})
               </Button>
+              
+              {form.habilidades.length >= MAX_ELEMENTOS_CV && (
+                <p className="text-amber-600 text-sm mb-2">
+                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} habilidades.
+                </p>
+              )}
+
               {form.habilidades.map((h, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <div className="float-label-input w-full">
@@ -1275,6 +1379,97 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 </div>
               ))}
 
+              <h3 className="font-bold text-[#034991] mt-4 mb-1">Certificaciones</h3>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setForm(prev => ({ ...prev, certificaciones: [...prev.certificaciones, { nombre: '', institucion: '', fecha_obtencion: '' }] }));
+                }}
+                className="mb-2"
+                disabled={form.certificaciones.length >= MAX_ELEMENTOS_CV}
+                title={form.certificaciones.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} certificaciones permitidas` : undefined}
+              >
+                + Certificación ({form.certificaciones.length}/{MAX_ELEMENTOS_CV})
+              </Button>
+              
+              {form.certificaciones.length >= MAX_ELEMENTOS_CV && (
+                <p className="text-amber-600 text-sm mb-2">
+                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} certificaciones.
+                </p>
+              )}
+
+              {form.certificaciones.map((cert, idx) => (
+                <div key={idx} className="mb-3 p-3 border rounded bg-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">Certificación {idx + 1}</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeArrayItem('certificaciones', idx)}
+                      aria-label={`Eliminar certificación ${idx + 1}`}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {/* Nombre */}
+                    <div className="float-label-input">
+                      <input
+                        id={`cert_${idx}_nombre`}
+                        className="peer"
+                        placeholder=" "
+                        maxLength={100}
+                        value={cert.nombre}
+                        onChange={e => setCampo(`certificaciones.${idx}.nombre`, e.target.value)}
+                        aria-invalid={getAriaInvalid(`certificaciones.${idx}.nombre`)}
+                        aria-describedby={getDescribedBy(`certificaciones.${idx}.nombre`)}
+                      />
+                      <label htmlFor={`cert_${idx}_nombre`}>Nombre de la certificación</label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Institución */}
+                      <div className="float-label-input">
+                        <input
+                          id={`cert_${idx}_institucion`}
+                          className="peer"
+                          placeholder=" "
+                          maxLength={80}
+                          value={cert.institucion || ''}
+                          onChange={e => setCampo(`certificaciones.${idx}.institucion`, e.target.value)}
+                          aria-invalid={getAriaInvalid(`certificaciones.${idx}.institucion`)}
+                          aria-describedby={getDescribedBy(`certificaciones.${idx}.institucion`)}
+                        />
+                        <label htmlFor={`cert_${idx}_institucion`}>Institución (opcional)</label>
+                      </div>
+
+                      {/* Fecha obtención */}
+                      <div className="float-label-input">
+                        <input
+                          id={`cert_${idx}_fecha_obtencion`}
+                          className={`peer ${cert.fecha_obtencion ? 'has-value' : ''}`}
+                          type="date"
+                          placeholder=" "
+                          min={FECHA_MINIMA_CURRICULUM}
+                          max={new Date().toISOString().split('T')[0]}
+                          value={cert.fecha_obtencion || ''}
+                          onChange={e => setCampo(`certificaciones.${idx}.fecha_obtencion`, e.target.value)}
+                          aria-invalid={getAriaInvalid(`certificaciones.${idx}.fecha_obtencion`)}
+                          aria-describedby={getDescribedBy(`certificaciones.${idx}.fecha_obtencion`)}
+                        />
+                        <label htmlFor={`cert_${idx}_fecha_obtencion`}>Fecha obtención (opcional)</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Errores */}
+                  {errores[`certificaciones.${idx}.nombre`] && <p id={`certificaciones_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.nombre`]}</p>}
+                  {errores[`certificaciones.${idx}.institucion`] && <p id={`certificaciones_${idx}_institucion_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.institucion`]}</p>}
+                  {errores[`certificaciones.${idx}.fecha_obtencion`] && <p id={`certificaciones_${idx}_fecha_obtencion_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.fecha_obtencion`]}</p>}
+                </div>
+              ))}
+
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
               <Button
                 variant="outline"
@@ -1282,9 +1477,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   setForm(prev => ({ ...prev, idiomas: [...prev.idiomas, { nombre: '', nivel: '' }] }));
                 }}
                 className="mb-2"
+                disabled={form.idiomas.length >= MAX_ELEMENTOS_CV}
+                title={form.idiomas.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} idiomas permitidos` : undefined}
               >
-                + Idioma
+                + Idioma ({form.idiomas.length}/{MAX_ELEMENTOS_CV})
               </Button>
+              
+              {form.idiomas.length >= MAX_ELEMENTOS_CV && (
+                <p className="text-amber-600 text-sm mb-2">
+                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} idiomas.
+                </p>
+              )}
 
               {form.idiomas.map((i2, idx) => (
                 <div key={idx} className="mb-3 p-3 border rounded bg-white">
@@ -1350,9 +1553,18 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   setForm(prev => ({ ...prev, referencias: [...prev.referencias, { nombre: '', contacto: '', relacion: '' }] }));
                 }}
                 className="mb-2"
+                disabled={form.referencias.length >= MAX_ELEMENTOS_CV}
+                title={form.referencias.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} referencias permitidas` : undefined}
               >
-                + Referencia
+                + Referencia ({form.referencias.length}/{MAX_ELEMENTOS_CV})
               </Button>
+              
+              {form.referencias.length >= MAX_ELEMENTOS_CV && (
+                <p className="text-amber-600 text-sm mb-2">
+                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} referencias.
+                </p>
+              )}
+
               {form.referencias.map((r, idx) => (
                 <div key={idx} className="mb-3 p-3 border rounded bg-white">
                   <div className="flex items-center justify-between mb-2">
@@ -1426,12 +1638,12 @@ export default function Frt_FormularioGeneracionCurriculum() {
               ))}
             </div>
 
-          <div>
-  <Frt_VistaPreviaCurriculum 
-    datos={form} 
-    fotoPerfilUrl={fotoPerfilUrl} 
-  />
-</div>
+            <div>
+              <Frt_VistaPreviaCurriculum 
+                datos={form} 
+                fotoPerfilUrl={fotoPerfilUrl} 
+              />
+            </div>
           </section>
         )}
 
@@ -1460,7 +1672,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
               variant="destructive"
               onClick={generar}
               disabled={botonGenerarDeshabilitado}
-              title={!paso4Completo ? "Completa las habilidades, idiomas y referencias agregadas." : undefined}
+              title={!paso4Completo ? "Completa las habilidades, idiomas, referencias y certificaciones agregadas." : undefined}
               className="bg-[#CD1719] hover:bg-[#A01315]"
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
@@ -1469,15 +1681,15 @@ export default function Frt_FormularioGeneracionCurriculum() {
         </div>
 
         {mostrarBtnDashboard && (
-  <div className="mt-4">
-    <Button
-      variant="secondary"
-      onClick={() => router.visit('/dashboard')}
-    >
-      Ir al Dashboard
-    </Button>
-  </div>
-)}
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => router.visit('/dashboard')}
+            >
+              Ir al Dashboard
+            </Button>
+          </div>
+        )}
       </div>
     </PpLayout>
   );
