@@ -5,7 +5,7 @@ import { route } from "ziggy-js";
 import PpLayout from "@/layouts/PpLayout";
 import { Link } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
-
+import { useModalContext } from "@/context/ModalContext"; 
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
 const tailwindStyles = `
@@ -455,11 +455,35 @@ const isFormValid = () => {
   if (data.contrasena && data.contrasena !== data.contrasena_confirmation) return false;
   return true;
 };
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid()) return;
-    put(route("admin.actualizar", { id: usuario.id }), { preserveScroll: true });
-  };
+
+const modal = useModalContext(); 
+ const submit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!isFormValid()) return;
+
+  // 1️⃣ Confirmación antes de enviar
+  const confirmado = await modal.confirmacion({
+    titulo: "Actualizar usuario",
+    mensaje: "¿Está seguro que desea actualizar este usuario?",
+    textoAceptar: "Sí, actualizar",
+    textoCancelar: "Cancelar",
+  });
+
+  if (!confirmado) return;
+
+  // 2️⃣ Enviar al backend
+  put(route("admin.actualizar", { id: usuario.id }), {
+    preserveScroll: true,
+    onSuccess: async () => {
+      // 3️⃣ Mostrar modal de éxito
+      await modal.alerta({
+        titulo: "Actualización exitosa",
+        mensaje: "Los datos del usuario se actualizaron correctamente.",
+        textoAceptar: "Aceptar",
+      });
+    },
+  });
+};
 
   const nombreError = !data.nombre_completo.trim() ? "Requerido" : "";
   const correoError =
