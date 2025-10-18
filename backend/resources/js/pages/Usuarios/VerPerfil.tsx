@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useModal } from "@/hooks/useModal";
 import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
@@ -13,6 +14,13 @@ interface FotoPerfil {
 interface Curriculum {
   id_curriculum: number;
   ruta_archivo_pdf: string;
+}
+
+interface DocumentoAdjunto {
+  id_documento: number;
+  nombre_original: string;
+  rutaPublica: string;
+  fecha_subida: string;
 }
 
 interface Universidad {
@@ -60,6 +68,7 @@ interface Usuario {
   carrera?: Carrera | null;
   fotoPerfil?: FotoPerfil | null;
   curriculum?: Curriculum | null;
+  tiene_adjuntos?: boolean; // Nuevo campo para indicar si tiene adjuntos
   rol?: { nombre_rol: string };
   empresa?: Empresa | null;
 }
@@ -91,10 +100,23 @@ interface Props {
 */
 export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const [mostrarCV, setMostrarCV] = useState(false);
+  const modal = useModal();
+
+  const [mostrarAdjuntos, setMostrarAdjuntos] = useState(false);
+  const [cargandoAdjuntos, setCargandoAdjuntos] = useState(false);
+  const [adjuntos, setAdjuntos] = useState<DocumentoAdjunto[]>([]);
+  const [docSeleccionado, setDocSeleccionado] = useState<DocumentoAdjunto | null>(null);
 
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
   const renderValor = (valor: any) =>
     valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
+
+  // Asegurarse de que los adjuntos no se muestren automáticamente al entrar
+  useEffect(() => {
+    setMostrarAdjuntos(false);
+    setAdjuntos([]);
+    setDocSeleccionado(null);
+  }, []);
 
   // Si el usuario tiene rol Empresa, mostrar diseño distinto
   if (usuario.rol?.nombre_rol?.toLowerCase() === "empresa") {
@@ -221,27 +243,126 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
               )}
             </div>
 
-            {/* Currículum */}
-            {usuario.curriculum?.ruta_archivo_pdf && (
-              <div className="mt-4">
+            {/* Contenedor de botones Currículum + Documentos Adjuntos */}
+            <div className="mt-4 flex justify-start items-center space-x-3">
+              {/* Botón: Ver/Ocultar Currículum */}
+              {usuario.curriculum?.ruta_archivo_pdf && (
                 <Button
                   onClick={() => setMostrarCV(!mostrarCV)}
                   variant="default"
+                  className="min-w-[200px]"
                 >
                   {mostrarCV ? "Ocultar Currículum" : "Ver Currículum"}
                 </Button>
+              )}
 
-                {mostrarCV && (
-                  <div className="mt-3 border rounded-lg shadow overflow-hidden">
-                    <embed
-                      src={usuario.curriculum.ruta_archivo_pdf}
-                      type="application/pdf"
-                      className="w-full h-[600px]"
-                    />
-                  </div>
+              {/* Botón: Ver/Ocultar Documentos Adjuntos */}
+              {usuario.tiene_adjuntos && (
+                <Button
+                  onClick={async () => {
+                    if (mostrarAdjuntos) {
+                      // Si ya se muestran, ocultarlos
+                      setMostrarAdjuntos(false);
+                      setAdjuntos([]);
+                      setDocSeleccionado(null);
+                      return;
+                    }
+
+                    // Mostrar y cargar adjuntos
+                    setMostrarAdjuntos(true);
+                    setCargandoAdjuntos(true);
+                    try {
+                      const resp = await fetch(`/usuarios/${usuario.id_usuario}/adjuntos`);
+                      if (!resp.ok) throw new Error("No se pudieron cargar los adjuntos");
+                      const data = await resp.json();
+                      setAdjuntos(data);
+                      if (data.length > 0) setDocSeleccionado(data[0]);
+                    } catch (err) {
+                      await modal.alerta({
+                        titulo: "Error",
+                        mensaje: "No se pudieron cargar los archivos adjuntos.",
+                      });
+                    } finally {
+                      setCargandoAdjuntos(false);
+                    }
+                  }}
+                  variant="default"
+                  className="min-w-[220px]"
+                >
+                  {mostrarAdjuntos
+                    ? "Ocultar Documentos Adjuntos"
+                    : cargandoAdjuntos
+                    ? "Cargando..."
+                    : "Ver Documentos Adjuntos"}
+                </Button>
+              )}
+            </div>
+
+            {/* Vista del Currículum */}
+            {mostrarCV && (
+              <div className="mt-3 border rounded-lg shadow overflow-hidden">
+                <embed
+                  src={usuario.curriculum?.ruta_archivo_pdf}
+                  type="application/pdf"
+                  className="w-full h-[600px]"
+                />
+              </div>
+            )}
+
+            {/* Vista de Documentos Adjuntos */}
+            {mostrarAdjuntos && (
+              <div className="mt-6">
+                {cargandoAdjuntos ? (
+                  <p className="text-center text-gray-500 italic">Cargando adjuntos...</p>
+                ) : adjuntos.length === 0 ? (
+                  <p className="text-center text-gray-500 italic">
+                    No se encontraron documentos adjuntos.
+                  </p>
+                ) : (
+                  <>
+                    {/* Lista de documentos */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {adjuntos.map((doc) => (
+                        <div
+                          key={doc.id_documento}
+                          className={`border rounded-lg p-4 cursor-pointer hover:shadow transition ${
+                            docSeleccionado?.id_documento === doc.id_documento
+                              ? "border-blue-700 bg-blue-50"
+                              : "border-gray-200"
+                          }`}
+                          onClick={() => setDocSeleccionado(doc)}
+                        >
+                          <p className="font-semibold text-lg text-gray-800">
+                            📄 {doc.nombre_original}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Vista previa */}
+                    {docSeleccionado && (
+                      <div className="mt-6">
+                        <h3
+                          className="text-lg font-semibold mb-3 text-center"
+                          style={{ color: "#034991" }}
+                        >
+                          Visualizando: {docSeleccionado.nombre_original}
+                        </h3>
+                        <div className="flex justify-center">
+                          <embed
+                            src={docSeleccionado.rutaPublica}
+                            type="application/pdf"
+                            className="w-full h-[70vh] border rounded-lg shadow-lg"
+                            style={{ borderColor: "#A7A7A9" }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
+
 
             {/* 🔗 Enlaces a plataformas externas */}
             <div className="mt-6">
