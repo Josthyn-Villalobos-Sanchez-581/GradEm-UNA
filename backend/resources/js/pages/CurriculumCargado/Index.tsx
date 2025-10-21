@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
-import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { route } from "ziggy-js";
@@ -124,8 +123,28 @@ export default function CurriculumIndex({ documentos = [], userPermisos }: Props
       mensaje: error.response?.data?.message || "Error inesperado al eliminar.",
     });
   }
-};
+  };
 
+  const handleGoToDocumentos = async () => {
+    try {
+      const response = await axios.get(route("api.documentos.url"));
+      if (response.data?.ok && response.data?.url) {
+        window.location.href = response.data.url;
+        return;
+      }
+
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: "No se pudo obtener la ruta de Documentos.",
+      });
+    } catch (error: any) {
+      console.error(error);
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: error.response?.data?.message || "No se pudo acceder a Documentos.",
+      });
+    }
+  };
 
   return (
     <>
@@ -136,7 +155,7 @@ export default function CurriculumIndex({ documentos = [], userPermisos }: Props
             <h2 className="text-2xl font-bold text-[#034991]">Carga de Currículum</h2>
             <Button
               type="button"
-              onClick={() => Inertia.get(route("documentos.index"))}
+              onClick={handleGoToDocumentos}
               variant="default"
               size="sm"
               className="shadow"
