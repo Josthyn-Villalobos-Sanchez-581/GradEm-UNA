@@ -18,7 +18,7 @@ class EmpresaController extends Controller
             'correo'           => 'required|email|unique:empresas,correo|unique:usuarios,correo',
             'telefono'         => 'required|string|digits_between:8,20|regex:/^[0-9]{8,20}$/',
             'persona_contacto' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
-            'identificacion'   => 'required|string|digits_between:8,20|regex:/^[0-9]{8,20}$/|unique:usuarios,identificacion',
+            'identificacion'   => 'required|string|min:8|max:20|unique:usuarios,identificacion|regex:/^[A-Za-z0-9]+$/',
             'password' => 'required|confirmed|min:8',
         ], [
         'nombre.required' => 'El nombre de la empresa es obligatorio.',
@@ -34,9 +34,9 @@ class EmpresaController extends Controller
         'persona_contacto.regex' => 'El nombre solo puede contener letras y espacios.',
         'identificacion.required' => 'La identificación es obligatoria.',
         'identificacion.unique' => 'La identificación ya está en uso.',
-        'identificacion.digits_between' => 'La identificación debe contener entre 8 y 20 dígitos numéricos.',
+        'identificacion.regex' => 'La identificación solo puede contener letras y números (sin espacios ni símbolos).',
         'identificacion.min' => 'La identificación debe tener al menos 8 caracteres.',
-        'identificacion.regex' => 'La identificación debe contener entre 8 y 20 dígitos numéricos.',
+        'identificacion.max' => 'La identificación no puede superar los 20 caracteres.',
     ]);
 
         // 1. Crear usuario encargado
