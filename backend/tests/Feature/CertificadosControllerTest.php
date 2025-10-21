@@ -79,6 +79,8 @@ class CertificadosControllerTest extends TestCase
     #[Test]
 public function upload_permite_subir_varios_certificados_validos()
 {
+    Storage::fake('public');
+Storage::disk('public')->makeDirectory('certificados');
     $files = [
         UploadedFile::fake()->create('cert1.pdf', 500, 'application/pdf'),
         UploadedFile::fake()->image('cert2.jpg', 600, 600),
