@@ -62,12 +62,14 @@ const Registro: React.FC = () => {
     // --- Validaciones en tiempo real ---
     // Identificación: required|numeric|digits_between:8,12
     function validarIdentificacion(valor: string): string | undefined {
-        const v = (valor || '').trim();
-        if (!v) return 'La identificación es obligatoria.';
-        if (!/^[0-9]+$/.test(v)) return 'La identificación debe ser un número.';
-        if (v.length < 8 || v.length > 12) return 'La identificación debe tener entre 8 y 12 dígitos.';
-        return undefined;
-    }
+    const v = (valor || '').trim();
+    if (!v) return 'La identificación es obligatoria.';
+    if (!/^[A-Za-z0-9]+$/.test(v))
+        return 'La identificación solo puede contener letras y números (sin espacios ni símbolos).';
+    if (v.length < 8 || v.length > 12)
+        return 'La identificación debe tener entre 8 y 12 caracteres.';
+    return undefined;
+}
 
     // Teléfono: nullable|numeric|digits_between:8,15
     function validarTelefono(valor: string): string | undefined {
