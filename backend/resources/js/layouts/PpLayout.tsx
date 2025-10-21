@@ -1,4 +1,4 @@
-import { type BreadcrumbItem } from '@/types';
+﻿import { type BreadcrumbItem } from '@/types';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import axios from 'axios';
@@ -21,14 +21,8 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
   const [menuTimeout, setMenuTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const csrfToken =
-      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
     axios.defaults.withCredentials = true;
     axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-    if (csrfToken) {
-      axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
-    }
   }, []);
 
   const handleMouseEnter = (menu: string) => {
@@ -121,7 +115,7 @@ export default function PpLayout({ children, breadcrumbs, userPermisos }: PpLayo
       );
       if (res.data.redirect) window.location.href = res.data.redirect;
     } catch (err) {
-      console.error('Error al cerrar sesión', err);
+      console.error('Error al cerrar sesiÃ³n', err);
     }
   };
 

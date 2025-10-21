@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Head } from "@inertiajs/react";
+import axios from "axios";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
@@ -46,8 +47,12 @@ export default function CurriculumIndex({ documentos = [], userPermisos }: Props
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (files.length === 0) {
-      modal.alerta({ titulo: "Error", mensaje: "Debe seleccionar un archivo PDF." });
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: "Debe seleccionar un archivo PDF.",
+      });
       return;
     }
 
@@ -61,42 +66,66 @@ export default function CurriculumIndex({ documentos = [], userPermisos }: Props
     formData.append("curriculum", files[0]);
 
     try {
-      await Inertia.post(route("curriculum.upload"), formData, {
-        forceFormData: true,
-        onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Currículum cargado correctamente." });
-          setFiles([]);
-        },
-        onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo cargar el archivo." });
-        },
+      const response = await axios.post(route("api.curriculum.upload"), formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-    } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al subir el archivo." });
+
+      if (response.data.ok) {
+        await modal.alerta({
+          titulo: "Éxito",
+          mensaje: response.data.mensaje,
+        });
+        setFiles([]);
+        window.location.reload(); //Solo se ejecuta cuando el usuario da "Aceptar"
+      } else {
+        await modal.alerta({
+          titulo: "Error",
+          mensaje: response.data.mensaje || "No se pudo cargar el archivo.",
+        });
+      }
+    } catch (error: any) {
+      console.error(error);
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: error.response?.data?.message || "Error inesperado al subir el archivo.",
+      });
     }
   };
+
 
   const handleDelete = async (id: number) => {
-    const ok = await modal.confirmacion({
-      titulo: "Eliminar Currículum",
-      mensaje: "¿Está seguro que desea eliminar su currículum?",
-    });
-    if (!ok) return;
+  const ok = await modal.confirmacion({
+    titulo: "Eliminar Currículum",
+    mensaje: "¿Está seguro que desea eliminar su currículum?",
+  });
+  if (!ok) return;
 
-    try {
-      await Inertia.delete(route("curriculum.delete"), {
-        data: { id_documento: id },
-        onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Currículum eliminado correctamente." });
-        },
-        onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el currículum." });
-        },
+  try {
+    const response = await axios.delete(route("api.curriculum.delete"), {
+      data: { id_documento: id },
+    });
+
+    if (response.data.ok) {
+      await modal.alerta({
+        titulo: "Éxito",
+        mensaje: response.data.mensaje || "Currículum eliminado correctamente.",
       });
-    } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar." });
+      window.location.reload(); // 🔹 solo se ejecuta tras aceptar el modal
+    } else {
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: response.data.mensaje || "No se pudo eliminar el currículum.",
+      });
     }
-  };
+  } catch (error: any) {
+    console.error(error);
+    await modal.alerta({
+      titulo: "Error",
+      mensaje: error.response?.data?.message || "Error inesperado al eliminar.",
+    });
+  }
+};
+
 
   return (
     <>
@@ -124,10 +153,10 @@ export default function CurriculumIndex({ documentos = [], userPermisos }: Props
           {/* Dropzone */}
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${dragOver
-                ? "border-red-500 bg-red-50"
-                : files.length
-                  ? "border-green-400"
-                  : "border-gray-300"
+              ? "border-red-500 bg-red-50"
+              : files.length
+                ? "border-green-400"
+                : "border-gray-300"
               }`}
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}

@@ -39,6 +39,8 @@ class Usuario extends Authenticatable
         'id_canton',
         'salario_promedio',
         'tipo_empleo',
+        'sesion_activa',
+        'ultima_actividad'
     ];
 
     /**
@@ -52,6 +54,8 @@ class Usuario extends Authenticatable
 
     protected $casts = [
         'anio_graduacion' => 'integer',
+        'sesion_activa' => 'boolean',
+        'ultima_actividad' => 'datetime',
     ];
 
     /**
