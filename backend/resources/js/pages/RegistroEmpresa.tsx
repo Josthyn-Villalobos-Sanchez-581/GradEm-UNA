@@ -77,10 +77,13 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
         return undefined;
     }
     function validarIdentificacion(valor: string): string | undefined {
-        if (!valor) return 'La identificación es obligatoria.';
-        if (valor.length < 8) return 'La identificación debe tener al menos 8 caracteres.';
-        if (!/^[0-9]{8,20}$/.test(valor)) return 'La identificación debe contener entre 8 y 20 dígitos numéricos.';
-        return undefined;
+    const v = (valor || '').trim();
+    if (!v) return 'La identificación es obligatoria.';
+    if (v.length < 8) return 'La identificación debe tener al menos 8 caracteres.';
+    if (v.length > 20) return 'La identificación no puede superar los 20 caracteres.';
+    if (!/^[A-Za-z0-9]+$/.test(v))
+        return 'La identificación solo puede contener letras y números (sin espacios ni símbolos).';
+    return undefined;
     }
 
     // MOD: Regex de contraseña idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)

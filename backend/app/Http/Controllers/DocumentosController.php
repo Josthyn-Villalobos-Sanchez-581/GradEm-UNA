@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\DocumentoAdjunto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
 
 class DocumentosController extends Controller
 {
@@ -27,6 +29,14 @@ class DocumentosController extends Controller
         ]);
     }
 
+    public function obtenerUrlIndex()
+    {
+        return response()->json([
+            'ok' => true,
+            'url' => route('documentos.index'),
+        ]);
+    }
+
     public function obtenerAdjuntos($id)
     {
         try {
@@ -41,7 +51,7 @@ class DocumentosController extends Controller
 
             return response()->json($adjuntos);
         } catch (\Throwable $e) {
-            \Log::error('Error al obtener documentos adjuntos', [
+            Log::error('Error al obtener documentos adjuntos', [
                 'usuario_id' => $id,
                 'error' => $e->getMessage(),
             ]);

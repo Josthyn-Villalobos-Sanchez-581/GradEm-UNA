@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:3')->group(function () {
         Route::get('/documentos', [DocumentosController::class, 'index'])->name('documentos.index');
+        Route::get('/api/documentos/url', [DocumentosController::class, 'obtenerUrlIndex'])->name('api.documentos.url');
     });
 
     Route::middleware('auth')->group(function () {
