@@ -756,44 +756,57 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   async function generar() {
-    const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(4));
-    setErrores(erroresFormateados);
+  const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(4));
+  setErrores(erroresFormateados);
 
-    if (Object.keys(erroresFormateados).length > 0) {
-      await modal.alerta({
-        titulo: "Validación",
-        mensaje: "Revisa los campos marcados antes de continuar.",
-      });
-      return;
-    }
-
-    setMostrarBtnDashboard(false);
-
-    try {
-      setCargando(true);
-      const resp = await postGenerarCurriculum(form);
-      if (resp.rutaPublica) {
-        const abrir = await modal.confirmacion({
-          titulo: "Currículum generado",
-          mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
-          textoAceptar: "Abrir en pestaña nueva",
-          textoCancelar: "Descargar PDF"
-        });
-        if (abrir) {
-          abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
-        } else {
-          descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
-        }
-        setMostrarBtnDashboard(true);
-      } else {
-        throw new Error("No se pudo generar el PDF");
-      }
-    } catch (error: unknown) {
-      await manejarErrorApi(error);
-    } finally {
-      setCargando(false);
-    }
+  if (Object.keys(erroresFormateados).length > 0) {
+    await modal.alerta({
+      titulo: "Validación",
+      mensaje: "Revisa los campos marcados antes de continuar.",
+    });
+    return;
   }
+
+  setMostrarBtnDashboard(false);
+
+  try {
+    setCargando(true);
+    
+    // NUEVO: Convertir funciones de array a string
+    const formParaEnviar = {
+      ...form,
+      experiencias: form.experiencias.map(exp => ({
+        ...exp,
+        funciones: exp.funciones
+          .map(f => f.descripcion.trim())
+          .filter(desc => desc.length > 0)
+          .join('; ') // Unir las funciones con punto y coma
+      }))
+    };
+    
+    const resp = await postGenerarCurriculum(formParaEnviar);
+    if (resp.rutaPublica) {
+      const abrir = await modal.confirmacion({
+        titulo: "Currículum generado",
+        mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
+        textoAceptar: "Abrir en pestaña nueva",
+        textoCancelar: "Descargar PDF"
+      });
+      if (abrir) {
+        abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
+      } else {
+        descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
+      }
+      setMostrarBtnDashboard(true);
+    } else {
+      throw new Error("No se pudo generar el PDF");
+    }
+  } catch (error: unknown) {
+    await manejarErrorApi(error);
+  } finally {
+    setCargando(false);
+  }
+}
 
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
