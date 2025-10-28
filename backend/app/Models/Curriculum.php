@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class Curriculum extends Model
 {
     use HasFactory;
@@ -15,6 +16,7 @@ class Curriculum extends Model
         'id_usuario',
         'generado_sistema',
         'ruta_archivo_pdf',
+        'nombre_original',
         'fecha_creacion',
     ];
 }

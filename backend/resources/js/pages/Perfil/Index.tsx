@@ -124,109 +124,109 @@ export default function Index({
 
   const renderValor = (valor: any) =>
     valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
-if (rolNombre.toLowerCase() === "empresa") {
-  return (
-    <>
-      <Head title="Perfil de Empresa" />
-      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6 text-black">
-        {/* Flash messages */}
-        {flash?.success && (
-          <div className="mb-4 p-3 bg-green-100 text-green-800 border border-green-300 rounded">
-            {flash.success}
-          </div>
-        )}
-        {flash?.error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-800 border border-red-300 rounded">
-            {flash.error}
-          </div>
-        )}
-        
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Perfil de Empresa</h2>
-          
-          {/* Contenedor para los dos botones a la derecha */}
-          <div className="flex space-x-4">
+  if (rolNombre.toLowerCase() === "empresa") {
+    return (
+      <>
+        <Head title="Perfil de Empresa" />
+        <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6 text-black">
+          {/* Flash messages */}
+          {flash?.success && (
+            <div className="mb-4 p-3 bg-green-100 text-green-800 border border-green-300 rounded">
+              {flash.success}
+            </div>
+          )}
+          {flash?.error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-800 border border-red-300 rounded">
+              {flash.error}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Perfil de Empresa</h2>
+
+            {/* Contenedor para los dos botones a la derecha */}
+            <div className="flex space-x-4">
               {/* Botón Editar Perfil */}
               <Button asChild variant="default">
                 <Link href="/perfil/editar">Editar Perfil</Link>
               </Button>
-              
+
               {/* Botón Volver */}
               <Button asChild variant="secondary">
                 <Link href="/dashboard">Volver</Link>
               </Button>
-          </div>
-      </div>
-
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Columna izquierda igual que otros roles */}
-          <div className="flex flex-col items-center md:w-1/3">
-            <div className="h-48 w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm mb-4">
-              <img src={usuario.fotoPerfil?.ruta_imagen || FotoXDefecto} alt="Foto de perfil" className="h-full w-full object-cover" />
             </div>
+          </div>
 
-            <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Button asChild variant="default">
-                <Link href="/perfil/foto">Actualizar Foto</Link>
-              </Button>
-              {/* 🔹 Botón Eliminar Foto */}
-              {usuario.fotoPerfil && (
-                <Button
-                  variant="destructive"
-                  onClick={eliminarFotoPerfil}
-                >
-                  Eliminar Foto
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Columna izquierda igual que otros roles */}
+            <div className="flex flex-col items-center md:w-1/3">
+              <div className="h-48 w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm mb-4">
+                <img src={usuario.fotoPerfil?.ruta_imagen || FotoXDefecto} alt="Foto de perfil" className="h-full w-full object-cover" />
+              </div>
+
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button asChild variant="default">
+                  <Link href="/perfil/foto">Actualizar Foto</Link>
                 </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Columna derecha - Información de empresa */}
-          <div className="flex-1">
-            {/* Datos de la empresa */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Información de la Empresa</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Nombre:</strong> {renderValor(empresa?.nombre)}</p>
-                <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
-                <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
-                <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+                {/* 🔹 Botón Eliminar Foto */}
+                {usuario.fotoPerfil && (
+                  <Button
+                    variant="destructive"
+                    onClick={eliminarFotoPerfil}
+                  >
+                    Eliminar Foto
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Ubicación */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Ubicación</h3>
-              <p>
-                {paisActual && provinciaActual && cantonActual
-                  ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-                  : <span className="text-gray-400 italic">N/A</span>}
-              </p>
-            </div>
-
-            {/* Datos del usuario propietario */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Usuario responsable</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
-                <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+            {/* Columna derecha - Información de empresa */}
+            <div className="flex-1">
+              {/* Datos de la empresa */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Información de la Empresa</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Nombre:</strong> {renderValor(empresa?.nombre)}</p>
+                  <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
+                  <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
+                  <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+                </div>
               </div>
+
+              {/* Ubicación */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Ubicación</h3>
+                <p>
+                  {paisActual && provinciaActual && cantonActual
+                    ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
+                    : <span className="text-gray-400 italic">N/A</span>}
+                </p>
+              </div>
+
+              {/* Datos del usuario propietario */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Usuario responsable</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
+                  <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+                </div>
+              </div>
+
+              {/* 🔗 Plataformas externas */}
+              <EnlacesExternos
+                key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
+                enlaces={plataformas || []}
+                usuario={usuario}
+                rolNombre={rolNombre}
+              />
+
             </div>
-
-            {/* 🔗 Plataformas externas */}
-<EnlacesExternos
-  key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
-  enlaces={plataformas || []}
-  usuario={usuario}
-  rolNombre={rolNombre}
-/>
-
           </div>
         </div>
-      </div>
-    </>
-  );
-}
+      </>
+    );
+  }
   // Vista completa para otros roles
   return (
     <>
@@ -245,22 +245,22 @@ if (rolNombre.toLowerCase() === "empresa") {
           </div>
         )}
 
-       <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          
+
           {/* Contenedor para los dos botones */}
           <div className="flex space-x-4">
-              {/* Botón Editar Perfil */}
-              <Button asChild variant="default">
-                <Link href="/perfil/editar">Editar Perfil</Link>
-              </Button>
-              
-              {/* Botón Volver */}
-              <Button asChild variant="secondary">
-                <Link href="/dashboard">Volver</Link>
-              </Button>
+            {/* Botón Editar Perfil */}
+            <Button asChild variant="default">
+              <Link href="/perfil/editar">Editar Perfil</Link>
+            </Button>
+
+            {/* Botón Volver */}
+            <Button asChild variant="secondary">
+              <Link href="/dashboard">Volver</Link>
+            </Button>
           </div>
-      </div>
+        </div>
 
         {/* Panel principal con 2 columnas */}
         <div className="flex flex-col md:flex-row gap-8">
@@ -282,7 +282,7 @@ if (rolNombre.toLowerCase() === "empresa") {
                   Eliminar Foto
                 </Button>
               )}
-              
+
               {/* Nuevo botón Ver Currículum */}
               {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
                 <Button asChild variant="default">
@@ -361,11 +361,11 @@ if (rolNombre.toLowerCase() === "empresa") {
             </div>
 
             {/* 🔗 Enlaces a plataformas externas */}
-                 <EnlacesExternos
-                             enlaces={plataformas || []}
-                             usuario={usuario}
-                             soloLectura={false} // 👈 modo lectura solo
-                           />
+            <EnlacesExternos
+              enlaces={plataformas || []}
+              usuario={usuario}
+              soloLectura={false} // 👈 modo lectura solo
+            />
           </div>
         </div>
       </div>

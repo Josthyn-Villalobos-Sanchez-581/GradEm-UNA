@@ -109,7 +109,7 @@ export default function CertificadosIndex({ documentos = [], userPermisos }: Pro
             <Button
               type="button"
               onClick={() => Inertia.get(route("documentos.index"))}
-              variant="default"
+              variant="outline"
               size="sm"
               className="shadow"
               style={{ backgroundColor: "#034991" }}

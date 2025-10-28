@@ -64,19 +64,30 @@ export default function PerfilesUsuarios(props: Props) {
     }));
   };
 
+  const normalizeSearchText = (value?: string | null) =>
+    String(value ?? "").toLowerCase();
+
+  const displayValue = (value?: string | number | null) => {
+    if (value === null || value === undefined) return "NA";
+    const stringValue = String(value).trim();
+    return stringValue.length ? stringValue : "NA";
+  };
+
   // 🔍 Búsqueda y filtros
   const usuariosFiltrados = usuarios
     .filter((u) => {
       const texto = busqueda.toLowerCase();
       return (
-        u.nombre_completo.toLowerCase().includes(texto) ||
-        u.identificacion.toLowerCase().includes(texto) ||
-        u.correo.toLowerCase().includes(texto)
+        normalizeSearchText(u.nombre_completo).includes(texto) ||
+        normalizeSearchText(u.identificacion).includes(texto) ||
+        normalizeSearchText(u.correo).includes(texto)
       );
     })
     .filter((u) => {
       if (filtroRol !== "todos") {
-        return u.rol?.nombre_rol?.toLowerCase() === filtroRol.toLowerCase();
+        return (
+          normalizeSearchText(u.rol?.nombre_rol) === filtroRol.toLowerCase()
+        );
       }
       return true;
     })
@@ -233,12 +244,20 @@ export default function PerfilesUsuarios(props: Props) {
                   </td>
                 </tr>
               ) : (
-                usuariosPaginados.map((u, idx) => (
-                  <tr
-                    key={u.id_usuario}
-                    className={`hover:bg-gray-50 ${
-                      idx === usuariosPaginados.length - 1 ? "last-row" : ""
-                    }`}
+                usuariosPaginados.map((u, idx) => {
+                  const rolNombreLower = normalizeSearchText(u.rol?.nombre_rol);
+                  const telefonoParaMostrar =
+                    rolNombreLower === "empresa"
+                      ? displayValue(u.empresa?.telefono)
+                      : displayValue(u.telefono);
+                  const nombreUsuario = displayValue(u.nombre_completo);
+
+                  return (
+                    <tr
+                      key={u.id_usuario}
+                      className={`hover:bg-gray-50 ${
+                        idx === usuariosPaginados.length - 1 ? "last-row" : ""
+                      }`}
                   >
                     {columnasVisibles.nombre_completo && (
                       <td
@@ -248,35 +267,37 @@ export default function PerfilesUsuarios(props: Props) {
                             : ""
                         }`}
                       >
-                        {u.nombre_completo}
+                        {nombreUsuario}
                       </td>
                     )}
                     {columnasVisibles.correo && (
-                      <td className="px-4 py-2 border border-gray-300">{u.correo}</td>
+                      <td className="px-4 py-2 border border-gray-300">
+                        {displayValue(u.correo)}
+                      </td>
                     )}
                     {columnasVisibles.identificacion && (
-                      <td className="px-4 py-2 border border-gray-300">{u.identificacion}</td>
+                      <td className="px-4 py-2 border border-gray-300">
+                        {displayValue(u.identificacion)}
+                      </td>
                     )}
                     {columnasVisibles.telefono && (
                       <td className="px-4 py-2 border border-gray-300">
-                        {u.rol?.nombre_rol?.toLowerCase() === "empresa"
-                          ? u.empresa?.telefono ?? "-"
-                          : u.telefono ?? "-"}
+                        {telefonoParaMostrar}
                       </td>
                     )}
                     {columnasVisibles.rol && (
                       <td className="px-4 py-2 capitalize border border-gray-300">
-                        {u.rol?.nombre_rol}
+                        {displayValue(u.rol?.nombre_rol)}
                       </td>
                     )}
                     {columnasVisibles.universidad && (
                       <td className="px-4 py-2 border border-gray-300">
-                        {u.universidad?.nombre ?? "-"}
+                        {displayValue(u.universidad?.nombre)}
                       </td>
                     )}
                     {columnasVisibles.carrera && (
                       <td className="px-4 py-2 border border-gray-300">
-                        {u.carrera?.nombre ?? "-"}
+                        {displayValue(u.carrera?.nombre)}
                       </td>
                     )}
 
@@ -319,7 +340,7 @@ export default function PerfilesUsuarios(props: Props) {
                         </Link>
 
                         <Button
-                          variant={u.estado_id === 1 ? "destructive" : "secondary"}
+                          variant={u.estado_id === 1 ? "destructive" : "success"}
                           size="sm"
                           className="font-semibold"
                           onClick={async () => {
@@ -328,7 +349,7 @@ export default function PerfilesUsuarios(props: Props) {
                                 u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
                               mensaje: `¿Desea ${
                                 u.estado_id === 1 ? "inactivar" : "activar"
-                              } la cuenta de ${u.nombre_completo}?`,
+                              } la cuenta de ${nombreUsuario}?`,
                             });
                             if (!confirmado) return;
 
@@ -358,7 +379,8 @@ export default function PerfilesUsuarios(props: Props) {
                       </div>
                     </td>
                   </tr>
-                ))
+                );
+              })
               )}
             </tbody>
           </table>

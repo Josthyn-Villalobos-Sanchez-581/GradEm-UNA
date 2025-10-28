@@ -146,12 +146,26 @@
         } elseif ($periodoFin) {
             $periodo = "(Hasta {$periodoFin})";
         }
+        
+        // Dividir funciones por saltos de línea o puntos y comas
+        $funcionesArray = [];
+        if ($funciones) {
+            $funcionesArray = preg_split('/[\r\n;]+/', $funciones);
+            $funcionesArray = array_map('trim', $funcionesArray);
+            $funcionesArray = array_filter($funcionesArray);
+        }
       @endphp
       
       @if($empresa && $puesto)
         <div style="margin-bottom:12px;">
           <div><strong>{{ $puesto }}</strong> - {{ $empresa }} @if($periodo) <em>{{ $periodo }}</em> @endif</div>
-          @if($funciones) <div style="margin-top:4px; font-size:11px;">{{ $funciones }}</div> @endif
+          @if(!empty($funcionesArray))
+            <ul style="margin-top:4px; margin-bottom:0; padding-left:20px; font-size:11px;">
+              @foreach($funcionesArray as $funcion)
+                <li style="margin-bottom:2px;">{{ $funcion }}</li>
+              @endforeach
+            </ul>
+          @endif
         </div>
       @endif
     @endforeach
@@ -171,6 +185,42 @@
         @endif
       @endforeach
     </div>
+  </section>
+  @endif
+
+  @if(!empty($d['certificaciones']))
+  <section>
+    <h3 class="sub">Certificaciones</h3>
+    @foreach($d['certificaciones'] as $c)
+      @php
+        $nombre = trim($c['nombre'] ?? '');
+        $institucion = trim($c['institucion'] ?? '');
+        $fechaObtencion = trim($c['fecha_obtencion'] ?? '');
+        
+        $fechaFormateada = '';
+        if ($fechaObtencion) {
+            try {
+                // Configurar locale a español para formatear fechas
+                setlocale(LC_TIME, 'es_ES.UTF-8', 'es_ES', 'spanish');
+                $timestamp = strtotime($fechaObtencion);
+                // Usar strftime en lugar de date para respetar el locale
+                $fechaFormateada = strftime('%B %Y', $timestamp);
+                // Capitalizar primera letra del mes
+                $fechaFormateada = ucfirst($fechaFormateada);
+            } catch (Exception $e) {
+                $fechaFormateada = $fechaObtencion;
+            }
+        }
+      @endphp
+      
+      @if($nombre)
+        <div style="margin-bottom:8px;">
+          <strong>{{ $nombre }}</strong>
+          @if($institucion) - {{ $institucion }} @endif
+          @if($fechaFormateada) <em>({{ $fechaFormateada }})</em> @endif
+        </div>
+      @endif
+    @endforeach
   </section>
   @endif
 
