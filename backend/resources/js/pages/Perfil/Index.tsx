@@ -74,7 +74,9 @@ export default function Index({
   rolNombre,
 }: Props) {
   const modal = useModal();
-  const [activeTab, setActiveTab] = useState("datos");
+  const [activeTab, setActiveTab] = useState(
+    rolNombre.toLowerCase() === "empresa" ? "empresa" : "datos"
+  );
 
   const cantonActual = cantones.find(c => c.id === usuario.id_canton);
   const provinciaActual = cantonActual ? provincias.find(p => p.id === cantonActual.id_provincia) : null;
@@ -266,6 +268,13 @@ export default function Index({
             <p className="text-2xl font-bold mt-4">{rolNombre}: {usuario.nombre_completo}</p>
             <p className="text-gray-700">{carreraActual?.nombre}</p>
             <p className="text-gray-700">{universidadActual?.nombre}</p>
+
+            {/* Nuevo botón Ver Currículum */}
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+              <Button asChild variant="default" className="mt-3">
+                <Link href="/mi-curriculum/ver">Ver Currículum</Link>
+              </Button>
+            )}
           </div>
 
           {/* Tabs */}
