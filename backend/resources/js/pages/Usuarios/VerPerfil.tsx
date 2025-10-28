@@ -412,7 +412,7 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 ) : (
                   <div className="space-y-8">
                     {[
-                      { tipo: "titulo", icono: "📘", titulo: "Títulos Académicos" },
+                      { tipo: "titulo", icono: "🎓", titulo: "Títulos Académicos" },
                       { tipo: "certificado", icono: "🏅", titulo: "Certificados" },
                       { tipo: "otro", icono: "📄", titulo: "Otros Documentos" }
                     ].map(({ tipo, icono, titulo }) => {
