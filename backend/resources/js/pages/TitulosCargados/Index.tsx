@@ -25,8 +25,8 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
   const [dragOver, setDragOver] = useState(false);
 
   const validarArchivo = (file: File) => {
-    const allowed = ["application/pdf", "image/png", "image/jpeg"];
-    if (!allowed.includes(file.type)) return "Formato no permitido. Solo PDF, PNG o JPG.";
+    const allowed = ["application/pdf"];
+    if (!allowed.includes(file.type)) return "Formato no permitido. Solo PDF.";
     if (file.size > 2 * 1024 * 1024) return "Archivo supera el límite de 2MB.";
     return null;
   };
@@ -118,7 +118,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
           </div>
 
           <p className="text-gray-600 mb-4">
-            Formatos permitidos: <strong>PDF, PNG, JPG</strong>. Máximo <strong>2MB</strong> por archivo. Se pueden seleccionar varios archivos.
+            Formatos permitidos: <strong>PDF</strong>. Máximo <strong>2MB</strong> por archivo. Se pueden seleccionar varios archivos.
           </p>
 
           {/* Dropzone */}
@@ -152,7 +152,7 @@ export default function TitulosIndex({ documentos = [], userPermisos }: Props) {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
+              accept=".pdf"
               className="hidden"
               multiple
               onChange={(e) => handleAddFiles(e.target.files)}

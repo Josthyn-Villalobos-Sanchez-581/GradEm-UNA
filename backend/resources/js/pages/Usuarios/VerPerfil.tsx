@@ -20,6 +20,7 @@ interface DocumentoAdjunto {
   nombre_original: string;
   rutaPublica: string;
   fecha_subida: string;
+  tipo: string;
 }
 interface Universidad {
   nombre: string;
@@ -108,6 +109,35 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
         (typeof v === "object" && Object.values(v || {}).every((x) => !x))
     );
 
+  const cargarAdjuntos = async () => {
+    if (!usuario.id_usuario || !usuario.tiene_adjuntos) return;
+    
+    try {
+      setCargandoAdjuntos(true);
+      const response = await fetch(`/usuarios/${usuario.id_usuario}/adjuntos`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al cargar los adjuntos');
+      }
+      
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setAdjuntos(data);
+      } else {
+        throw new Error('Formato de respuesta inválido');
+      }
+    } catch (error) {
+      console.error('Error al cargar adjuntos:', error);
+      modal.alerta({
+        titulo: "Error",
+        mensaje: "No se pudieron cargar los documentos adjuntos. Por favor, intente nuevamente.",
+      });
+    } finally {
+      setCargandoAdjuntos(false);
+    }
+  };
+
   useEffect(() => {
     // Determinar pestaña inicial
     if (usuario.rol?.nombre_rol?.toLowerCase() === "empresa") {
@@ -115,7 +145,20 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
     } else {
       setActiveTab("datos");
     }
-  }, []);
+
+    // Limpiar estados cuando cambie el usuario
+    return () => {
+      setAdjuntos([]);
+      setDocSeleccionado(null);
+      setCargandoAdjuntos(false);
+    };
+  }, [usuario.id_usuario]);
+
+  useEffect(() => {
+    if (activeTab === "adjuntos" && usuario.tiene_adjuntos && adjuntos.length === 0) {
+      cargarAdjuntos();
+    }
+  }, [activeTab]);
 
   // -------------------- VISTA EMPRESA --------------------
   if (usuario.rol?.nombre_rol?.toLowerCase() === "empresa") {
@@ -353,43 +396,96 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
           {activeTab === "adjuntos" && (
             <section>
               <h3 className="text-2xl font-bold mb-4 text-[#034991]">Documentos Adjuntos</h3>
+
               {usuario.tiene_adjuntos ? (
                 cargandoAdjuntos ? (
-                  <p className="text-[#A7A7A9] italic text-center">Cargando documentos...</p>
+                  <div className="flex justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#034991]"></div>
+                    <p className="ml-3 text-[#6c757d]">Cargando documentos...</p>
+                  </div>
                 ) : adjuntos.length === 0 ? (
-                  <p className="text-[#A7A7A9] italic text-center">No se encontraron documentos adjuntos.</p>
+                  <div className="text-center py-8">
+                    <p className="text-[#6c757d] text-lg">
+                      No se encontraron documentos adjuntos.
+                    </p>
+                  </div>
                 ) : (
-                  <>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {adjuntos.map((doc) => (
-                        <div
-                          key={doc.id_documento}
-                          className={`p-4 border rounded-lg cursor-pointer transition ${docSeleccionado?.id_documento === doc.id_documento
-                            ? "bg-blue-50 border-blue-600"
-                            : "hover:shadow"
-                            }`}
-                          onClick={() => setDocSeleccionado(doc)}
-                        >
-                          📄 {doc.nombre_original}
+                  <div className="space-y-8">
+                    {[
+                      { tipo: "titulo", icono: "🎓", titulo: "Títulos Académicos" },
+                      { tipo: "certificado", icono: "🏅", titulo: "Certificados" },
+                      { tipo: "otro", icono: "📄", titulo: "Otros Documentos" }
+                    ].map(({ tipo, icono, titulo }) => {
+                      const docsFiltrados = adjuntos.filter(
+                        doc => doc.tipo?.toLowerCase() === tipo
+                      );
+                      
+                      if (docsFiltrados.length === 0) return null;
+
+                      return (
+                        <div key={tipo} className="bg-white rounded-lg shadow-sm border p-6">
+                          {/* Encabezado de la sección */}
+                          <div className="flex items-center mb-4 border-b pb-2">
+                            <span className="text-2xl mr-2">{icono}</span>
+                            <h4 className="text-xl font-semibold text-[#034991]">
+                              {titulo}
+                            </h4>
+                          </div>
+
+                          {/* Grid de documentos */}
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                            {docsFiltrados.map((doc) => (
+                              <button
+                                key={doc.id_documento}
+                                onClick={() => setDocSeleccionado(
+                                  docSeleccionado?.id_documento === doc.id_documento ? null : doc
+                                )}
+                                className={`text-left p-4 rounded-lg transition-all ${
+                                  docSeleccionado?.id_documento === doc.id_documento
+                                    ? "bg-blue-50 border-blue-500 shadow-md"
+                                    : "bg-gray-50 hover:bg-gray-100 border-gray-200"
+                                } border-2`}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-gray-900 truncate">
+                                      {doc.nombre_original}
+                                    </p>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      {new Date(doc.fecha_subida).toLocaleDateString("es-CR")}
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Visor de PDF */}
+                          {docSeleccionado && docSeleccionado.tipo?.toLowerCase() === tipo && (
+                            <div className="border rounded-lg shadow-lg overflow-hidden">
+                              <div className="bg-gray-50 p-3 border-b">
+                                <h5 className="text-lg font-medium text-center text-[#034991]">
+                                  {docSeleccionado.nombre_original}
+                                </h5>
+                              </div>
+                              <embed
+                                src={docSeleccionado.rutaPublica}
+                                type="application/pdf"
+                                className="w-full h-[600px]"
+                              />
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                    {docSeleccionado && (
-                      <div className="mt-6">
-                        <h4 className="font-semibold text-center text-[#034991] mb-2">
-                          Visualizando: {docSeleccionado.nombre_original}
-                        </h4>
-                        <embed
-                          src={docSeleccionado.rutaPublica}
-                          type="application/pdf"
-                          className="w-full h-[70vh] border rounded-lg shadow-md"
-                        />
-                      </div>
-                    )}
-                  </>
+                      );
+                    })}
+                  </div>
                 )
               ) : (
-                <p className="text-[#A7A7A9] italic text-center">No hay documentos adjuntos.</p>
+                <div className="text-center py-8">
+                  <p className="text-[#6c757d] text-lg">
+                    Este usuario no tiene documentos adjuntos.
+                  </p>
+                </div>
               )}
             </section>
           )}
