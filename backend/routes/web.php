@@ -39,6 +39,7 @@ Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
 Route::post('/verificar-correo', [RegistroController::class, 'verificarCorreo']);
+Route::post('/verificar-identificacion', [RegistroController::class, 'verificarIdentificacion']);
 
 // Registro de admin
 Route::get('/registro-admin', fn() => Inertia::render('RegistroAdminPage'))->name('registro.admin');

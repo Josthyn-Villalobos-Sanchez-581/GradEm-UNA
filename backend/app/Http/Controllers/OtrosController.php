@@ -37,7 +37,7 @@ class OtrosController extends Controller
     {
         $request->validate([
             'archivos'   => 'required|array',
-            'archivos.*' => 'file|mimes:pdf,png,jpg,jpeg,doc,docx,zip,rar,txt|max:5120', // 5 MB
+            'archivos.*' => 'file|mimes:pdf|max:5120', // 5 MB
         ]);
 
         $user = Auth::user();

@@ -31,7 +31,7 @@ class DocumentosController extends Controller
     {
         try {
             $adjuntos = DocumentoAdjunto::where('id_usuario', $id)
-                ->select('id_documento', 'nombre_original', 'ruta_archivo', 'fecha_subida')
+                ->select('id_documento', 'nombre_original', 'ruta_archivo', 'fecha_subida', 'tipo')
                 ->orderBy('fecha_subida', 'desc')
                 ->get()
                 ->map(function ($doc) {

@@ -162,4 +162,13 @@ class RegistroController extends Controller
 
         return response()->json(['exists' => $exists]);
     }
+
+    public function verificarIdentificacion(Request $request)
+    {
+        $request->validate(['identificacion' => 'required|string']);
+
+        $existe = \App\Models\Usuario::where('identificacion', $request->identificacion)->exists();
+
+        return response()->json(['exists' => $existe]);
+    }
 }

@@ -31,7 +31,7 @@ class CertificadosController extends Controller
     {
         $request->validate([
             'archivos'   => 'required|array',
-            'archivos.*' => 'required|mimes:pdf,png,jpg,jpeg|max:2048', // 2MB
+            'archivos.*' => 'required|mimes:pdf|max:2048', // 2MB
         ]);
 
         $user = Auth::user();

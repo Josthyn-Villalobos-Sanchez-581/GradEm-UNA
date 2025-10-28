@@ -21,6 +21,7 @@ interface DocumentoAdjunto {
   nombre_original: string;
   rutaPublica: string;
   fecha_subida: string;
+  tipo: string;
 }
 
 interface Universidad {
@@ -261,22 +262,23 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                 <Button
                   onClick={async () => {
                     if (mostrarAdjuntos) {
-                      // Si ya se muestran, ocultarlos
+                      // 🔹 Si ya se muestran, ocultarlos y limpiar todo
                       setMostrarAdjuntos(false);
                       setAdjuntos([]);
                       setDocSeleccionado(null);
                       return;
                     }
 
-                    // Mostrar y cargar adjuntos
+                    // 🔹 Mostrar y cargar adjuntos
                     setMostrarAdjuntos(true);
                     setCargandoAdjuntos(true);
+                    setDocSeleccionado(null); // asegúrate de limpiar al abrir también
+
                     try {
                       const resp = await fetch(`/usuarios/${usuario.id_usuario}/adjuntos`);
                       if (!resp.ok) throw new Error("No se pudieron cargar los adjuntos");
                       const data = await resp.json();
                       setAdjuntos(data);
-                      if (data.length > 0) setDocSeleccionado(data[0]);
                     } catch (err) {
                       await modal.alerta({
                         titulo: "Error",
@@ -320,48 +322,93 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                   </p>
                 ) : (
                   <>
-                    {/* Lista de documentos */}
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {adjuntos.map((doc) => (
-                        <div
-                          key={doc.id_documento}
-                          className={`border rounded-lg p-4 cursor-pointer hover:shadow transition ${
-                            docSeleccionado?.id_documento === doc.id_documento
-                              ? "border-blue-700 bg-blue-50"
-                              : "border-gray-200"
-                          }`}
-                          onClick={() => setDocSeleccionado(doc)}
-                        >
-                          <p className="font-semibold text-lg text-gray-800">
-                            📄 {doc.nombre_original}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                    {["titulo", "certificado", "otro"].map((tipo) => {
+                      const docsFiltrados = adjuntos.filter(
+                        (doc) => doc.tipo?.toLowerCase() === tipo
+                      );
+                      if (docsFiltrados.length === 0) return null;
 
-                    {/* Vista previa */}
-                    {docSeleccionado && (
-                      <div className="mt-6">
-                        <h3
-                          className="text-lg font-semibold mb-3 text-center"
-                          style={{ color: "#034991" }}
-                        >
-                          Visualizando: {docSeleccionado.nombre_original}
-                        </h3>
-                        <div className="flex justify-center">
-                          <embed
-                            src={docSeleccionado.rutaPublica}
-                            type="application/pdf"
-                            className="w-full h-[70vh] border rounded-lg shadow-lg"
-                            style={{ borderColor: "#A7A7A9" }}
-                          />
+                      const tituloSeccion =
+                        tipo === "titulo"
+                          ? "🎓 Títulos"
+                          : tipo === "certificado"
+                          ? "🏅 Certificados"
+                          : "📄 Otros Documentos";
+
+                      // Si el documento seleccionado pertenece a esta sección
+                      const docSeleccionadoDeSeccion =
+                        docSeleccionado && docSeleccionado.tipo?.toLowerCase() === tipo
+                          ? docSeleccionado
+                          : null;
+
+                      return (
+                        <div key={tipo} className="mb-8">
+                          {/* Título de la sección */}
+                          <h3
+                            className="text-xl font-semibold mb-3 border-b pb-1"
+                            style={{ color: "#034991" }}
+                          >
+                            {tituloSeccion}
+                          </h3>
+
+                          {/* Lista de documentos */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            {docsFiltrados.map((doc) => {
+                              const esSeleccionado =
+                                docSeleccionado?.id_documento === doc.id_documento;
+
+                              return (
+                                <div
+                                  key={doc.id_documento}
+                                  className={`border rounded-lg p-4 cursor-pointer hover:shadow transition ${
+                                    esSeleccionado
+                                      ? "border-blue-700 bg-blue-50"
+                                      : "border-gray-200"
+                                  }`}
+                                  onClick={() =>
+                                    // 👇 Si se vuelve a clickear el mismo documento, se cierra
+                                    setDocSeleccionado(
+                                      esSeleccionado ? null : doc
+                                    )
+                                  }
+                                >
+                                  <p className="font-semibold text-lg text-gray-800">
+                                    📄 {doc.nombre_original}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Subido el:{" "}
+                                    {new Date(
+                                      doc.fecha_subida
+                                    ).toLocaleDateString("es-CR")}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Vista previa solo si pertenece a esta sección */}
+                          {docSeleccionadoDeSeccion && (
+                            <div className="mt-4 border rounded-lg shadow overflow-hidden">
+                              <h4 className="text-lg font-semibold mb-2 text-center text-[#034991]">
+                                Visualizando: {docSeleccionadoDeSeccion.nombre_original}
+                              </h4>
+                              <embed
+                                src={docSeleccionadoDeSeccion.rutaPublica}
+                                type="application/pdf"
+                                className="w-full h-[70vh] border-t"
+                                style={{ borderColor: "#A7A7A9" }}
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </>
                 )}
               </div>
             )}
+
+
 
 
             {/* 🔗 Enlaces a plataformas externas */}
