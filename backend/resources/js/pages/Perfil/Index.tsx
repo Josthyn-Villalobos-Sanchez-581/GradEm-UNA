@@ -266,8 +266,8 @@ export default function Index({
             )}
 
             <p className="text-2xl font-bold mt-4">{rolNombre}: {usuario.nombre_completo}</p>
-            <p className="text-gray-700">{carreraActual?.nombre}</p>
-            <p className="text-gray-700">{universidadActual?.nombre}</p>
+            <p className="text-gray-700">Carrera: {carreraActual?.nombre}</p>
+            <p className="text-gray-700">Universidad: {universidadActual?.nombre}</p>
 
             {/* Nuevo botón Ver Currículum */}
             {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
