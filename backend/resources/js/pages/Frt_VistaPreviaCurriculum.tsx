@@ -1,165 +1,201 @@
 // resources/js/pages/Frt_VistaPreviaCurriculum.tsx
 
 import React from 'react';
-import type { FormCV } from '../types/curriculum';
+import { usePage } from '@inertiajs/react';
+import FotoXDefecto from '../assets/FotoXDefecto.png';
+
+// IMPORTAR TIPOS COMPARTIDOS
+import type { FormCV, Educacion, Experiencia, Habilidad, Idioma, Certificacion } from '../types/curriculum';
+
+type UsuarioActual = {
+  id_usuario: number;
+  nombre_completo: string;
+  correo: string;
+  telefono?: string;
+  fotoPerfil?: { ruta_imagen: string } | null;
+};
 
 interface VistaPreviaProps {
   datos: FormCV;
-  fotoPerfilUrl?: string; // ⭐ NUEVO: Recibir la URL de la foto
+  fotoPerfilUrl: string;
 }
 
 export default function Frt_VistaPreviaCurriculum({ datos, fotoPerfilUrl }: VistaPreviaProps) {
+  const page = usePage<{ auth: { user?: any }, usuario?: UsuarioActual }>();
+
+  const {
+    datosPersonales,
+    resumenProfesional,
+    educaciones = [],
+    experiencias = [],
+    habilidades = [],
+    idiomas = [],
+    incluirFotoPerfil,
+  } = datos;
+
   return (
-    <div className="bg-white border rounded-lg p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-[#034991] mb-4">Vista Previa</h2>
-      
-      {/* ⭐ NUEVO: Foto de Perfil + Datos Personales */}
-      <div className="mb-4 flex items-start gap-4">
-        {/* Foto de perfil */}
-        {datos.incluirFotoPerfil && fotoPerfilUrl && (
-          <div className="flex-shrink-0">
+    <aside className="border rounded-lg p-4 bg-white shadow-sm">
+      <h2 className="text-xl font-bold text-gray-900 mb-2">Vista previa</h2>
+      <p className="text-sm text-gray-600 mb-3">
+        Representación aproximada del PDF final.
+      </p>
+      <hr className="mb-4" />
+
+      {/* Datos personales */}
+      <section className="mb-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2 pb-1 border-b-2 border-gray-900">
+          Datos personales
+        </h3>
+        
+        {incluirFotoPerfil ? (
+          <div className="flex items-start gap-3 mb-2">
             <img
               src={fotoPerfilUrl}
               alt="Foto de perfil"
-              className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-900 flex-shrink-0"
             />
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900">{datosPersonales.nombreCompleto}</p>
+              <p className="text-sm text-gray-700">
+                {datosPersonales.correo}
+                {datosPersonales.telefono ? (
+                  <> · {datosPersonales.telefono}</>
+                ) : null}
+              </p>
+            </div>
           </div>
+        ) : (
+          <>
+            <p className="font-semibold text-gray-900">{datosPersonales.nombreCompleto}</p>
+            <p className="text-sm text-gray-700">
+              {datosPersonales.correo}
+              {datosPersonales.telefono ? (
+                <> · {datosPersonales.telefono}</>
+              ) : null}
+            </p>
+          </>
         )}
-        
-        {/* Datos personales */}
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-800 border-b pb-1 mb-2">
-            {datos.datosPersonales.nombreCompleto || 'Nombre Completo'}
+
+        {resumenProfesional?.trim() && (
+          <p className="mt-2 text-sm text-gray-700">{resumenProfesional}</p>
+        )}
+      </section>
+
+      {/* Formación académica */}
+      {educaciones.length > 0 && (
+        <section className="mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 pb-1 border-b-2 border-gray-900">
+            Formación académica
           </h3>
-          <p className="text-sm text-gray-600">{datos.datosPersonales.correo}</p>
-          {datos.datosPersonales.telefono && (
-            <p className="text-sm text-gray-600">{datos.datosPersonales.telefono}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Resumen Profesional */}
-      {datos.resumenProfesional && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 mb-1">Resumen Profesional</h4>
-          <p className="text-sm text-gray-700 whitespace-pre-line">
-            {datos.resumenProfesional}
-          </p>
-        </div>
+          <ul className="list-disc pl-5 space-y-1">
+            {educaciones.map((e, i) => (
+              <li key={i} className="text-sm text-gray-700">
+                {e.tipo && (
+                  <span className="text-xs text-gray-500 uppercase font-medium">[{e.tipo}] </span>
+                )}
+                <span className="font-medium text-gray-900">{e.titulo}</span>
+                {e.institucion ? ` — ${e.institucion}` : ''}
+                {e.fecha_fin && <> ({e.fecha_fin})</>}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
-      {/* Educación */}
-      {datos.educaciones && datos.educaciones.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Educación</h4>
-          {datos.educaciones.map((edu, i) => (
-            <div key={i} className="mb-2">
-              <p className="text-sm font-medium text-gray-800">{edu.titulo}</p>
-              <p className="text-sm text-gray-600">{edu.institucion}</p>
-              <p className="text-xs text-gray-500">
-                {edu.fecha_inicio && edu.fecha_fin && 
-                  `${edu.fecha_inicio} - ${edu.fecha_fin}`}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Experiencia laboral */}
+      {experiencias.length > 0 && (
+        <section className="mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 pb-1 border-b-2 border-gray-900">
+            Experiencia laboral
+          </h3>
+          <div className="space-y-3">
+            {experiencias.map((ex, i) => (
+              <div key={i}>
+                <div className="text-sm">
+                  <span className="font-medium text-gray-900">{ex.puesto}</span>
+                  {ex.empresa ? ` — ${ex.empresa}` : ''}
+                  {(ex.periodo_inicio || ex.periodo_fin) && (
+                    <span className="text-gray-600 text-xs">
+                      {' '}({ex.periodo_inicio || '¿?'} - {ex.periodo_fin || 'Actual'})
+                    </span>
+                  )}
+                </div>
+                
+                {/* Funciones */}
+                {ex.funciones && ex.funciones.length > 0 && (
+                  <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
+                    {ex.funciones.map((func, fIdx) => (
+                      func.descripcion.trim() && (
+                        <li key={fIdx}>{func.descripcion}</li>
+                      )
+                    ))}
+                  </ul>
+                )}
 
-      {/* Experiencia con funciones múltiples */}
-      {datos.experiencias && datos.experiencias.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">
-            Experiencia Laboral
-          </h4>
-          {datos.experiencias.map((exp, i) => (
-            <div key={i} className="mb-3">
-              <p className="text-sm font-medium text-gray-800">{exp.puesto}</p>
-              <p className="text-sm text-gray-600">{exp.empresa}</p>
-              <p className="text-xs text-gray-500 mb-1">
-                {exp.periodo_inicio && exp.periodo_fin && 
-                  `${exp.periodo_inicio} - ${exp.periodo_fin}`}
-              </p>
-              
-              {/* Renderizar funciones como lista */}
-              {exp.funciones && exp.funciones.length > 0 && (
-                <ul className="list-disc list-inside ml-2 mt-1">
-                  {exp.funciones.map((func, fIdx) => (
-                    <li key={fIdx} className="text-xs text-gray-700">
-                      {func.descripcion}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
+                {/* Referencias */}
+                {ex.referencias && ex.referencias.length > 0 && (
+                  <div className="mt-2 pl-3 border-l-2 border-gray-300">
+                    <p className="text-xs font-semibold text-gray-700 mb-1">Referencias:</p>
+                    {ex.referencias.map((ref, rIdx) => (
+                      (ref.nombre || ref.contacto || ref.correo) && (
+                        <div key={rIdx} className="text-xs text-gray-600 mb-1">
+                          <strong className="text-gray-900">{ref.nombre}</strong>
+                          {ref.relacion && <> - {ref.relacion}</>}
+                          {ref.contacto && <> · Tel: {ref.contacto}</>}
+                          {ref.correo && <> · Email: {ref.correo}</>}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Habilidades */}
-      {datos.habilidades && datos.habilidades.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Habilidades</h4>
+      {habilidades.length > 0 && (
+        <section className="mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 pb-1 border-b-2 border-gray-900">
+            Habilidades
+          </h3>
           <div className="flex flex-wrap gap-2">
-            {datos.habilidades.map((hab, i) => (
-              <span
-                key={i}
-                className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
-              >
-                {hab.descripcion}
-              </span>
-            ))}
+            {habilidades
+              .filter((h) => h.descripcion?.trim())
+              .map((h, i) => (
+                <span
+                  key={i}
+                  className="border border-gray-900 rounded-full px-3 py-1 text-xs bg-gray-50 text-gray-900"
+                >
+                  {h.descripcion}
+                </span>
+              ))}
           </div>
-        </div>
-      )}
-
-      {/* Certificaciones */}
-      {datos.certificaciones && datos.certificaciones.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Certificaciones</h4>
-          {datos.certificaciones.map((cert, i) => (
-            <div key={i} className="mb-2">
-              <p className="text-sm font-medium text-gray-800">{cert.nombre}</p>
-              {cert.institucion && (
-                <p className="text-sm text-gray-600">{cert.institucion}</p>
-              )}
-              {cert.fecha_obtencion && (
-                <p className="text-xs text-gray-500">
-                  {new Date(cert.fecha_obtencion).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long'
-                  })}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        </section>
       )}
 
       {/* Idiomas */}
-      {datos.idiomas && datos.idiomas.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Idiomas</h4>
-          {datos.idiomas.map((idioma, i) => (
-            <p key={i} className="text-sm text-gray-700">
-              {idioma.nombre} - {idioma.nivel}
-            </p>
-          ))}
-        </div>
+      {idiomas.length > 0 && (
+        <section className="mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 pb-1 border-b-2 border-gray-900">
+            Idiomas
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {idiomas
+              .filter((x) => x.nombre?.trim() || x.nivel)
+              .map((x, i) => (
+                <span
+                  key={i}
+                  className="border border-gray-900 rounded-full px-3 py-1 text-xs bg-gray-50 text-gray-900"
+                >
+                  {x.nombre || '—'}
+                  {x.nivel ? ` (${x.nivel})` : ''}
+                </span>
+              ))}
+          </div>
+        </section>
       )}
-
-      {/* Referencias */}
-      {datos.referencias && datos.referencias.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800 border-b pb-1 mb-2">Referencias</h4>
-          {datos.referencias.map((ref, i) => (
-            <div key={i} className="mb-2">
-              <p className="text-sm font-medium text-gray-800">{ref.nombre}</p>
-              <p className="text-xs text-gray-600">{ref.relacion}</p>
-              <p className="text-xs text-gray-600">{ref.contacto}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </aside>
   );
 }
