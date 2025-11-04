@@ -926,7 +926,7 @@ export default function Editar({
                 {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
                   <>
                     {/* Estado de estudios — solo visible si el rol es EGRESADO */}
-                    {rolNombre?.toLowerCase() === "egresado" || rolNombre?.toLocaleLowerCase() === "estudiante" && (
+                    {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
                       <div className="flex flex-col">
                         <label className="text-sm">Estado de estudios</label>
                         <select
@@ -1053,7 +1053,7 @@ export default function Editar({
             </div>
 
             {/* ================= DATOS LABORALES ================= */}
-            {rolNombre?.toLowerCase() === "egresado" || rolNombre?.toLowerCase() === "estudiante" && (
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
               <div>
                 <h3 className="text-lg font-semibold mb-2 border-b pb-1">
                   Datos laborales

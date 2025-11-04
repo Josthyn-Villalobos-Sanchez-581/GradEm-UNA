@@ -6,88 +6,91 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class GenerarCurriculumRequest extends FormRequest
 {
-    /**
-     * Autoriza la solicitud (puedes ajustar a tu lógica de permisos).
-     */
     public function authorize(): bool
     {
         return auth()->check();
     }
 
-    /**
-     * Reglas de validación para generar el currículum.
-     * Nota: Teléfonos CR deben ser exactamente 8 dígitos (sin espacios ni símbolos).
-     */
     public function rules(): array
     {
         return [
             'usuarioId' => 'required|integer',
 
-            'datosPersonales.nombreCompleto' => 'required|string|max:255',
-            'datosPersonales.correo'        => 'required|email',
-            // Teléfono CR: exactamente 8 dígitos numéricos
+            'datosPersonales.nombreCompleto' => 'required|string|min:3|max:80',
+            'datosPersonales.correo'        => 'required|email|max:255',
             'datosPersonales.telefono'      => ['nullable','regex:/^[0-9]{8}$/'],
 
-            'resumenProfesional' => 'nullable|string|max:2000',
+            'resumenProfesional' => 'nullable|string|max:600',
 
-            // NUEVO: bandera para incluir foto en el CV
             'incluirFotoPerfil' => 'boolean',
 
+            // EDUCACIONES - actualizado
             'educaciones' => 'array',
-            'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|max:255',
-            'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|max:255',
-            'educaciones.*.fecha_inicio' => 'nullable|date',
-            'educaciones.*.fecha_fin'    => 'nullable|date',
+            'educaciones.*.tipo'         => 'required_with:educaciones.*.titulo|string|in:Título,Certificación,Curso,Diplomado,Técnico',
+            'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|min:3|max:100',
+            'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|min:3|max:100',
+            'educaciones.*.fecha_fin'    => 'required_with:educaciones.*.titulo|date',
 
+            // EXPERIENCIAS - actualizado
             'experiencias' => 'array',
-            'experiencias.*.empresa'        => 'required_with:experiencias.*.puesto|string|max:255',
-            'experiencias.*.puesto'         => 'required_with:experiencias.*.empresa|string|max:255',
-            'experiencias.*.periodo_inicio' => 'nullable|date',
-            'experiencias.*.periodo_fin'    => 'nullable|date',
-            'experiencias.*.funciones'      => 'nullable|string|max:1000',
+            'experiencias.*.empresa'        => 'required_with:experiencias.*.puesto|string|min:2|max:60',
+            'experiencias.*.puesto'         => 'required_with:experiencias.*.empresa|string|min:3|max:60',
+            'experiencias.*.periodo_inicio' => 'required_with:experiencias.*.puesto|date',
+            'experiencias.*.periodo_fin'    => 'required_with:experiencias.*.puesto|date',
+            'experiencias.*.funciones'      => 'nullable|string|max:2000',
 
+            // REFERENCIAS dentro de experiencias - NUEVO
+            'experiencias.*.referencias'            => 'array',
+            'experiencias.*.referencias.*.nombre'   => 'required_with:experiencias.*.referencias.*.contacto|string|min:3|max:80',
+            'experiencias.*.referencias.*.contacto' => ['required_with:experiencias.*.referencias.*.nombre','regex:/^[0-9]{8}$/'],
+            'experiencias.*.referencias.*.correo'   => 'nullable|email|max:255',
+            'experiencias.*.referencias.*.relacion' => 'required_with:experiencias.*.referencias.*.nombre|string|max:50',
+
+            // HABILIDADES
             'habilidades' => 'array',
-            // Requerido solo si se agrega una habilidad
-            'habilidades.*.descripcion' => 'required_with:habilidades|string|max:255',
+            'habilidades.*.descripcion' => 'required_with:habilidades|string|min:2|max:40',
 
-            // Idiomas: par nombre/nivel opcional, pero si se envía uno se exige el otro
+            // IDIOMAS
             'idiomas' => 'array',
-            'idiomas.*.nombre' => 'required_with:idiomas.*.nivel|string|max:100',
-            'idiomas.*.nivel'  => 'required_with:idiomas.*.nombre|string|max:50',
-
-            // Referencias: par nombre/contacto opcional, si se envía uno se exige el otro
-            'referencias' => 'array',
-            'referencias.*.nombre'    => 'required_with:referencias.*.contacto|string|max:255',
-            'referencias.*.contacto'  => ['required_with:referencias.*.nombre','regex:/^[0-9]{8}$/'],
-            'referencias.*.relacion'  => 'nullable|string|max:255',
-
-            // Certificaciones: nombre requerido si se agrega, institución y fecha opcionales
-            'certificaciones' => 'array',
-            'certificaciones.*.nombre' => 'required_with:certificaciones.*.institucion,certificaciones.*.fecha_obtencion|string|max:100',
-            'certificaciones.*.institucion' => 'nullable|string|max:80',
-            'certificaciones.*.fecha_obtencion' => 'nullable|date|before_or_equal:today',
+            'idiomas.*.nombre' => 'required_with:idiomas.*.nivel|string|min:2|max:15',
+            'idiomas.*.nivel'  => 'required_with:idiomas.*.nombre|string|in:A1,A2,B1,B2,C1,C2,Nativo',
         ];
     }
 
-    /**
-     * Mensajes de error personalizados.
-     */
     public function messages(): array
     {
         return [
-            'datosPersonales.telefono.regex' => 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).',
+            'datosPersonales.nombreCompleto.required' => 'El nombre completo es obligatorio.',
+            'datosPersonales.nombreCompleto.min' => 'El nombre debe tener al menos 3 caracteres.',
+            'datosPersonales.nombreCompleto.max' => 'El nombre no puede exceder 80 caracteres.',
+            
+            'datosPersonales.correo.required' => 'El correo es obligatorio.',
+            'datosPersonales.correo.email' => 'El correo debe ser válido.',
+            
+            'datosPersonales.telefono.regex' => 'El teléfono debe tener exactamente 8 dígitos.',
 
-            'habilidades.*.descripcion.required_with' => 'La descripción de la habilidad es obligatoria cuando agregas una habilidad.',
+            'educaciones.*.tipo.required_with' => 'El tipo de educación es obligatorio.',
+            'educaciones.*.tipo.in' => 'El tipo de educación debe ser: Título, Certificación, Curso, Diplomado o Técnico.',
+            'educaciones.*.institucion.required_with' => 'La institución es obligatoria.',
+            'educaciones.*.titulo.required_with' => 'El título es obligatorio.',
+            'educaciones.*.fecha_fin.required_with' => 'La fecha de finalización es obligatoria.',
 
-            'idiomas.*.nombre.required_with' => 'El nombre del idioma es obligatorio cuando especificas el nivel.',
-            'idiomas.*.nivel.required_with'  => 'Debes indicar el nivel del idioma cuando especificas el nombre.',
+            'experiencias.*.empresa.required_with' => 'La empresa es obligatoria.',
+            'experiencias.*.puesto.required_with' => 'El puesto es obligatorio.',
+            'experiencias.*.periodo_inicio.required_with' => 'La fecha de inicio es obligatoria.',
+            'experiencias.*.periodo_fin.required_with' => 'La fecha de fin es obligatoria.',
 
-            'referencias.*.contacto.regex'        => 'El teléfono de la referencia debe tener exactamente 8 dígitos (Costa Rica).',
-            'referencias.*.nombre.required_with'  => 'El nombre de la referencia es obligatorio cuando indicas el teléfono.',
-            'referencias.*.contacto.required_with'=> 'El teléfono de la referencia es obligatorio cuando indicas el nombre.',
+            'experiencias.*.referencias.*.nombre.required_with' => 'El nombre de la referencia es obligatorio.',
+            'experiencias.*.referencias.*.contacto.required_with' => 'El teléfono de la referencia es obligatorio.',
+            'experiencias.*.referencias.*.contacto.regex' => 'El teléfono debe tener exactamente 8 dígitos.',
+            'experiencias.*.referencias.*.correo.email' => 'El correo de la referencia debe ser válido.',
+            'experiencias.*.referencias.*.relacion.required_with' => 'La relación con la referencia es obligatoria.',
 
-            'certificaciones.*.nombre.required_with' => 'El nombre de la certificación es obligatorio cuando agregas una certificación.',
-            'certificaciones.*.fecha_obtencion.before_or_equal' => 'La fecha de obtención no puede ser futura.',
+            'habilidades.*.descripcion.required_with' => 'La descripción de la habilidad es obligatoria.',
+            
+            'idiomas.*.nombre.required_with' => 'El nombre del idioma es obligatorio.',
+            'idiomas.*.nivel.required_with' => 'El nivel del idioma es obligatorio.',
+            'idiomas.*.nivel.in' => 'El nivel debe ser: A1, A2, B1, B2, C1, C2 o Nativo.',
         ];
     }
 }

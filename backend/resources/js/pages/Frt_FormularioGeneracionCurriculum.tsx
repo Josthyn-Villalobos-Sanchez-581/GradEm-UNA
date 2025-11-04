@@ -7,6 +7,7 @@ import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
 import { useModal } from '../hooks/useModal';
 import FotoXDefecto from '../assets/FotoXDefecto.png';
 import { Button } from "@/components/ui/button";
+import ModalVistaPreviaCurriculum from '../components/modal/ModalVistaPreviaCurriculum';
 
 //  IMPORTAR TIPOS COMPARTIDOS
 import type { FormCV, Educacion, Experiencia, Funcion, Habilidad, Idioma, Referencia, Certificacion } from '../types/curriculum';
@@ -14,12 +15,12 @@ import type { FormCV, Educacion, Experiencia, Funcion, Habilidad, Idioma, Refere
 // ================== Constantes ==================
 const FECHA_MINIMA_CURRICULUM = '1960-01-01';
 const MAX_FUNCIONES_POR_EXPERIENCIA = 10;
-const MAX_ELEMENTOS_CV = 5;
 
 // ================== Definición de Tipos ==================
 type UsuarioActual = {
   id_usuario: number;
   nombre_completo: string;
+  cedula?: string;  // ✅ AGREGAR
   correo: string;
   telefono?: string;
   fotoPerfil?: { ruta_imagen: string } | null;
@@ -30,6 +31,7 @@ interface PageProps {
     user?: {
       id_usuario: number;
       nombre_completo: string;
+      cedula?: string;  // ✅ AGREGAR
       correo: string;
       telefono: string;
       fotoPerfil?: { ruta_imagen: string } | null;
@@ -127,6 +129,13 @@ const validacionesDatosPersonales = {
 };
 
 const validacionesEducacion = {
+  tipo: { 
+    required: true, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return 'Debe seleccionar un tipo de educación';
+      return ['Título', 'Certificación', 'Curso', 'Diplomado', 'Técnico'].includes(value) || 'Tipo de educación inválido';
+    }
+  },
   institucion: { 
     required: true, 
     minLength: 3, 
@@ -139,31 +148,16 @@ const validacionesEducacion = {
     maxLength: 100, 
     pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
   },
-  fecha_inicio: { 
-    required: true, 
-    validate: (value: unknown) => {
-      if (!value || typeof value !== 'string') return true;
-      const fecha = new Date(value);
-      const hoy = new Date();
-      if (fecha > hoy) return 'La fecha no puede ser futura';
-      if (fecha < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
-      return true;
-    }
-  },
   fecha_fin: { 
     required: true, 
-    validate: (value: unknown, ctx: unknown) => {
+    validate: (value: unknown) => {
       if (!value || typeof value !== 'string') return true;
       const fechaFin = new Date(value);
       const hoy = new Date();
       
       if (fechaFin > hoy) return 'La fecha no puede ser futura';
+      if (fechaFin < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
       
-      const contextObj = ctx as { fecha_inicio?: string };
-      if (contextObj?.fecha_inicio) {
-        const fechaInicio = new Date(contextObj.fecha_inicio);
-        if (fechaFin < fechaInicio) return 'La fecha de fin no puede ser anterior a la fecha de inicio';
-      }
       return true;
     }
   }
@@ -258,6 +252,11 @@ const validacionesReferencia = {
     required: false, 
     pattern: /^[0-9]{8}$/ 
   },
+  correo: { 
+    required: false, 
+    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/, 
+    maxLength: 255 
+  },
   relacion: { 
     required: false, 
     maxLength: 50, 
@@ -299,32 +298,32 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
   const modal = useModal();
 
-  const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
-    ? {
-        id_usuario: page.props.auth.user.id_usuario,
-        nombre_completo: page.props.auth.user.nombre_completo,
-        correo: page.props.auth.user.correo,
-        telefono: page.props.auth.user.telefono,
-        fotoPerfil: page.props.auth.user.fotoPerfil || null,
-      }
-    : null);
+ const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
+  ? {
+      id_usuario: page.props.auth.user.id_usuario,
+      nombre_completo: page.props.auth.user.nombre_completo,
+      cedula: page.props.auth.user.cedula,  // ✅ AGREGAR
+      correo: page.props.auth.user.correo,
+      telefono: page.props.auth.user.telefono,
+      fotoPerfil: page.props.auth.user.fotoPerfil || null,
+    }
+  : null);
 
   const prefill: FormCV = useMemo(() => ({
-    usuarioId: usuario?.id_usuario ?? 0,
-    datosPersonales: {
-      nombreCompleto: usuario?.nombre_completo ?? '',
-      correo: usuario?.correo ?? '',
-      telefono: usuario?.telefono ?? ''
-    },
-    resumenProfesional: '',
-    educaciones: [],
-    experiencias: [],
-    habilidades: [],
-    idiomas: [],
-    referencias: [],
-    certificaciones: [],
-    incluirFotoPerfil: false,
-  }), [usuario]);
+  usuarioId: usuario?.id_usuario ?? 0,
+  datosPersonales: {
+    nombreCompleto: usuario?.nombre_completo ?? '',
+    correo: usuario?.correo ?? '',
+    telefono: usuario?.telefono ?? ''
+  },
+  resumenProfesional: '',
+  educaciones: [],
+  experiencias: [],
+  habilidades: [],
+  idiomas: [],
+  // referencias: [], // ELIMINADO
+  incluirFotoPerfil: false,
+}), [usuario]);
 
   const [form, setForm] = useState<FormCV>(prefill);
   const [paso, setPaso] = useState<number>(1);
@@ -332,57 +331,27 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [cargando, setCargando] = useState<boolean>(false);
   const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
 
+  const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState<boolean>(false);
+
   const paso4Completo = useMemo(() => {
-    // Validar habilidades: si hay alguna agregada, todas deben estar completas
-    const habilidadesOk = form.habilidades.length === 0 || form.habilidades.every(h => {
-      const desc = (h.descripcion ?? '').trim();
-      return desc && desc.length >= 2 && desc.length <= 40;
-    });
+  const habilidadesOk = form.habilidades.length === 0 || form.habilidades.every(h => {
+    const desc = (h.descripcion ?? '').trim();
+    return desc && desc.length >= 2 && desc.length <= 40;
+  });
 
-    // Validar idiomas: si hay alguno agregado, todos deben estar completos
-    const idiomasOk = form.idiomas.length === 0 || form.idiomas.every(i => {
-      const nombre = (i.nombre ?? '').trim();
-      const nivel = (i.nivel ?? '').trim();
-      return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
-    });
+  const idiomasOk = form.idiomas.length === 0 || form.idiomas.every(i => {
+    const nombre = (i.nombre ?? '').trim();
+    const nivel = (i.nivel ?? '').trim();
+    return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
+  });
 
-    // Validar referencias: si hay alguna agregada, todas deben estar completas
-    const referenciasOk = form.referencias.length === 0 || form.referencias.every(r => {
-      const nombre = (r.nombre ?? '').trim();
-      const contacto = solo8Digitos(r.contacto ?? '');
-      const relacion = (r.relacion ?? '').trim();
-      return (
-        nombre && nombre.length >= 3 && nombre.length <= 80 &&
-        contacto.length === 8 &&
-        relacion && relacion.length <= 50
-      );
-    });
-
-    // Validar certificaciones: si hay alguna agregada, todas deben estar completas
-    const certificacionesOk = form.certificaciones.length === 0 || form.certificaciones.every(c => {
-      const nombre = (c.nombre ?? '').trim();
-      const institucion = (c.institucion ?? '').trim();
-      const fecha = (c.fecha_obtencion ?? '').trim();
-      
-      if (nombre || institucion || fecha) {
-        return nombre && nombre.length >= 3 && nombre.length <= 100;
-      }
-      return true;
-    });
-
-    // El botón se habilita solo si TODAS las validaciones pasan
-    return habilidadesOk && idiomasOk && referenciasOk && certificacionesOk;
-  }, [
-    form.habilidades, 
-    form.idiomas, 
-    form.referencias,
-    form.certificaciones,
-    // NUEVO: Agregar los valores individuales para re-calcular en tiempo real
-    ...form.habilidades.map(h => h.descripcion),
-    ...form.idiomas.map(i => `${i.nombre}|${i.nivel}`),
-    ...form.referencias.map(r => `${r.nombre}|${r.contacto}|${r.relacion}`),
-    ...form.certificaciones.map(c => `${c.nombre}|${c.institucion}|${c.fecha_obtencion}`)
-  ]);
+  return habilidadesOk && idiomasOk;
+}, [
+  form.habilidades, 
+  form.idiomas, 
+  ...form.habilidades.map(h => h.descripcion),
+  ...form.idiomas.map(i => `${i.nombre}|${i.nivel}`)
+]);
 
   const botonGenerarDeshabilitado = cargando || !paso4Completo;
 
@@ -397,12 +366,12 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
       current[parts[parts.length - 1]] = value;
 
-      if (path.startsWith('educaciones.') && (path.endsWith('fecha_inicio') || path.endsWith('fecha_fin'))) {
-        const [, indexStr] = path.split('.');
-        const index = parseInt(indexStr);
-        const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
-        setErrores(prev => ({ ...prev, ...nuevosErrores }));
-      }
+      if (path.startsWith('educaciones.') && path.endsWith('fecha_fin')) {
+  const [, indexStr] = path.split('.');
+  const index = parseInt(indexStr);
+  const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
+  setErrores(prev => ({ ...prev, ...nuevosErrores }));
+}
 
       if (path.startsWith('experiencias.') && (path.endsWith('periodo_inicio') || path.endsWith('periodo_fin'))) {
         const [, indexStr] = path.split('.');
@@ -420,27 +389,30 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   function validarTelefonosLocales(formActual: FormCV, pasoActual: number): ErrorMapa {
-    const errs: ErrorMapa = {};
-    const regexTelefono = /^[0-9]{8}$/;
+  const errs: ErrorMapa = {};
+  const regexTelefono = /^[0-9]{8}$/;
 
-    if (pasoActual === 1) {
-      const tel = formActual.datosPersonales.telefono?.trim();
-      if (tel && !regexTelefono.test(tel)) {
-        errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
-      }
+  if (pasoActual === 1) {
+    const tel = formActual.datosPersonales.telefono?.trim();
+    if (tel && !regexTelefono.test(tel)) {
+      errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
     }
+  }
 
-    if (pasoActual === 4) {
-      formActual.referencias.forEach((r, idx) => {
+  // NUEVO: Validar teléfonos de referencias dentro de experiencias (Paso 3)
+  if (pasoActual === 3) {
+    formActual.experiencias.forEach((exp, expIdx) => {
+      exp.referencias?.forEach((r, refIdx) => {
         const c = r.contacto?.trim();
         if (c && !regexTelefono.test(c)) {
-          errs[`referencias.${idx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
+          errs[`experiencias.${expIdx}.referencias.${refIdx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
         }
       });
-    }
-
-    return errs;
+    });
   }
+
+  return errs;
+}
 
   function recolectarErroresFechas(formActual: FormCV): ErrorMapa {
     const errs: ErrorMapa = {};
@@ -452,20 +424,21 @@ export default function Frt_FormularioGeneracionCurriculum() {
   function validarColecciones(formActual: FormCV): ErrorMapa {
     const errs: ErrorMapa = {};
 
+   
     // EDUCACIÓN
-    formActual.educaciones.forEach((edu, i) => {
-      let msg = validarCampoSegunReglas(edu.institucion, validacionesEducacion.institucion, 'Institución');
-      if (msg) errs[`educaciones.${i}.institucion`] = msg;
+formActual.educaciones.forEach((edu, i) => {
+  let msg = validarCampoSegunReglas(edu.tipo, validacionesEducacion.tipo, 'Tipo de educación');
+  if (msg) errs[`educaciones.${i}.tipo`] = msg;
 
-      msg = validarCampoSegunReglas(edu.titulo, validacionesEducacion.titulo, 'Título');
-      if (msg) errs[`educaciones.${i}.titulo`] = msg;
+  msg = validarCampoSegunReglas(edu.institucion, validacionesEducacion.institucion, 'Institución');
+  if (msg) errs[`educaciones.${i}.institucion`] = msg;
 
-      msg = validarCampoSegunReglas(edu.fecha_inicio, validacionesEducacion.fecha_inicio, 'Fecha inicio');
-      if (msg) errs[`educaciones.${i}.fecha_inicio`] = msg;
+  msg = validarCampoSegunReglas(edu.titulo, validacionesEducacion.titulo, 'Título');
+  if (msg) errs[`educaciones.${i}.titulo`] = msg;
 
-      msg = validarCampoSegunReglas(edu.fecha_fin, validacionesEducacion.fecha_fin, 'Fecha fin', { fecha_inicio: edu.fecha_inicio });
-      if (msg) errs[`educaciones.${i}.fecha_fin`] = msg;
-    });
+  msg = validarCampoSegunReglas(edu.fecha_fin, validacionesEducacion.fecha_fin, 'Fecha finalización');
+  if (msg) errs[`educaciones.${i}.fecha_fin`] = msg;
+});
 
     // EXPERIENCIA
     formActual.experiencias.forEach((exp, i) => {
@@ -503,6 +476,83 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
     });
 
+    // EXPERIENCIA
+formActual.experiencias.forEach((exp, i) => {
+  let msg = validarCampoSegunReglas(exp.empresa, validacionesExperiencia.empresa, 'Empresa');
+  if (msg) errs[`experiencias.${i}.empresa`] = msg;
+
+  msg = validarCampoSegunReglas(exp.puesto, validacionesExperiencia.puesto, 'Puesto');
+  if (msg) errs[`experiencias.${i}.puesto`] = msg;
+
+  msg = validarCampoSegunReglas(exp.periodo_inicio, validacionesExperiencia.periodo_inicio, 'Fecha inicio');
+  if (msg) errs[`experiencias.${i}.periodo_inicio`] = msg;
+
+  msg = validarCampoSegunReglas(
+    exp.periodo_fin,
+    validacionesExperiencia.periodo_fin,
+    'Fecha fin',
+    { periodo_inicio: exp.periodo_inicio }
+  );
+  if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+
+  // Validar funciones
+  if (!exp.funciones || exp.funciones.length === 0) {
+    errs[`experiencias.${i}.funciones`] = 'Agrega al menos una función para esta experiencia';
+  } else {
+    exp.funciones.forEach((func, fIdx) => {
+      const desc = (func.descripcion ?? '').trim();
+      
+      if (!desc) {
+        errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = 'Completa la función o elimínala';
+      } else {
+        const msgFunc = validarCampoSegunReglas(desc, validacionesFuncion.descripcion, 'Función');
+        if (msgFunc) errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = msgFunc;
+      }
+    });
+  }
+
+  // NUEVO: Validar referencias dentro de experiencias (AHORA DENTRO DEL FOREACH)
+  if (!exp.referencias || exp.referencias.length === 0) {
+    // Es opcional tener referencias, no es error
+  } else {
+    exp.referencias.forEach((ref, rIdx) => {
+      const nom = (ref.nombre ?? '').trim();
+      const tel = (ref.contacto ?? '').trim();
+      const email = (ref.correo ?? '').trim();
+      const rel = (ref.relacion ?? '').trim();
+      const tieneAlgunValor = nom || tel || email || rel;
+
+      if (tieneAlgunValor) {
+        if (!nom) {
+          errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = 'Completa el nombre o elimina esta referencia';
+        } else {
+          const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
+          if (msgNom) errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = msgNom;
+        }
+
+        if (!tel) {
+          errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = 'Completa el teléfono o elimina esta referencia';
+        } else {
+          const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
+          if (msgTel) errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = msgTel;
+        }
+
+        if (email) {
+          const msgEmail = validarCampoSegunReglas(email, validacionesReferencia.correo, 'Correo');
+          if (msgEmail) errs[`experiencias.${i}.referencias.${rIdx}.correo`] = msgEmail;
+        }
+
+        if (!rel) {
+          errs[`experiencias.${i}.referencias.${rIdx}.relacion`] = 'Completa la relación o elimina esta referencia';
+        } else {
+          const msgRel = validarCampoSegunReglas(rel, validacionesReferencia.relacion, 'Relación');
+          if (msgRel) errs[`experiencias.${i}.referencias.${rIdx}.relacion`] = msgRel;
+        }
+      }
+    });
+  }
+}); // <-- CIERRE del forEach de experiencias
+
     // HABILIDADES
     formActual.habilidades.forEach((h, i) => {
       const desc = (h.descripcion ?? '').trim();
@@ -538,63 +588,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
     });
 
-    // REFERENCIAS
-    formActual.referencias.forEach((r, i) => {
-      const nom = (r.nombre ?? '').trim();
-      const tel = (r.contacto ?? '').trim();
-      const rel = (r.relacion ?? '').trim();
-      const tieneAlgunValor = nom || tel || rel;
 
-      if (tieneAlgunValor) {
-        if (!nom) {
-          errs[`referencias.${i}.nombre`] = 'Completa el nombre o elimina esta referencia';
-        } else {
-          const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
-          if (msgNom) errs[`referencias.${i}.nombre`] = msgNom;
-        }
-
-        if (!tel) {
-          errs[`referencias.${i}.contacto`] = 'Completa el teléfono o elimina esta referencia';
-        } else {
-          const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
-          if (msgTel) errs[`referencias.${i}.contacto`] = msgTel;
-        }
-
-        if (!rel) {
-          errs[`referencias.${i}.relacion`] = 'Completa la relación o elimina esta referencia';
-        } else {
-          const msgRel = validarCampoSegunReglas(rel, validacionesReferencia.relacion, 'Relación');
-          if (msgRel) errs[`referencias.${i}.relacion`] = msgRel;
-        }
-      }
-    });
-
-    // CERTIFICACIONES
-    formActual.certificaciones.forEach((cert, i) => {
-      const nombre = (cert.nombre ?? '').trim();
-      const institucion = (cert.institucion ?? '').trim();
-      const fecha = (cert.fecha_obtencion ?? '').trim();
-      const tieneAlgunValor = nombre || institucion || fecha;
-
-      if (tieneAlgunValor) {
-        if (!nombre) {
-          errs[`certificaciones.${i}.nombre`] = 'Completa el nombre de la certificación o elimínala';
-        } else {
-          const msgNombre = validarCampoSegunReglas(nombre, validacionesCertificacion.nombre, 'Nombre de certificación');
-          if (msgNombre) errs[`certificaciones.${i}.nombre`] = msgNombre;
-        }
-
-        if (institucion) {
-          const msgInstitucion = validarCampoSegunReglas(institucion, validacionesCertificacion.institucion, 'Institución');
-          if (msgInstitucion) errs[`certificaciones.${i}.institucion`] = msgInstitucion;
-        }
-
-        if (fecha) {
-          const msgFecha = validarCampoSegunReglas(fecha, validacionesCertificacion.fecha_obtencion, 'Fecha de obtención');
-          if (msgFecha) errs[`certificaciones.${i}.fecha_obtencion`] = msgFecha;
-        }
-      }
-    });
 
     return errs;
   }
@@ -710,9 +704,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
   };
 
   async function removeArrayItem(
-    key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias' | 'certificaciones',
-    idx: number
-  ) {
+  key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas',
+  idx: number
+) {
     const continuar = await modal.confirmacion({
       titulo: "Confirmar eliminación",
       mensaje: "¿Deseas eliminar este elemento?",
@@ -785,22 +779,20 @@ export default function Frt_FormularioGeneracionCurriculum() {
     };
     
     const resp = await postGenerarCurriculum(formParaEnviar);
-    if (resp.rutaPublica) {
-      const abrir = await modal.confirmacion({
-        titulo: "Currículum generado",
-        mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
-        textoAceptar: "Abrir en pestaña nueva",
-        textoCancelar: "Descargar PDF"
-      });
-      if (abrir) {
-        abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
-      } else {
-        descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
-      }
-      setMostrarBtnDashboard(true);
-    } else {
-      throw new Error("No se pudo generar el PDF");
-    }
+if (resp.rutaPublica) {
+  // Descargar automáticamente sin preguntar
+  descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
+  
+  // Mostrar mensaje de éxito
+  await modal.alerta({
+    titulo: "¡Currículum generado!",
+    mensaje: "Tu currículum se ha descargado correctamente.",
+  });
+  
+  setMostrarBtnDashboard(true);
+} else {
+  throw new Error("No se pudo generar el PDF");
+}
   } catch (error: unknown) {
     await manejarErrorApi(error);
   } finally {
@@ -809,23 +801,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
 }
 
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
-    const errores: ErrorMapa = {};
-    const hoy = new Date();
-    const fechaMinima = new Date(FECHA_MINIMA_CURRICULUM);
+  const errores: ErrorMapa = {};
+  const hoy = new Date();
+  const fechaMinima = new Date(FECHA_MINIMA_CURRICULUM);
 
-    if (educacion.fecha_inicio) {
-      const fechaInicio = new Date(educacion.fecha_inicio);
-      if (fechaInicio > hoy) errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser mayor a hoy';
-      if (fechaInicio < fechaMinima) errores[`educaciones.${index}.fecha_inicio`] = `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
-    }
-    if (educacion.fecha_fin) {
-      const fechaFin = new Date(educacion.fecha_fin);
-      const fechaInicio = educacion.fecha_inicio ? new Date(educacion.fecha_inicio) : null;
-      if (fechaFin > hoy) errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
-      if (fechaInicio && fechaFin < fechaInicio) errores[`educaciones.${index}.fecha_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
-    }
-    return errores;
+  if (educacion.fecha_fin) {
+    const fechaFin = new Date(educacion.fecha_fin);
+    if (fechaFin > hoy) errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
+    if (fechaFin < fechaMinima) errores[`educaciones.${index}.fecha_fin`] = `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
   }
+  return errores;
+}
 
   function validarFechasExperiencia(experiencia: Experiencia, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
@@ -851,25 +837,26 @@ export default function Frt_FormularioGeneracionCurriculum() {
     'datosPersonales.correo': 'Correo electrónico',
     'datosPersonales.telefono': 'Teléfono',
     resumenProfesional: 'Resumen profesional',
+    'educaciones.tipo': 'Tipo de educación',
     'educaciones.institucion': 'Institución',
-    'educaciones.titulo': 'Título',
-    'educaciones.fecha_inicio': 'Fecha inicio',
-    'educaciones.fecha_fin': 'Fecha fin',
+    'educaciones.titulo': 'Título obtenido',
+    'educaciones.fecha_fin': 'Fecha finalización',
     'experiencias.empresa': 'Empresa',
     'experiencias.puesto': 'Puesto',
     'experiencias.periodo_inicio': 'Fecha inicio',
     'experiencias.periodo_fin': 'Fecha fin',
     'experiencias.funciones': 'Funciones',
     'experiencias.funciones.descripcion': 'Función',
+    'experiencias.referencias.nombre': 'Nombre',
+'experiencias.referencias.contacto': 'Teléfono',
+'experiencias.referencias.correo': 'Correo',
+'experiencias.referencias.relacion': 'Relación',
     'habilidades.descripcion': 'Descripción de habilidad',
     'idiomas.nombre': 'Nombre del idioma',
     'idiomas.nivel': 'Nivel',
     'referencias.nombre': 'Nombre',
     'referencias.contacto': 'Teléfono',
     'referencias.relacion': 'Relación',
-    'certificaciones.nombre': 'Nombre de certificación',
-    'certificaciones.institucion': 'Institución',
-    'certificaciones.fecha_obtencion': 'Fecha de obtención',
   };
 
   function obtenerEtiquetaDeClave(clave: string): string {
@@ -903,15 +890,112 @@ export default function Frt_FormularioGeneracionCurriculum() {
   return (
     <PpLayout userPermisos={userPermisos}>
       <h1 className="text-2xl font-bold text-[#034991] mb-4">Generación de Currículum</h1>
+{/* Banner con información del usuario */}
+<div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-[#034991] rounded-lg p-4 mb-4 shadow-sm">
+  <div className="flex items-center justify-between flex-wrap gap-4">
+    {/* Lado izquierdo: Foto y nombre */}
+    <div className="flex items-center gap-4">
+      {/* Foto de perfil o avatar con iniciales */}
+      <div className="relative">
+        {usuario?.fotoPerfil?.ruta_imagen ? (
+          <img
+            src={fotoPerfilUrl}
+            alt="Foto de perfil"
+            className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md"
+          />
+        ) : (
+          <div className="bg-[#034991] text-white rounded-full w-16 h-16 flex items-center justify-center font-bold text-xl shadow-md border-4 border-white">
+            {usuario?.nombre_completo?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '??'}
+          </div>
+        )}
+        {/* Indicador online */}
+        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+      </div>
 
+      {/* Información del usuario */}
+      <div>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Creando currículum para:</p>
+        <p className="text-xl font-bold text-gray-900 mt-1">{usuario?.nombre_completo || 'Usuario'}</p>
+        <p className="text-sm text-gray-600 mt-0.5">{usuario?.correo || ''}</p>
+      </div>
+    </div>
+    
+    {/* Lado derecho: Cédula */}
+    <div className="flex items-center gap-2 bg-white px-5 py-3 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#034991]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+      </svg>
+      <div>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Cédula</p>
+        <p className="text-base font-bold text-gray-900">
+          {usuario?.cedula || 'No disponible'}
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
       <div className="max-w-6xl mx-auto p-4 text-gray-900">
-        <ol className="flex gap-2 mb-4 text-sm">
-          {[1, 2, 3, 4].map(n => (
-            <li key={n} className={`px-3 py-1 rounded-full ${paso === n ? 'bg-[#034991] text-white' : 'bg-gray-200'}`}>
-              Paso {n}
-            </li>
-          ))}
-        </ol>
+        <ol className="flex gap-2 mb-4 text-sm flex-wrap">
+  {[
+    { numero: 1, nombre: 'Información Personal' },
+    { numero: 2, nombre: 'Educación' },
+    { numero: 3, nombre: 'Experiencia Laboral' },
+    { numero: 4, nombre: 'Complementos' }
+  ].map((p) => (
+    <li 
+      key={p.numero}
+      onClick={async () => {
+        // Si intenta avanzar (ir a un paso mayor), validar el actual
+        if (p.numero > paso) {
+          const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
+          setErrores(erroresFormateados);
+          if (Object.keys(erroresFormateados).length === 0) {
+            setPaso(p.numero);
+          } else {
+            await modal.alerta({
+          
+              mensaje: "Completa los campos requeridos antes de continuar.",
+            });
+          }
+        } else {
+          // Si retrocede o va al mismo, permitir sin validar
+          setPaso(p.numero);
+        }
+      }}
+      className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
+        paso === p.numero 
+          ? 'bg-[#034991] text-white shadow-md' 
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-sm'
+      }`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ir a ${p.nombre}`}
+      aria-current={paso === p.numero ? 'step' : undefined}
+      onKeyDown={async (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (p.numero > paso) {
+            const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
+            setErrores(erroresFormateados);
+            if (Object.keys(erroresFormateados).length === 0) {
+              setPaso(p.numero);
+            } else {
+              await modal.alerta({
+                titulo: "Validación",
+                mensaje: "Completa los campos requeridos antes de continuar.",
+              });
+            }
+          } else {
+            setPaso(p.numero);
+          }
+        }
+      }}
+    >
+      <span className="font-semibold">{p.numero}.</span> {p.nombre}
+    </li>
+  ))}
+</ol>
 
         {paso === 1 && (
           <section className="grid grid-cols-2 gap-4">
@@ -1035,25 +1119,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso === 2 && (
           <section>
             <Button
-              variant="outline"
-              onClick={() => {
-                setForm(prev => ({
-                  ...prev,
-                  educaciones: [...prev.educaciones, { institucion: '', titulo: '', fecha_inicio: '', fecha_fin: '' }]
-                }));
-              }}
-              className="mb-2"
-              disabled={form.educaciones.length >= MAX_ELEMENTOS_CV}
-              title={form.educaciones.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} educaciones permitidas` : undefined}
-            >
-              + Agregar educación ({form.educaciones.length}/{MAX_ELEMENTOS_CV})
-            </Button>
-            
-            {form.educaciones.length >= MAX_ELEMENTOS_CV && (
-              <p className="text-amber-600 text-sm mb-2">
-                Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} educaciones.
-              </p>
-            )}
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({
+      ...prev,
+      educaciones: [...prev.educaciones, { tipo: '', institucion: '', titulo: '', fecha_fin: '' }]
+    }));
+  }}
+  className="mb-2"
+>
+  + Agregar educación ({form.educaciones.length})
+</Button>
 
             {form.educaciones.map((ed, i) => (
               <div key={i} className="mb-3 p-4 border rounded bg-white">
@@ -1069,77 +1145,96 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
-                  {/* Institución */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_institucion`}
-                      className={`peer ${ed.institucion ? 'has-value' : ''}`}
-                      placeholder=" "
-                      value={ed.institucion}
-                      onChange={e => setCampo(`educaciones.${i}.institucion`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
-                      maxLength={100}
-                    />
-                    <label htmlFor={`ed_${i}_institucion`}>Institución</label>
-                  </div>
+                <div className="grid grid-cols-1 gap-3">
+  {/* Tipo de Educación */}
+  <div className="float-label-input">
+    <select
+      id={`ed_${i}_tipo`}
+      className={`peer ${ed.tipo ? 'has-value' : ''}`}
+      value={ed.tipo}
+      onChange={e => setCampo(`educaciones.${i}.tipo`, e.target.value)}
+      aria-invalid={getAriaInvalid(`educaciones.${i}.tipo`)}
+      aria-describedby={getDescribedBy(`educaciones.${i}.tipo`)}
+    >
+      <option value="">Seleccione un tipo...</option>
+      <option value="Título">Título</option>
+      <option value="Certificación">Certificación</option>
+      <option value="Curso">Curso</option>
+      <option value="Diplomado">Diplomado</option>
+      <option value="Técnico">Técnico</option>
+    </select>
+    <label htmlFor={`ed_${i}_tipo`}>Tipo de educación</label>
+    {errores[`educaciones.${i}.tipo`] && (
+      <p id={`educaciones_${i}_tipo_err`} className="text-red-600 text-sm mt-1">
+        {errores[`educaciones.${i}.tipo`]}
+      </p>
+    )}
+  </div>
 
-                  {/* Título */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_titulo`}
-                      className={`peer ${ed.titulo ? 'has-value' : ''}`}
-                      placeholder=" "
-                      value={ed.titulo}
-                      onChange={e => setCampo(`educaciones.${i}.titulo`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
-                      maxLength={100}
-                    />
-                    <label htmlFor={`ed_${i}_titulo`}>Título</label>
-                  </div>
+  <div className="grid grid-cols-2 gap-2">
+    {/* Institución */}
+    <div className="float-label-input">
+      <input
+        id={`ed_${i}_institucion`}
+        className={`peer ${ed.institucion ? 'has-value' : ''}`}
+        placeholder=" "
+        value={ed.institucion}
+        onChange={e => setCampo(`educaciones.${i}.institucion`, e.target.value)}
+        aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
+        aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
+        maxLength={100}
+      />
+      <label htmlFor={`ed_${i}_institucion`}>Institución</label>
+      {errores[`educaciones.${i}.institucion`] && (
+        <p id={`educaciones_${i}_institucion_err`} className="text-red-600 text-sm mt-1">
+          {errores[`educaciones.${i}.institucion`]}
+        </p>
+      )}
+    </div>
 
-                  {/* Fecha inicio */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_fecha_inicio`}
-                      className={`peer ${ed.fecha_inicio ? 'has-value' : ''}`}
-                      type="date"
-                      placeholder=" "
-                      min={FECHA_MINIMA_CURRICULUM}
-                      max={new Date().toISOString().split('T')[0]}
-                      value={ed.fecha_inicio ?? ''}
-                      onChange={e => setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_inicio`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_inicio`)}
-                    />
-                    <label htmlFor={`ed_${i}_fecha_inicio`}>Fecha inicio</label>
-                  </div>
+    {/* Fecha finalización */}
+    <div className="float-label-input">
+      <input
+        id={`ed_${i}_fecha_fin`}
+        className={`peer ${ed.fecha_fin ? 'has-value' : ''}`}
+        type="date"
+        placeholder=" "
+        min={FECHA_MINIMA_CURRICULUM}
+        max={new Date().toISOString().split('T')[0]}
+        value={ed.fecha_fin ?? ''}
+        onChange={e => setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
+        aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_fin`)}
+        aria-describedby={getDescribedBy(`educaciones.${i}.fecha_fin`)}
+      />
+      <label htmlFor={`ed_${i}_fecha_fin`}>Fecha finalización</label>
+      {errores[`educaciones.${i}.fecha_fin`] && (
+        <p id={`educaciones_${i}_fecha_fin_err`} className="text-red-600 text-sm mt-1">
+          {errores[`educaciones.${i}.fecha_fin`]}
+        </p>
+      )}
+    </div>
+  </div>
 
-                  {/* Fecha fin */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_fecha_fin`}
-                      className={`peer ${ed.fecha_fin ? 'has-value' : ''}`}
-                      type="date"
-                      placeholder=" "
-                      min={ed.fecha_inicio ?? FECHA_MINIMA_CURRICULUM}
-                      max={new Date().toISOString().split('T')[0]}
-                      value={ed.fecha_fin ?? ''}
-                      onChange={e => setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_fin`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_fin`)}
-                    />
-                    <label htmlFor={`ed_${i}_fecha_fin`}>Fecha fin</label>
-                  </div>
-                </div>
-
-                {/* Errores */}
-                {errores[`educaciones.${i}.institucion`] && <p id={`educaciones_${i}_institucion_err`} className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
-                {errores[`educaciones.${i}.titulo`] && <p id={`educaciones_${i}_titulo_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
-                {errores[`educaciones.${i}.fecha_inicio`] && <p id={`educaciones_${i}_fecha_inicio_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_inicio`]}</p>}
-                {errores[`educaciones.${i}.fecha_fin`] && <p id={`educaciones_${i}_fecha_fin_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_fin`]}</p>}
+  {/* Título obtenido - Campo ancho completo */}
+  <div className="float-label-input">
+    <input
+      id={`ed_${i}_titulo`}
+      className={`peer ${ed.titulo ? 'has-value' : ''}`}
+      placeholder=" "
+      value={ed.titulo}
+      onChange={e => setCampo(`educaciones.${i}.titulo`, e.target.value)}
+      aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
+      aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
+      maxLength={100}
+    />
+    <label htmlFor={`ed_${i}_titulo`}>Título obtenido</label>
+    {errores[`educaciones.${i}.titulo`] && (
+      <p id={`educaciones_${i}_titulo_err`} className="text-red-600 text-sm mt-1">
+        {errores[`educaciones.${i}.titulo`]}
+      </p>
+    )}
+  </div>
+</div>
               </div>
             ))}
           </section>
@@ -1148,31 +1243,24 @@ export default function Frt_FormularioGeneracionCurriculum() {
         {paso === 3 && (
           <section>
             <Button
-              variant="outline"
-              onClick={() => {
-                setForm(prev => ({
-                  ...prev,
-                  experiencias: [...prev.experiencias, { 
-                    empresa: '', 
-                    puesto: '', 
-                    periodo_inicio: '', 
-                    periodo_fin: '', 
-                    funciones: [{ descripcion: '' }]
-                  }]
-                }));
-              }}
-              className="mb-2"
-              disabled={form.experiencias.length >= MAX_ELEMENTOS_CV}
-              title={form.experiencias.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} experiencias permitidas` : undefined}
-            >
-              + Agregar experiencia ({form.experiencias.length}/{MAX_ELEMENTOS_CV})
-            </Button>
-            
-            {form.experiencias.length >= MAX_ELEMENTOS_CV && (
-              <p className="text-amber-600 text-sm mb-2">
-                Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} experiencias laborales.
-              </p>
-            )}
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({
+      ...prev,
+      experiencias: [...prev.experiencias, {
+        empresa: '',
+        puesto: '',
+        periodo_inicio: '',
+        periodo_fin: '',
+        funciones: [],
+        referencias: []
+      }]
+    }));
+  }}
+  className="mb-2"
+>
+  + Agregar experiencia laboral ({form.experiencias.length})
+</Button>
 
             {form.experiencias.map((ex, i) => (
               <div key={i} className="mb-4 p-4 border rounded bg-white shadow-sm">
@@ -1329,6 +1417,173 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   )}
                 </div>
 
+                {/* NUEVO: Sección de Referencias */}
+<div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+  <div className="flex items-center justify-between mb-3">
+    <label className="text-sm font-semibold text-gray-700">
+      Referencias de esta experiencia
+    </label>
+    <Button
+      variant="link"
+      size="sm"
+      onClick={() => {
+        const nuevasReferencias = [...(ex.referencias || []), { nombre: '', contacto: '', correo: '', relacion: '' }];
+        setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+      }}
+      disabled={(ex.referencias?.length || 0) >= 3}
+      title={(ex.referencias?.length || 0) >= 3 
+        ? 'Máximo 3 referencias por experiencia' 
+        : 'Agregar referencia'}
+      className="text-xs"
+    >
+      + Agregar referencia ({ex.referencias?.length || 0}/3)
+    </Button>
+  </div>
+
+  {(!ex.referencias || ex.referencias.length === 0) ? (
+    <p className="text-sm text-gray-500 italic">
+      No hay referencias agregadas para esta experiencia. Son opcionales.
+    </p>
+  ) : (
+    ex.referencias.map((ref, rIdx) => (
+      <div key={rIdx} className="mb-3 p-3 bg-white rounded border">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">Referencia {rIdx + 1}</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              const continuar = await modal.confirmacion({
+                titulo: "Confirmar eliminación",
+                mensaje: "¿Deseas eliminar esta referencia?",
+                textoAceptar: "Eliminar",
+                textoCancelar: "Cancelar",
+              });
+              if (!continuar) return;
+
+              setForm(prev => {
+                const copia = JSON.parse(JSON.stringify(prev)) as FormCV;
+                copia.experiencias[i].referencias.splice(rIdx, 1);
+                return copia;
+              });
+            }}
+            aria-label={`Eliminar referencia ${rIdx + 1}`}
+          >
+            Eliminar
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2">
+          {/* Nombre */}
+          <div className="float-label-input">
+            <input
+              id={`exp_${i}_ref_${rIdx}_nombre`}
+              className={`peer ${ref.nombre ? 'has-value' : ''}`}
+              placeholder=" "
+              maxLength={80}
+              value={ref.nombre}
+              onChange={e => {
+                const nuevasReferencias = [...ex.referencias];
+                nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], nombre: e.target.value };
+                setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+              }}
+              aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.nombre`)}
+              aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.nombre`)}
+            />
+            <label htmlFor={`exp_${i}_ref_${rIdx}_nombre`}>Nombre completo</label>
+            {errores[`experiencias.${i}.referencias.${rIdx}.nombre`] && (
+              <p id={`experiencias_${i}_referencias_${rIdx}_nombre_err`} className="text-red-600 text-xs mt-1">
+                {errores[`experiencias.${i}.referencias.${rIdx}.nombre`]}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {/* Teléfono */}
+            <div className="float-label-input">
+              <input
+                id={`exp_${i}_ref_${rIdx}_contacto`}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{8}"
+                maxLength={8}
+                className={`peer ${ref.contacto ? 'has-value' : ''}`}
+                placeholder=" "
+                value={ref.contacto}
+                onChange={(e) => {
+                  const limpio = solo8Digitos(e.target.value);
+                  const nuevasReferencias = [...ex.referencias];
+                  nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], contacto: limpio };
+                  setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+                }}
+                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.contacto`)}
+                aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.contacto`)}
+              />
+              <label htmlFor={`exp_${i}_ref_${rIdx}_contacto`}>Teléfono (8 dígitos)</label>
+              {errores[`experiencias.${i}.referencias.${rIdx}.contacto`] && (
+                <p id={`experiencias_${i}_referencias_${rIdx}_contacto_err`} className="text-red-600 text-xs mt-1">
+                  {errores[`experiencias.${i}.referencias.${rIdx}.contacto`]}
+                </p>
+              )}
+            </div>
+
+            {/* Correo */}
+            <div className="float-label-input">
+              <input
+                id={`exp_${i}_ref_${rIdx}_correo`}
+                type="email"
+                className={`peer ${ref.correo ? 'has-value' : ''}`}
+                placeholder=" "
+                maxLength={255}
+                value={ref.correo || ''}
+                onChange={e => {
+                  const nuevasReferencias = [...ex.referencias];
+                  nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], correo: e.target.value };
+                  setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+                }}
+                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.correo`)}
+                aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.correo`)}
+              />
+              <label htmlFor={`exp_${i}_ref_${rIdx}_correo`}>Correo (opcional)</label>
+              {errores[`experiencias.${i}.referencias.${rIdx}.correo`] && (
+                <p id={`experiencias_${i}_referencias_${rIdx}_correo_err`} className="text-red-600 text-xs mt-1">
+                  {errores[`experiencias.${i}.referencias.${rIdx}.correo`]}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Relación */}
+          <div className="float-label-input">
+            <input
+              id={`exp_${i}_ref_${rIdx}_relacion`}
+              className={`peer ${ref.relacion ? 'has-value' : ''}`}
+              placeholder=" "
+              maxLength={50}
+              value={ref.relacion}
+              onChange={e => {
+                const nuevasReferencias = [...ex.referencias];
+                nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], relacion: e.target.value };
+                setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+              }}
+              aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.relacion`)}
+              aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.relacion`)}
+            />
+            <label htmlFor={`exp_${i}_ref_${rIdx}_relacion`}>Relación (ej: Supervisor, Jefe directo)</label>
+            {errores[`experiencias.${i}.referencias.${rIdx}.relacion`] && (
+              <p id={`experiencias_${i}_referencias_${rIdx}_relacion_err`} className="text-red-600 text-xs mt-1">
+                {errores[`experiencias.${i}.referencias.${rIdx}.relacion`]}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+{/* Errores de campos principales */}
+
                 {/* Errores de campos principales */}
                 {errores[`experiencias.${i}.empresa`] && <p id={`experiencias_${i}_empresa_err`} className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
                 {errores[`experiencias.${i}.puesto`] && <p id={`experiencias_${i}_puesto_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
@@ -1344,22 +1599,14 @@ export default function Frt_FormularioGeneracionCurriculum() {
             <div>
               <h3 className="font-bold text-[#034991] mb-1">Habilidades</h3>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, habilidades: [...prev.habilidades, { descripcion: '' }] }));
-                }}
-                className="mb-2"
-                disabled={form.habilidades.length >= MAX_ELEMENTOS_CV}
-                title={form.habilidades.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} habilidades permitidas` : undefined}
-              >
-                + Habilidad ({form.habilidades.length}/{MAX_ELEMENTOS_CV})
-              </Button>
-              
-              {form.habilidades.length >= MAX_ELEMENTOS_CV && (
-                <p className="text-amber-600 text-sm mb-2">
-                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} habilidades.
-                </p>
-              )}
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({ ...prev, habilidades: [...prev.habilidades, { descripcion: '' }] }));
+  }}
+  className="mb-2"
+>
+  + Habilidad ({form.habilidades.length})
+</Button>
 
               {form.habilidades.map((h, i) => (
                 <div key={i} className="flex gap-2 mb-2">
@@ -1392,115 +1639,20 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 </div>
               ))}
 
-              <h3 className="font-bold text-[#034991] mt-4 mb-1">Certificaciones</h3>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, certificaciones: [...prev.certificaciones, { nombre: '', institucion: '', fecha_obtencion: '' }] }));
-                }}
-                className="mb-2"
-                disabled={form.certificaciones.length >= MAX_ELEMENTOS_CV}
-                title={form.certificaciones.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} certificaciones permitidas` : undefined}
-              >
-                + Certificación ({form.certificaciones.length}/{MAX_ELEMENTOS_CV})
-              </Button>
               
-              {form.certificaciones.length >= MAX_ELEMENTOS_CV && (
-                <p className="text-amber-600 text-sm mb-2">
-                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} certificaciones.
-                </p>
-              )}
-
-              {form.certificaciones.map((cert, idx) => (
-                <div key={idx} className="mb-3 p-3 border rounded bg-white">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Certificación {idx + 1}</span>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeArrayItem('certificaciones', idx)}
-                      aria-label={`Eliminar certificación ${idx + 1}`}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    {/* Nombre */}
-                    <div className="float-label-input">
-                      <input
-                        id={`cert_${idx}_nombre`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={100}
-                        value={cert.nombre}
-                        onChange={e => setCampo(`certificaciones.${idx}.nombre`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`certificaciones.${idx}.nombre`)}
-                        aria-describedby={getDescribedBy(`certificaciones.${idx}.nombre`)}
-                      />
-                      <label htmlFor={`cert_${idx}_nombre`}>Nombre de la certificación</label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Institución */}
-                      <div className="float-label-input">
-                        <input
-                          id={`cert_${idx}_institucion`}
-                          className="peer"
-                          placeholder=" "
-                          maxLength={80}
-                          value={cert.institucion || ''}
-                          onChange={e => setCampo(`certificaciones.${idx}.institucion`, e.target.value)}
-                          aria-invalid={getAriaInvalid(`certificaciones.${idx}.institucion`)}
-                          aria-describedby={getDescribedBy(`certificaciones.${idx}.institucion`)}
-                        />
-                        <label htmlFor={`cert_${idx}_institucion`}>Institución (opcional)</label>
-                      </div>
-
-                      {/* Fecha obtención */}
-                      <div className="float-label-input">
-                        <input
-                          id={`cert_${idx}_fecha_obtencion`}
-                          className={`peer ${cert.fecha_obtencion ? 'has-value' : ''}`}
-                          type="date"
-                          placeholder=" "
-                          min={FECHA_MINIMA_CURRICULUM}
-                          max={new Date().toISOString().split('T')[0]}
-                          value={cert.fecha_obtencion || ''}
-                          onChange={e => setCampo(`certificaciones.${idx}.fecha_obtencion`, e.target.value)}
-                          aria-invalid={getAriaInvalid(`certificaciones.${idx}.fecha_obtencion`)}
-                          aria-describedby={getDescribedBy(`certificaciones.${idx}.fecha_obtencion`)}
-                        />
-                        <label htmlFor={`cert_${idx}_fecha_obtencion`}>Fecha obtención (opcional)</label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Errores */}
-                  {errores[`certificaciones.${idx}.nombre`] && <p id={`certificaciones_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.nombre`]}</p>}
-                  {errores[`certificaciones.${idx}.institucion`] && <p id={`certificaciones_${idx}_institucion_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.institucion`]}</p>}
-                  {errores[`certificaciones.${idx}.fecha_obtencion`] && <p id={`certificaciones_${idx}_fecha_obtencion_err`} className="text-red-600 text-sm mt-1">{errores[`certificaciones.${idx}.fecha_obtencion`]}</p>}
-                </div>
-              ))}
+              
+             
 
               <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, idiomas: [...prev.idiomas, { nombre: '', nivel: '' }] }));
-                }}
-                className="mb-2"
-                disabled={form.idiomas.length >= MAX_ELEMENTOS_CV}
-                title={form.idiomas.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} idiomas permitidos` : undefined}
-              >
-                + Idioma ({form.idiomas.length}/{MAX_ELEMENTOS_CV})
-              </Button>
-              
-              {form.idiomas.length >= MAX_ELEMENTOS_CV && (
-                <p className="text-amber-600 text-sm mb-2">
-                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} idiomas.
-                </p>
-              )}
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({ ...prev, idiomas: [...prev.idiomas, { nombre: '', nivel: '' }] }));
+  }}
+  className="mb-2"
+>
+  + Idioma ({form.idiomas.length})
+</Button>
 
               {form.idiomas.map((i2, idx) => (
                 <div key={idx} className="mb-3 p-3 border rounded bg-white">
@@ -1559,96 +1711,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 </div>
               ))}
 
-              <h3 className="font-bold text-[#034991] mt-4 mb-1">Referencias</h3>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, referencias: [...prev.referencias, { nombre: '', contacto: '', relacion: '' }] }));
-                }}
-                className="mb-2"
-                disabled={form.referencias.length >= MAX_ELEMENTOS_CV}
-                title={form.referencias.length >= MAX_ELEMENTOS_CV ? `Máximo ${MAX_ELEMENTOS_CV} referencias permitidas` : undefined}
-              >
-                + Referencia ({form.referencias.length}/{MAX_ELEMENTOS_CV})
-              </Button>
               
-              {form.referencias.length >= MAX_ELEMENTOS_CV && (
-                <p className="text-amber-600 text-sm mb-2">
-                  Has alcanzado el límite máximo de {MAX_ELEMENTOS_CV} referencias.
-                </p>
-              )}
-
-              {form.referencias.map((r, idx) => (
-                <div key={idx} className="mb-3 p-3 border rounded bg-white">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Referencia {idx + 1}</span>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeArrayItem('referencias', idx)}
-                      aria-label={`Eliminar referencia ${idx + 1}`}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Nombre */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_nombre`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={80}
-                        value={r.nombre}
-                        onChange={e => setCampo(`referencias.${idx}.nombre`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.nombre`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.nombre`)}
-                      />
-                      <label htmlFor={`ref_${idx}_nombre`}>Nombre</label>
-                    </div>
-
-                    {/* Contacto */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_contacto`}
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]{8}"
-                        maxLength={8}
-                        className={`peer ${r.contacto ? 'has-value' : ''}`}
-                        placeholder=" "
-                        value={r.contacto}
-                        onChange={(e) => {
-                          const limpio = solo8Digitos(e.target.value);
-                          setCampo(`referencias.${idx}.contacto`, limpio);
-                        }}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.contacto`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.contacto`)}
-                      />
-                      <label htmlFor={`ref_${idx}_contacto`}>Teléfono</label>
-                    </div>
-
-                    {/* Relación */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_relacion`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={50}
-                        value={r.relacion}
-                        onChange={e => setCampo(`referencias.${idx}.relacion`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.relacion`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.relacion`)}
-                      />
-                      <label htmlFor={`ref_${idx}_relacion`}>Relación</label>
-                    </div>
-                  </div>
-                  {errores[`referencias.${idx}.nombre`] && <p id={`referencias_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.nombre`]}</p>}
-                  {errores[`referencias.${idx}.contacto`] && <p id={`referencias_${idx}_contacto_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
-                  {errores[`referencias.${idx}.relacion`] && <p id={`referencias_${idx}_relacion_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.relacion`]}</p>}
-                </div>
-              ))}
             </div>
 
             <div>
@@ -1703,6 +1766,49 @@ export default function Frt_FormularioGeneracionCurriculum() {
             </Button>
           </div>
         )}
+              {/* Botón flotante de Vista Previa */}
+      <button
+        onClick={() => setMostrarVistaPrevia(true)}
+        className="fixed bottom-6 right-6 bg-[#034991] hover:bg-[#023970] text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-3xl z-40 group"
+        title="Ver vista previa del currículum"
+        aria-label="Abrir vista previa del currículum"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          className="h-7 w-7 transition-transform group-hover:rotate-12" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+          />
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
+          />
+        </svg>
+        
+        {/* Tooltip */}
+        <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+          <span className="bg-gray-900 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
+            Vista Previa
+          </span>
+        </span>
+      </button>
+
+      {/* Modal de Vista Previa */}
+      <ModalVistaPreviaCurriculum
+        isOpen={mostrarVistaPrevia}
+        onClose={() => setMostrarVistaPrevia(false)}
+        datos={form}
+        fotoPerfilUrl={fotoPerfilUrl}
+      />
       </div>
     </PpLayout>
   );

@@ -48,7 +48,7 @@ const Login: React.FC = () => {
 
   const intentarLogin = async (forzar = false) => {
     if (estaEnCooldown) {
-      setError(`Debe esperar ${cooldownSeconds}s antes de volver a intentar iniciar sesion.`);
+      setError(`Debe esperar ${cooldownSeconds}s antes de volver a intentar iniciar sesión.`);
       return;
     }
 
@@ -68,7 +68,7 @@ const Login: React.FC = () => {
       const userFriendlyMessage = err.userFriendlyMessage ?? respuesta?.data?.message;
 
       if (respuesta?.status === 423 && respuesta?.data?.requiresForce) {
-        setError(userFriendlyMessage || "La cuenta ya tiene una sesion activa.");
+        setError(userFriendlyMessage || "La cuenta ya tiene una sesión activa.");
         setMostrarOpcionForzar(true);
       } else if (respuesta?.status === 423 && respuesta?.data?.code === "too_many_attempts") {
         const retryAfterRaw = Number(respuesta?.data?.retryAfter);
@@ -76,12 +76,12 @@ const Login: React.FC = () => {
         setCooldownSeconds(segundos);
         setError(
           userFriendlyMessage ||
-            `Cuenta bloqueada por intentos fallidos. Puede intentar de nuevo en ${segundos}s.`
+          `Cuenta bloqueada por intentos fallidos. Puede intentar de nuevo en ${segundos}s.`
         );
       } else if (respuesta?.status === 419) {
         setError(
           userFriendlyMessage ||
-            "La sesion fue invalidada. Posiblemente otra persona inicio sesion con esta cuenta. Recargue la pagina e intente de nuevo."
+          "La sesión fue invalidada. Posiblemente otra persona inició sesión con esta cuenta. Recargue la página e intente de nuevo."
         );
       } else {
         const errores = respuesta?.data?.errors;
@@ -89,7 +89,7 @@ const Login: React.FC = () => {
           const primerError = (Object.values(errores)[0] as string[])[0];
           setError(primerError);
         } else {
-          setError(respuesta?.data?.message || "Error al iniciar sesion");
+          setError(respuesta?.data?.message || "Error al iniciar sesión.");
         }
       }
     } finally {
@@ -186,13 +186,13 @@ const Login: React.FC = () => {
             textAlign: "center",
           }}
         >
-          Iniciar Sesion
+          Iniciar sesión
         </h1>
 
         <div style={formGroupStyle}>
           <div style={inputWrapperStyle}>
             <label htmlFor="correo" style={labelStyle}>
-              Correo Electronico
+              Correo electrónico
             </label>
             <input
               id="correo"
@@ -215,12 +215,12 @@ const Login: React.FC = () => {
         <div style={formGroupStyle}>
           <div style={inputWrapperStyle}>
             <label htmlFor="contrasena" style={labelStyle}>
-              Contrasena
+              Contraseña
             </label>
             <input
               id="contrasena"
               type="password"
-              placeholder="Ingrese su contrasena"
+              placeholder="Ingrese su contraseña"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               onKeyDown={(e) => {
@@ -245,7 +245,7 @@ const Login: React.FC = () => {
           onClick={() => intentarLogin()}
           disabled={isSubmitting || estaEnCooldown}
         >
-          Iniciar Sesion
+          Iniciar sesión
         </Button>
 
         {mostrarOpcionForzar && (
@@ -278,7 +278,7 @@ const Login: React.FC = () => {
               disabled={isSubmitting || estaEnCooldown}
             >
               <span onClick={() => router.get("/recuperar")} style={{ cursor: "pointer" }}>
-                Olvido su contrasena?
+                ¿Olvidó su contraseña?
               </span>
             </Button>
             <Button
@@ -288,7 +288,7 @@ const Login: React.FC = () => {
               disabled={isSubmitting || estaEnCooldown}
             >
               <span onClick={() => router.get("/registro")} style={{ cursor: "pointer" }}>
-                Crear Cuenta
+                Crear cuenta
               </span>
             </Button>
           </div>

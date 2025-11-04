@@ -41,7 +41,7 @@ class TitulosController extends Controller
     {
         $request->validate([
             'archivos'   => 'required|array',
-            'archivos.*' => 'required|mimes:pdf,png,jpg,jpeg|max:2048', // 2MB por archivo
+            'archivos.*' => 'required|mimes:pdf|max:2048', // 2MB por archivo
         ]);
 
         $user = Auth::user();

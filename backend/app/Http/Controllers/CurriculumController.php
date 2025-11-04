@@ -54,6 +54,42 @@ class CurriculumController extends Controller
         ]);
     }
 
+
+/**
+ * Muestra el formulario de generación de currículum
+ */
+public function create()
+{
+    $usuario = Auth::user();
+
+    // Cargar la foto de perfil si existe
+    $fotoPerfil = null;
+    if ($usuario->fotoPerfil) {
+        $fotoPerfil = [
+            'ruta_imagen' => asset('storage/' . $usuario->fotoPerfil->ruta_imagen),
+        ];
+    }
+
+    $permisos = DB::table('roles_permisos')
+        ->where('id_rol', $usuario->id_rol)
+        ->pluck('id_permiso')
+        ->toArray();
+
+    return inertia('Frt_FormularioGeneracionCurriculum', [
+        'usuario' => [
+            'id_usuario'      => $usuario->id_usuario,
+            'nombre_completo' => $usuario->nombre_completo,
+            'cedula'          => $usuario->cedula,  // ✅ Agregamos la cédula
+            'correo'          => $usuario->correo,
+            'telefono'        => $usuario->telefono ?? '',
+            'fotoPerfil'      => $fotoPerfil,
+        ],
+        'userPermisos' => $permisos,
+    ]);
+}
+
+
+
     // Index para la carga de documentos
     public function indexCarga()
     {

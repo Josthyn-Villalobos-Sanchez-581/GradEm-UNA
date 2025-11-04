@@ -67,4 +67,13 @@ class EmpresaController extends Controller
 
         return response()->json(['message' => 'Empresa registrada correctamente']);
     }
+
+    public function verificarIdentificacion(Request $request)
+    {
+        $request->validate(['identificacion' => 'required|string']);
+
+        $existe = \App\Models\Usuario::where('identificacion', $request->identificacion)->exists();
+
+        return response()->json(['exists' => $existe]);
+    }
 }

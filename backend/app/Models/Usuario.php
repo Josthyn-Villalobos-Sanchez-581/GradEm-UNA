@@ -6,11 +6,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory; 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Usuario extends Authenticatable
 {
-       use HasFactory;
+    use HasFactory;
     use HasApiTokens;
 
     protected $table = 'usuarios';
@@ -114,11 +114,16 @@ class Usuario extends Authenticatable
     }
 
     public function plataformasExternas()
-{
-    return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
-}
+    {
+        return $this->hasMany(PlataformaExterna::class, 'id_usuario', 'id_usuario');
+    }
     public function areaLaboral()
     {
         return $this->belongsTo(AreaLaboral::class, 'area_laboral_id', 'id_area_laboral');
+    }
+
+    public function canton()
+    {
+        return $this->belongsTo(Canton::class, 'id_canton', 'id_canton');
     }
 }

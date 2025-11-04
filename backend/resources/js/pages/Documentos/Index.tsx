@@ -80,7 +80,7 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
           {/* Tarjeta Títulos Académicos (Se eliminó actionText) */}
           <DocumentUploadCard
             emoji="🎓"
-            title="Títulos Académicos"
+            title="Títulos"
             description="Haga clic para subir los archivos de sus títulos."
             actionUrl="/titulos-cargados"
           />

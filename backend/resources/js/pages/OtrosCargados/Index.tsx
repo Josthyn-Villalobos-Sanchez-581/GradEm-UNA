@@ -26,8 +26,9 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
 
   // Permitir cualquier tipo de archivo común: PDF, imágenes, Word, TXT, ZIP, etc.
   const validarArchivo = (file: File) => {
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) return `El archivo ${file.name} supera los 5MB permitidos.`;
+    const allowed = ["application/pdf"];
+    if (!allowed.includes(file.type)) return "Formato no permitido. Solo PDF.";
+    if (file.size > 2 * 1024 * 1024) return "Archivo supera el límite de 2MB.";
     return null;
   };
 
@@ -122,7 +123,7 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
             Puede subir archivos como <strong>cartas de recomendación</strong>, <strong>constancias</strong> o
             <strong> documentos adicionales</strong>.
             <br />
-            Formatos permitidos: <strong>PDF, PNG, JPG, DOC, DOCX, ZIP, RAR, TXT</strong>. Máximo{" "}
+            Formatos permitidos: <strong>PDF</strong>. Máximo{" "}
             <strong>5MB</strong> por archivo. Se pueden seleccionar varios archivos.
           </p>
 
@@ -161,7 +162,7 @@ export default function OtrosIndex({ documentos = [], userPermisos }: Props) {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.rar,.txt"
+              accept=".pdf"
               className="hidden"
               multiple
               onChange={(e) => handleAddFiles(e.target.files)}

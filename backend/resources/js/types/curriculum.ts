@@ -5,9 +5,9 @@ export type Funcion = {
 };
 
 export type Educacion = {
+  tipo: 'Título' | 'Certificación' | 'Curso' | 'Diplomado' | 'Técnico' | '';
   institucion: string;
   titulo: string;
-  fecha_inicio?: string;
   fecha_fin?: string;
 };
 
@@ -16,7 +16,8 @@ export type Experiencia = {
   puesto: string;
   periodo_inicio?: string;
   periodo_fin?: string;
-  funciones: Funcion[]; // Array de funciones
+  funciones: Funcion[];
+  referencias: Referencia[]; // NUEVO: Referencias asociadas a esta experiencia
 };
 
 export type Habilidad = {
@@ -31,6 +32,7 @@ export type Idioma = {
 export type Referencia = {
   nombre: string;
   contacto: string;
+  correo: string;
   relacion: string;
 };
 
@@ -52,8 +54,7 @@ export type FormCV = {
   experiencias: Experiencia[];
   habilidades: Habilidad[];
   idiomas: Idioma[];
-  referencias: Referencia[];
-  certificaciones: Certificacion[];
+  // referencias: Referencia[]; // ELIMINADO: Ahora están dentro de cada experiencia
   incluirFotoPerfil?: boolean;
   [key: string]: unknown;
 };
