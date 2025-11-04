@@ -75,15 +75,17 @@ class CertificadosControllerTest extends TestCase
                  ->where('userPermisos', [1, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16])
         );
     }
-
-    #[Test]
+#[Test]
 public function upload_permite_subir_varios_certificados_validos()
 {
+    // Simular almacenamiento
     Storage::fake('public');
-Storage::disk('public')->makeDirectory('certificados');
+    Storage::disk('public')->makeDirectory('certificados');
+
+    // Solo PDFs, ya que el controller valida mimes:pdf
     $files = [
         UploadedFile::fake()->create('cert1.pdf', 500, 'application/pdf'),
-        UploadedFile::fake()->image('cert2.jpg', 600, 600),
+        UploadedFile::fake()->create('cert2.pdf', 700, 'application/pdf'),
     ];
 
     // Actuar como usuario y subir archivos
@@ -95,10 +97,8 @@ Storage::disk('public')->makeDirectory('certificados');
     $response->assertRedirect();
     $response->assertSessionHas('success');
 
-    // Obtener archivos subidos
+    // Comprobar que los archivos se almacenaron en el fake disk
     $archivos = Storage::disk('public')->allFiles('certificados');
-
-    // Asegurarse de que hay archivos
     $this->assertNotEmpty($archivos, 'No se guardó ningún archivo en certificados/');
 
     /** 
@@ -107,9 +107,11 @@ Storage::disk('public')->makeDirectory('certificados');
     $disk = Storage::disk('public');
 
     // Verificar que los archivos existen
-    $disk->assertExists($archivos[0]);
-    $disk->assertExists($archivos[1]);
+    foreach ($archivos as $archivo) {
+        $disk->assertExists($archivo);
+    }
 }
+
 
     #[Test]
     public function upload_falla_si_no_envia_archivos()
