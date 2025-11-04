@@ -264,64 +264,74 @@ const Registro: React.FC = () => {
         []
     );
 
-    // Verificar si la identificación ya está registrada
+    // ✅ Verificar si la identificación ya está registrada
     useEffect(() => {
-        const verificarIdentificacion = async () => {
-            const valor = numeroIdentificacion.trim();
+    const verificarIdentificacion = async () => {
+        const valor = numeroIdentificacion.trim();
 
-            // ⚙️ Si el campo está vacío, no mostrar ningún error
-            if (!valor) {
-                setIdentificacionRegistrada(false);
-                setErrors((prev: any) => {
-                    const { identificacion, ...rest } = prev;
-                    return rest;
-                });
-                return;
-            }
+        // ⚙️ Si el campo está vacío, no mostrar ningún error
+        if (!valor) {
+        setIdentificacionRegistrada(false);
+        setErrors((prev: any) => {
+            const { identificacion, ...rest } = prev;
+            return rest;
+        });
+        return;
+        }
 
-            // ⚙️ Validar formato (sin tocar backend todavía)
-            const formatoError = validarIdentificacion(valor);
+        // ⚙️ Validar formato (sin tocar backend todavía)
+        const formatoError = validarIdentificacion(valor);
 
-            // Si hay error de formato, mostrarlo y no consultar el backend
-            if (formatoError) {
-                setIdentificacionRegistrada(false);
-                setErrors((prev: any) => ({
-                    ...prev,
-                    identificacion: [formatoError],
-                }));
-                return;
-            }
+        // Si hay error de formato, mostrarlo y no consultar el backend
+        if (formatoError) {
+        setIdentificacionRegistrada(false);
+        setErrors((prev: any) => ({
+            ...prev,
+            identificacion: [formatoError],
+        }));
+        return;
+        }
 
-            // ⚙️ Solo si el formato es válido y tiene mínimo 8 caracteres, consultar al backend
-            if (valor.length >= 8) {
-                try {
-                    const res = await axios.post("/verificar-identificacion", {
-                        identificacion: valor,
-                    });
-                    setIdentificacionRegistrada(res.data.exists);
+        // ⚙️ Solo si el formato es válido y tiene mínimo 8 caracteres, consultar al backend
+        if (valor.length >= 8) {
+        try {
+            const res = await axios.post("/verificar-identificacion", {
+            identificacion: valor,
+            });
 
-                    setErrors((prev: any) => {
-                        const erroresActuales = { ...prev };
+            setIdentificacionRegistrada(res.data.exists);
 
-                        if (res.data.exists) {
-                            erroresActuales.identificacion = [
-                                "Esta identificación ya está registrada.",
-                            ];
-                        } else {
-                            delete erroresActuales.identificacion;
-                        }
+            setErrors((prev: any) => {
+            const erroresActuales = { ...prev };
 
-                        return erroresActuales;
-                    });
-                } catch {
-                    // Si falla la conexión, no modificamos errores
-                    setIdentificacionRegistrada(false);
+            if (res.data.exists) {
+                // ✅ Mostrar mensaje si ya está registrada
+                erroresActuales.identificacion = [
+                "Esta identificación ya está registrada.",
+                ];
+            } else {
+                // ✅ Eliminar el error solo si no está registrada y no hay otro error de formato
+                if (
+                erroresActuales.identificacion &&
+                erroresActuales.identificacion[0] ===
+                    "Esta identificación ya está registrada."
+                ) {
+                delete erroresActuales.identificacion;
                 }
             }
-        };
 
-        verificarIdentificacion();
+            return erroresActuales;
+            });
+        } catch {
+            // Si falla la conexión, no modificamos errores
+            setIdentificacionRegistrada(false);
+        }
+        }
+    };
+
+    verificarIdentificacion();
     }, [numeroIdentificacion]);
+
 
     useEffect(() => {
         const timeout = setTimeout(async () => {
@@ -785,6 +795,10 @@ const Registro: React.FC = () => {
                                                     onBlur={(e) => {
                                                         const err = validarIdentificacion(e.target.value);
                                                         setErrors((prev: any) => {
+                                                            // Si ya hay error de identificación registrada, no eliminarlo
+                                                            if (prev.identificacion && prev.identificacion[0] === "Esta identificación ya está registrada.") {
+                                                            return prev;
+                                                            }
                                                             if (err) return { ...prev, identificacion: [err] };
                                                             const { identificacion, ...rest } = prev;
                                                             return rest;
