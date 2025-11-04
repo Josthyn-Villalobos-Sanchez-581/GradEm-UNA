@@ -161,30 +161,36 @@ export default function PerfilesUsuarios(props: Props) {
         </div>
 
         {/* 🔹 Checkboxes para columnas */}
-        <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 p-3 rounded-lg shadow-sm mb-4">
-          {(Object.entries(columnasVisibles) as [ColumnaKey, boolean][])
-            .filter(([col]) => col !== "nombre_completo")
-            .map(([col, visible]) => (
-              <label
-                key={col}
-                className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition"
-              >
-                <input
-                  type="checkbox"
-                  checked={visible}
-                  onChange={() => toggleColumna(col)}
-                  className="mr-2 accent-[#034991]"
-                />
-                {col
-                  .replace("_", " ")
-                  .replace("correo", "Correo")
-                  .replace("identificacion", "Identificación")
-                  .replace("telefono", "Teléfono")
-                  .replace("rol", "Rol")
-                  .replace("universidad", "Universidad")
-                  .replace("carrera", "Carrera")}
-              </label>
-            ))}
+        <div className="bg-white-50 border border-gray-200 p-4 rounded-lg shadow-sm mb-4">
+          <p className="text-sm font-semibold text-gray-700 mb-3">
+            Seleccionar columnas
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            {(Object.entries(columnasVisibles) as [ColumnaKey, boolean][])
+              .filter(([col]) => col !== "nombre_completo")
+              .map(([col, visible]) => (
+                <label
+                  key={col}
+                  className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={visible}
+                    onChange={() => toggleColumna(col)}
+                    className="mr-2 accent-[#034991]"
+                  />
+                  {col
+                    .replace("_", " ")
+                    .replace("correo", "Correo")
+                    .replace("identificacion", "Identificación")
+                    .replace("telefono", "Teléfono")
+                    .replace("rol", "Rol")
+                    .replace("universidad", "Universidad")
+                    .replace("carrera", "Carrera")}
+                </label>
+              ))}
+          </div>
         </div>
 
         {/* 🔹 Tabla de usuarios */}
@@ -255,132 +261,128 @@ export default function PerfilesUsuarios(props: Props) {
                   return (
                     <tr
                       key={u.id_usuario}
-                      className={`hover:bg-gray-50 ${
-                        idx === usuariosPaginados.length - 1 ? "last-row" : ""
-                      }`}
-                  >
-                    {columnasVisibles.nombre_completo && (
-                      <td
-                        className={`px-4 py-2 border border-gray-300 ${
-                          idx === usuariosPaginados.length - 1
-                            ? "rounded-bl-2xl"
-                            : ""
+                      className={`hover:bg-gray-50 ${idx === usuariosPaginados.length - 1 ? "last-row" : ""
                         }`}
-                      >
-                        {nombreUsuario}
-                      </td>
-                    )}
-                    {columnasVisibles.correo && (
-                      <td className="px-4 py-2 border border-gray-300">
-                        {displayValue(u.correo)}
-                      </td>
-                    )}
-                    {columnasVisibles.identificacion && (
-                      <td className="px-4 py-2 border border-gray-300">
-                        {displayValue(u.identificacion)}
-                      </td>
-                    )}
-                    {columnasVisibles.telefono && (
-                      <td className="px-4 py-2 border border-gray-300">
-                        {telefonoParaMostrar}
-                      </td>
-                    )}
-                    {columnasVisibles.rol && (
-                      <td className="px-4 py-2 capitalize border border-gray-300">
-                        {displayValue(u.rol?.nombre_rol)}
-                      </td>
-                    )}
-                    {columnasVisibles.universidad && (
-                      <td className="px-4 py-2 border border-gray-300">
-                        {displayValue(u.universidad?.nombre)}
-                      </td>
-                    )}
-                    {columnasVisibles.carrera && (
-                      <td className="px-4 py-2 border border-gray-300">
-                        {displayValue(u.carrera?.nombre)}
-                      </td>
-                    )}
-
-                    {/* Celda Acciones */}
-                    <td
-                      className={`px-4 py-2 text-center border border-gray-300 ${
-                        idx === usuariosPaginados.length - 1 ? "rounded-br-2xl" : ""
-                      }`}
                     >
-                      <div className="flex justify-center gap-2">
-                        <Link href={route("usuarios.ver", { id: u.id_usuario })}>
+                      {columnasVisibles.nombre_completo && (
+                        <td
+                          className={`px-4 py-2 border border-gray-300 ${idx === usuariosPaginados.length - 1
+                              ? "rounded-bl-2xl"
+                              : ""
+                            }`}
+                        >
+                          {nombreUsuario}
+                        </td>
+                      )}
+                      {columnasVisibles.correo && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.correo)}
+                        </td>
+                      )}
+                      {columnasVisibles.identificacion && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.identificacion)}
+                        </td>
+                      )}
+                      {columnasVisibles.telefono && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {telefonoParaMostrar}
+                        </td>
+                      )}
+                      {columnasVisibles.rol && (
+                        <td className="px-4 py-2 capitalize border border-gray-300">
+                          {displayValue(u.rol?.nombre_rol)}
+                        </td>
+                      )}
+                      {columnasVisibles.universidad && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.universidad?.nombre)}
+                        </td>
+                      )}
+                      {columnasVisibles.carrera && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.carrera?.nombre)}
+                        </td>
+                      )}
+
+                      {/* Celda Acciones */}
+                      <td
+                        className={`px-4 py-2 text-center border border-gray-300 ${idx === usuariosPaginados.length - 1 ? "rounded-br-2xl" : ""
+                          }`}
+                      >
+                        <div className="flex justify-center gap-2">
+                          <Link href={route("usuarios.ver", { id: u.id_usuario })}>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="font-semibold"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  await axios.get(route("usuarios.ver", { id: u.id_usuario }));
+                                  window.location.href = route("usuarios.ver", { id: u.id_usuario });
+                                } catch (err: any) {
+                                  if (err.response?.status === 403) {
+                                    modal.alerta({
+                                      titulo: err.response.data.titulo || "Acceso denegado",
+                                      mensaje:
+                                        err.response.data.mensaje ||
+                                        "No tiene permiso para ver este perfil.",
+                                    });
+                                  } else {
+                                    modal.alerta({
+                                      titulo: "Error",
+                                      mensaje: "Ocurrió un error al intentar acceder al perfil.",
+                                    });
+                                  }
+                                }
+                              }}
+                            >
+                              Ver Perfil
+                            </Button>
+                          </Link>
+
                           <Button
-                            variant="default"
+                            variant={u.estado_id === 1 ? "destructive" : "success"}
                             size="sm"
                             className="font-semibold"
-                            onClick={async (e) => {
-                              e.preventDefault();
+                            onClick={async () => {
+                              const confirmado = await modal.confirmacion({
+                                titulo:
+                                  u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
+                                mensaje: `¿Desea ${u.estado_id === 1 ? "inactivar" : "activar"
+                                  } la cuenta de ${nombreUsuario}?`,
+                              });
+                              if (!confirmado) return;
+
                               try {
-                                await axios.get(route("usuarios.ver", { id: u.id_usuario }));
-                                window.location.href = route("usuarios.ver", { id: u.id_usuario });
-                              } catch (err: any) {
-                                if (err.response?.status === 403) {
-                                  modal.alerta({
-                                    titulo: err.response.data.titulo || "Acceso denegado",
-                                    mensaje:
-                                      err.response.data.mensaje ||
-                                      "No tiene permiso para ver este perfil.",
-                                  });
-                                } else {
-                                  modal.alerta({
-                                    titulo: "Error",
-                                    mensaje: "Ocurrió un error al intentar acceder al perfil.",
-                                  });
-                                }
+                                const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
+                                modal.alerta({
+                                  titulo: "Estado actualizado",
+                                  mensaje: res.data.message,
+                                });
+
+                                const nuevos = usuarios.map((usr) =>
+                                  usr.id_usuario === u.id_usuario
+                                    ? { ...usr, estado_id: res.data.nuevo_estado }
+                                    : usr
+                                );
+                                setUsuarios([...nuevos]);
+                              } catch {
+                                modal.alerta({
+                                  titulo: "Error",
+                                  mensaje: "Ocurrió un error al cambiar el estado del usuario.",
+                                });
                               }
                             }}
                           >
-                            Ver Perfil
+                            {u.estado_id === 1 ? "Inactivar" : "Activar"}
                           </Button>
-                        </Link>
-
-                        <Button
-                          variant={u.estado_id === 1 ? "destructive" : "success"}
-                          size="sm"
-                          className="font-semibold"
-                          onClick={async () => {
-                            const confirmado = await modal.confirmacion({
-                              titulo:
-                                u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
-                              mensaje: `¿Desea ${
-                                u.estado_id === 1 ? "inactivar" : "activar"
-                              } la cuenta de ${nombreUsuario}?`,
-                            });
-                            if (!confirmado) return;
-
-                            try {
-                              const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
-                              modal.alerta({
-                                titulo: "Estado actualizado",
-                                mensaje: res.data.message,
-                              });
-
-                              const nuevos = usuarios.map((usr) =>
-                                usr.id_usuario === u.id_usuario
-                                  ? { ...usr, estado_id: res.data.nuevo_estado }
-                                  : usr
-                              );
-                              setUsuarios([...nuevos]);
-                            } catch {
-                              modal.alerta({
-                                titulo: "Error",
-                                mensaje: "Ocurrió un error al cambiar el estado del usuario.",
-                              });
-                            }
-                          }}
-                        >
-                          {u.estado_id === 1 ? "Inactivar" : "Activar"}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -390,41 +392,41 @@ export default function PerfilesUsuarios(props: Props) {
         {/* 🔹 Paginación */}
         {totalPaginas > 1 && (
           <div className="flex justify-center mt-4 space-x-2">
-          {/* Botón Anterior */}
-          <Button
-            type="button"
-            onClick={() => cambiarPagina(paginaActual - 1)}
-            disabled={paginaActual === 1}
-            variant="default"
-            size="sm"
-          >
-            Anterior
-          </Button>
-
-          {/* Botones numéricos */}
-          {Array.from({ length: totalPaginas }, (_, i) => (
+            {/* Botón Anterior */}
             <Button
-              key={i + 1}
               type="button"
-              onClick={() => cambiarPagina(i + 1)}
+              onClick={() => cambiarPagina(paginaActual - 1)}
+              disabled={paginaActual === 1}
+              variant="default"
               size="sm"
-              variant={paginaActual === i + 1 ? "destructive" : "outline"}
             >
-              {i + 1}
+              Anterior
             </Button>
-          ))}
 
-          {/* Botón Siguiente */}
-          <Button
-            type="button"
-            onClick={() => cambiarPagina(paginaActual + 1)}
-            disabled={paginaActual === totalPaginas}
-            variant="default"
-            size="sm"
-          >
-            Siguiente
-          </Button>
-        </div>
+            {/* Botones numéricos */}
+            {Array.from({ length: totalPaginas }, (_, i) => (
+              <Button
+                key={i + 1}
+                type="button"
+                onClick={() => cambiarPagina(i + 1)}
+                size="sm"
+                variant={paginaActual === i + 1 ? "destructive" : "outline"}
+              >
+                {i + 1}
+              </Button>
+            ))}
+
+            {/* Botón Siguiente */}
+            <Button
+              type="button"
+              onClick={() => cambiarPagina(paginaActual + 1)}
+              disabled={paginaActual === totalPaginas}
+              variant="default"
+              size="sm"
+            >
+              Siguiente
+            </Button>
+          </div>
         )}
       </div>
     </>
