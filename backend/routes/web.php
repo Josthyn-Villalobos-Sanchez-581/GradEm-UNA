@@ -24,7 +24,7 @@ use App\Http\Controllers\TitulosController;
 use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
-
+use App\Http\Controllers\DashboardController;
 
 // ==========================================
 // Rutas públicas
@@ -73,9 +73,10 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Dashboard
     // ==========================================
-    Route::get('/dashboard', fn() => Inertia::render('Dashboard', [
-        'userPermisos' => getUserPermisos()
-    ]))->name('dashboard');
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
+});
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
