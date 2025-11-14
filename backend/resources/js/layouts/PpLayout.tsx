@@ -194,35 +194,46 @@ export default function PpLayout({
     <div className="flex h-screen bg-gray-100">
 
       {/* TOPBAR */}
-      <header className="fixed top-0 left-0 w-full h-20 bg-[#CD1719] shadow-md z-50 px-5 flex items-center justify-between">
+      <header className="
+  fixed top-0 left-0 w-full h-20 
+  bg-gradient-to-r from-[#CD1719] via-[#B01517] to-[#7A0F13]
+  shadow-md z-50 px-5 flex items-center justify-between
+">
         <button className="text-white md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
           <Menu size={30} />
         </button>
 
         <div className="flex items-center gap-3 ml-1">
-          <Link href="https://www.una.ac.cr"><img src={logoUnaUrl} className="h-14 translate-x-[-6px]" /></Link>
+          <Link href="https://www.una.ac.cr">
+            <img src={logoUnaUrl} className="h-14 translate-x-[-6px]" />
+          </Link>
           <img src={logoGradEmUrl} className="h-14" />
         </div>
 
         <button
           onClick={openSystemInfo}
-          className="hidden md:flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm hover:bg-white/20 transition"
+          className="hidden md:flex items-center gap-2 
+      bg-white/10 text-white px-4 py-2 rounded-full text-sm 
+      hover:bg-white/20 transition"
         >
           <Info size={16} />
-          Información
+          Acerca de
         </button>
       </header>
+
 
       {/* SIDEBAR */}
       <aside
         className={`
-          fixed top-20 left-0 h-[calc(100vh-5rem)]
-          bg-[#CD1719] text-white border-r border-red-800 shadow-xl
-          transition-all duration-300 z-40 flex flex-col justify-between
-          ${sidebarCollapsed ? "w-20" : "w-64"}
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-        `}
+    fixed top-20 left-0 h-[calc(100vh-5rem)]
+    bg-gradient-to-b from-[#CD1719] via-[#B01517] to-[#7A0F13]
+    text-white border-r border-red-900 shadow-xl
+    transition-all duration-300 z-40 flex flex-col justify-between
+    ${sidebarCollapsed ? "w-20" : "w-56"}
+    ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+  `}
       >
+
         {/* Botón colapso */}
         <button
           onClick={toggleSidebarCollapse}
@@ -266,10 +277,13 @@ export default function PpLayout({
                     ${isActive ? "bg-white/15 border-l-4 border-[#034991]" : "hover:bg-white/10"}
                   `}
                 >
-                  <span className="flex items-center gap-3">
+                  <span className={`flex items-center gap-3 transition-all 
+  ${sidebarCollapsed ? "justify-center w-full" : ""}
+`}>
                     <Icon size={20} className="transition-transform duration-200 group-hover:scale-110" />
                     {!sidebarCollapsed && item.title}
                   </span>
+
 
                   {item.subMenu && !sidebarCollapsed && (
                     <ChevronDown size={16} className={`transition-transform ${openMenu === item.title ? "rotate-180" : ""}`} />
@@ -357,20 +371,20 @@ export default function PpLayout({
       {/* ============================
      MODAL INSTITUCIONAL (NEW)
 ============================ */}
-{showInfoModal && (
-  <>
-    {/* OVERLAY – Cierre al hacer clic afuera */}
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
-      onClick={() => setShowInfoModal(false)}
-    />
+      {showInfoModal && (
+        <>
+          {/* OVERLAY – Cierre al hacer clic afuera */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
+            onClick={() => setShowInfoModal(false)}
+          />
 
-    {/* CONTENEDOR */}
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 pointer-events-none">
+          {/* CONTENEDOR */}
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 pointer-events-none">
 
-      {/* MODAL */}
-      <div
-        className="
+            {/* MODAL */}
+            <div
+              className="
           pointer-events-auto
           w-full max-w-3xl
           max-h-[85vh]
@@ -378,123 +392,123 @@ export default function PpLayout({
           bg-white border border-gray-200
           animate-scale-in
         "
-      >
-        {/* HEADER INSTITUCIONAL */}
-        <div
-          className="
+            >
+              {/* HEADER INSTITUCIONAL */}
+              <div
+                className="
             bg-gradient-to-r 
             from-[#CD1719] via-[#B01517] to-[#7A0F13]
             text-white px-6 py-4
             flex items-center justify-between
             shadow-md
           "
-        >
-          <h2 className="text-lg font-bold tracking-wide">
-            Información del Sistema
-          </h2>
+              >
+                <h2 className="text-lg font-bold tracking-wide">
+                  Información del Sistema
+                </h2>
 
-          <button
-            onClick={() => setShowInfoModal(false)}
-            className="text-white/80 hover:text-white transition"
-          >
-            <X size={24} />
-          </button>
-        </div>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="text-white/80 hover:text-white transition"
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-        {/* CONTENIDO CON SCROLL */}
-        <div className="px-7 py-6 overflow-y-auto max-h-[70vh] space-y-7 
+              {/* CONTENIDO CON SCROLL */}
+              <div className="px-7 py-6 overflow-y-auto max-h-[70vh] space-y-7 
                         scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
 
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg flex items-center gap-2">
-              📌 Datos Generales
-            </h3>
-            <div className="mt-2 text-gray-700 leading-relaxed">
-              <p><strong>Versión:</strong> 1.0.0</p>
-              <p><strong>Última actualización:</strong> Noviembre 2025</p>
-              <p><strong>Institución:</strong> Universidad Nacional de Costa Rica (UNA)</p>
-              <p><strong>Facultad:</strong> Escuela de Informática — Proyecto SIUA</p>
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg flex items-center gap-2">
+                    📌 Datos Generales
+                  </h3>
+                  <div className="mt-2 text-gray-700 leading-relaxed">
+                    <p><strong>Versión:</strong> 1.0.0</p>
+                    <p><strong>Última actualización:</strong> Noviembre 2025</p>
+                    <p><strong>Institución:</strong> Universidad Nacional de Costa Rica (UNA)</p>
+                    <p><strong>Facultad:</strong> Escuela de Informática — Proyecto SIUA</p>
+                  </div>
+                </section>
+
+                <hr className="border-gray-200" />
+
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg">👥 Equipo de Desarrollo</h3>
+                  <ul className="mt-3 space-y-1 text-gray-700 list-disc list-inside">
+                    <li><strong>Jairo Valverde Ramírez</strong> — Full Stack + UX/UI</li>
+                    <li><strong>Gerald Huertas Rodríguez</strong> — Full Stack + UX/UI</li>
+                    <li><strong>Kevin Beita Marin</strong> — Full Stack + UX/UI</li>
+                    <li><strong>Froylan Rivera Salas</strong> — Full Stack + UX/UI</li>
+                    <li><strong>Josthyn Villalobos Sanchez</strong> — Full Stack + UX/UI</li>
+                  </ul>
+                </section>
+
+                <hr className="border-gray-200" />
+
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg">💡 Propósito del Sistema</h3>
+                  <p className="mt-3 text-gray-700 leading-relaxed">
+                    GradEm-UNA es una plataforma para conectar estudiantes, egresados, empresas e instituciones,
+                    centralizando la gestión de currículums, cursos, ofertas laborales, eventos y análisis estadístico.
+                  </p>
+                </section>
+
+                <hr className="border-gray-200" />
+
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg">🛠️ Tecnologías Principales</h3>
+                  <ul className="mt-3 text-gray-700 list-disc list-inside space-y-1">
+                    <li>React + TypeScript + Inertia.js</li>
+                    <li>Laravel 12 (PHP 8.2)</li>
+                    <li>MySQL</li>
+                    <li>TailwindCSS + Lucide Icons</li>
+                    <li>DomPDF</li>
+                    <li>Arquitectura modular SIUA</li>
+                  </ul>
+                </section>
+
+                <hr className="border-gray-200" />
+
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg">🔐 Características Clave</h3>
+                  <ul className="mt-3 text-gray-700 list-disc list-inside space-y-1">
+                    <li>Control dinámico de roles y permisos</li>
+                    <li>Gestión de ofertas, cursos y eventos</li>
+                    <li>Generador profesional de CV</li>
+                    <li>Panel institucional con estadísticas</li>
+                    <li>Auditoría interna de acciones</li>
+                  </ul>
+                </section>
+
+                <hr className="border-gray-200" />
+
+                {/* SECCIÓN */}
+                <section>
+                  <h3 className="text-[#034991] font-semibold text-lg">📞 Contacto</h3>
+                  <p className="mt-3 text-gray-700 leading-relaxed">
+                    <strong>Correo:</strong> gradem@una.ac.cr<br />
+                    <strong>Sede:</strong> Sede Interuniversitaria de Alajuela (SIUA)
+                  </p>
+                </section>
+
+              </div>
             </div>
-          </section>
 
-          <hr className="border-gray-200" />
-
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg">👥 Equipo de Desarrollo</h3>
-            <ul className="mt-3 space-y-1 text-gray-700 list-disc list-inside">
-              <li><strong>Jairo Valverde Ramírez</strong> — Full Stack + UX/UI</li>
-              <li><strong>Gerald Huertas Rodríguez</strong> — Full Stack + UX/UI</li>
-              <li><strong>Kevin Beita Marin</strong> — Full Stack + UX/UI</li>
-              <li><strong>Froylan Rivera Salas</strong> — Full Stack + UX/UI</li>
-              <li><strong>Josthyn Villalobos Sanchez</strong> — Full Stack + UX/UI</li>
-            </ul>
-          </section>
-
-          <hr className="border-gray-200" />
-
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg">💡 Propósito del Sistema</h3>
-            <p className="mt-3 text-gray-700 leading-relaxed">
-              GradEm-UNA es una plataforma para conectar estudiantes, egresados, empresas e instituciones,
-              centralizando la gestión de currículums, cursos, ofertas laborales, eventos y análisis estadístico.
-            </p>
-          </section>
-
-          <hr className="border-gray-200" />
-
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg">🛠️ Tecnologías Principales</h3>
-            <ul className="mt-3 text-gray-700 list-disc list-inside space-y-1">
-              <li>React + TypeScript + Inertia.js</li>
-              <li>Laravel 12 (PHP 8.2)</li>
-              <li>MySQL</li>
-              <li>TailwindCSS + Lucide Icons</li>
-              <li>DomPDF</li>
-              <li>Arquitectura modular SIUA</li>
-            </ul>
-          </section>
-
-          <hr className="border-gray-200" />
-
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg">🔐 Características Clave</h3>
-            <ul className="mt-3 text-gray-700 list-disc list-inside space-y-1">
-              <li>Control dinámico de roles y permisos</li>
-              <li>Gestión de ofertas, cursos y eventos</li>
-              <li>Generador profesional de CV</li>
-              <li>Panel institucional con estadísticas</li>
-              <li>Auditoría interna de acciones</li>
-            </ul>
-          </section>
-
-          <hr className="border-gray-200" />
-
-          {/* SECCIÓN */}
-          <section>
-            <h3 className="text-[#034991] font-semibold text-lg">📞 Contacto</h3>
-            <p className="mt-3 text-gray-700 leading-relaxed">
-              <strong>Correo:</strong> gradem@una.ac.cr<br />
-              <strong>Sede:</strong> Sede Interuniversitaria de Alajuela (SIUA)
-            </p>
-          </section>
-
-        </div>
-      </div>
-
-    </div>
-  </>
-)}
+          </div>
+        </>
+      )}
 
 
 
       {/* CONTENIDO */}
       <main
-        className={`flex-1 p-6 mt-20 overflow-y-auto transition-all duration-300 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"
+        className={`flex-1 p-6 mt-20 overflow-y-auto transition-all duration-300 ${sidebarCollapsed ? "md:ml-20" : "md:ml-56"}
           }`}
       >
         {breadcrumbs && (
