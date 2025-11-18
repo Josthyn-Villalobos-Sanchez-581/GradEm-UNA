@@ -254,3 +254,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   resize: vertical;
 }
 
+@keyframes fade-in-letter {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-letter {
+  animation: fade-in-letter 0.25s ease-out forwards;
+}
