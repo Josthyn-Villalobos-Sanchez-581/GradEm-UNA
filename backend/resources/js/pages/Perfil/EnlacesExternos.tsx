@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
-//backend/resources/js/pages/Perfil/EnlacesExternos.tsx
+import { Button } from "@/components/ui/button";
+import IconoAgregar from "@/assets/IconoAgregar.png";
+import IconoEliminar from "@/assets/IconoEliminar.png";
+
 interface Enlace {
   id_plataforma: number;
   tipo: string;
@@ -11,16 +14,15 @@ interface Enlace {
 interface Props {
   enlaces: Enlace[];
   usuario: any;
-   rolNombre?: string; // 👈 agregar esto
-  soloLectura?: boolean; // 👈 Modo lectura opcional
+  rolNombre?: string;
+  soloLectura?: boolean;
 }
 
 export default function EnlacesExternos({
-  
   enlaces: initialEnlaces = [],
   usuario,
   soloLectura = false,
-  rolNombre = "", // 👈 valor por defecto para evitar errores
+  rolNombre = "",
 }: Props) {
   const modal = useModal();
   const [enlaces, setEnlaces] = useState<Enlace[]>(initialEnlaces ?? []);
@@ -32,38 +34,35 @@ export default function EnlacesExternos({
   const [tipo, setTipo] = useState("");
   const [url, setUrl] = useState("");
 
-useEffect(() => {
-  setEnlaces(initialEnlaces ?? []);
-  setUrlsPredefinidas({ LinkedIn: "", Instagram: "", GitHub: "" });
-  setTipo("");
-  setUrl("");
-  // 🔹 DEBUG: Revisar props que llegan al componente
-}, [initialEnlaces, usuario]);
+  useEffect(() => {
+    setEnlaces(initialEnlaces ?? []);
+    setUrlsPredefinidas({ LinkedIn: "", Instagram: "", GitHub: "" });
+    setTipo("");
+    setUrl("");
+  }, [initialEnlaces, usuario]);
 
-// Validar si el usuario puede ver enlaces externos
-const puedeVerEnlaces = [
-  "estudiante",
-  "egresado",
-  "activo",
-  "pausado",
-  "finalizado",
-].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
-(usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
+  const puedeVerEnlaces =
+    [
+      "estudiante",
+      "egresado",
+      "activo",
+      "pausado",
+      "finalizado",
+    ].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
+    (usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
 
-// Si no puede ver enlaces, no renderizar nada
-if (!puedeVerEnlaces) return null;
+  if (!puedeVerEnlaces) return null;
 
-  // Verifica si el usuario es estudiante o egresado
-  const esEstudianteOEgresado = [
-    "estudiante",
-    "egresado",
-    "activo",
-    "pausado",
-    "finalizado",
-  ].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
-  (usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
+  const esEstudianteOEgresado =
+    [
+      "estudiante",
+      "egresado",
+      "activo",
+      "pausado",
+      "finalizado",
+    ].includes((usuario.estado_estudios || "").trim().toLowerCase()) ||
+    (usuario.rol?.nombre_rol || rolNombre || "").trim().toLowerCase() === "empresa";
 
-  // ✅ Permitir ver en modo lectura aunque no sea estudiante/egresado
   if (!esEstudianteOEgresado && !soloLectura) return null;
 
   const validarUrl = (u: string) => /^https:\/\/.+/i.test(u);
@@ -116,12 +115,11 @@ if (!puedeVerEnlaces) return null;
   const tiposPredefinidos = ["LinkedIn", "Instagram", "GitHub"];
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
       <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">
         Enlaces a plataformas externas
       </h3>
 
-      {/* Solo mostrar formularios si NO está en modo lectura */}
       {!soloLectura && (
         <>
           {/* Campos predefinidos */}
@@ -142,24 +140,31 @@ if (!puedeVerEnlaces) return null;
                       setUrlsPredefinidas((prev) => ({ ...prev, [t]: e.target.value }))
                     }
                     disabled={deshabilitado}
-                    className={`mt-1 block w-full rounded border px-3 py-2 shadow-sm ${
-                      deshabilitado
+                    className={`mt-1 block w-full rounded border px-3 py-2 shadow-sm ${deshabilitado
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "text-gray-800 border-gray-300 focus:border-[#034991] focus:ring focus:ring-[#034991]/20"
-                    }`}
+                      }`}
                     placeholder={`https://${t.toLowerCase()}.com/usuario`}
                   />
+
+                  {/* Botón de agregar con ícono */}
                   <button
                     type="button"
                     onClick={() => agregarEnlace(t, urlsPredefinidas[t], true)}
                     disabled={deshabilitado}
-                    className={`px-4 py-2 rounded shadow font-semibold ${
-                      deshabilitado
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#034991] hover:bg-[#0563c1] text-white"
-                    }`}
+                    className={`flex justify-center items-center h-10 w-10 rounded-full border transition ${deshabilitado
+                        ? "bg-gray-100 cursor-not-allowed"
+                        : "bg-white border-gray-300 hover:border-[#034991] hover:shadow-md"
+                      }`}
                   >
-                    {deshabilitado ? "Agregado" : "Agregar"}
+                    <img
+                      src={IconoAgregar}
+                      alt="Agregar"
+                      className={`w-5 h-5 ${deshabilitado
+                          ? "opacity-40"
+                          : "hover:scale-110 transition-transform"
+                        }`}
+                    />
                   </button>
                 </div>
               );
@@ -172,7 +177,7 @@ if (!puedeVerEnlaces) return null;
               e.preventDefault();
               agregarEnlace(tipo, url);
             }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end text-gray-800"
+            className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr_auto] gap-2 items-center text-gray-800"
           >
             <div>
               <p>
@@ -187,31 +192,38 @@ if (!puedeVerEnlaces) return null;
                 maxLength={50}
               />
             </div>
+
             <div>
               <p>
                 <strong>URL:</strong> (<span className="font-normal">https://</span>)
               </p>
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-gray-800 shadow-sm focus:border-[#034991] focus:ring focus:ring-[#034991]/20"
-                placeholder="https://ejemplo.com/usuario"
-                required
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow"
-              >
-                Agregar
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-gray-800 shadow-sm focus:border-[#034991] focus:ring focus:ring-[#034991]/20"
+                  placeholder="https://ejemplo.com/usuario"
+                  required
+                />
+                {/* Botón agregar ícono más pegado */}
+                <button
+                  type="submit"
+                  className="flex justify-center items-center h-10 w-10 rounded-full border bg-white border-gray-300 hover:border-[#034991] hover:shadow-md transition"
+                  title="Agregar enlace"
+                >
+                  <img
+                    src={IconoAgregar}
+                    alt="Agregar"
+                    className="w-5 h-5 hover:scale-110 transition-transform"
+                  />
+                </button>
+              </div>
             </div>
           </form>
         </>
       )}
 
-      {/* Lista de enlaces (siempre visible) */}
+      {/* Lista de enlaces */}
       <ul className="mt-6 space-y-2">
         {enlaces.length === 0 && (
           <li className="text-gray-400 italic">No hay enlaces agregados.</li>
@@ -235,9 +247,14 @@ if (!puedeVerEnlaces) return null;
             {!soloLectura && (
               <button
                 onClick={() => eliminarEnlace(e.id_plataforma)}
-                className="bg-[#CD1719] hover:bg-[#a21514] text-white px-3 py-1 rounded"
+                className="flex justify-center items-center h-10 w-10 rounded-full border bg-white border-gray-300 hover:border-[#CD1719] hover:shadow-md transition"
+                title="Eliminar enlace"
               >
-                Eliminar
+                <img
+                  src={IconoEliminar}
+                  alt="Eliminar"
+                  className="w-5 h-5 hover:scale-110 transition-transform"
+                />
               </button>
             )}
           </li>

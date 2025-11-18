@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+
 class TitulosController extends Controller
 {
     /**
@@ -39,7 +41,7 @@ class TitulosController extends Controller
     {
         $request->validate([
             'archivos'   => 'required|array',
-            'archivos.*' => 'required|mimes:pdf,png,jpg,jpeg|max:2048', // 2MB por archivo
+            'archivos.*' => 'required|mimes:pdf|max:2048', // 2MB por archivo
         ]);
 
         $user = Auth::user();
@@ -56,6 +58,7 @@ class TitulosController extends Controller
                     'tipo'         => 'titulo',
                     'ruta_archivo' => $path,
                     'nombre_original'  => $file->getClientOriginalName(),
+                    'fecha_subida' => Carbon::now('America/Costa_Rica'),
                     // fecha_subida se maneja por default en DB
                 ]);
 

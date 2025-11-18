@@ -7,6 +7,7 @@ import axios from "axios";
 import { usePage } from "@inertiajs/react";
 import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
+import { Button } from "@/components/ui/button";
 interface UsuarioItem {
   id: number;
   nombre_completo?: string;
@@ -77,7 +78,7 @@ export default function Index(props: IndexProps) {
     searchTimer.current = window.setTimeout(() => {
       buscar(value);
       searchTimer.current = null;
-    }, 700);
+    }, 600);
   };
 
   const changePage = (page: number) => {
@@ -100,11 +101,10 @@ export default function Index(props: IndexProps) {
             <h2 className="text-xl font-bold text-[#034991]">
               Administradores / Dirección / Subdirección
             </h2>
-            <Link
-              href={route("admin.crear")}
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded"
-            >
-              Crear Usuario
+            <Link href={route("admin.crear")} >
+              <Button variant="default" size="default">
+                Crear Usuario
+              </Button>
             </Link>
           </div>
 
@@ -155,8 +155,10 @@ export default function Index(props: IndexProps) {
                   {col.label}
                 </label>
               ))}
-              <button
-                className="ml-auto bg-[#034991] hover:bg-[#0563c1] active:bg-[#023163] text-white px-3 py-1 rounded"
+              <Button
+                className="ml-auto"
+                variant="secondary"
+                size="sm"
                 onClick={() =>
                   setVisibleCols([
                     "nombre",
@@ -172,13 +174,13 @@ export default function Index(props: IndexProps) {
                 }
               >
                 Mostrar Todo
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* 📊 Tabla */}
-          <div className="overflow-x-auto w-full bg-white">
-            <table className="table-auto border border-gray-200 w-full min-w-max">
+          <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
+            <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
               <thead className="bg-gray-100">
                 <tr>
                   {visibleCols.includes("nombre") && <th className="px-4 py-2 border">Nombre completo</th>}
@@ -195,49 +197,82 @@ export default function Index(props: IndexProps) {
               <tbody>
                 {usuarios.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-6 text-center text-gray-600">
+                    <td colSpan={9} className="px-4 py-6 text-center text-gray-600 italic">
                       No hay usuarios para mostrar.
                     </td>
                   </tr>
                 ) : (
-                  usuarios.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      {visibleCols.includes("nombre") && <td className="px-4 py-2 border">{u.nombre_completo ?? "-"}</td>}
-                      {visibleCols.includes("correo") && <td className="px-4 py-2 border">{u.correo ?? "-"}</td>}
-                      {visibleCols.includes("identificacion") && <td className="px-4 py-2 border">{u.identificacion ?? "-"}</td>}
-                      {visibleCols.includes("telefono") && <td className="px-4 py-2 border">{u.telefono ?? "-"}</td>}
-                      {visibleCols.includes("rol") && <td className="px-4 py-2 border">{u.rol ?? "-"}</td>}
-                      {visibleCols.includes("universidad") && <td className="px-4 py-2 border">{u.universidad ?? "-"}</td>}
-                      {visibleCols.includes("carrera") && <td className="px-4 py-2 border">{u.carrera ?? "-"}</td>}
+                  usuarios.map((u, idx) => (
+                    <tr
+                      key={u.id}
+                      className={`hover:bg-gray-50 ${idx === usuarios.length - 1 ? "last-row" : ""
+                        }`}
+                    >
+                      {visibleCols.includes("nombre") && (
+                        <td
+                          className={`px-4 py-2 border ${idx === usuarios.length - 1 ? "rounded-bl-2xl" : ""
+                            }`}
+                        >
+                          {u.nombre_completo ?? "-"}
+                        </td>
+                      )}
+                      {visibleCols.includes("correo") && (
+                        <td className="px-4 py-2 border">{u.correo ?? "-"}</td>
+                      )}
+                      {visibleCols.includes("identificacion") && (
+                        <td className="px-4 py-2 border">{u.identificacion ?? "-"}</td>
+                      )}
+                      {visibleCols.includes("telefono") && (
+                        <td className="px-4 py-2 border">{u.telefono ?? "-"}</td>
+                      )}
+                      {visibleCols.includes("rol") && (
+                        <td className="px-4 py-2 border capitalize">{u.rol ?? "-"}</td>
+                      )}
+                      {visibleCols.includes("universidad") && (
+                        <td className="px-4 py-2 border">{u.universidad ?? "-"}</td>
+                      )}
+                      {visibleCols.includes("carrera") && (
+                        <td className="px-4 py-2 border">{u.carrera ?? "-"}</td>
+                      )}
                       {visibleCols.includes("fecha") && (
                         <td className="px-4 py-2 border">
                           {u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString() : "-"}
                         </td>
                       )}
-                      {visibleCols.includes("acciones") && (
-                        <td className="px-4 py-2 border flex gap-2">
-                          <Link
-                            href={route("admin.editar", { id: u.id })}
-                            className="bg-[#0D47A1] hover:bg-blue-800 text-white px-4 py-2 rounded"
-                          >
-                            Editar
-                          </Link>
 
-                          {puedeGestionar && (
-                            <>
-                              {/* 🔴 Activar/Inactivar */}
-                              <button
+                      {visibleCols.includes("acciones") && (
+                        <td
+                          className={`px-4 py-2 border text-center ${idx === usuarios.length - 1 ? "rounded-br-2xl" : ""
+                            }`}
+                        >
+                          <div className="flex justify-center gap-2">
+                            {/* Editar */}
+                            <Link href={route("admin.editar", { id: u.id })}>
+                              <Button variant="default" size="sm" className="font-semibold">
+                                Editar
+                              </Button>
+                            </Link>
+
+                            {/* Activar/Inactivar */}
+                            {puedeGestionar && (
+                              <Button
+                                size="sm"
+                                variant={u.estado_id === 1 ? "destructive" : "success"}
+                                className="font-semibold"
                                 onClick={async () => {
                                   const confirmado = await confirmacion({
                                     titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
-                                    mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"} la cuenta de ${u.nombre_completo}?`,
+                                    mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"
+                                      } la cuenta de ${u.nombre_completo}?`,
                                   });
                                   if (!confirmado) return;
 
                                   try {
                                     const res = await axios.put(`/usuarios/${u.id}/toggle-estado`);
-                                    alerta({ titulo: "Estado actualizado", mensaje: res.data.message });
-
+                                    alerta({
+                                      titulo: "Estado actualizado",
+                                      mensaje: res.data.message,
+                                    });
                                     setUsuarios((prev) =>
                                       prev.map((usr) =>
                                         usr.id === u.id ? { ...usr, estado_id: res.data.nuevo_estado } : usr
@@ -245,17 +280,23 @@ export default function Index(props: IndexProps) {
                                     );
                                   } catch (err) {
                                     console.error(err);
-                                    alerta({ titulo: "Error", mensaje: "Ocurrió un error al cambiar el estado del usuario." });
+                                    alerta({
+                                      titulo: "Error",
+                                      mensaje: "Ocurrió un error al cambiar el estado del usuario.",
+                                    });
                                   }
                                 }}
-                                className={`px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap ${u.estado_id === 1 ? "bg-[#CD1719] hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
-                                  }`}
                               >
                                 {u.estado_id === 1 ? "Inactivar" : "Activar"}
-                              </button>
+                              </Button>
+                            )}
 
-                              {/* 🗑️ Eliminar */}
-                              <button
+                            {/* Eliminar */}
+                            {puedeGestionar && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="font-semibold"
                                 onClick={async () => {
                                   const ok = await confirmacion({
                                     titulo: "Confirmar eliminación",
@@ -263,42 +304,30 @@ export default function Index(props: IndexProps) {
                                     textoAceptar: "Sí, eliminar",
                                     textoCancelar: "Cancelar",
                                   });
-
                                   if (!ok) return;
 
                                   try {
                                     const res = await axios.delete(route("admin.eliminar", { id: u.id }));
-
                                     if (res.data.status === "success") {
-                                      alerta({
-                                        titulo: "Eliminado",
-                                        mensaje: res.data.message,
-                                      });
-
-                                      // 💡 Quitar el usuario eliminado del estado
+                                      alerta({ titulo: "Eliminado", mensaje: res.data.message });
                                       setUsuarios((prev) => prev.filter((usr) => usr.id !== u.id));
                                     } else {
-                                      alerta({
-                                        titulo: "Error",
-                                        mensaje: res.data.message,
-                                      });
+                                      alerta({ titulo: "Error", mensaje: res.data.message });
                                     }
                                   } catch (err: any) {
-                                    const msg =
-                                      err.response?.data?.message ||
-                                      "Ocurrió un error inesperado al eliminar el usuario.";
                                     alerta({
                                       titulo: "Error",
-                                      mensaje: msg,
+                                      mensaje:
+                                        err.response?.data?.message ||
+                                        "Ocurrió un error inesperado al eliminar el usuario.",
                                     });
                                   }
                                 }}
-                                className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded"
                               >
                                 Eliminar
-                              </button>
-                            </>
-                          )}
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -308,28 +337,43 @@ export default function Index(props: IndexProps) {
             </table>
           </div>
 
-          {/* Paginación */}
+          {/* 🔹 Paginación */}
           {props.users.last_page > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Página {props.users.current_page} de {props.users.last_page} — {props.users.total} registros
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => changePage(props.users.current_page - 1)}
-                  disabled={props.users.current_page === 1}
-                  className="px-3 py-1 text-sm rounded bg-white border"
+            <div className="flex justify-center mt-4 space-x-2">
+              {/* Botón Anterior */}
+              <Button
+                type="button"
+                onClick={() => changePage(props.users.current_page - 1)}
+                disabled={props.users.current_page === 1}
+                variant="default"
+                size="sm"
+              >
+                Anterior
+              </Button>
+
+              {/* Botones numéricos */}
+              {Array.from({ length: props.users.last_page }, (_, i) => (
+                <Button
+                  key={i + 1}
+                  type="button"
+                  onClick={() => changePage(i + 1)}
+                  size="sm"
+                  variant={props.users.current_page === i + 1 ? "destructive" : "outline"}
                 >
-                  &laquo; Anterior
-                </button>
-                <button
-                  onClick={() => changePage(props.users.current_page + 1)}
-                  disabled={props.users.current_page === props.users.last_page}
-                  className="px-3 py-1 text-sm rounded bg-white border"
-                >
-                  Siguiente &raquo;
-                </button>
-              </div>
+                  {i + 1}
+                </Button>
+              ))}
+
+              {/* Botón Siguiente */}
+              <Button
+                type="button"
+                onClick={() => changePage(props.users.current_page + 1)}
+                disabled={props.users.current_page === props.users.last_page}
+                variant="default"
+                size="sm"
+              >
+                Siguiente
+              </Button>
             </div>
           )}
         </div>

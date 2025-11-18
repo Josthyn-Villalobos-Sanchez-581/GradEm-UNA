@@ -67,7 +67,7 @@ class RegistroController extends Controller
             'correo' => 'required|email|max:150|unique:usuarios,correo',
             'password' => 'required|confirmed|min:8',
             'nombre_completo' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
-            'identificacion' => 'required|numeric|digits_between:8,12|unique:usuarios,identificacion',
+            'identificacion' => 'required|string|min:8|max:12|unique:usuarios,identificacion|regex:/^[A-Za-z0-9]+$/',
             'telefono' => 'nullable|numeric|digits_between:8,15',
             'fecha_nacimiento' => 'nullable|date|before:today',
             'genero' => 'nullable|string|max:20|in:masculino,femenino,otro',
@@ -78,25 +78,29 @@ class RegistroController extends Controller
             'tiempo_conseguir_empleo' => 'nullable|digits_between:1,3|integer|min:0|max:120',
             'area_laboral_id' => 'nullable|integer|exists:areas_laborales,id_area_laboral',
             'id_canton' => 'nullable|integer|exists:cantones,id_canton',
-            'salario_promedio' => 'nullable|digits_between:1,10',
-            'tipo_empleo' => 'nullable|string|max:50',
+            'salario_promedio' => 'nullable|string|in:<300000,300000-600000,600000-1000000,>1000000',
+            'tipo_empleo' => 'nullable|string|in:Tiempo completo,Medio tiempo,Temporal,Independiente,Práctica',
             'tipoCuenta' => 'required|in:estudiante,egresado,empresa',
         ], [
         // ⚡ Mensajes personalizados
         'nombre_completo.regex' => 'El nombre solo puede contener letras y espacios.',
         'correo.unique' => 'El correo ya está registrado.',
-        'identificacion.numeric' => 'La identificación debe ser un número.',
-        'identificacion.digits_between' => 'La identificación debe tener entre 8 y 12 dígitos.',
+        'identificacion.regex' => 'La identificación solo puede contener letras y números (sin espacios ni símbolos).',
+        'identificacion.min' => 'La identificación debe tener al menos 8 caracteres.',
+        'identificacion.max' => 'La identificación no puede superar los 12 caracteres.',
         'telefono.numeric' => 'El teléfono debe contener solo números.',
         'telefono.digits_between' => 'El teléfono debe tener entre 8 y 15 dígitos.',
         'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
         'genero.in' => 'Debe seleccionar una opción válida en género.',
         'estado_empleo.in' => 'Debe ser empleado o desempleado.',
-    'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
+        'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
         'anio_graduacion.digits' => 'El año de graduación debe tener 4 dígitos.',
         'anio_graduacion.min' => 'El año de graduación no puede ser antes de 2007.',
         'tiempo_conseguir_empleo.integer' => 'El tiempo deben ser numeros enteros de entre 1 y 3 dígitos.',
-        'salario_promedio.digits_between' => 'El salario promedio debe tener entre 1 y 10 dígitos numéricos.',
+        'estado_empleo.in' => 'Debe ser empleado o desempleado.',
+        'estado_estudios.in' => 'Debe ser activo, pausado o finalizado.',
+        'salario_promedio.in' => 'Debe seleccionar un rango salarial válido.',
+        'tipo_empleo.in' => 'Debe seleccionar un tipo de empleo válido.',
         ]);
 
         if (!session('otp_validado') || $request->correo !== session('otp_correo')) {
@@ -157,5 +161,14 @@ class RegistroController extends Controller
         $exists = \App\Models\Usuario::where('correo', $request->correo)->exists();
 
         return response()->json(['exists' => $exists]);
+    }
+
+    public function verificarIdentificacion(Request $request)
+    {
+        $request->validate(['identificacion' => 'required|string']);
+
+        $existe = \App\Models\Usuario::where('identificacion', $request->identificacion)->exists();
+
+        return response()->json(['exists' => $existe]);
     }
 }

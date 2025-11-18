@@ -19,6 +19,7 @@ class Credencial extends Model
         'intentos_fallidos',
         'fecha_ultimo_cambio',
         'fecha_baneo',
+        'session_token',
     ];
 
     /**

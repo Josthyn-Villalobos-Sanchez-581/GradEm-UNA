@@ -7,6 +7,8 @@ use Inertia\Inertia;
 use App\Models\DocumentoAdjunto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OtrosController extends Controller
 {
@@ -17,14 +19,14 @@ class OtrosController extends Controller
     {
         $user = Auth::user();
 
-        // Obtener documentos asociados al usuario y tipo 'otros'
         $documentos = DocumentoAdjunto::where('id_usuario', $user->id_usuario)
-            ->where('tipo', 'otros')
+            ->where('tipo', 'otro') // ✅ coherente con 'titulo' y 'certificado'
+            ->orderByDesc('fecha_subida')
             ->get();
 
         return Inertia::render('OtrosCargados/Index', [
-            'documentos' => $documentos,
-            'userPermisos' => session('userPermisos') ?? [],
+            'documentos'   => $documentos,
+            'userPermisos' => getUserPermisos(), // ✅ así sí se renderiza el topbar
         ]);
     }
 
@@ -34,8 +36,8 @@ class OtrosController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'archivos' => 'required|array',
-            'archivos.*' => 'file|mimes:pdf,png,jpg,jpeg,doc,docx,zip,rar,txt|max:5120', // 5 MB
+            'archivos'   => 'required|array',
+            'archivos.*' => 'file|mimes:pdf|max:5120', // 5 MB
         ]);
 
         $user = Auth::user();
@@ -44,15 +46,15 @@ class OtrosController extends Controller
             $path = $archivo->store('otros', 'public');
 
             DocumentoAdjunto::create([
-                'id_usuario' => $user->id_usuario,
-                'ruta_archivo' => $path,
-                'nombre_original' => $archivo->getClientOriginalName(),
-                'tipo' => 'otros',
-                'fecha_subida' => now(),
+                'id_usuario'       => $user->id_usuario,
+                'ruta_archivo'     => $path,
+                'nombre_original'  => $archivo->getClientOriginalName(),
+                'tipo'             => 'otro', // ✅ coherente
+                'fecha_subida' => Carbon::now('America/Costa_Rica'),
             ]);
         }
 
-        return redirect()->back()->with('success', 'Archivos cargados correctamente.');
+        return redirect()->back()->with('success', 'Archivo(s) cargado(s) correctamente.');
     }
 
     /**
@@ -64,18 +66,17 @@ class OtrosController extends Controller
             'id_documento' => 'required|integer|exists:documentos_adjuntos,id_documento',
         ]);
 
-        $documento = DocumentoAdjunto::find($request->id_documento);
+        $user = Auth::user();
 
-        if (!$documento) {
-            return back()->withErrors(['error' => 'El documento no existe.']);
+        $documento = DocumentoAdjunto::where('id_documento', $request->id_documento)
+            ->where('id_usuario', $user->id_usuario)
+            ->where('tipo', 'otro')
+            ->first();
+
+        if (! $documento) {
+            return back()->withErrors(['error' => 'El documento no existe o no pertenece a este usuario.']);
         }
 
-        // Verificar que pertenece al usuario autenticado
-        if ($documento->id_usuario !== Auth::id()) {
-            return back()->withErrors(['error' => 'No tiene permisos para eliminar este documento.']);
-        }
-
-        // Eliminar archivo del almacenamiento
         if (Storage::disk('public')->exists($documento->ruta_archivo)) {
             Storage::disk('public')->delete($documento->ruta_archivo);
         }

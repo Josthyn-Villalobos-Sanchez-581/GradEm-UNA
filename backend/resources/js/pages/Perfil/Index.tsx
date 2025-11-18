@@ -1,17 +1,14 @@
-import React from "react";
-import { Link, Head, usePage } from "@inertiajs/react";
+import React, { useState } from "react";
+import { Link, Head } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
+import IconoEdicion from "@/assets/IconoEdicion.png";
 import { useModal } from "@/hooks/useModal";
-
-// backend/resources/js/pages/Perfil/Index.tsx
-// 👇 importa tu componente de enlaces externos
+import { Button } from "@/components/ui/button";
 import EnlacesExternos from "./EnlacesExternos";
 
-interface FotoPerfil {
-  ruta_imagen: string;
-}
+interface FotoPerfil { ruta_imagen: string }
 interface Usuario {
   id_usuario: number;
   nombre_completo: string;
@@ -40,10 +37,6 @@ interface Empresa {
   correo: string | null;
   telefono: string | null;
   persona_contacto: string | null;
-  usuario_id: number;
-  id_pais?: number | null;
-  id_provincia?: number | null;
-  id_canton?: number | null;
 }
 
 interface AreaLaboral { id: number; nombre: string }
@@ -52,12 +45,7 @@ interface Provincia { id: number; nombre: string; id_pais: number }
 interface Canton { id: number; nombre: string; id_provincia: number }
 interface Universidad { id: number; nombre: string; sigla: string }
 interface Carrera { id: number; nombre: string; id_universidad: number; area_conocimiento: string }
-
-interface Plataforma {
-  id_plataforma: number;
-  tipo: string;
-  url: string;
-}
+interface Plataforma { id_plataforma: number; tipo: string; url: string }
 
 interface Props {
   usuario: Usuario;
@@ -85,19 +73,19 @@ export default function Index({
   plataformas,
   rolNombre,
 }: Props) {
-  const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
   const modal = useModal();
+  const [activeTab, setActiveTab] = useState(
+    rolNombre.toLowerCase() === "empresa" ? "empresa" : "datos"
+  );
 
   const cantonActual = cantones.find(c => c.id === usuario.id_canton);
   const provinciaActual = cantonActual ? provincias.find(p => p.id === cantonActual.id_provincia) : null;
   const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
-
   const universidadActual = universidades.find(u => u.id === usuario.id_universidad);
   const carreraActual = carreras.find(c => c.id === usuario.id_carrera);
-
   const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
 
-  // Eliminar foto de perfil
+  // 🔹 Eliminar foto de perfil
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
       titulo: "Confirmar eliminación",
@@ -105,258 +93,265 @@ export default function Index({
     });
     if (!confirm) return;
 
-    Inertia.post(
-      "/perfil/foto/eliminar",
-      {},
-      {
-        onSuccess: () =>
-          modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
-        onError: (errors: any) =>
-          modal.alerta({
-            titulo: "Error",
-            mensaje: errors.foto || "No se pudo eliminar la foto.",
-          }),
-      }
-    );
+    Inertia.post("/perfil/foto/eliminar", {}, {
+      onSuccess: () => modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." }),
+      onError: (errors: any) =>
+        modal.alerta({ titulo: "Error", mensaje: errors.foto || "No se pudo eliminar la foto." }),
+    });
   };
 
+  // 🔹 Texto negro por defecto
   const renderValor = (valor: any) =>
-    valor ? <span>{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
-if (rolNombre.toLowerCase() === "empresa") {
-  return (
-    <>
-      <Head title="Perfil de Empresa" />
-      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6 text-black">
-        {/* Flash messages */}
-        {flash?.success && (
-          <div className="mb-4 p-3 bg-green-100 text-green-800 border border-green-300 rounded">
-            {flash.success}
-          </div>
-        )}
-        {flash?.error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-800 border border-red-300 rounded">
-            {flash.error}
-          </div>
-        )}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Perfil de Empresa</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
+    valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
 
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Columna izquierda igual que otros roles */}
-          <div className="flex flex-col items-center md:w-1/3">
-            <div className="h-48 w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm mb-4">
-              <img src={usuario.fotoPerfil?.ruta_imagen || FotoXDefecto} alt="Foto de perfil" className="h-full w-full object-cover" />
-            </div>
+  // -------------------------------------------------------
+  // VISTA EMPRESA
+  // -------------------------------------------------------
+  if (rolNombre.toLowerCase() === "empresa") {
+    const secciones = [
+      { id: "empresa", label: "Información de la Empresa" },
+      { id: "responsable", label: "Usuario Responsable" },
+      { id: "enlaces", label: "Enlaces Externos" },
+    ];
 
-            <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Link
-                href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Actualizar Foto
-              </Link>
+    return (
+      <>
+        <Head title="Perfil de Empresa" />
+        <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
+          <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+            <header className="flex justify-between items-center border-b pb-3 mb-8">
+              <h1 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h1>
+              <div className="flex gap-3">
+                <Button asChild variant="secondary"><Link href="/dashboard">Volver</Link></Button>
+                <Button asChild variant="default"><Link href="/perfil/editar">Editar</Link></Button>
+              </div>
+            </header>
 
+            {/* Foto y acciones */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <img
+                  src={fotoPerfilUrl}
+                  className="rounded-full w-36 h-36 object-cover shadow-md mb-3"
+                />
+                {/* Botón de editar foto */}
+                <Link
+                  href="/perfil/foto"
+                  title="Editar foto de perfil"
+                  className="absolute -bottom-2 -right-2 flex items-center justify-center h-10 w-10 rounded-full bg-white border border-gray-300 shadow-md hover:scale-110 transition"
+                >
+                  <img src={IconoEdicion} alt="Editar" className="w-5 h-5" />
+                </Link>
+              </div>
+
+              {/* Botón eliminar foto */}
               {usuario.fotoPerfil && (
                 <button
                   onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
+                  className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition"
                 >
-                  Eliminar Foto
+                  Borrar Foto de Perfil
                 </button>
               )}
 
-              {/* Botón para editar perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded text-center block"
-              >
-                Editar Perfil
-              </Link>
-            </div>
-          </div>
-
-          {/* Columna derecha - Información de empresa */}
-          <div className="flex-1">
-            {/* Datos de la empresa */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Información de la Empresa</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Nombre:</strong> {renderValor(empresa?.nombre)}</p>
-                <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
-                <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
-                <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
-              </div>
-            </div>
-
-            {/* Ubicación */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Ubicación</h3>
-              <p>
-                {paisActual && provinciaActual && cantonActual
-                  ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-                  : <span className="text-gray-400 italic">N/A</span>}
+              <p className="text-2xl font-bold mt-4">{rolNombre}: {empresa?.nombre}</p>
+              <p className="text-base text-gray-700">
+                Usuario: {renderValor(usuario.nombre_completo)}
               </p>
             </div>
 
-            {/* Datos del usuario propietario */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-gray-700">Usuario responsable</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
-                <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-              </div>
+            {/* Tabs */}
+            <div className="flex justify-center flex-wrap gap-3 border-b pb-4 mb-6">
+              {secciones.map(tab => (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "outline" : "ghost"}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="font-semibold text-black"
+                >
+                  {tab.label}
+                </Button>
+              ))}
             </div>
 
-            {/* 🔗 Plataformas externas */}
-<EnlacesExternos
-  key={usuario.id_usuario}   // React recrea el componente si cambia el usuario
-  enlaces={plataformas || []}
-  usuario={usuario}
-  rolNombre={rolNombre}
-/>
+            {/* Paneles */}
+            {activeTab === "empresa" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Información de la Empresa</h3>
+                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                  <p><strong>Nombre de la empresa:</strong> {renderValor(empresa?.nombre)}</p>
+                  <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
+                  <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
+                  <p><strong>Ubicación:</strong> {renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</p>
+                  <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+                </div>
+              </section>
+            )}
 
+            {activeTab === "responsable" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Usuario Responsable</h3>
+                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                  <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
+                  <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "enlaces" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Enlaces Externos</h3>
+                <EnlacesExternos enlaces={plataformas} usuario={usuario} rolNombre={rolNombre} soloLectura={false} />
+              </section>
+            )}
           </div>
         </div>
-      </div>
-    </>
-  );
-}
-  // Vista completa para otros roles
+      </>
+    );
+  }
+
+  // -------------------------------------------------------
+  // VISTA ESTUDIANTE / EGRESADO / OTROS
+  // -------------------------------------------------------
+  const mostrarEnlaces =
+    ["egresado", "estudiante", "empresa"].includes(rolNombre.toLowerCase());
+
+  const tabs = [
+    { id: "datos", label: "Datos Personales" },
+    { id: "academicos", label: "Datos Académicos" },
+    ...(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante"
+      ? [{ id: "laborales", label: "Datos Laborales" }]
+      : []),
+    ...(mostrarEnlaces ? [{ id: "enlaces", label: "Enlaces Externos" }] : []),
+  ];
+
   return (
     <>
-      <Head title="Mi Perfil" />
-
-      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-6 text-black">
-        {/* Flash messages */}
-        {flash?.success && (
-          <div className="mb-4 p-3 bg-green-100 text-green-800 border border-green-300 rounded">
-            {flash.success}
-          </div>
-        )}
-        {flash?.error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-800 border border-red-300 rounded">
-            {flash.error}
-          </div>
-        )}
-
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Mi Perfil</h2>
-          <Link
-            href="/dashboard"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
-        </div>
-
-        {/* Panel principal con 2 columnas */}
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Columna izquierda - Foto y acciones */}
-          <div className="flex flex-col items-center md:w-1/3">
-            <div className="h-48 w-48 overflow-hidden rounded-lg border border-gray-300 shadow-sm mb-4">
-              <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+      <Head title={`Perfil - ${usuario.nombre_completo}`} />
+      <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
+        <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+          <header className="flex justify-between items-center border-b pb-3 mb-8">
+            <h1 className="text-2xl font-bold text-[#034991]">Mi Perfil</h1>
+            <div className="flex gap-3">
+              <Button asChild variant="secondary"><Link href="/dashboard">Volver</Link></Button>
+              <Button asChild variant="default"><Link href="/perfil/editar">Editar</Link></Button>
             </div>
-            <div className="flex flex-col gap-3 w-full max-w-xs">
+          </header>
+
+          {/* Foto y acciones */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative">
+              <img
+                src={fotoPerfilUrl}
+                className="rounded-full w-36 h-36 object-cover shadow-md mb-3"
+              />
+              {/* Botón de editar foto */}
               <Link
                 href="/perfil/foto"
-                className="bg-[#034991] hover:bg-[#02336e] text-white font-semibold px-4 py-2 rounded shadow text-center"
+                title="Editar foto de perfil"
+                className="absolute -bottom-2 -right-2 flex items-center justify-center h-10 w-10 rounded-full bg-white border border-gray-300 shadow-md hover:scale-110 transition"
               >
-                Actualizar Foto
-              </Link>
-              {usuario.fotoPerfil && (
-                <button
-                  onClick={eliminarFotoPerfil}
-                  className="bg-[#CD1719] hover:bg-[#a21514] text-white font-semibold px-4 py-2 rounded shadow text-center"
-                >
-                  Eliminar Foto
-                </button>
-              )}
-              {/* Nuevo botón Ver Currículum */}
-              <Link
-                href="/mi-curriculum/ver"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white font-semibold px-4 py-2 rounded shadow text-center"
-              >
-                Ver Currículum
-              </Link>
-              {/* Botón Editar Perfil */}
-              <Link
-                href="/perfil/editar"
-                className="bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded col-span-2 text-center block"
-              >
-                Editar Perfil
+                <img src={IconoEdicion} alt="Editar" className="w-5 h-5" />
               </Link>
             </div>
+
+            {/* Botón eliminar foto */}
+            {usuario.fotoPerfil && (
+              <button
+                onClick={eliminarFotoPerfil}
+                className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition"
+              >
+                Borrar Foto de Perfil
+              </button>
+            )}
+
+            <p className="text-2xl font-bold mt-4">{rolNombre}: {usuario.nombre_completo}</p>
+            <p className="text-gray-700">Carrera: {carreraActual?.nombre}</p>
+            <p className="text-gray-700">Universidad: {universidadActual?.nombre}</p>
+
+            {/* Nuevo botón Ver Currículum */}
+            {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
+              <Button asChild variant="default" className="mt-3">
+                <Link href="/mi-curriculum/ver">Ver Currículum</Link>
+              </Button>
+            )}
           </div>
 
-          {/* Columna derecha - Información */}
-          <div className="flex-1">
-            {/* Datos personales */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos personales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Nombre:</strong> {renderValor(usuario.nombre_completo)}</p>
-                <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-                <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-                <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
-                <p><strong>Fecha de Nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
-                <p><strong>Género:</strong> {renderValor(usuario.genero)}</p>
-              </div>
-            </div>
+          {/* Tabs */}
+          <div className="flex justify-center flex-wrap gap-3 border-b pb-4 mb-6">
+            {tabs.map(tab => (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? "outline" : "ghost"}
+                onClick={() => setActiveTab(tab.id)}
+                className="font-semibold text-black"
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
 
-            {/* Datos académicos */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos académicos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-                <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-                <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
-                <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
-                <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
-              </div>
-            </div>
+          {/* Contenido */}
+          <div className="mt-6 space-y-10 text-black">
+            {/* DATOS PERSONALES */}
+            {activeTab === "datos" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Personales</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
+                  <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+                  <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
+                  <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
+                  <p><strong>Fecha de nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
+                  <p><strong>Género:</strong> {renderValor(usuario.genero)}</p>
+                  <p><strong>Ubicación:</strong> {renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</p>
+                </div>
+              </section>
+            )}
 
-            {/* Datos laborales */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Datos laborales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
-                {usuario.estado_empleo?.toLowerCase() === "empleado" && (
-                  <>
-                    <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                    <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
-                    <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                    <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
-                  </>
-                )}
-              </div>
-            </div>
+            {/* DATOS ACADÉMICOS */}
+            {activeTab === "academicos" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Académicos</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
+                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                  {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && (
+                    <>
+                      <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
+                      <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
+                      <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
 
-            {/* Ubicación */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Ubicación</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p>
-                  <strong>Ubicación:</strong>{" "}
-                  {paisActual && provinciaActual && cantonActual
-                    ? `${paisActual.nombre} - ${provinciaActual.nombre} - ${cantonActual.nombre}`
-                    : <span className="text-gray-400 italic">N/A</span>}
-                </p>
-              </div>
-            </div>
+            {/* DATOS LABORALES */}
+            {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && activeTab === "laborales" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Laborales</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+                  {usuario.estado_empleo?.toLowerCase() === "empleado" && (
+                    <>
+                      <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
+                      <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
+                      <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
+                      <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
 
-            {/* 🔗 Enlaces a plataformas externas */}
-                 <EnlacesExternos
-                             enlaces={plataformas || []}
-                             usuario={usuario}
-                             soloLectura={false} // 👈 modo lectura solo
-                           />
+            {/* ENLACES EXTERNOS */}
+            {mostrarEnlaces && activeTab === "enlaces" && (
+              <section>
+                <h3 className="text-xl font-bold text-[#034991] mb-4">Enlaces a Plataformas Externas</h3>
+                <EnlacesExternos enlaces={plataformas} usuario={usuario} rolNombre={rolNombre} soloLectura={false} />
+              </section>
+            )}
           </div>
         </div>
       </div>
@@ -368,4 +363,3 @@ Index.layout = (page: React.ReactNode & { props: Props }) => {
   const permisos = page.props?.userPermisos ?? [];
   return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
 };
-

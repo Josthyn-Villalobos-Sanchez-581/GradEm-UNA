@@ -24,6 +24,7 @@ use App\Http\Controllers\TitulosController;
 use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
+use App\Http\Controllers\DashboardController;
 
 // ==========================================
 // Rutas públicas
@@ -39,6 +40,7 @@ Route::post('/registro/enviar-codigo', [RegistroController::class, 'enviarCodigo
 Route::post('/registro/validar-codigo', [RegistroController::class, 'validarCodigo']);
 Route::post('/registro', [RegistroController::class, 'registrar']);
 Route::post('/verificar-correo', [RegistroController::class, 'verificarCorreo']);
+Route::post('/verificar-identificacion', [RegistroController::class, 'verificarIdentificacion']);
 
 // Registro de admin
 Route::get('/registro-admin', fn() => Inertia::render('RegistroAdminPage'))->name('registro.admin');
@@ -71,9 +73,10 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Dashboard
     // ==========================================
-    Route::get('/dashboard', fn() => Inertia::render('Dashboard', [
-        'userPermisos' => getUserPermisos()
-    ]))->name('dashboard');
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
+});
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -102,8 +105,9 @@ Route::middleware('auth')->group(function () {
         'usuario' => [
             'id_usuario' => $usuario->id_usuario,
             'nombre_completo' => $usuario->nombre_completo,
+            'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
             'correo' => $usuario->correo,
-            'telefono' => $usuario->telefono,
+            'telefono' => $usuario->telefono ?? '',
             'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
         ]
     ]);
@@ -111,8 +115,9 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])->name('api.curriculum.generate');
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');
-        Route::post('/curriculum-cargado', [CurriculumController::class, 'upload'])->name('curriculum.upload');
-        Route::delete('/curriculum-cargado', [CurriculumController::class, 'delete'])->name('curriculum.delete');
+        Route::post('/api/curriculum/upload', [CurriculumController::class, 'uploadApi'])->name('api.curriculum.upload');
+        Route::delete('/api/curriculum', [CurriculumController::class, 'delete'])->name('api.curriculum.delete');
+
 
         // Nueva ruta: Ver Currículum
         Route::get('/mi-curriculum/ver', [CurriculumController::class, 'vistaVerCurriculum'])
@@ -123,12 +128,18 @@ Route::middleware('auth')->group(function () {
             ->name('curriculum.adjuntos');
     });
 
+    // Ruta para obtener los documentos adjuntos de un usuario (permiso autenticado)
+    Route::get('/usuarios/{id}/adjuntos', [DocumentosController::class, 'obtenerAdjuntos'])
+        ->name('usuarios.adjuntos')
+        ->middleware(['auth']);
+
 
     // ==========================================
     // Carga de Documentos y Fotos (Permiso 3)
     // ==========================================
     Route::middleware('permiso:3')->group(function () {
         Route::get('/documentos', [DocumentosController::class, 'index'])->name('documentos.index');
+        Route::get('/api/documentos/url', [DocumentosController::class, 'obtenerUrlIndex'])->name('api.documentos.url');
     });
 
     Route::middleware('auth')->group(function () {
@@ -148,54 +159,54 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================
- Route::middleware('permiso:12')->group(function () {
+    Route::middleware('permiso:12')->group(function () {
 
-    // --- ROLES ---
-    Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
-    Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
-    Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
-    Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
-    Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
-    Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
+        // --- ROLES ---
+        Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
 
-    // --- PERMISOS ---
-    Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
-    Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
-    Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
-    Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
-    Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
-    Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
+        // --- PERMISOS ---
+        Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
+        Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
+        Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
+        Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
+        Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
+        Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
 
-    // --- ROLES_PERMISOS ---
-    Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
-    Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
+        // --- ROLES_PERMISOS ---
+        Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
+        Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
 
-   // Usuarios - CRUD principal
-Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+        // Usuarios - CRUD principal
+        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+        Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+        Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+        Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
-// Toggle estado (activar/inactivar)
-Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+        // Toggle estado (activar/inactivar)
+        Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
 
-// Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
-Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
+        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
 
-// Rutas alternativas bajo prefijo /admin (si aplica)
-Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+        // Rutas alternativas bajo prefijo /admin (si aplica)
+        Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+        Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+        Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+        Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
-    
-    // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
-    Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
-    Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
-});
+
+        // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
+        Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
+    });
 
 
     // ==========================================

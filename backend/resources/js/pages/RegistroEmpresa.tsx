@@ -4,6 +4,7 @@ import { router } from "@inertiajs/react"; // 👈 Inertia router
 import logoUNA from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
 import { useModal } from "../hooks/useModal";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 // Aquí agregamos los estilos personalizados de Tailwind
 const tailwindStyles = `
@@ -76,10 +77,13 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
         return undefined;
     }
     function validarIdentificacion(valor: string): string | undefined {
-        if (!valor) return 'La identificación es obligatoria.';
-        if (valor.length < 8) return 'La identificación debe tener al menos 8 caracteres.';
-        if (!/^[0-9]{8,20}$/.test(valor)) return 'La identificación debe contener entre 8 y 20 dígitos numéricos.';
-        return undefined;
+    const v = (valor || '').trim();
+    if (!v) return 'La identificación es obligatoria.';
+    if (v.length < 8) return 'La identificación debe tener al menos 8 caracteres.';
+    if (v.length > 20) return 'La identificación no puede superar los 20 caracteres.';
+    if (!/^[A-Za-z0-9]+$/.test(v))
+        return 'La identificación solo puede contener letras y números (sin espacios ni símbolos).';
+    return undefined;
     }
 
     // MOD: Regex de contraseña idéntico al backend (8–15, minúscula, mayúscula, número, carácter especial, sin espacios)
@@ -449,13 +453,19 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                     </div>
                                 </div>
                                 <div className="mt-6">
-                                    <button
-                                        type="submit"
-                                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-una-red hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-una-red font-open-sans"
-                                        disabled={Boolean(errorNombreEmpresa || errorCorreo || errorTelefono || errorPersonaContacto || errorIdentificacion || errorPassword || errorPasswordConfirm)}
+                                    <Button
+                                    type="submit"
+                                    variant={
+                                        errorNombreEmpresa || errorCorreo || errorTelefono || errorPersonaContacto || errorIdentificacion || errorPassword || errorPasswordConfirm
+                                        ? "secondary"
+                                        : "destructive"
+                                    }
+                                    size="default"
+                                    className="w-full"
+                                    disabled={Boolean(errorNombreEmpresa || errorCorreo || errorTelefono || errorPersonaContacto || errorIdentificacion || errorPassword || errorPasswordConfirm)}
                                     >
-                                        Registrar Empresa
-                                    </button>
+                                    Registrar Empresa
+                                    </Button>
                                 </div>
                             </div>
                         </form>

@@ -101,43 +101,55 @@ class AdminRegistroControllerTest extends TestCase
     }
 
     #[Test]
-    public function un_admin_puede_eliminar_un_usuario()
-    {
-        
-        $usuario = Usuario::factory()->withCredencial()->create([
-            'id_rol' => $this->admin->id_rol,
-        ]);
-$this->withoutMiddleware();
-        $response = $this->actingAs($this->admin)
-            ->delete(route('admin.eliminar', $usuario->id_usuario));
+public function un_admin_puede_eliminar_un_usuario()
+{
+    $usuario = Usuario::factory()->withCredencial()->create([
+        'id_rol' => $this->admin->id_rol,
+    ]);
 
-        $response->assertRedirect(route('usuarios.index'));
-        $response->assertSessionHas('success');
+    $this->withoutMiddleware();
 
-        $this->assertDatabaseMissing('usuarios', [
-            'id_usuario' => $usuario->id_usuario,
-        ]);
-    }
+    $response = $this->actingAs($this->admin)
+        ->delete(route('admin.eliminar', $usuario->id_usuario));
+
+    // Espera una respuesta JSON exitosa (200)
+    $response->assertStatus(200);
+    $response->assertJson([
+        'status' => 'success',
+        'message' => 'Usuario eliminado correctamente.'
+    ]);
+
+    // Verifica que el usuario se eliminó
+    $this->assertDatabaseMissing('usuarios', [
+        'id_usuario' => $usuario->id_usuario,
+    ]);
+}
 
     #[Test]
-    public function un_usuario_subdireccion_no_puede_eliminar_un_usuario()
-    {
-        $usuario = Usuario::factory()->withCredencial()->create([
-            'id_rol' => $this->admin->id_rol,
-        ]);
+public function un_usuario_subdireccion_no_puede_eliminar_un_usuario()
+{
+    $usuario = Usuario::factory()->withCredencial()->create([
+        'id_rol' => $this->admin->id_rol,
+    ]);
 
-        $this->withoutMiddleware(); // si middleware bloquea test
+    $this->withoutMiddleware();
 
-        $response = $this->actingAs($this->subdireccion)
-            ->delete(route('admin.eliminar', $usuario->id_usuario));
+    $response = $this->actingAs($this->subdireccion)
+        ->delete(route('admin.eliminar', $usuario->id_usuario));
 
-        $response->assertRedirect(route('usuarios.index'));
-        $response->assertSessionHas('error');
+    // Espera un código de prohibido (403)
+    $response->assertStatus(403);
+    $response->assertJson([
+        'status' => 'error',
+        'message' => 'No tiene permisos para eliminar usuarios.'
+    ]);
 
-        $this->assertDatabaseHas('usuarios', [
-            'id_usuario' => $usuario->id_usuario,
-        ]);
-    }
+    // Verifica que el usuario aún existe
+    $this->assertDatabaseHas('usuarios', [
+        'id_usuario' => $usuario->id_usuario,
+    ]);
+}
+
 
         #[Test]
     public function index_lista_usuarios_admins()

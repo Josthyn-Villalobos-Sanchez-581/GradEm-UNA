@@ -5,6 +5,7 @@ import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
 import { route } from "ziggy-js";
+import { Button } from "@/components/ui/button";
 
 interface Usuario {
   id_usuario: number;
@@ -15,7 +16,10 @@ interface Usuario {
   rol: { nombre_rol: string };
   universidad?: { nombre: string };
   carrera?: { nombre: string };
-  estado_id: number; // 1 = activo, 0 = inactivo
+  estado_id: number;
+  empresa?: {
+    telefono?: string;
+  };
 }
 
 interface Props {
@@ -60,19 +64,30 @@ export default function PerfilesUsuarios(props: Props) {
     }));
   };
 
+  const normalizeSearchText = (value?: string | null) =>
+    String(value ?? "").toLowerCase();
+
+  const displayValue = (value?: string | number | null) => {
+    if (value === null || value === undefined) return "NA";
+    const stringValue = String(value).trim();
+    return stringValue.length ? stringValue : "NA";
+  };
+
   // 🔍 Búsqueda y filtros
   const usuariosFiltrados = usuarios
     .filter((u) => {
       const texto = busqueda.toLowerCase();
       return (
-        u.nombre_completo.toLowerCase().includes(texto) ||
-        u.identificacion.toLowerCase().includes(texto) ||
-        u.correo.toLowerCase().includes(texto)
+        normalizeSearchText(u.nombre_completo).includes(texto) ||
+        normalizeSearchText(u.identificacion).includes(texto) ||
+        normalizeSearchText(u.correo).includes(texto)
       );
     })
     .filter((u) => {
       if (filtroRol !== "todos") {
-        return u.rol?.nombre_rol?.toLowerCase() === filtroRol.toLowerCase();
+        return (
+          normalizeSearchText(u.rol?.nombre_rol) === filtroRol.toLowerCase()
+        );
       }
       return true;
     })
@@ -146,222 +161,271 @@ export default function PerfilesUsuarios(props: Props) {
         </div>
 
         {/* 🔹 Checkboxes para columnas */}
-        <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 p-3 rounded-lg shadow-sm mb-4">
-          {(Object.entries(columnasVisibles) as [ColumnaKey, boolean][])
-            .filter(([col]) => col !== "nombre_completo")
-            .map(([col, visible]) => (
-              <label
-                key={col}
-                className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition"
-              >
-                <input
-                  type="checkbox"
-                  checked={visible}
-                  onChange={() => toggleColumna(col)}
-                  className="mr-2 accent-[#034991]"
-                />
-                {col
-                  .replace("_", " ")
-                  .replace("correo", "Correo")
-                  .replace("identificacion", "Identificación")
-                  .replace("telefono", "Teléfono")
-                  .replace("rol", "Rol")
-                  .replace("universidad", "Universidad")
-                  .replace("carrera", "Carrera")}
-              </label>
-            ))}
+        <div className="bg-white-50 border border-gray-200 p-4 rounded-lg shadow-sm mb-4">
+          <p className="text-sm font-semibold text-gray-700 mb-3">
+            Seleccionar columnas
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            {(Object.entries(columnasVisibles) as [ColumnaKey, boolean][])
+              .filter(([col]) => col !== "nombre_completo")
+              .map(([col, visible]) => (
+                <label
+                  key={col}
+                  className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-[#034991] transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={visible}
+                    onChange={() => toggleColumna(col)}
+                    className="mr-2 accent-[#034991]"
+                  />
+                  {col
+                    .replace("_", " ")
+                    .replace("correo", "Correo")
+                    .replace("identificacion", "Identificación")
+                    .replace("telefono", "Teléfono")
+                    .replace("rol", "Rol")
+                    .replace("universidad", "Universidad")
+                    .replace("carrera", "Carrera")}
+                </label>
+              ))}
+          </div>
         </div>
 
         {/* 🔹 Tabla de usuarios */}
-        <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow">
-          <table className="min-w-full border-collapse rounded-2xl overflow-hidden">
+        <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
+          <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
             <thead className="bg-gray-100">
               <tr>
                 {columnasVisibles.nombre_completo && (
-                  <th className="px-4 py-2 text-left text-gray-500">
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 first:rounded-tl-2xl">
                     Nombre completo
                   </th>
                 )}
                 {columnasVisibles.correo && (
-                  <th className="px-4 py-2 text-left text-gray-500">Correo</th>
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
+                    Correo
+                  </th>
                 )}
                 {columnasVisibles.identificacion && (
-                  <th className="px-4 py-2 text-left text-gray-500">
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
                     Identificación
                   </th>
                 )}
                 {columnasVisibles.telefono && (
-                  <th className="px-4 py-2 text-left text-gray-500">
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
                     Teléfono
                   </th>
                 )}
                 {columnasVisibles.rol && (
-                  <th className="px-4 py-2 text-left text-gray-500">Rol</th>
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
+                    Rol
+                  </th>
                 )}
                 {columnasVisibles.universidad && (
-                  <th className="px-4 py-2 text-left text-gray-500">
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
                     Universidad
                   </th>
                 )}
                 {columnasVisibles.carrera && (
-                  <th className="px-4 py-2 text-left text-gray-500">Carrera</th>
+                  <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 last:rounded-tr-2xl">
+                    Carrera
+                  </th>
                 )}
-                <th className="px-4 py-2 text-center text-gray-500 min-w-[170px]">
+                <th className="px-4 py-2 text-center text-gray-500 border border-gray-300 min-w-[170px] last:rounded-tr-2xl">
                   Acciones
                 </th>
               </tr>
             </thead>
+
             <tbody>
               {usuariosPaginados.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
-                    className="text-center py-4 text-gray-500 italic"
+                    className="text-center py-4 text-gray-500 italic border border-gray-300 rounded-b-2xl"
                   >
                     No se encontraron usuarios.
                   </td>
                 </tr>
               ) : (
-                usuariosPaginados.map((u) => (
-                  <tr key={u.id_usuario} className="border-t hover:bg-gray-50">
-                    {columnasVisibles.nombre_completo && (
-                      <td className="px-4 py-2">{u.nombre_completo}</td>
-                    )}
-                    {columnasVisibles.correo && (
-                      <td className="px-4 py-2">{u.correo}</td>
-                    )}
-                    {columnasVisibles.identificacion && (
-                      <td className="px-4 py-2">{u.identificacion}</td>
-                    )}
-                    {columnasVisibles.telefono && (
-                      <td className="px-4 py-2">{u.telefono}</td>
-                    )}
-                    {columnasVisibles.rol && (
-                      <td className="px-4 py-2 capitalize">{u.rol?.nombre_rol}</td>
-                    )}
-                    {columnasVisibles.universidad && (
-                      <td className="px-4 py-2">{u.universidad?.nombre ?? "-"}</td>
-                    )}
-                    {columnasVisibles.carrera && (
-                      <td className="px-4 py-2">{u.carrera?.nombre ?? "-"}</td>
-                    )}
-                    <td className="px-4 py-2 text-center flex justify-center gap-2">
-                      {/* BOTÓN VER PERFIL */}
-                      <Link
-                        href={route("usuarios.ver", { id: u.id_usuario })}
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          try {
-                            await axios.get(route("usuarios.ver", { id: u.id_usuario }));
-                            window.location.href = route("usuarios.ver", {
-                              id: u.id_usuario,
-                            });
-                          } catch (err: any) {
-                            if (err.response?.status === 403) {
-                              modal.alerta({
-                                titulo: err.response.data.titulo || "Acceso denegado",
-                                mensaje:
-                                  err.response.data.mensaje ||
-                                  "No tiene permiso para ver este perfil.",
-                              });
-                            } else {
-                              console.error(err);
-                              modal.alerta({
-                                titulo: "Error",
-                                mensaje:
-                                  "Ocurrió un error al intentar acceder al perfil.",
-                              });
-                            }
-                          }
-                        }}
-                        className="bg-[#034991] hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap"
-                      >
-                        Ver Perfil
-                      </Link>
+                usuariosPaginados.map((u, idx) => {
+                  const rolNombreLower = normalizeSearchText(u.rol?.nombre_rol);
+                  const telefonoParaMostrar =
+                    rolNombreLower === "empresa"
+                      ? displayValue(u.empresa?.telefono)
+                      : displayValue(u.telefono);
+                  const nombreUsuario = displayValue(u.nombre_completo);
 
-                      {/* BOTÓN ACTIVAR/INACTIVAR */}
-                      <button
-                        onClick={async () => {
-                          const confirmado = await modal.confirmacion({
-                            titulo:
-                              u.estado_id === 1
-                                ? "Inactivar cuenta"
-                                : "Activar cuenta",
-                            mensaje: `¿Desea ${
-                              u.estado_id === 1 ? "inactivar" : "activar"
-                            } la cuenta de ${u.nombre_completo}?`,
-                          });
-                          if (!confirmado) return;
-
-                          try {
-                            const res = await axios.put(
-                              `/usuarios/${u.id_usuario}/toggle-estado`
-                            );
-                            modal.alerta({
-                              titulo: "Estado actualizado",
-                              mensaje: res.data.message,
-                            });
-
-                            const nuevos = usuarios.map((usr) =>
-                              usr.id_usuario === u.id_usuario
-                                ? { ...usr, estado_id: res.data.nuevo_estado }
-                                : usr
-                            );
-                            setUsuarios([...nuevos]);
-                          } catch {
-                            modal.alerta({
-                              titulo: "Error",
-                              mensaje:
-                                "Ocurrió un error al cambiar el estado del usuario.",
-                            });
-                          }
-                        }}
-                        className={`cursor-pointer px-3 py-1.5 rounded-lg shadow font-semibold text-sm whitespace-nowrap transition ${
-                          u.estado_id === 1
-                            ? "bg-[#CD1719] hover:bg-red-700 text-white"
-                            : "bg-green-600 hover:bg-green-700 text-white"
+                  return (
+                    <tr
+                      key={u.id_usuario}
+                      className={`hover:bg-gray-50 ${idx === usuariosPaginados.length - 1 ? "last-row" : ""
                         }`}
+                    >
+                      {columnasVisibles.nombre_completo && (
+                        <td
+                          className={`px-4 py-2 border border-gray-300 ${idx === usuariosPaginados.length - 1
+                              ? "rounded-bl-2xl"
+                              : ""
+                            }`}
+                        >
+                          {nombreUsuario}
+                        </td>
+                      )}
+                      {columnasVisibles.correo && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.correo)}
+                        </td>
+                      )}
+                      {columnasVisibles.identificacion && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.identificacion)}
+                        </td>
+                      )}
+                      {columnasVisibles.telefono && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {telefonoParaMostrar}
+                        </td>
+                      )}
+                      {columnasVisibles.rol && (
+                        <td className="px-4 py-2 capitalize border border-gray-300">
+                          {displayValue(u.rol?.nombre_rol)}
+                        </td>
+                      )}
+                      {columnasVisibles.universidad && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.universidad?.nombre)}
+                        </td>
+                      )}
+                      {columnasVisibles.carrera && (
+                        <td className="px-4 py-2 border border-gray-300">
+                          {displayValue(u.carrera?.nombre)}
+                        </td>
+                      )}
+
+                      {/* Celda Acciones */}
+                      <td
+                        className={`px-4 py-2 text-center border border-gray-300 ${idx === usuariosPaginados.length - 1 ? "rounded-br-2xl" : ""
+                          }`}
                       >
-                        {u.estado_id === 1 ? "Inactivar" : "Activar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        <div className="flex justify-center gap-2">
+                          <Link href={route("usuarios.ver", { id: u.id_usuario })}>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="font-semibold"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  await axios.get(route("usuarios.ver", { id: u.id_usuario }));
+                                  window.location.href = route("usuarios.ver", { id: u.id_usuario });
+                                } catch (err: any) {
+                                  if (err.response?.status === 403) {
+                                    modal.alerta({
+                                      titulo: err.response.data.titulo || "Acceso denegado",
+                                      mensaje:
+                                        err.response.data.mensaje ||
+                                        "No tiene permiso para ver este perfil.",
+                                    });
+                                  } else {
+                                    modal.alerta({
+                                      titulo: "Error",
+                                      mensaje: "Ocurrió un error al intentar acceder al perfil.",
+                                    });
+                                  }
+                                }
+                              }}
+                            >
+                              Ver Perfil
+                            </Button>
+                          </Link>
+
+                          <Button
+                            variant={u.estado_id === 1 ? "destructive" : "success"}
+                            size="sm"
+                            className="font-semibold"
+                            onClick={async () => {
+                              const confirmado = await modal.confirmacion({
+                                titulo:
+                                  u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
+                                mensaje: `¿Desea ${u.estado_id === 1 ? "inactivar" : "activar"
+                                  } la cuenta de ${nombreUsuario}?`,
+                              });
+                              if (!confirmado) return;
+
+                              try {
+                                const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
+                                modal.alerta({
+                                  titulo: "Estado actualizado",
+                                  mensaje: res.data.message,
+                                });
+
+                                const nuevos = usuarios.map((usr) =>
+                                  usr.id_usuario === u.id_usuario
+                                    ? { ...usr, estado_id: res.data.nuevo_estado }
+                                    : usr
+                                );
+                                setUsuarios([...nuevos]);
+                              } catch {
+                                modal.alerta({
+                                  titulo: "Error",
+                                  mensaje: "Ocurrió un error al cambiar el estado del usuario.",
+                                });
+                              }
+                            }}
+                          >
+                            {u.estado_id === 1 ? "Inactivar" : "Activar"}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
+
         {/* 🔹 Paginación */}
         {totalPaginas > 1 && (
           <div className="flex justify-center mt-4 space-x-2">
-            <button
+            {/* Botón Anterior */}
+            <Button
+              type="button"
               onClick={() => cambiarPagina(paginaActual - 1)}
               disabled={paginaActual === 1}
-              className="cursor-pointer px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 transition"
+              variant="default"
+              size="sm"
             >
               Anterior
-            </button>
+            </Button>
+
+            {/* Botones numéricos */}
             {Array.from({ length: totalPaginas }, (_, i) => (
-              <button
+              <Button
                 key={i + 1}
+                type="button"
                 onClick={() => cambiarPagina(i + 1)}
-                className={`cursor-pointer px-3 py-1 rounded transition ${
-                  paginaActual === i + 1
-                    ? "bg-[#CD1719] text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
+                size="sm"
+                variant={paginaActual === i + 1 ? "destructive" : "outline"}
               >
                 {i + 1}
-              </button>
+              </Button>
             ))}
-            <button
+
+            {/* Botón Siguiente */}
+            <Button
+              type="button"
               onClick={() => cambiarPagina(paginaActual + 1)}
               disabled={paginaActual === totalPaginas}
-              className="cursor-pointer px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 transition"
+              variant="default"
+              size="sm"
             >
               Siguiente
-            </button>
+            </Button>
           </div>
         )}
       </div>

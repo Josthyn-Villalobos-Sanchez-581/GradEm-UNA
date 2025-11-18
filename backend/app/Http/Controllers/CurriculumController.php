@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 
@@ -53,6 +54,42 @@ class CurriculumController extends Controller
         ]);
     }
 
+
+/**
+ * Muestra el formulario de generación de currículum
+ */
+public function create()
+{
+    $usuario = Auth::user();
+
+    // Cargar la foto de perfil si existe
+    $fotoPerfil = null;
+    if ($usuario->fotoPerfil) {
+        $fotoPerfil = [
+            'ruta_imagen' => asset('storage/' . $usuario->fotoPerfil->ruta_imagen),
+        ];
+    }
+
+    $permisos = DB::table('roles_permisos')
+        ->where('id_rol', $usuario->id_rol)
+        ->pluck('id_permiso')
+        ->toArray();
+
+    return inertia('Frt_FormularioGeneracionCurriculum', [
+        'usuario' => [
+            'id_usuario'      => $usuario->id_usuario,
+            'nombre_completo' => $usuario->nombre_completo,
+            'cedula'          => $usuario->cedula,  // ✅ Agregamos la cédula
+            'correo'          => $usuario->correo,
+            'telefono'        => $usuario->telefono ?? '',
+            'fotoPerfil'      => $fotoPerfil,
+        ],
+        'userPermisos' => $permisos,
+    ]);
+}
+
+
+
     // Index para la carga de documentos
     public function indexCarga()
     {
@@ -60,7 +97,6 @@ class CurriculumController extends Controller
 
         $curriculum = Curriculum::where('id_usuario', $usuario->id_usuario)->first();
 
-        // Obtener permisos del usuario autenticado para PpLayout
         $permisos = $usuario
             ? DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
@@ -68,10 +104,19 @@ class CurriculumController extends Controller
             ->toArray()
             : [];
 
+        $documentos = [];
+        if ($curriculum) {
+            $documentos[] = [
+                'id_documento'    => $curriculum->id,               // alias para frontend
+                'ruta_archivo'    => $curriculum->ruta_archivo_pdf,
+                'nombre_original' => $curriculum->nombre_original,
+                'fecha_subida'    => $curriculum->fecha_creacion,
+            ];
+        }
+
         return inertia('CurriculumCargado/Index', [
-            'usuario'      => $usuario,
-            'curriculum'   => $curriculum,
-            'userPermisos' => $permisos, // pasa permisos al layout
+            'documentos'   => $documentos,
+            'userPermisos' => $permisos,
         ]);
     }
 
@@ -79,44 +124,61 @@ class CurriculumController extends Controller
      * Carga manual de un PDF de currículum y guarda/actualiza en `curriculum`
      * con generado_sistema = 0 (upsert por id_usuario).
      */
-    public function upload(Request $request)
+    public function uploadApi(Request $request)
     {
         $request->validate([
-            'curriculum' => 'required|mimes:pdf|max:10240', // PDF máx. 10MB
+            'curriculum' => 'required|mimes:pdf|max:2048', // Solo PDF, máximo 2 MB
         ]);
 
         $usuario = Auth::user();
 
-        // Guardar archivo nuevo
-        $path = $request->file('curriculum')->storeAs(
-            'CurriculumCargado',
-            $usuario->id_usuario . '_' . time() . '.pdf',
-            'public'
-        );
-
-        // Si ya existía registro, eliminar archivo anterior para no dejar huérfanos
-        $registroPrevio = Curriculum::where('id_usuario', $usuario->id_usuario)->first();
-        if ($registroPrevio && $registroPrevio->ruta_archivo_pdf && $registroPrevio->ruta_archivo_pdf !== $path) {
-            if (Storage::disk('public')->exists($registroPrevio->ruta_archivo_pdf)) {
-                Storage::disk('public')->delete($registroPrevio->ruta_archivo_pdf);
+        DB::beginTransaction();
+        try {
+            // Eliminar archivo anterior si existía
+            $registroPrevio = Curriculum::where('id_usuario', $usuario->id_usuario)->first();
+            if ($registroPrevio && $registroPrevio->ruta_archivo_pdf) {
+                if (Storage::disk('public')->exists($registroPrevio->ruta_archivo_pdf)) {
+                    Storage::disk('public')->delete($registroPrevio->ruta_archivo_pdf);
+                }
+                $registroPrevio->delete();
             }
-        }
 
-        // Upsert con generado_sistema = 0
-        Curriculum::updateOrCreate(
-            ['id_usuario' => $usuario->id_usuario],
-            [
+            // Guardar nuevo archivo
+            $file = $request->file('curriculum');
+            $nombreOriginal = $file->getClientOriginalName();
+            $nombreSeguro = $usuario->id_usuario . '_' . time() . '_' . Str::random(6) . '.pdf';
+            $path = $file->storeAs('CurriculumCargado', $nombreSeguro, 'public');
+
+            // Crear nuevo registro
+            Curriculum::create([
+                'id_usuario'       => $usuario->id_usuario,
                 'generado_sistema' => 0,
                 'ruta_archivo_pdf' => $path,
-                'fecha_creacion' => Carbon::now('America/Costa_Rica'),
-            ]
-        );
+                'nombre_original'  => $nombreOriginal,
+                'fecha_creacion'   => Carbon::now('America/Costa_Rica'),
+            ]);
 
-        return redirect()->back()->with('success', 'Currículum cargado con éxito');
+            DB::commit();
+
+            return response()->json([
+                'ok' => true,
+                'mensaje' => "Currículum '{$nombreOriginal}' cargado con éxito.",
+                'rutaPublica' => asset('storage/' . $path),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'ok' => false,
+                'mensaje' => 'Error al cargar el currículum.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+
+
     // Elimina el currículum del usuario (registro y archivo físico)
-    public function delete()
+    public function delete(Request $request)
     {
         $usuario = Auth::user();
         $curriculum = Curriculum::where('id_usuario', $usuario->id_usuario)->first();
@@ -126,10 +188,13 @@ class CurriculumController extends Controller
                 Storage::disk('public')->delete($curriculum->ruta_archivo_pdf);
             }
             $curriculum->delete();
+
+            return response()->json(['ok' => true, 'mensaje' => 'Currículum eliminado correctamente.']);
         }
 
-        return redirect()->back()->with('success', 'Currículum eliminado correctamente');
+        return response()->json(['ok' => false, 'mensaje' => 'No se encontró el currículum.'], 404);
     }
+
 
     public function verMiCurriculum()
     {

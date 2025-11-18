@@ -3,6 +3,7 @@ import axios from "axios";
 import unaLogo from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
 import { useModal } from "../hooks/useModal";
+import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
 const RecuperarContrasena: React.FC = () => {
   const [correo, setCorreo] = useState<string>("");
@@ -249,29 +250,20 @@ const RecuperarContrasena: React.FC = () => {
           </div>
 
           {!codigoEnviado && (
-            <button
+            <Button
               type="button"
-              onClick={handleEnviarCodigo}
+              variant={bloqueado ? "secondary" : "destructive"}
+              size="default"
+              className="w-full max-w-[358px] h-12 mb-5"
               disabled={!correo || loading || bloqueado}
-              style={{
-                width: "100%",
-                maxWidth: "358px",
-                height: "50px",
-                backgroundColor: bloqueado ? "#A7A7A9" : "#CD1719",
-                color: "#FFF",
-                border: "none",
-                borderRadius: "5px",
-                fontSize: "18px",
-                cursor: bloqueado ? "not-allowed" : loading ? "wait" : "pointer",
-                marginBottom: "20px",
-              }}
+              onClick={handleEnviarCodigo}
             >
               {bloqueado
                 ? `Bloqueado (${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)})`
                 : loading
                 ? "Procesando..."
                 : "Enviar Código"}
-            </button>
+            </Button>
           )}
 
           {codigoEnviado && (
@@ -292,29 +284,20 @@ const RecuperarContrasena: React.FC = () => {
 
               {/* Reenviar */}
               {timeLeft <= 0 && (
-                <button
-                  type="button"
-                  onClick={handleEnviarCodigo}
-                  disabled={loading || bloqueado}
-                  style={{
-                    width: "100%",
-                    maxWidth: "200px",
-                    height: "45px",
-                    backgroundColor: bloqueado ? "#A7A7A9" : "#CD1719",
-                    color: "#FFF",
-                    border: "none",
-                    borderRadius: "5px",
-                    fontSize: "16px",
-                    cursor: bloqueado ? "not-allowed" : loading ? "wait" : "pointer",
-                    marginBottom: "15px",
-                  }}
-                >
-                  {bloqueado
-                    ? `Bloqueado (${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)})`
-                    : loading
-                    ? "Reenviando..."
-                    : "Reenviar Código"}
-                </button>
+              <Button
+                type="button"
+                variant={bloqueado ? "secondary" : "destructive"}
+                size="default"
+                className="w-full max-w-[200px] h-11 mb-4"
+                disabled={loading || bloqueado}
+                onClick={handleEnviarCodigo}
+              >
+                {bloqueado
+                  ? `Bloqueado (${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)})`
+                  : loading
+                  ? "Reenviando..."
+                  : "Reenviar Código"}
+              </Button>
               )}
 
               {/* Código y contraseñas */}
@@ -369,24 +352,15 @@ const RecuperarContrasena: React.FC = () => {
               </div>
 
               {/* Botón cambiar contraseña */}
-              <button
+              <Button
                 type="submit"
+                variant={submitDisabled ? "secondary" : "destructive"}
+                size="default"
+                className="w-full max-w-[358px] h-12 mb-5"
                 disabled={submitDisabled || loading}
-                style={{
-                  width: "100%",
-                  maxWidth: "358px",
-                  height: "50px",
-                  backgroundColor: submitDisabled ? "#c7c7c7" : "#CD1719",
-                  color: "#FFF",
-                  border: "none",
-                  borderRadius: "5px",
-                  fontSize: "18px",
-                  cursor: submitDisabled ? "not-allowed" : loading ? "wait" : "pointer",
-                  marginBottom: "20px",
-                }}
               >
                 {loading ? "Procesando..." : "Cambiar Contraseña"}
-              </button>
+              </Button>
             </>
           )}
         </form>

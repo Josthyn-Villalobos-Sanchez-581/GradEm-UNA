@@ -1,5 +1,3 @@
-// resources/js/pages/Frt_FormularioGeneracionCurriculum.tsx
-
 import React, { useMemo, useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
@@ -7,76 +5,44 @@ import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGener
 import { postGenerarCurriculum } from '../services/curriculumService';
 import Frt_VistaPreviaCurriculum from '../pages/Frt_VistaPreviaCurriculum';
 import { useModal } from '../hooks/useModal';
-import FotoXDefecto from '../assets/FotoXDefecto.png'; // NUEVO: imagen por defecto
+import FotoXDefecto from '../assets/FotoXDefecto.png';
+import { Button } from "@/components/ui/button";
+import ModalVistaPreviaCurriculum from '../components/modal/ModalVistaPreviaCurriculum';
 
-// ================== Tipos ==================
-type Educacion = {
-  institucion: string;
-  titulo: string;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-};
+//  IMPORTAR TIPOS COMPARTIDOS
+import type { FormCV, Educacion, Experiencia, Funcion, Habilidad, Idioma, Referencia, Certificacion } from '../types/curriculum';
 
-type Experiencia = {
-  empresa: string;
-  puesto: string;
-  periodo_inicio?: string;
-  periodo_fin?: string;
-  funciones?: string;
-};
+// ================== Constantes ==================
+const FECHA_MINIMA_CURRICULUM = '1960-01-01';
+const MAX_FUNCIONES_POR_EXPERIENCIA = 10;
 
-type Habilidad = { descripcion: string };
-
-type Idioma = {
-  nombre: string;
-  nivel: '' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'Nativo';
-};
-
-type Referencia = { nombre: string; contacto: string; relacion: string };
-
-type FormCV = {
-  usuarioId: number;
-  datosPersonales: {
-    nombreCompleto: string;
-    correo: string;
-    telefono: string;
-  };
-  resumenProfesional: string;
-  educaciones: Educacion[];
-  experiencias: Experiencia[];
-  habilidades: Habilidad[];
-  idiomas: Idioma[];
-  referencias: Referencia[];
-  incluirFotoPerfil?: boolean; // NUEVO: bandera para incluir foto
-  [key: string]: any;
-};
-
+// ================== Definición de Tipos ==================
 type UsuarioActual = {
-  id_usuario:number;
-  nombre_completo:string;
-  correo:string;
-  telefono?:string;
-  fotoPerfil?: { ruta_imagen: string } | null; // NUEVO: foto de perfil
+  id_usuario: number;
+  nombre_completo: string;
+  cedula?: string;  // ✅ AGREGAR
+  correo: string;
+  telefono?: string;
+  fotoPerfil?: { ruta_imagen: string } | null;
 };
 
-// NUEVO: Tipado de props de página
 interface PageProps {
   auth: { 
     user?: {
       id_usuario: number;
       nombre_completo: string;
+      cedula?: string;  // ✅ AGREGAR
       correo: string;
       telefono: string;
       fotoPerfil?: { ruta_imagen: string } | null;
     } 
   };
   userPermisos?: number[];
-  usuario?: UsuarioActual; // Nuevo campo
-  [key: string]: unknown; // <- requerido por Inertia PageProps
+  usuario?: UsuarioActual;
+  [key: string]: unknown;
 }
-// ===========================================================
 
-// ================== Utilidades locales (sin diálogos nativos) ==================
+// ================== Utilidades locales ==================
 function descargarArchivo(url: string, nombre: string) {
   const a = document.createElement('a');
   a.href = url;
@@ -103,7 +69,228 @@ function abrirEnPestanaNueva(url: string) {
   a.click();
   a.remove();
 }
-// ==============================================================================
+
+// ================== Definición de Reglas de Validación ==================
+type Regla = {
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: RegExp;
+  validate?: (value: unknown, ctx?: unknown) => boolean | string;
+};
+
+function validarCampoSegunReglas(
+  valor: unknown,
+  reglas: Regla,
+  etiqueta: string,
+  ctx?: unknown
+): string | null {
+  const v = (typeof valor === 'string') ? valor.trim() : valor;
+
+  if (reglas.required && (v === undefined || v === null || v === '')) {
+    return `Campo requerido: ${etiqueta}`;
+  }
+  if (v !== undefined && v !== null && v !== '') {
+    if (reglas.minLength !== undefined && typeof v === 'string' && v.length < reglas.minLength) {
+      return `Debe tener al menos ${reglas.minLength} caracteres.`;
+    }
+    if (reglas.maxLength !== undefined && typeof v === 'string' && v.length > reglas.maxLength) {
+      return `Debe tener como máximo ${reglas.maxLength} caracteres.`;
+    }
+    if (reglas.pattern && typeof v === 'string' && !reglas.pattern.test(v)) {
+      return `Formato inválido en ${etiqueta}.`;
+    }
+    if (reglas.validate) {
+      const res = reglas.validate(v, ctx);
+      if (res === false) return `Valor inválido en ${etiqueta}.`;
+      if (typeof res === 'string') return res;
+    }
+  }
+  return null;
+}
+
+// ================== Validaciones ==================
+const validacionesDatosPersonales = {
+  nombreCompleto: { 
+    required: true, 
+    minLength: 3,   
+    maxLength: 80,    
+    pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ 
+  },
+  correo: { 
+    required: true, 
+    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/, 
+    maxLength: 255 
+  },
+  telefono: { 
+    required: false, 
+    pattern: /^[0-9]{8}$/ 
+  }
+};
+
+const validacionesEducacion = {
+  tipo: { 
+    required: true, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return 'Debe seleccionar un tipo de educación';
+      return ['Título', 'Certificación', 'Curso', 'Diplomado', 'Técnico'].includes(value) || 'Tipo de educación inválido';
+    }
+  },
+  institucion: { 
+    required: true, 
+    minLength: 3, 
+    maxLength: 100,  
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
+  },
+  titulo: { 
+    required: true, 
+    minLength: 3, 
+    maxLength: 100, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
+  },
+  fecha_fin: { 
+    required: true, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      const fechaFin = new Date(value);
+      const hoy = new Date();
+      
+      if (fechaFin > hoy) return 'La fecha no puede ser futura';
+      if (fechaFin < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
+      
+      return true;
+    }
+  }
+};
+
+const validacionesExperiencia = {
+  empresa: { 
+    required: true, 
+    minLength: 2,    
+    maxLength: 60,    
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&'-]+$/ 
+  },
+  puesto: { 
+    required: true, 
+    minLength: 3, 
+    maxLength: 60,   
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'-]+$/ 
+  },
+  periodo_inicio: { 
+    required: true, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      const fecha = new Date(value);
+      const hoy = new Date();
+      if (fecha > hoy) return 'La fecha no puede ser futura';
+      if (fecha < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
+      return true;
+    }
+  },
+  periodo_fin: { 
+    required: true, 
+    validate: (value: unknown, ctx: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      const fechaFin = new Date(value);
+      const hoy = new Date();
+      
+      if (fechaFin > hoy) return 'La fecha no puede ser futura';
+      
+      const contextObj = ctx as { periodo_inicio?: string };
+      if (contextObj?.periodo_inicio) {
+        const fechaInicio = new Date(contextObj.periodo_inicio);
+        if (fechaFin < fechaInicio) return 'La fecha de fin no puede ser anterior a la fecha de inicio';
+      }
+      return true;
+    }
+  }
+};
+
+// NUEVO: Validación para funciones individuales
+const validacionesFuncion = {
+  descripcion: { 
+    required: false, 
+    minLength: 10,  
+    maxLength: 150,  
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'\-–—%:;°]+$/ 
+  }
+};
+
+const validacionesHabilidad = {
+  descripcion: { 
+    required: false, 
+    minLength: 2,    
+    maxLength: 40,   
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/+#'-]+$/ 
+  }
+};
+
+const validacionesIdioma = {
+  nombre: { 
+    required: false, 
+    minLength: 2, 
+    maxLength: 15, 
+    pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ 
+  },
+  nivel: { 
+    required: false, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      return ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Nativo'].includes(value) || 'Nivel inválido';
+    }
+  }
+};
+
+const validacionesReferencia = {
+  nombre: { 
+    required: false, 
+    minLength: 3, 
+    maxLength: 80, 
+    pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ 
+  },
+  contacto: { 
+    required: false, 
+    pattern: /^[0-9]{8}$/ 
+  },
+  correo: { 
+    required: false, 
+    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/, 
+    maxLength: 255 
+  },
+  relacion: { 
+    required: false, 
+    maxLength: 50, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
+  }
+};
+
+const validacionesCertificacion = {
+  nombre: { 
+    required: false, 
+    minLength: 3, 
+    maxLength: 100, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'-]+$/ 
+  },
+  institucion: { 
+    required: false, 
+    minLength: 2, 
+    maxLength: 80, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&'-]+$/ 
+  },
+  fecha_obtencion: { 
+    required: false, 
+    validate: (value: unknown) => {
+      if (!value || typeof value !== 'string') return true;
+      const fecha = new Date(value);
+      const hoy = new Date();
+      if (fecha > hoy) return 'La fecha no puede ser futura';
+      if (fecha < new Date(FECHA_MINIMA_CURRICULUM)) return `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
+      return true;
+    }
+  }
+};
+
+// ===========================================================
 
 export default function Frt_FormularioGeneracionCurriculum() {
   const page = usePage<PageProps>();
@@ -111,82 +298,80 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
   const modal = useModal();
 
-  // Actualizado: preferir page.props.usuario y luego caer a auth.user
-  const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
-    ? {
-        id_usuario: page.props.auth.user.id_usuario,
-        nombre_completo: page.props.auth.user.nombre_completo,
-        correo: page.props.auth.user.correo,
-        telefono: page.props.auth.user.telefono,
-        fotoPerfil: page.props.auth.user.fotoPerfil || null,
-      }
-    : null);
+ const usuario: UsuarioActual | null = page.props.usuario || (page.props.auth?.user
+  ? {
+      id_usuario: page.props.auth.user.id_usuario,
+      nombre_completo: page.props.auth.user.nombre_completo,
+      cedula: page.props.auth.user.cedula,  // ✅ AGREGAR
+      correo: page.props.auth.user.correo,
+      telefono: page.props.auth.user.telefono,
+      fotoPerfil: page.props.auth.user.fotoPerfil || null,
+    }
+  : null);
 
   const prefill: FormCV = useMemo(() => ({
-    usuarioId: usuario?.id_usuario ?? 0,
-    datosPersonales: {
-      nombreCompleto: usuario?.nombre_completo ?? '',
-      correo: usuario?.correo ?? '',
-      telefono: usuario?.telefono ?? ''
-    },
-    resumenProfesional: '',
-    educaciones: [],
-    experiencias: [],
-    habilidades: [],
-    idiomas: [],
-    referencias: [],
-    incluirFotoPerfil: false, // NUEVO: valor por defecto
-  }), [usuario]);
+  usuarioId: usuario?.id_usuario ?? 0,
+  datosPersonales: {
+    nombreCompleto: usuario?.nombre_completo ?? '',
+    correo: usuario?.correo ?? '',
+    telefono: usuario?.telefono ?? ''
+  },
+  resumenProfesional: '',
+  educaciones: [],
+  experiencias: [],
+  habilidades: [],
+  idiomas: [],
+  // referencias: [], // ELIMINADO
+  incluirFotoPerfil: false,
+}), [usuario]);
 
   const [form, setForm] = useState<FormCV>(prefill);
   const [paso, setPaso] = useState<number>(1);
   const [errores, setErrores] = useState<ErrorMapa>({});
-  const [rutaPdf, setRutaPdf] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
   const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
 
+  const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState<boolean>(false);
+
   const paso4Completo = useMemo(() => {
-    const habilidadesOk = form.habilidades.every(h => {
-      const desc = (h.descripcion ?? '').trim();
-      return desc && desc.length <= 20;
-    });
-    const idiomasOk = form.idiomas.every(i => {
-      const nombre = (i.nombre ?? '').trim();
-      const nivel = (i.nivel ?? '').trim();
-      return nombre && nombre.length <= 15 && nivel;
-    });
-    const referenciasOk = form.referencias.every(r => {
-      const nombre = (r.nombre ?? '').trim();
-      const contacto = solo8Digitos(r.contacto ?? '');
-      const relacion = (r.relacion ?? '').trim();
-      return (
-        nombre && nombre.length <= 30 &&
-        contacto.length === 8 &&
-        relacion && relacion.length <= 30
-      );
-    });
-    return habilidadesOk && idiomasOk && referenciasOk;
-  }, [form]); // <- antes: [form.habilidades, form.idiomas, form.referencias]
+  const habilidadesOk = form.habilidades.length === 0 || form.habilidades.every(h => {
+    const desc = (h.descripcion ?? '').trim();
+    return desc && desc.length >= 2 && desc.length <= 40;
+  });
+
+  const idiomasOk = form.idiomas.length === 0 || form.idiomas.every(i => {
+    const nombre = (i.nombre ?? '').trim();
+    const nivel = (i.nivel ?? '').trim();
+    return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
+  });
+
+  return habilidadesOk && idiomasOk;
+}, [
+  form.habilidades, 
+  form.idiomas, 
+  ...form.habilidades.map(h => h.descripcion),
+  ...form.idiomas.map(i => `${i.nombre}|${i.nivel}`)
+]);
 
   const botonGenerarDeshabilitado = cargando || !paso4Completo;
 
   // ================== Helpers ==================
-  function setCampo(path: string, value: any) {
+  function setCampo(path: string, value: unknown) {
     setForm(prevForm => {
-      const newForm = {...prevForm};
-      let current: any = newForm;
+      const newForm = { ...prevForm };
+      let current: Record<string, unknown> = newForm;
       const parts = path.split('.');
       for (let i = 0; i < parts.length - 1; i++) {
-        current = current[parts[i]];
+        current = current[parts[i]] as Record<string, unknown>;
       }
       current[parts[parts.length - 1]] = value;
 
-      if (path.startsWith('educaciones.') && (path.endsWith('fecha_inicio') || path.endsWith('fecha_fin'))) {
-        const [, indexStr] = path.split('.');
-        const index = parseInt(indexStr);
-        const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
-        setErrores(prev => ({ ...prev, ...nuevosErrores }));
-      }
+      if (path.startsWith('educaciones.') && path.endsWith('fecha_fin')) {
+  const [, indexStr] = path.split('.');
+  const index = parseInt(indexStr);
+  const nuevosErrores = validarFechasEducacion(newForm.educaciones[index], index);
+  setErrores(prev => ({ ...prev, ...nuevosErrores }));
+}
 
       if (path.startsWith('experiencias.') && (path.endsWith('periodo_inicio') || path.endsWith('periodo_fin'))) {
         const [, indexStr] = path.split('.');
@@ -204,94 +389,58 @@ export default function Frt_FormularioGeneracionCurriculum() {
   }
 
   function validarTelefonosLocales(formActual: FormCV, pasoActual: number): ErrorMapa {
-    const errs: ErrorMapa = {};
-    const regexTelefono = /^[0-9]{8}$/;
+  const errs: ErrorMapa = {};
+  const regexTelefono = /^[0-9]{8}$/;
 
-    if (pasoActual === 1) {
-      const tel = formActual.datosPersonales.telefono?.trim();
-      if (tel && !regexTelefono.test(tel)) {
-        errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
-      }
+  if (pasoActual === 1) {
+    const tel = formActual.datosPersonales.telefono?.trim();
+    if (tel && !regexTelefono.test(tel)) {
+      errs['datosPersonales.telefono'] = 'El teléfono debe tener exactamente 8 dígitos (Costa Rica).';
     }
+  }
 
-    if (pasoActual === 4) {
-      formActual.referencias.forEach((r, idx) => {
+  // NUEVO: Validar teléfonos de referencias dentro de experiencias (Paso 3)
+  if (pasoActual === 3) {
+    formActual.experiencias.forEach((exp, expIdx) => {
+      exp.referencias?.forEach((r, refIdx) => {
         const c = r.contacto?.trim();
         if (c && !regexTelefono.test(c)) {
-          errs[`referencias.${idx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
+          errs[`experiencias.${expIdx}.referencias.${refIdx}.contacto`] = 'Debe contener exactamente 8 dígitos (CR).';
         }
       });
-    }
-
-    return errs;
+    });
   }
 
-  // === NUEVO: utilidades para validar por reglas declarativas ===
-  type Regla = {
-    required?: boolean;
-    minLength?: number;
-    maxLength?: number;
-    pattern?: RegExp;
-    // validate(value, ctx): boolean => true OK, false o string => error
-    validate?: (value: any, ctx?: any) => boolean | string;
-  };
-
-  function validarCampoSegunReglas(
-    valor: any,
-    reglas: Regla,
-    etiqueta: string,
-    ctx?: any
-  ): string | null {
-    const v = (typeof valor === 'string') ? valor.trim() : valor;
-
-    if (reglas.required && (v === undefined || v === null || v === '')) {
-      return `Campo requerido: ${etiqueta}`;
-    }
-    if (v !== undefined && v !== null && v !== '') {
-      if (reglas.minLength !== undefined && typeof v === 'string' && v.length < reglas.minLength) {
-        return `Debe tener al menos ${reglas.minLength} caracteres.`;
-      }
-      if (reglas.maxLength !== undefined && typeof v === 'string' && v.length > reglas.maxLength) {
-        return `Debe tener como máximo ${reglas.maxLength} caracteres.`;
-      }
-      if (reglas.pattern && typeof v === 'string' && !reglas.pattern.test(v)) {
-        return `Formato inválido en ${etiqueta}.`;
-      }
-      if (reglas.validate) {
-        const res = reglas.validate(v, ctx);
-        if (res === false) return `Valor inválido en ${etiqueta}.`;
-        if (typeof res === 'string') return res;
-      }
-    }
-    return null;
-  }
+  return errs;
+}
 
   function recolectarErroresFechas(formActual: FormCV): ErrorMapa {
     const errs: ErrorMapa = {};
-    formActual.educaciones.forEach((e,i)=>Object.assign(errs, validarFechasEducacion(e,i)));
-    formActual.experiencias.forEach((e,i)=>Object.assign(errs, validarFechasExperiencia(e,i)));
+    formActual.educaciones.forEach((e, i) => Object.assign(errs, validarFechasEducacion(e, i)));
+    formActual.experiencias.forEach((e, i) => Object.assign(errs, validarFechasExperiencia(e, i)));
     return errs;
   }
 
   function validarColecciones(formActual: FormCV): ErrorMapa {
     const errs: ErrorMapa = {};
 
-    // EDUCACIÓN - validar en paso 2
-    formActual.educaciones.forEach((edu, i) => {
-      let msg = validarCampoSegunReglas(edu.institucion, validacionesEducacion.institucion, 'Institución');
-      if (msg) errs[`educaciones.${i}.institucion`] = msg;
+   
+    // EDUCACIÓN
+formActual.educaciones.forEach((edu, i) => {
+  let msg = validarCampoSegunReglas(edu.tipo, validacionesEducacion.tipo, 'Tipo de educación');
+  if (msg) errs[`educaciones.${i}.tipo`] = msg;
 
-      msg = validarCampoSegunReglas(edu.titulo, validacionesEducacion.titulo, 'Título');
-      if (msg) errs[`educaciones.${i}.titulo`] = msg;
+  msg = validarCampoSegunReglas(edu.institucion, validacionesEducacion.institucion, 'Institución');
+  if (msg) errs[`educaciones.${i}.institucion`] = msg;
 
-      msg = validarCampoSegunReglas(edu.fecha_inicio, validacionesEducacion.fecha_inicio, 'Fecha inicio');
-      if (msg) errs[`educaciones.${i}.fecha_inicio`] = msg;
+  msg = validarCampoSegunReglas(edu.titulo, validacionesEducacion.titulo, 'Título');
+  if (msg) errs[`educaciones.${i}.titulo`] = msg;
 
-      msg = validarCampoSegunReglas(edu.fecha_fin, validacionesEducacion.fecha_fin, 'Fecha fin', { fecha_inicio: edu.fecha_inicio });
-      if (msg) errs[`educaciones.${i}.fecha_fin`] = msg;
-    });
+  msg = validarCampoSegunReglas(edu.fecha_fin, validacionesEducacion.fecha_fin, 'Fecha finalización');
+  if (msg) errs[`educaciones.${i}.fecha_fin`] = msg;
+});
 
-    // EXPERIENCIA - validar en paso 3
+    // EXPERIENCIA
     formActual.experiencias.forEach((exp, i) => {
       let msg = validarCampoSegunReglas(exp.empresa, validacionesExperiencia.empresa, 'Empresa');
       if (msg) errs[`experiencias.${i}.empresa`] = msg;
@@ -299,12 +448,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       msg = validarCampoSegunReglas(exp.puesto, validacionesExperiencia.puesto, 'Puesto');
       if (msg) errs[`experiencias.${i}.puesto`] = msg;
 
-      if (exp.funciones) {
-        msg = validarCampoSegunReglas(exp.funciones, validacionesExperiencia.funciones, 'Funciones');
-        if (msg) errs[`experiencias.${i}.funciones`] = msg;
-      }
-
-      // Validar SIEMPRE fechas de experiencia (requeridas)
       msg = validarCampoSegunReglas(exp.periodo_inicio, validacionesExperiencia.periodo_inicio, 'Fecha inicio');
       if (msg) errs[`experiencias.${i}.periodo_inicio`] = msg;
 
@@ -315,70 +458,255 @@ export default function Frt_FormularioGeneracionCurriculum() {
         { periodo_inicio: exp.periodo_inicio }
       );
       if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+
+      // NUEVO: Validar funciones
+      if (!exp.funciones || exp.funciones.length === 0) {
+        errs[`experiencias.${i}.funciones`] = 'Agrega al menos una función para esta experiencia';
+      } else {
+        exp.funciones.forEach((func, fIdx) => {
+          const desc = (func.descripcion ?? '').trim();
+          
+          if (!desc) {
+            errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = 'Completa la función o elimínala';
+          } else {
+            const msgFunc = validarCampoSegunReglas(desc, validacionesFuncion.descripcion, 'Función');
+            if (msgFunc) errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = msgFunc;
+          }
+        });
+      }
     });
 
-    // HABILIDADES (solo si hay texto)
+    // EXPERIENCIA
+formActual.experiencias.forEach((exp, i) => {
+  let msg = validarCampoSegunReglas(exp.empresa, validacionesExperiencia.empresa, 'Empresa');
+  if (msg) errs[`experiencias.${i}.empresa`] = msg;
+
+  msg = validarCampoSegunReglas(exp.puesto, validacionesExperiencia.puesto, 'Puesto');
+  if (msg) errs[`experiencias.${i}.puesto`] = msg;
+
+  msg = validarCampoSegunReglas(exp.periodo_inicio, validacionesExperiencia.periodo_inicio, 'Fecha inicio');
+  if (msg) errs[`experiencias.${i}.periodo_inicio`] = msg;
+
+  msg = validarCampoSegunReglas(
+    exp.periodo_fin,
+    validacionesExperiencia.periodo_fin,
+    'Fecha fin',
+    { periodo_inicio: exp.periodo_inicio }
+  );
+  if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+
+  // Validar funciones
+  if (!exp.funciones || exp.funciones.length === 0) {
+    errs[`experiencias.${i}.funciones`] = 'Agrega al menos una función para esta experiencia';
+  } else {
+    exp.funciones.forEach((func, fIdx) => {
+      const desc = (func.descripcion ?? '').trim();
+      
+      if (!desc) {
+        errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = 'Completa la función o elimínala';
+      } else {
+        const msgFunc = validarCampoSegunReglas(desc, validacionesFuncion.descripcion, 'Función');
+        if (msgFunc) errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = msgFunc;
+      }
+    });
+  }
+
+  // NUEVO: Validar referencias dentro de experiencias (AHORA DENTRO DEL FOREACH)
+  if (!exp.referencias || exp.referencias.length === 0) {
+    // Es opcional tener referencias, no es error
+  } else {
+    exp.referencias.forEach((ref, rIdx) => {
+      const nom = (ref.nombre ?? '').trim();
+      const tel = (ref.contacto ?? '').trim();
+      const email = (ref.correo ?? '').trim();
+      const rel = (ref.relacion ?? '').trim();
+      const tieneAlgunValor = nom || tel || email || rel;
+
+      if (tieneAlgunValor) {
+        if (!nom) {
+          errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = 'Completa el nombre o elimina esta referencia';
+        } else {
+          const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
+          if (msgNom) errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = msgNom;
+        }
+
+        if (!tel) {
+          errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = 'Completa el teléfono o elimina esta referencia';
+        } else {
+          const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
+          if (msgTel) errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = msgTel;
+        }
+
+        if (email) {
+          const msgEmail = validarCampoSegunReglas(email, validacionesReferencia.correo, 'Correo');
+          if (msgEmail) errs[`experiencias.${i}.referencias.${rIdx}.correo`] = msgEmail;
+        }
+
+        if (!rel) {
+          errs[`experiencias.${i}.referencias.${rIdx}.relacion`] = 'Completa la relación o elimina esta referencia';
+        } else {
+          const msgRel = validarCampoSegunReglas(rel, validacionesReferencia.relacion, 'Relación');
+          if (msgRel) errs[`experiencias.${i}.referencias.${rIdx}.relacion`] = msgRel;
+        }
+      }
+    });
+  }
+}); // <-- CIERRE del forEach de experiencias
+
+    // HABILIDADES
     formActual.habilidades.forEach((h, i) => {
       const desc = (h.descripcion ?? '').trim();
-      if (desc) {
+      
+      if (formActual.habilidades.length > 0 && !desc) {
+        errs[`habilidades.${i}.descripcion`] = 'Completa la habilidad o elimínala';
+      } else if (desc) {
         const msg = validarCampoSegunReglas(desc, validacionesHabilidad.descripcion, 'Descripción de habilidad');
         if (msg) errs[`habilidades.${i}.descripcion`] = msg;
       }
     });
 
-    // IDIOMAS (solo si usuario escribe nombre o selecciona nivel)
+    // IDIOMAS
     formActual.idiomas.forEach((id, i) => {
       const nom = (id.nombre ?? '').trim();
       const niv = (id.nivel ?? '').trim();
+      const tieneAlgunValor = nom || niv;
 
-      if (nom) {
-        const msgNom = validarCampoSegunReglas(nom, validacionesIdioma.nombre, 'Nombre del idioma');
-        if (msgNom) errs[`idiomas.${i}.nombre`] = msgNom;
-      }
-      if (niv) {
-        const msgNiv = validarCampoSegunReglas(niv, { validate: validacionesIdioma.nivel.validate }, 'Nivel');
-        if (msgNiv) errs[`idiomas.${i}.nivel`] = msgNiv;
+      if (tieneAlgunValor) {
+        if (!nom) {
+          errs[`idiomas.${i}.nombre`] = 'Completa el nombre del idioma o elimina esta fila';
+        } else {
+          const msgNom = validarCampoSegunReglas(nom, validacionesIdioma.nombre, 'Nombre del idioma');
+          if (msgNom) errs[`idiomas.${i}.nombre`] = msgNom;
+        }
+
+        if (!niv) {
+          errs[`idiomas.${i}.nivel`] = 'Selecciona un nivel o elimina esta fila';
+        } else {
+          const msgNiv = validarCampoSegunReglas(niv, validacionesIdioma.nivel, 'Nivel');
+          if (msgNiv) errs[`idiomas.${i}.nivel`] = msgNiv;
+        }
       }
     });
 
-    // REFERENCIAS (solo si se escribe algo en la fila)
-    formActual.referencias.forEach((r, i) => {
-      const nom = (r.nombre ?? '').trim();
-      const tel = (r.contacto ?? '').trim();
-      const rel = (r.relacion ?? '').trim();
 
-      if (nom) {
-        const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
-        if (msgNom) errs[`referencias.${i}.nombre`] = msgNom;
-      }
-      if (tel) {
-        const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
-        if (msgTel) errs[`referencias.${i}.contacto`] = msgTel;
-      }
-      if (rel) {
-        const msgRel = validarCampoSegunReglas(rel, validacionesReferencia.relacion, 'Relación');
-        if (msgRel) errs[`referencias.${i}.relacion`] = msgRel;
-      }
-    });
 
     return errs;
   }
 
-  const manejarErrorApi = async (error: any) => {
-    if (error?.response?.status === 422) {
-      setErrores(formatearErroresConEtiquetas(error.response.data?.errors));
-      return;
+  // ================== FUNCIÓN: Validación centralizada ==================
+  function validarFormularioCompleto(pasoActual?: number): ErrorMapa {
+    const pasoAValidar = pasoActual ?? paso;
+    const eBase = validarPaso(form, pasoAValidar);
+    const eTel = validarTelefonosLocales(form, pasoAValidar);
+    const eTelDP = pasoAValidar === 4 ? validarTelefonosLocales(form, 1) : {};
+    const eFechas = recolectarErroresFechas(form);
+    const eColecciones = validarColecciones(form);
+
+    const e: ErrorMapa = { ...eBase, ...eTel, ...eTelDP, ...eFechas, ...eColecciones };
+
+    // Validar resumen profesional (Paso 1)
+    if (pasoAValidar === 1 || pasoAValidar === 4) {
+      if (!(form.resumenProfesional ?? '').trim()) {
+        e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
+      } else if ((form.resumenProfesional ?? '').length > 600) {
+        e['resumenProfesional'] = 'Máximo 600 caracteres.';
+      }
     }
-    await modal.alerta({
-      titulo: "Error",
-      mensaje: error?.response?.data?.message || "Ocurrió un error al procesar la solicitud.",
-    });
+
+    // Validar datos personales
+    if (pasoAValidar === 1 || pasoAValidar === 4) {
+      let msg = validarCampoSegunReglas(
+        form.datosPersonales.nombreCompleto,
+        validacionesDatosPersonales.nombreCompleto,
+        'Nombre completo'
+      );
+      if (msg) e['datosPersonales.nombreCompleto'] = msg;
+
+      msg = validarCampoSegunReglas(
+        form.datosPersonales.correo,
+        validacionesDatosPersonales.correo,
+        'Correo electrónico'
+      );
+      if (msg) e['datosPersonales.correo'] = msg;
+
+      if ((form.datosPersonales.telefono ?? '').trim()) {
+        msg = validarCampoSegunReglas(
+          form.datosPersonales.telefono,
+          validacionesDatosPersonales.telefono,
+          'Teléfono'
+        );
+        if (msg) e['datosPersonales.telefono'] = msg;
+      }
+    }
+
+    return e;
+  }
+
+  // ================== Manejo de Errores API Mejorado ==================
+  const manejarErrorApi = async (error: unknown) => {
+    const axiosError = error as {
+      response?: {
+        status?: number;
+        data?: {
+          message?: string;
+          errors?: Record<string, string[]>;
+        };
+      };
+      request?: unknown;
+    };
+
+    if (axiosError.response) {
+      if (axiosError.response.status === 422) {
+        setErrores(formatearErroresConEtiquetas(axiosError.response.data?.errors));
+        return;
+      }
+
+      if (axiosError.response.status === 401) {
+        await modal.alerta({
+          titulo: "Sesión expirada",
+          mensaje: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+        });
+        router.visit('/login');
+        return;
+      }
+
+      if (axiosError.response.status === 403) {
+        await modal.alerta({
+          titulo: "Acceso denegado",
+          mensaje: "No tienes permisos para realizar esta acción.",
+        });
+        return;
+      }
+
+      if (axiosError.response.status === 500) {
+        await modal.alerta({
+          titulo: "Error del servidor",
+          mensaje: "Ocurrió un error en el servidor. Por favor, intenta más tarde.",
+        });
+        return;
+      }
+
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: axiosError.response.data?.message || "Ocurrió un error al procesar la solicitud.",
+      });
+    } else if (axiosError.request) {
+      await modal.alerta({
+        titulo: "Error de conexión",
+        mensaje: "No se pudo conectar con el servidor. Verifica tu conexión a internet.",
+      });
+    } else {
+      await modal.alerta({
+        titulo: "Error inesperado",
+        mensaje: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+      });
+    }
   };
 
   async function removeArrayItem(
-    key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas' | 'referencias',
-    idx: number
-  ) {
+  key: 'educaciones' | 'experiencias' | 'habilidades' | 'idiomas',
+  idx: number
+) {
     const continuar = await modal.confirmacion({
       titulo: "Confirmar eliminación",
       mensaje: "¿Deseas eliminar este elemento?",
@@ -388,190 +716,112 @@ export default function Frt_FormularioGeneracionCurriculum() {
     if (!continuar) return;
 
     setForm(prev => {
-      const copia = structuredClone(prev) as FormCV;
-      (copia[key] as any[]).splice(idx, 1);
+      const copia = JSON.parse(JSON.stringify(prev)) as FormCV;
+      (copia[key] as unknown[]).splice(idx, 1);
+      return copia;
+    });
+  }
+
+  // NUEVA: Función para eliminar una función específica de una experiencia
+  async function removeFuncion(expIdx: number, funcIdx: number) {
+    const continuar = await modal.confirmacion({
+      titulo: "Confirmar eliminación",
+      mensaje: "¿Deseas eliminar esta función?",
+      textoAceptar: "Eliminar",
+      textoCancelar: "Cancelar",
+    });
+    if (!continuar) return;
+
+    setForm(prev => {
+      const copia = JSON.parse(JSON.stringify(prev)) as FormCV;
+      copia.experiencias[expIdx].funciones.splice(funcIdx, 1);
       return copia;
     });
   }
 
   async function siguiente() {
-    const eBase = validarPaso(form, paso);
-    const eTel = validarTelefonosLocales(form, paso);
-    const eFechas = recolectarErroresFechas(form);
-    const eColecciones = validarColecciones(form);
-    const e: ErrorMapa = { ...eBase, ...eTel, ...eFechas, ...eColecciones };
-
-    if (paso === 1) {
-      if (!(form.resumenProfesional ?? '').trim()) {
-        e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
-      } else if ((form.resumenProfesional ?? '').length > 600) {
-        e['resumenProfesional'] = 'Máximo 600 caracteres.';
-      }
-      // Datos personales: validación explícita según reglas
-      let msg = validarCampoSegunReglas(form.datosPersonales.nombreCompleto, validacionesDatosPersonales.nombreCompleto, 'Nombre completo');
-      if (msg) e['datosPersonales.nombreCompleto'] = msg;
-
-      msg = validarCampoSegunReglas(form.datosPersonales.correo, validacionesDatosPersonales.correo, 'Correo electrónico');
-      if (msg) e['datosPersonales.correo'] = msg;
-
-      if ((form.datosPersonales.telefono ?? '').trim()) {
-        msg = validarCampoSegunReglas(form.datosPersonales.telefono, validacionesDatosPersonales.telefono, 'Teléfono');
-        if (msg) e['datosPersonales.telefono'] = msg;
-      }
-    }
-
-    const erroresFormateados = formatearErroresConEtiquetas(e);
+    const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
     setErrores(erroresFormateados);
     if (Object.keys(erroresFormateados).length === 0) setPaso(paso + 1);
   }
 
-  function anterior() { setPaso(paso - 1); }
+  function anterior() {
+    setPaso(paso - 1);
+  }
 
   async function generar() {
-    const eBase = validarPaso(form, paso);
-    const eTelPaso = validarTelefonosLocales(form, paso);
-    const eTelDP = validarTelefonosLocales(form, 1);
-    const eFechas = recolectarErroresFechas(form);
-    const eColecciones = validarColecciones(form);
+  const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(4));
+  setErrores(erroresFormateados);
 
-    const e: ErrorMapa = { ...eBase, ...eTelPaso, ...eTelDP, ...eFechas, ...eColecciones };
-
-    if (!(form.resumenProfesional ?? '').trim()) {
-      e['resumenProfesional'] = 'Campo requerido: Resumen profesional';
-    } else if ((form.resumenProfesional ?? '').length > 600) {
-      e['resumenProfesional'] = 'Máximo 600 caracteres.';
-    }
-
-    // Datos personales
-    let msg = validarCampoSegunReglas(form.datosPersonales.nombreCompleto, validacionesDatosPersonales.nombreCompleto, 'Nombre completo');
-    if (msg) e['datosPersonales.nombreCompleto'] = msg;
-
-    msg = validarCampoSegunReglas(form.datosPersonales.correo, validacionesDatosPersonales.correo, 'Correo electrónico');
-    if (msg) e['datosPersonales.correo'] = msg;
-
-    if ((form.datosPersonales.telefono ?? '').trim()) {
-      msg = validarCampoSegunReglas(form.datosPersonales.telefono, validacionesDatosPersonales.telefono, 'Teléfono');
-      if (msg) e['datosPersonales.telefono'] = msg;
-    }
-
-    const erroresFormateados = formatearErroresConEtiquetas(e);
-    setErrores(erroresFormateados);
-
-    // Debug rápido:
-    console.log('Errores al generar:', erroresFormateados);
-
-    if (Object.keys(erroresFormateados).length > 0) {
-      await modal.alerta({
-        titulo: "Validación",
-        mensaje: "Revisa los campos marcados antes de continuar.",
-      });
-      return;
-    }
-
-    // Antes de generar, resetea el botón de Dashboard
-    setMostrarBtnDashboard(false);
-
-    try {
-      setCargando(true);
-      const resp = await postGenerarCurriculum(form);
-      if (resp.rutaPublica) {
-        setRutaPdf(resp.rutaPublica);
-        const abrir = await modal.confirmacion({
-          titulo: "Currículum generado",
-          mensaje: "Tu currículum se generó correctamente.\n\nElige una opción:",
-          textoAceptar: "Abrir en pestaña nueva",
-          textoCancelar: "Descargar PDF"
-        });
-        if (abrir) {
-          abrirEnPestanaNueva(getAbsoluteUrl(resp.rutaPublica));
-        } else {
-          descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
-        }
-        // Tras la elección, mostrar el botón para volver al Dashboard
-        setMostrarBtnDashboard(true);
-      } else {
-        throw new Error("No se pudo generar el PDF");
-      }
-    } catch (error: any) {
-      await manejarErrorApi(error);
-    } finally {
-      setCargando(false);
-    }
+  if (Object.keys(erroresFormateados).length > 0) {
+    await modal.alerta({
+      titulo: "Validación",
+      mensaje: "Revisa los campos marcados antes de continuar.",
+    });
+    return;
   }
 
-  // === VALIDACIONES ACTUALIZADAS ===
-  const validacionesDatosPersonales = {
-    // permite letras, espacios, acentos, apóstrofos y guiones
-    nombreCompleto: { required: true, minLength: 5, maxLength: 30, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ },
-    // TLD 2–24
-    correo: { required: true, pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,24}$/, maxLength: 255 },
-    telefono: { required: false, pattern: /^[0-9]{8}$/ }
-  };
+  setMostrarBtnDashboard(false);
 
-  const validacionesEducacion = {
-    institucion: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    titulo: { required: true, minLength: 3, maxLength: 50, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    fecha_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
-    fecha_fin: { required: true, validate: (value: string, { fecha_inicio }: any) => !value || !fecha_inicio || new Date(value) >= new Date(fecha_inicio) }
-  };
-
-  const validacionesExperiencia = {
-    empresa: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    puesto: { required: true, minLength: 3, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ },
-    funciones: { required: false, maxLength: 150 },
-    // Ahora son requeridas
-    periodo_inicio: { required: true, validate: (value: string) => !value || new Date(value) <= new Date() },
-    periodo_fin: { required: true, validate: (value: string, { periodo_inicio }: any) => !value || !periodo_inicio || new Date(value) >= new Date(periodo_inicio) }
-  };
-
-// === VALIDACIONES (OPCIONAL) ===
-const validacionesHabilidad = {
-  // ya NO es required, pero mantiene min/max/pattern cuando hay valor
-  descripcion: { required: false, minLength: 3, maxLength: 20, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ }
-};
-
-const validacionesIdioma = {
-  // ambos opcionales; si se escribe nombre, valida; si se elige nivel, debe estar en el set
-  nombre: { required: false, minLength: 2, maxLength: 15, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+$/ },
-  nivel:  { required: false, validate: (value: string) => ['A1','A2','B1','B2','C1','C2','Nativo'].includes(value) }
-};
-
-// relación/telefono/nombre OPCIONALES; si vienen, se validan (tel: 8 dígitos)
-const validacionesReferencia = {
-  nombre:   { required: false, minLength: 5, maxLength: 30, pattern: /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s'-]+$/ },
-  contacto: { required: false, pattern: /^[0-9]{8}$/ },
-  relacion: { required: false, maxLength: 30, pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ }
-};
-
+  try {
+    setCargando(true);
+    
+    // NUEVO: Convertir funciones de array a string
+    const formParaEnviar = {
+      ...form,
+      experiencias: form.experiencias.map(exp => ({
+        ...exp,
+        funciones: exp.funciones
+          .map(f => f.descripcion.trim())
+          .filter(desc => desc.length > 0)
+          .join('; ') // Unir las funciones con punto y coma
+      }))
+    };
+    
+    const resp = await postGenerarCurriculum(formParaEnviar);
+if (resp.rutaPublica) {
+  // Descargar automáticamente sin preguntar
+  descargarArchivo(getAbsoluteUrl(resp.rutaPublica), 'curriculum.pdf');
+  
+  // Mostrar mensaje de éxito
+  await modal.alerta({
+    titulo: "¡Currículum generado!",
+    mensaje: "Tu currículum se ha descargado correctamente.",
+  });
+  
+  setMostrarBtnDashboard(true);
+} else {
+  throw new Error("No se pudo generar el PDF");
+}
+  } catch (error: unknown) {
+    await manejarErrorApi(error);
+  } finally {
+    setCargando(false);
+  }
+}
 
   function validarFechasEducacion(educacion: Educacion, index: number): ErrorMapa {
-    const errores: ErrorMapa = {};
-    const hoy = new Date();
-    const fechaMinima = new Date('1960-01-01');
+  const errores: ErrorMapa = {};
+  const hoy = new Date();
+  const fechaMinima = new Date(FECHA_MINIMA_CURRICULUM);
 
-    if (educacion.fecha_inicio) {
-      const fechaInicio = new Date(educacion.fecha_inicio);
-      if (fechaInicio > hoy) errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser mayor a hoy';
-      if (fechaInicio < fechaMinima) errores[`educaciones.${index}.fecha_inicio`] = 'La fecha no puede ser anterior a 1960';
-    }
-    if (educacion.fecha_fin) {
-      const fechaFin = new Date(educacion.fecha_fin);
-      const fechaInicio = educacion.fecha_inicio ? new Date(educacion.fecha_inicio) : null;
-      if (fechaFin > hoy) errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
-      if (fechaInicio && fechaFin < fechaInicio) errores[`educaciones.${index}.fecha_fin`] = 'La fecha de fin no puede ser anterior a la fecha de inicio';
-    }
-    return errores;
+  if (educacion.fecha_fin) {
+    const fechaFin = new Date(educacion.fecha_fin);
+    if (fechaFin > hoy) errores[`educaciones.${index}.fecha_fin`] = 'La fecha no puede ser mayor a hoy';
+    if (fechaFin < fechaMinima) errores[`educaciones.${index}.fecha_fin`] = `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
   }
+  return errores;
+}
 
   function validarFechasExperiencia(experiencia: Experiencia, index: number): ErrorMapa {
     const errores: ErrorMapa = {};
     const hoy = new Date();
-    const fechaMinima = new Date('1960-01-01');
+    const fechaMinima = new Date(FECHA_MINIMA_CURRICULUM);
 
     if (experiencia.periodo_inicio) {
       const fechaInicio = new Date(experiencia.periodo_inicio);
       if (fechaInicio > hoy) errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser mayor a hoy';
-      if (fechaInicio < fechaMinima) errores[`experiencias.${index}.periodo_inicio`] = 'La fecha no puede ser anterior a 1960';
+      if (fechaInicio < fechaMinima) errores[`experiencias.${index}.periodo_inicio`] = `La fecha no puede ser anterior a ${FECHA_MINIMA_CURRICULUM}`;
     }
     if (experiencia.periodo_fin) {
       const fechaFin = new Date(experiencia.periodo_fin);
@@ -587,15 +837,20 @@ const validacionesReferencia = {
     'datosPersonales.correo': 'Correo electrónico',
     'datosPersonales.telefono': 'Teléfono',
     resumenProfesional: 'Resumen profesional',
+    'educaciones.tipo': 'Tipo de educación',
     'educaciones.institucion': 'Institución',
-    'educaciones.titulo': 'Título',
-    'educaciones.fecha_inicio': 'Fecha inicio',
-    'educaciones.fecha_fin': 'Fecha fin',
+    'educaciones.titulo': 'Título obtenido',
+    'educaciones.fecha_fin': 'Fecha finalización',
     'experiencias.empresa': 'Empresa',
     'experiencias.puesto': 'Puesto',
     'experiencias.periodo_inicio': 'Fecha inicio',
     'experiencias.periodo_fin': 'Fecha fin',
     'experiencias.funciones': 'Funciones',
+    'experiencias.funciones.descripcion': 'Función',
+    'experiencias.referencias.nombre': 'Nombre',
+'experiencias.referencias.contacto': 'Teléfono',
+'experiencias.referencias.correo': 'Correo',
+'experiencias.referencias.relacion': 'Relación',
     'habilidades.descripcion': 'Descripción de habilidad',
     'idiomas.nombre': 'Nombre del idioma',
     'idiomas.nivel': 'Nivel',
@@ -612,7 +867,7 @@ const validacionesReferencia = {
     return ultima.replace(/[_-]/g, ' ').replace(/\b\w/g, letra => letra.toUpperCase());
   }
 
-  function formatearErroresConEtiquetas(errores: ErrorMapa = {}): ErrorMapa {
+  function formatearErroresConEtiquetas(errores: ErrorMapa | Record<string, string[]> = {}): ErrorMapa {
     const resultado: ErrorMapa = {};
     Object.entries(errores).forEach(([clave, valor]) => {
       const mensajeBase = Array.isArray(valor) ? valor[0] : valor;
@@ -626,32 +881,123 @@ const validacionesReferencia = {
   }
 
   const getAriaInvalid = (key: string) => (errores[key] ? true : undefined);
-  const getDescribedBy = (key: string) => (errores[key] ? `${key.replace(/[^\w-]/g,'_')}_err` : undefined);
+  const getDescribedBy = (key: string) => (errores[key] ? `${key.replace(/[^\w-]/g, '_')}_err` : undefined);
 
-  // NUEVO: resolver URL de foto (absoluta o por defecto)
   const fotoPerfilUrl = usuario?.fotoPerfil?.ruta_imagen
     ? getAbsoluteUrl(usuario.fotoPerfil.ruta_imagen)
     : FotoXDefecto;
 
   return (
-    <PpLayout
-      userPermisos={userPermisos}
-      breadcrumbs={[
-        { title: 'Inicio', href: '/' },
-        { title: 'Currículum', href: '/curriculum' },
-        { title: 'Generar CV', href: '/curriculum/generar' },
-      ]}
-    >
+    <PpLayout userPermisos={userPermisos}>
       <h1 className="text-2xl font-bold text-[#034991] mb-4">Generación de Currículum</h1>
+{/* Banner con información del usuario */}
+<div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-[#034991] rounded-lg p-4 mb-4 shadow-sm">
+  <div className="flex items-center justify-between flex-wrap gap-4">
+    {/* Lado izquierdo: Foto y nombre */}
+    <div className="flex items-center gap-4">
+      {/* Foto de perfil o avatar con iniciales */}
+      <div className="relative">
+        {usuario?.fotoPerfil?.ruta_imagen ? (
+          <img
+            src={fotoPerfilUrl}
+            alt="Foto de perfil"
+            className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md"
+          />
+        ) : (
+          <div className="bg-[#034991] text-white rounded-full w-16 h-16 flex items-center justify-center font-bold text-xl shadow-md border-4 border-white">
+            {usuario?.nombre_completo?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '??'}
+          </div>
+        )}
+        {/* Indicador online */}
+        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+      </div>
 
+      {/* Información del usuario */}
+      <div>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Creando currículum para:</p>
+        <p className="text-xl font-bold text-gray-900 mt-1">{usuario?.nombre_completo || 'Usuario'}</p>
+        <p className="text-sm text-gray-600 mt-0.5">{usuario?.correo || ''}</p>
+      </div>
+    </div>
+    
+    {/* Lado derecho: Cédula */}
+    <div className="flex items-center gap-2 bg-white px-5 py-3 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#034991]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+      </svg>
+      <div>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Cédula</p>
+        <p className="text-base font-bold text-gray-900">
+          {usuario?.cedula || 'No disponible'}
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
       <div className="max-w-6xl mx-auto p-4 text-gray-900">
-        <ol className="flex gap-2 mb-4 text-sm">
-          {[1,2,3,4].map(n => (
-            <li key={n} className={`px-3 py-1 rounded-full ${paso===n?'bg-[#034991] text-white':'bg-gray-200'}`}>Paso {n}</li>
-          ))}
-        </ol>
+        <ol className="flex gap-2 mb-4 text-sm flex-wrap">
+  {[
+    { numero: 1, nombre: 'Información Personal' },
+    { numero: 2, nombre: 'Educación' },
+    { numero: 3, nombre: 'Experiencia Laboral' },
+    { numero: 4, nombre: 'Complementos' }
+  ].map((p) => (
+    <li 
+      key={p.numero}
+      onClick={async () => {
+        // Si intenta avanzar (ir a un paso mayor), validar el actual
+        if (p.numero > paso) {
+          const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
+          setErrores(erroresFormateados);
+          if (Object.keys(erroresFormateados).length === 0) {
+            setPaso(p.numero);
+          } else {
+            await modal.alerta({
+          
+              mensaje: "Completa los campos requeridos antes de continuar.",
+            });
+          }
+        } else {
+          // Si retrocede o va al mismo, permitir sin validar
+          setPaso(p.numero);
+        }
+      }}
+      className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
+        paso === p.numero 
+          ? 'bg-[#034991] text-white shadow-md' 
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-sm'
+      }`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ir a ${p.nombre}`}
+      aria-current={paso === p.numero ? 'step' : undefined}
+      onKeyDown={async (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (p.numero > paso) {
+            const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
+            setErrores(erroresFormateados);
+            if (Object.keys(erroresFormateados).length === 0) {
+              setPaso(p.numero);
+            } else {
+              await modal.alerta({
+                titulo: "Validación",
+                mensaje: "Completa los campos requeridos antes de continuar.",
+              });
+            }
+          } else {
+            setPaso(p.numero);
+          }
+        }
+      }}
+    >
+      <span className="font-semibold">{p.numero}.</span> {p.nombre}
+    </li>
+  ))}
+</ol>
 
-        {paso===1 && (
+        {paso === 1 && (
           <section className="grid grid-cols-2 gap-4">
             {/* Nombre completo */}
             <div className="float-label-input">
@@ -660,10 +1006,10 @@ const validacionesReferencia = {
                 className="peer"
                 placeholder=" "
                 value={form.datosPersonales.nombreCompleto}
-                onChange={e=>setCampo('datosPersonales.nombreCompleto', e.target.value)}
+                onChange={e => setCampo('datosPersonales.nombreCompleto', e.target.value)}
                 aria-invalid={getAriaInvalid('datosPersonales.nombreCompleto')}
                 aria-describedby={getDescribedBy('datosPersonales.nombreCompleto')}
-                maxLength={30}
+                maxLength={80}
               />
               <label htmlFor="dp_nombreCompleto">Nombre completo</label>
               {errores['datosPersonales.nombreCompleto'] &&
@@ -678,7 +1024,7 @@ const validacionesReferencia = {
                 className="peer"
                 placeholder=" "
                 value={form.datosPersonales.correo}
-                onChange={e=>setCampo('datosPersonales.correo', e.target.value)}
+                onChange={e => setCampo('datosPersonales.correo', e.target.value)}
                 aria-invalid={getAriaInvalid('datosPersonales.correo')}
                 aria-describedby={getDescribedBy('datosPersonales.correo')}
               />
@@ -695,10 +1041,10 @@ const validacionesReferencia = {
                 inputMode="numeric"
                 pattern="[0-9]{8}"
                 maxLength={8}
-                className={`peer ${form.datosPersonales.telefono ? 'has-value':''}`}
+                className={`peer ${form.datosPersonales.telefono ? 'has-value' : ''}`}
                 placeholder=" "
                 value={form.datosPersonales.telefono}
-                onChange={(e)=>{
+                onChange={(e) => {
                   const limpio = solo8Digitos(e.target.value);
                   setCampo('datosPersonales.telefono', limpio);
                 }}
@@ -712,7 +1058,7 @@ const validacionesReferencia = {
               }
             </div>
 
-            {/* NUEVO: Foto de Perfil */}
+            {/* Foto de Perfil */}
             <div className="bg-gray-50 p-4 rounded-lg border col-span-2">
               <h3 className="text-lg font-semibold text-gray-700 mb-4">Foto de Perfil</h3>
               <div className="flex items-start gap-4">
@@ -758,7 +1104,7 @@ const validacionesReferencia = {
                 placeholder=" "
                 maxLength={600}
                 value={form.resumenProfesional}
-                onChange={e=>setCampo('resumenProfesional', e.target.value)}
+                onChange={e => setCampo('resumenProfesional', e.target.value)}
                 aria-invalid={getAriaInvalid('resumenProfesional')}
                 aria-describedby={getDescribedBy('resumenProfesional')}
               />
@@ -770,139 +1116,167 @@ const validacionesReferencia = {
           </section>
         )}
 
-        {paso===2 && (
+        {paso === 2 && (
           <section>
-            <button
-              type="button"
-              className="mb-2 px-3 py-1 border rounded"
-              onClick={()=>{
-                setForm(prev => ({
-                  ...prev,
-                  educaciones:[...prev.educaciones, {institucion:'', titulo:'', fecha_inicio:'', fecha_fin:''}]
-                }));
-              }}
-            >
-              + Agregar educación
-            </button>
+            <Button
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({
+      ...prev,
+      educaciones: [...prev.educaciones, { tipo: '', institucion: '', titulo: '', fecha_fin: '' }]
+    }));
+  }}
+  className="mb-2"
+>
+  + Agregar educación ({form.educaciones.length})
+</Button>
 
-            {form.educaciones.map((ed, i)=>(
-              <div key={i} className="mb-3">
+            {form.educaciones.map((ed, i) => (
+              <div key={i} className="mb-3 p-4 border rounded bg-white">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Educación {i+1}</span>
-                  <button
-                    type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                  <span className="font-medium">Educación {i + 1}</span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => removeArrayItem('educaciones', i)}
+                    aria-label={`Eliminar educación ${i + 1}`}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
-                  {/* Institución */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_institucion`}
-                      className={`peer ${ed.institucion ? 'has-value' : ''}`}
-                      placeholder=" "
-                      value={ed.institucion}
-                      onChange={e=>setCampo(`educaciones.${i}.institucion`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
-                      maxLength={50}
-                    />
-                    <label htmlFor={`ed_${i}_institucion`}>Institución</label>
-                  </div>
+                <div className="grid grid-cols-1 gap-3">
+  {/* Tipo de Educación */}
+  <div className="float-label-input">
+    <select
+      id={`ed_${i}_tipo`}
+      className={`peer ${ed.tipo ? 'has-value' : ''}`}
+      value={ed.tipo}
+      onChange={e => setCampo(`educaciones.${i}.tipo`, e.target.value)}
+      aria-invalid={getAriaInvalid(`educaciones.${i}.tipo`)}
+      aria-describedby={getDescribedBy(`educaciones.${i}.tipo`)}
+    >
+      <option value="">Seleccione un tipo...</option>
+      <option value="Título">Título</option>
+      <option value="Certificación">Certificación</option>
+      <option value="Curso">Curso</option>
+      <option value="Diplomado">Diplomado</option>
+      <option value="Técnico">Técnico</option>
+    </select>
+    <label htmlFor={`ed_${i}_tipo`}>Tipo de educación</label>
+    {errores[`educaciones.${i}.tipo`] && (
+      <p id={`educaciones_${i}_tipo_err`} className="text-red-600 text-sm mt-1">
+        {errores[`educaciones.${i}.tipo`]}
+      </p>
+    )}
+  </div>
 
-                  {/* Título */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_titulo`}
-                      className={`peer ${ed.titulo ? 'has-value' : ''}`}
-                      placeholder=" "
-                      value={ed.titulo}
-                      onChange={e=>setCampo(`educaciones.${i}.titulo`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
-                      maxLength={50}
-                    />
-                    <label htmlFor={`ed_${i}_titulo`}>Título</label>
-                  </div>
+  <div className="grid grid-cols-2 gap-2">
+    {/* Institución */}
+    <div className="float-label-input">
+      <input
+        id={`ed_${i}_institucion`}
+        className={`peer ${ed.institucion ? 'has-value' : ''}`}
+        placeholder=" "
+        value={ed.institucion}
+        onChange={e => setCampo(`educaciones.${i}.institucion`, e.target.value)}
+        aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
+        aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
+        maxLength={100}
+      />
+      <label htmlFor={`ed_${i}_institucion`}>Institución</label>
+      {errores[`educaciones.${i}.institucion`] && (
+        <p id={`educaciones_${i}_institucion_err`} className="text-red-600 text-sm mt-1">
+          {errores[`educaciones.${i}.institucion`]}
+        </p>
+      )}
+    </div>
 
-                  {/* Fecha inicio */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_fecha_inicio`}
-                      className={`peer ${ed.fecha_inicio ? 'has-value':''}`}
-                      type="date"
-                      placeholder=" "
-                      min="1960-01-01"
-                      max={new Date().toISOString().split('T')[0]}
-                      value={ed.fecha_inicio ?? ''}
-                      onChange={e=>setCampo(`educaciones.${i}.fecha_inicio`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_inicio`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_inicio`)}
-                    />
-                    <label htmlFor={`ed_${i}_fecha_inicio`}>Fecha inicio</label>
-                  </div>
+    {/* Fecha finalización */}
+    <div className="float-label-input">
+      <input
+        id={`ed_${i}_fecha_fin`}
+        className={`peer ${ed.fecha_fin ? 'has-value' : ''}`}
+        type="date"
+        placeholder=" "
+        min={FECHA_MINIMA_CURRICULUM}
+        max={new Date().toISOString().split('T')[0]}
+        value={ed.fecha_fin ?? ''}
+        onChange={e => setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
+        aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_fin`)}
+        aria-describedby={getDescribedBy(`educaciones.${i}.fecha_fin`)}
+      />
+      <label htmlFor={`ed_${i}_fecha_fin`}>Fecha finalización</label>
+      {errores[`educaciones.${i}.fecha_fin`] && (
+        <p id={`educaciones_${i}_fecha_fin_err`} className="text-red-600 text-sm mt-1">
+          {errores[`educaciones.${i}.fecha_fin`]}
+        </p>
+      )}
+    </div>
+  </div>
 
-                  {/* Fecha fin */}
-                  <div className="float-label-input">
-                    <input
-                      id={`ed_${i}_fecha_fin`}
-                      className={`peer ${ed.fecha_fin ? 'has-value':''}`}
-                      type="date"
-                      placeholder=" "
-                      min={ed.fecha_inicio ?? '1960-01-01'}
-                      max={new Date().toISOString().split('T')[0]}
-                      value={ed.fecha_fin ?? ''}
-                      onChange={e=>setCampo(`educaciones.${i}.fecha_fin`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`educaciones.${i}.fecha_fin`)}
-                      aria-describedby={getDescribedBy(`educaciones.${i}.fecha_fin`)}
-                    />
-                    <label htmlFor={`ed_${i}_fecha_fin`}>Fecha fin</label>
-                  </div>
-                </div>
-
-                {/* Errores */}
-                {errores[`educaciones.${i}.institucion`] && <p id={`educaciones_${i}_institucion_err`} className="text-red-600 text-sm mt-2">{errores[`educaciones.${i}.institucion`]}</p>}
-                {errores[`educaciones.${i}.titulo`] && <p id={`educaciones_${i}_titulo_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.titulo`]}</p>}
-                {errores[`educaciones.${i}.fecha_inicio`] && <p id={`educaciones_${i}_fecha_inicio_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_inicio`]}</p>}
-                {errores[`educaciones.${i}.fecha_fin`] && <p id={`educaciones_${i}_fecha_fin_err`} className="text-red-600 text-sm">{errores[`educaciones.${i}.fecha_fin`]}</p>}
+  {/* Título obtenido - Campo ancho completo */}
+  <div className="float-label-input">
+    <input
+      id={`ed_${i}_titulo`}
+      className={`peer ${ed.titulo ? 'has-value' : ''}`}
+      placeholder=" "
+      value={ed.titulo}
+      onChange={e => setCampo(`educaciones.${i}.titulo`, e.target.value)}
+      aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
+      aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
+      maxLength={100}
+    />
+    <label htmlFor={`ed_${i}_titulo`}>Título obtenido</label>
+    {errores[`educaciones.${i}.titulo`] && (
+      <p id={`educaciones_${i}_titulo_err`} className="text-red-600 text-sm mt-1">
+        {errores[`educaciones.${i}.titulo`]}
+      </p>
+    )}
+  </div>
+</div>
               </div>
             ))}
           </section>
         )}
 
-        {paso===3 && (
+        {paso === 3 && (
           <section>
-            <button
-              type="button"
-              className="mb-2 px-3 py-1 border rounded"
-              onClick={()=>{
-                setForm(prev => ({
-                  ...prev,
-                  experiencias:[...prev.experiencias, {empresa:'', puesto:'', periodo_inicio:'', periodo_fin:'', funciones:''}]
-                }));
-              }}
-            >
-              + Agregar experiencia
-            </button>
+            <Button
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({
+      ...prev,
+      experiencias: [...prev.experiencias, {
+        empresa: '',
+        puesto: '',
+        periodo_inicio: '',
+        periodo_fin: '',
+        funciones: [],
+        referencias: []
+      }]
+    }));
+  }}
+  className="mb-2"
+>
+  + Agregar experiencia laboral ({form.experiencias.length})
+</Button>
 
-            {form.experiencias.map((ex, i)=>(
-              <div key={i} className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Experiencia {i+1}</span>
-                  <button
-                    type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+            {form.experiencias.map((ex, i) => (
+              <div key={i} className="mb-4 p-4 border rounded bg-white shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-medium text-lg">Experiencia {i + 1}</span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => removeArrayItem('experiencias', i)}
+                    aria-label={`Eliminar experiencia ${i + 1}`}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-4 gap-2 mb-3">
                   {/* Empresa */}
                   <div className="float-label-input">
                     <input
@@ -910,10 +1284,10 @@ const validacionesReferencia = {
                       className={`peer ${ex.empresa ? 'has-value' : ''}`}
                       placeholder=" "
                       value={ex.empresa}
-                      onChange={e=>setCampo(`experiencias.${i}.empresa`, e.target.value)}
+                      onChange={e => setCampo(`experiencias.${i}.empresa`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.empresa`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.empresa`)}
-                      maxLength={30}
+                      maxLength={60}
                     />
                     <label htmlFor={`ex_${i}_empresa`}>Empresa</label>
                   </div>
@@ -925,10 +1299,10 @@ const validacionesReferencia = {
                       className={`peer ${ex.puesto ? 'has-value' : ''}`}
                       placeholder=" "
                       value={ex.puesto}
-                      onChange={e=>setCampo(`experiencias.${i}.puesto`, e.target.value)}
+                      onChange={e => setCampo(`experiencias.${i}.puesto`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.puesto`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.puesto`)}
-                      maxLength={30}
+                      maxLength={60}
                     />
                     <label htmlFor={`ex_${i}_puesto`}>Puesto</label>
                   </div>
@@ -937,13 +1311,13 @@ const validacionesReferencia = {
                   <div className="float-label-input">
                     <input
                       id={`ex_${i}_periodo_inicio`}
-                      className={`peer ${ex.periodo_inicio ? 'has-value':''}`}
+                      className={`peer ${ex.periodo_inicio ? 'has-value' : ''}`}
                       type="date"
                       placeholder=" "
-                      min="1960-01-01"
+                      min={FECHA_MINIMA_CURRICULUM}
                       max={new Date().toISOString().split('T')[0]}
                       value={ex.periodo_inicio ?? ''}
-                      onChange={e=>setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)}
+                      onChange={e => setCampo(`experiencias.${i}.periodo_inicio`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.periodo_inicio`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.periodo_inicio`)}
                     />
@@ -954,106 +1328,344 @@ const validacionesReferencia = {
                   <div className="float-label-input">
                     <input
                       id={`ex_${i}_periodo_fin`}
-                      className={`peer ${ex.periodo_fin ? 'has-value':''}`}
+                      className={`peer ${ex.periodo_fin ? 'has-value' : ''}`}
                       type="date"
                       placeholder=" "
-                      min={ex.periodo_inicio ?? '1960-01-01'}
+                      min={ex.periodo_inicio ?? FECHA_MINIMA_CURRICULUM}
                       max={new Date().toISOString().split('T')[0]}
                       value={ex.periodo_fin ?? ''}
-                      onChange={e=>setCampo(`experiencias.${i}.periodo_fin`, e.target.value)}
+                      onChange={e => setCampo(`experiencias.${i}.periodo_fin`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.periodo_fin`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.periodo_fin`)}
                     />
                     <label htmlFor={`ex_${i}_periodo_fin`}>Fecha fin</label>
                   </div>
-
-                  {/* Funciones */}
-                  <div className="float-label-input col-span-5">
-                    <input
-                      id={`ex_${i}_funciones`}
-                      className={`peer ${ex.funciones ? 'has-value' : ''}`}
-                      placeholder=" "
-                      value={ex.funciones ?? ''}
-                      onChange={e=>setCampo(`experiencias.${i}.funciones`, e.target.value)}
-                      aria-invalid={getAriaInvalid(`experiencias.${i}.funciones`)}
-                      aria-describedby={getDescribedBy(`experiencias.${i}.funciones`)}
-                      maxLength={150}
-                    />
-                    <label htmlFor={`ex_${i}_funciones`}>Funciones</label>
-                  </div>
                 </div>
 
-                {/* Errores */}
+                {/* NUEVO: Sección de Funciones */}
+                <div className="mt-4 p-3 bg-gray-50 rounded">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Funciones del puesto
+                    </label>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => {
+                        const nuevasFunciones = [...(ex.funciones || []), { descripcion: '' }];
+                        setCampo(`experiencias.${i}.funciones`, nuevasFunciones);
+                      }}
+                      disabled={(ex.funciones?.length || 0) >= MAX_FUNCIONES_POR_EXPERIENCIA}
+                      title={(ex.funciones?.length || 0) >= MAX_FUNCIONES_POR_EXPERIENCIA 
+                        ? `Máximo ${MAX_FUNCIONES_POR_EXPERIENCIA} funciones` 
+                        : 'Agregar función'}
+                      className="text-xs"
+                    >
+                      + Agregar función
+                    </Button>
+                  </div>
+
+                  {(ex.funciones || []).map((func, fIdx) => (
+                                        <div key={fIdx} className="flex gap-2 mb-2">
+                      <div className="flex-1 relative">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 font-medium w-6">
+                            {fIdx + 1}.
+                          </span>
+                          <input
+                            id={`ex_${i}_func_${fIdx}_descripcion`}
+                            className="flex-1 px-3 py-2 border rounded focus:ring-2 focus:ring-[#034991] focus:border-transparent"
+                            placeholder={`Describe la función ${fIdx + 1}...`}
+                            value={func.descripcion}
+                            onChange={e => {
+                              const nuevasFunciones = [...ex.funciones];
+                              nuevasFunciones[fIdx] = { descripcion: e.target.value };
+                              setCampo(`experiencias.${i}.funciones`, nuevasFunciones);
+                            }}
+                            aria-invalid={getAriaInvalid(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
+                            aria-describedby={getDescribedBy(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
+                            maxLength={150}
+                          />
+                        </div>
+                        {errores[`experiencias.${i}.funciones.${fIdx}.descripcion`] && (
+                          <p id={`experiencias_${i}_funciones_${fIdx}_descripcion_err`} className="text-red-600 text-xs mt-1 ml-8">
+                            {errores[`experiencias.${i}.funciones.${fIdx}.descripcion`]}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeFuncion(i, fIdx)}
+                        aria-label={`Eliminar función ${fIdx + 1}`}
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  ))}
+
+                  {(!ex.funciones || ex.funciones.length === 0) && (
+                    <p className="text-sm text-gray-500 italic">
+                      No hay funciones agregadas. Haz clic en "+ Agregar función" para comenzar.
+                    </p>
+                  )}
+
+                  {errores[`experiencias.${i}.funciones`] && (
+                    <p id={`experiencias_${i}_funciones_err`} className="text-red-600 text-sm mt-2">
+                      {errores[`experiencias.${i}.funciones`]}
+                    </p>
+                  )}
+                </div>
+
+                {/* NUEVO: Sección de Referencias */}
+<div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+  <div className="flex items-center justify-between mb-3">
+    <label className="text-sm font-semibold text-gray-700">
+      Referencias de esta experiencia
+    </label>
+    <Button
+      variant="link"
+      size="sm"
+      onClick={() => {
+        const nuevasReferencias = [...(ex.referencias || []), { nombre: '', contacto: '', correo: '', relacion: '' }];
+        setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+      }}
+      disabled={(ex.referencias?.length || 0) >= 3}
+      title={(ex.referencias?.length || 0) >= 3 
+        ? 'Máximo 3 referencias por experiencia' 
+        : 'Agregar referencia'}
+      className="text-xs"
+    >
+      + Agregar referencia ({ex.referencias?.length || 0}/3)
+    </Button>
+  </div>
+
+  {(!ex.referencias || ex.referencias.length === 0) ? (
+    <p className="text-sm text-gray-500 italic">
+      No hay referencias agregadas para esta experiencia. Son opcionales.
+    </p>
+  ) : (
+    ex.referencias.map((ref, rIdx) => (
+      <div key={rIdx} className="mb-3 p-3 bg-white rounded border">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">Referencia {rIdx + 1}</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              const continuar = await modal.confirmacion({
+                titulo: "Confirmar eliminación",
+                mensaje: "¿Deseas eliminar esta referencia?",
+                textoAceptar: "Eliminar",
+                textoCancelar: "Cancelar",
+              });
+              if (!continuar) return;
+
+              setForm(prev => {
+                const copia = JSON.parse(JSON.stringify(prev)) as FormCV;
+                copia.experiencias[i].referencias.splice(rIdx, 1);
+                return copia;
+              });
+            }}
+            aria-label={`Eliminar referencia ${rIdx + 1}`}
+          >
+            Eliminar
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2">
+          {/* Nombre */}
+          <div className="float-label-input">
+            <input
+              id={`exp_${i}_ref_${rIdx}_nombre`}
+              className={`peer ${ref.nombre ? 'has-value' : ''}`}
+              placeholder=" "
+              maxLength={80}
+              value={ref.nombre}
+              onChange={e => {
+                const nuevasReferencias = [...ex.referencias];
+                nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], nombre: e.target.value };
+                setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+              }}
+              aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.nombre`)}
+              aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.nombre`)}
+            />
+            <label htmlFor={`exp_${i}_ref_${rIdx}_nombre`}>Nombre completo</label>
+            {errores[`experiencias.${i}.referencias.${rIdx}.nombre`] && (
+              <p id={`experiencias_${i}_referencias_${rIdx}_nombre_err`} className="text-red-600 text-xs mt-1">
+                {errores[`experiencias.${i}.referencias.${rIdx}.nombre`]}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {/* Teléfono */}
+            <div className="float-label-input">
+              <input
+                id={`exp_${i}_ref_${rIdx}_contacto`}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{8}"
+                maxLength={8}
+                className={`peer ${ref.contacto ? 'has-value' : ''}`}
+                placeholder=" "
+                value={ref.contacto}
+                onChange={(e) => {
+                  const limpio = solo8Digitos(e.target.value);
+                  const nuevasReferencias = [...ex.referencias];
+                  nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], contacto: limpio };
+                  setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+                }}
+                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.contacto`)}
+                aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.contacto`)}
+              />
+              <label htmlFor={`exp_${i}_ref_${rIdx}_contacto`}>Teléfono (8 dígitos)</label>
+              {errores[`experiencias.${i}.referencias.${rIdx}.contacto`] && (
+                <p id={`experiencias_${i}_referencias_${rIdx}_contacto_err`} className="text-red-600 text-xs mt-1">
+                  {errores[`experiencias.${i}.referencias.${rIdx}.contacto`]}
+                </p>
+              )}
+            </div>
+
+            {/* Correo */}
+            <div className="float-label-input">
+              <input
+                id={`exp_${i}_ref_${rIdx}_correo`}
+                type="email"
+                className={`peer ${ref.correo ? 'has-value' : ''}`}
+                placeholder=" "
+                maxLength={255}
+                value={ref.correo || ''}
+                onChange={e => {
+                  const nuevasReferencias = [...ex.referencias];
+                  nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], correo: e.target.value };
+                  setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+                }}
+                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.correo`)}
+                aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.correo`)}
+              />
+              <label htmlFor={`exp_${i}_ref_${rIdx}_correo`}>Correo (opcional)</label>
+              {errores[`experiencias.${i}.referencias.${rIdx}.correo`] && (
+                <p id={`experiencias_${i}_referencias_${rIdx}_correo_err`} className="text-red-600 text-xs mt-1">
+                  {errores[`experiencias.${i}.referencias.${rIdx}.correo`]}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Relación */}
+          <div className="float-label-input">
+            <input
+              id={`exp_${i}_ref_${rIdx}_relacion`}
+              className={`peer ${ref.relacion ? 'has-value' : ''}`}
+              placeholder=" "
+              maxLength={50}
+              value={ref.relacion}
+              onChange={e => {
+                const nuevasReferencias = [...ex.referencias];
+                nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], relacion: e.target.value };
+                setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
+              }}
+              aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.relacion`)}
+              aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.relacion`)}
+            />
+            <label htmlFor={`exp_${i}_ref_${rIdx}_relacion`}>Relación (ej: Supervisor, Jefe directo)</label>
+            {errores[`experiencias.${i}.referencias.${rIdx}.relacion`] && (
+              <p id={`experiencias_${i}_referencias_${rIdx}_relacion_err`} className="text-red-600 text-xs mt-1">
+                {errores[`experiencias.${i}.referencias.${rIdx}.relacion`]}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+{/* Errores de campos principales */}
+
+                {/* Errores de campos principales */}
                 {errores[`experiencias.${i}.empresa`] && <p id={`experiencias_${i}_empresa_err`} className="text-red-600 text-sm mt-2">{errores[`experiencias.${i}.empresa`]}</p>}
                 {errores[`experiencias.${i}.puesto`] && <p id={`experiencias_${i}_puesto_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.puesto`]}</p>}
                 {errores[`experiencias.${i}.periodo_inicio`] && <p id={`experiencias_${i}_periodo_inicio_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_inicio`]}</p>}
                 {errores[`experiencias.${i}.periodo_fin`] && <p id={`experiencias_${i}_periodo_fin_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.periodo_fin`]}</p>}
-                {errores[`experiencias.${i}.funciones`] && <p id={`experiencias_${i}_funciones_err`} className="text-red-600 text-sm">{errores[`experiencias.${i}.funciones`]}</p>}
               </div>
             ))}
           </section>
         )}
 
-        {paso===4 && (
+        {paso === 4 && (
           <section className="grid md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-bold text-[#034991] mb-1">Habilidades</h3>
-              <button
-                type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, habilidades:[...prev.habilidades, {descripcion:''}]}));
-                }}
-              >
-                + Habilidad
-              </button>
-              {form.habilidades.map((h,i)=>(
+              <Button
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({ ...prev, habilidades: [...prev.habilidades, { descripcion: '' }] }));
+  }}
+  className="mb-2"
+>
+  + Habilidad ({form.habilidades.length})
+</Button>
+
+              {form.habilidades.map((h, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <div className="float-label-input w-full">
                     <input
                       id={`hab_${i}_descripcion`}
                       className="peer"
                       placeholder=" "
-                      maxLength={20}
+                      maxLength={40}
                       value={h.descripcion}
-                      onChange={e=>setCampo(`habilidades.${i}.descripcion`, e.target.value)}
+                      onChange={e => setCampo(`habilidades.${i}.descripcion`, e.target.value)}
                       aria-invalid={getAriaInvalid(`habilidades.${i}.descripcion`)}
                       aria-describedby={getDescribedBy(`habilidades.${i}.descripcion`)}
                     />
                     <label htmlFor={`hab_${i}_descripcion`}>Descripción de habilidad</label>
+                    {errores[`habilidades.${i}.descripcion`] && (
+                      <p id={`habilidades_${i}_descripcion_err`} className="text-red-600 text-sm mt-1">
+                        {errores[`habilidades.${i}.descripcion`]}
+                      </p>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded whitespace-nowrap"
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => removeArrayItem('habilidades', i)}
+                    aria-label={`Eliminar habilidad ${i + 1}`}
                   >
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
               ))}
 
-              <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
-              <button
-                type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, idiomas:[...prev.idiomas, { nombre:'', nivel:'' }]}));
-                }}
-              >
-                + Idioma
-              </button>
+              
+              
+             
 
-              {form.idiomas.map((i2,idx)=>(
-                <div key={idx} className="mb-3">
+              <h3 className="font-bold text-[#034991] mt-4 mb-1">Idiomas</h3>
+              <Button
+  variant="outline"
+  onClick={() => {
+    setForm(prev => ({ ...prev, idiomas: [...prev.idiomas, { nombre: '', nivel: '' }] }));
+  }}
+  className="mb-2"
+>
+  + Idioma ({form.idiomas.length})
+</Button>
+
+              {form.idiomas.map((i2, idx) => (
+                <div key={idx} className="mb-3 p-3 border rounded bg-white">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Idioma {idx+1}</span>
-                    <button
-                      type="button"
-                      className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
+                    <span className="font-medium">Idioma {idx + 1}</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={() => removeArrayItem('idiomas', idx)}
+                      aria-label={`Eliminar idioma ${idx + 1}`}
                     >
                       Eliminar
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
@@ -1065,7 +1677,7 @@ const validacionesReferencia = {
                         placeholder=" "
                         maxLength={15}
                         value={i2.nombre}
-                        onChange={e=>setCampo(`idiomas.${idx}.nombre`, e.target.value)}
+                        onChange={e => setCampo(`idiomas.${idx}.nombre`, e.target.value)}
                         aria-invalid={getAriaInvalid(`idiomas.${idx}.nombre`)}
                         aria-describedby={getDescribedBy(`idiomas.${idx}.nombre`)}
                       />
@@ -1076,9 +1688,9 @@ const validacionesReferencia = {
                     <div className="float-label-input">
                       <select
                         id={`idioma_${idx}_nivel`}
-                        className={`peer ${i2.nivel ? 'has-value':''}`}
+                        className={`peer ${i2.nivel ? 'has-value' : ''}`}
                         value={i2.nivel}
-                        onChange={e=>setCampo(`idiomas.${idx}.nivel`, e.target.value)}
+                        onChange={e => setCampo(`idiomas.${idx}.nivel`, e.target.value)}
                         aria-invalid={getAriaInvalid(`idiomas.${idx}.nivel`)}
                         aria-describedby={getDescribedBy(`idiomas.${idx}.nivel`)}
                       >
@@ -1099,128 +1711,104 @@ const validacionesReferencia = {
                 </div>
               ))}
 
-              <h3 className="font-bold text-[#034991] mt-4 mb-1">Referencias</h3>
-              <button
-                type="button"
-                className="mb-2 px-3 py-1 border rounded"
-                onClick={()=>{
-                  setForm(prev => ({...prev, referencias:[...prev.referencias, {nombre:'', contacto:'', relacion:''}]}));
-                }}
-              >
-                + Referencia
-              </button>
-              {form.referencias.map((r,idx)=>(
-                <div key={idx} className="mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Referencia {idx+1}</span>
-                    <button
-                      type="button"
-                      className="text-red-700 hover:text-white border border-red-700 hover:bg-red-700 text-xs px-2 py-1 rounded"
-                      onClick={() => removeArrayItem('referencias', idx)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Nombre */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_nombre`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={30}
-                        value={r.nombre}
-                        onChange={e=>setCampo(`referencias.${idx}.nombre`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.nombre`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.nombre`)}
-                      />
-                      <label htmlFor={`ref_${idx}_nombre`}>Nombre</label>
-                    </div>
-
-                    {/* Contacto */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_contacto`}
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]{8}"
-                        maxLength={8}
-                        className={`peer ${r.contacto ? 'has-value':''}`}
-                        placeholder=" "
-                        value={r.contacto}
-                        onChange={(e)=>{
-                          const limpio = solo8Digitos(e.target.value);
-                          setCampo(`referencias.${idx}.contacto`, limpio);
-                        }}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.contacto`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.contacto`)}
-                      />
-                      <label htmlFor={`ref_${idx}_contacto`}>Teléfono</label>
-                    </div>
-
-                    {/* Relación */}
-                    <div className="float-label-input">
-                      <input
-                        id={`ref_${idx}_relacion`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={30}
-                        value={r.relacion}
-                        onChange={e=>setCampo(`referencias.${idx}.relacion`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`referencias.${idx}.relacion`)}
-                        aria-describedby={getDescribedBy(`referencias.${idx}.relacion`)}
-                      />
-                      <label htmlFor={`ref_${idx}_relacion`}>Relación</label>
-                    </div>
-                  </div>
-                  {errores[`referencias.${idx}.nombre`] && <p id={`referencias_${idx}_nombre_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.nombre`]}</p>}
-                  {errores[`referencias.${idx}.contacto`] && <p id={`referencias_${idx}_contacto_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.contacto`]}</p>}
-                  {errores[`referencias.${idx}.relacion`] && <p id={`referencias_${idx}_relacion_err`} className="text-red-600 text-sm mt-1">{errores[`referencias.${idx}.relacion`]}</p>}
-                </div>
-              ))}
+              
             </div>
 
             <div>
-              <Frt_VistaPreviaCurriculum datos={form} />
+              <Frt_VistaPreviaCurriculum 
+                datos={form} 
+                fotoPerfilUrl={fotoPerfilUrl} 
+              />
             </div>
           </section>
         )}
 
         <div className="mt-6 flex justify-between">
-          {paso>1 ? <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={anterior}>Anterior</button> : <div/>}
-          {paso<4 ? (
-            <button type="button" className="px-4 py-2 bg-[#034991] text-white rounded" onClick={siguiente}>Siguiente</button>
+          {paso > 1 ? (
+            <Button 
+              variant="secondary"
+              onClick={anterior}
+            >
+              Anterior
+            </Button>
           ) : (
-            <button
-              type="button"
-              className="px-4 py-2 bg-[#CD1719] text-white rounded disabled:opacity-60"
+            <div />
+          )}
+          
+          {paso < 4 ? (
+            <Button 
+              variant="default"
+              onClick={siguiente}
+              className="bg-[#034991] hover:bg-[#023970]"
+            >
+              Siguiente
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
               onClick={generar}
               disabled={botonGenerarDeshabilitado}
-              title={!paso4Completo ? "Completa las habilidades, idiomas y referencias agregadas." : undefined}
+              title={!paso4Completo ? "Completa las habilidades, idiomas, referencias y certificaciones agregadas." : undefined}
+              className="bg-[#CD1719] hover:bg-[#A01315]"
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
-            </button>
+            </Button>
           )}
         </div>
 
-        {rutaPdf && !mostrarBtnDashboard && (
-          <div className="mt-3">
-            <a className="text-[#034991] underline" href={rutaPdf} target="_blank" rel="noreferrer">Descargar PDF</a>
-          </div>
-        )}
-
         {mostrarBtnDashboard && (
           <div className="mt-4">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-800 text-white rounded"
+            <Button
+              variant="secondary"
               onClick={() => router.visit('/dashboard')}
             >
               Ir al Dashboard
-            </button>
+            </Button>
           </div>
         )}
+              {/* Botón flotante de Vista Previa */}
+      <button
+        onClick={() => setMostrarVistaPrevia(true)}
+        className="fixed bottom-6 right-6 bg-[#034991] hover:bg-[#023970] text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-3xl z-40 group"
+        title="Ver vista previa del currículum"
+        aria-label="Abrir vista previa del currículum"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          className="h-7 w-7 transition-transform group-hover:rotate-12" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+          />
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
+          />
+        </svg>
+        
+        {/* Tooltip */}
+        <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+          <span className="bg-gray-900 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
+            Vista Previa
+          </span>
+        </span>
+      </button>
+
+      {/* Modal de Vista Previa */}
+      <ModalVistaPreviaCurriculum
+        isOpen={mostrarVistaPrevia}
+        onClose={() => setMostrarVistaPrevia(false)}
+        datos={form}
+        fotoPerfilUrl={fotoPerfilUrl}
+      />
       </div>
     </PpLayout>
   );

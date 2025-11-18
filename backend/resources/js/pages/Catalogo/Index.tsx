@@ -4,6 +4,8 @@ import { Inertia } from "@inertiajs/inertia";
 import { PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
+
 
 interface Item {
   id: number;
@@ -291,24 +293,21 @@ export default function CatalogoIndex({
                 </div>
               ))}
 
-              <button
-                onClick={guardar}
-                className="flex items-center gap-2 bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-              >
+              <Button onClick={guardar} className="flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" />
                 {editingItem ? "Actualizar" : "Agregar"}
-              </button>
+              </Button>
 
               {editingItem && (
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setEditingItem(null);
                     setFormValues({});
                   }}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
                 >
                   Cancelar
-                </button>
+                </Button>
               )}
             </div>
 
@@ -340,81 +339,108 @@ export default function CatalogoIndex({
               </select>
             </div>
 
-            {/* Tabla */}
-            <div className="overflow-auto max-h-96 rounded-lg border border-gray-200 mt-3">
-              <table className="w-full text-left">
-                <thead className="bg-[#A7A7A9] text-white uppercase text-sm">
+            {/* 🔹 Tabla con formato uniforme (idéntico a PerfilesUsuarios) */}
+            <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black mt-3">
+              <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">ID</th>
-                    <th className="px-5 py-3 font-semibold">Nombre</th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 first:rounded-tl-2xl">
+                      ID
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
+                      Nombre
+                    </th>
+
                     {camposAdicionales.map((c) => (
-                      <th
-                        key={c.name}
-                        className="px-5 py-3 font-semibold"
-                      >
+                      <th key={c.name} className="px-4 py-2 text-left text-gray-500 border border-gray-300">
                         {c.label}
                       </th>
                     ))}
-                    {relacionesSelect.map((r) => (
-                      <th key={r.name} className="px-5 py-3 font-semibold">
+
+                    {relacionesSelect.map((r, idx) => (
+                      <th
+                        key={r.name}
+                        className={`px-4 py-2 text-left text-gray-500 border border-gray-300 ${idx === relacionesSelect.length - 1 ? "last:rounded-tr-2xl" : ""
+                          }`}
+                      >
                         {r.label}
                       </th>
                     ))}
-                    <th className="px-5 py-3 font-semibold text-center">
+
+                    <th className="px-4 py-2 text-center text-gray-500 border border-gray-300 min-w-[160px] last:rounded-tr-2xl">
                       Acciones
                     </th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
                       <td
                         colSpan={
-                          2 +
-                          camposAdicionales.length +
-                          relacionesSelect.length
+                          2 + camposAdicionales.length + relacionesSelect.length
                         }
-                        className="text-center py-4 text-gray-500 italic"
+                        className="text-center py-4 text-gray-500 italic border border-gray-300 rounded-b-2xl"
                       >
                         No se encontraron registros.
                       </td>
                     </tr>
                   ) : (
-                    paginated.map((item) => (
+                    paginated.map((item, idx) => (
                       <tr
                         key={item.id}
-                        className="hover:bg-[#E8EEF7] transition-colors border-b last:border-none"
+                        className={`hover:bg-gray-50 ${idx === paginated.length - 1 ? "last-row" : ""
+                          }`}
                       >
-                        <td className="px-5 py-3">{item.id}</td>
-                        <td className="px-5 py-3">{item[nombreCampo]}</td>
+                        <td
+                          className={`px-4 py-2 border border-gray-300 ${idx === paginated.length - 1 ? "rounded-bl-2xl" : ""
+                            }`}
+                        >
+                          {item.id}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300">
+                          {item[nombreCampo]}
+                        </td>
+
                         {camposAdicionales.map((c) => (
-                          <td key={c.name} className="px-5 py-3">
-                            {item[c.name]}
+                          <td key={c.name} className="px-4 py-2 border border-gray-300">
+                            {item[c.name] ?? "-"}
                           </td>
                         ))}
+
                         {relacionesSelect.map((r) => {
-                          const selected = r.options.find(
-                            (o) => o.id == item[r.name]
-                          );
+                          const related = r.options.find((o) => o.id == item[r.name]);
                           return (
-                            <td key={r.name} className="px-5 py-3">
-                              {selected?.nombre || ""}
+                            <td key={r.name} className="px-4 py-2 border border-gray-300">
+                              {related?.nombre || "-"}
                             </td>
                           );
                         })}
-                        <td className="px-5 py-3 flex justify-center gap-3">
-                          <button
-                            onClick={() => startEditing(item)}
-                            className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => eliminar(item.id)}
-                            className="bg-[#CD1719] hover:bg-[#a31314] text-white px-4 py-1.5 rounded-lg transition-colors"
-                          >
-                            Eliminar
-                          </button>
+
+                        {/* 🔹 Acciones */}
+                        <td
+                          className={`px-4 py-2 text-center border border-gray-300 ${idx === paginated.length - 1 ? "rounded-br-2xl" : ""
+                            }`}
+                        >
+                          <div className="flex justify-center gap-2">
+                            <Button
+                              onClick={() => startEditing(item)}
+                              variant="default"
+                              size="sm"
+                              className="font-semibold"
+                            >
+                              Editar
+                            </Button>
+
+                            <Button
+                              onClick={() => eliminar(item.id)}
+                              variant="destructive"
+                              size="sm"
+                              className="font-semibold"
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -423,23 +449,42 @@ export default function CatalogoIndex({
               </table>
             </div>
 
-            {/* Paginación */}
-            <div className="flex justify-center gap-2 mt-5">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (pageNum) => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${pageNum === page
-                        ? "bg-[#034991] text-white"
-                        : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                      }`}
+            {/* 🔹 Paginación uniforme */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-4 space-x-2">
+                <Button
+                  type="button"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  variant="default"
+                  size="sm"
+                >
+                  Anterior
+                </Button>
+
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <Button
+                    key={i + 1}
+                    type="button"
+                    onClick={() => setPage(i + 1)}
+                    size="sm"
+                    variant={page === i + 1 ? "destructive" : "outline"}
                   >
-                    {pageNum}
-                  </button>
-                )
-              )}
-            </div>
+                    {i + 1}
+                  </Button>
+                ))}
+
+                <Button
+                  type="button"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === totalPages}
+                  variant="default"
+                  size="sm"
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -450,45 +495,79 @@ export default function CatalogoIndex({
     <>
       <Head title="Gestión de Catálogos" />
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]">
-        {/* Selección de secciones */}
+        {/* ========================================= */}
+        {/* SELECCIÓN DE SECCIONES */}
+        {/* ========================================= */}
         <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 mb-6">
           <div className="flex justify-between items-center border-b pb-3 mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">
               Seleccionar Secciones
             </h2>
-            <button
+            <Button
               onClick={mostrarTodas}
-              className="bg-[#034991] hover:bg-[#023366] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              variant="default"
+              className="bg-[#034991] hover:bg-[#023b73] text-white font-semibold rounded-full px-5 py-2 transition-all duration-200"
             >
-              Mostrar Todo
-            </button>
+              + Mostrar Todo
+            </Button>
           </div>
-          <div className="flex flex-wrap gap-4">
-            {allSections.map((sec) => (
-              <label
-                key={sec}
-                onClick={() => handleClick(sec)}
-                onDoubleClick={() => handleDoubleClick(sec)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer transition-colors ${sections.includes(sec)
-                    ? "bg-[#BEE3F8] border-[#034991]"
-                    : "border-gray-300 hover:bg-gray-100 text-gray-700"
-                  }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={sections.includes(sec)}
-                  onChange={() => handleClick(sec)}
-                  className="w-4 h-4 accent-[#034991]"
-                />
-                <span className="font-medium capitalize">
-                  {sec.replace("_", " ")}
-                </span>
-              </label>
-            ))}
+
+          <div className="flex flex-wrap gap-4 items-center">
+            {allSections.map((sec) => {
+              const activo = sections.includes(sec);
+              return (
+                <label
+                  key={sec}
+                  onClick={() => handleClick(sec)}
+                  onDoubleClick={() => handleDoubleClick(sec)}
+                  className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 cursor-pointer transition-all duration-200 select-none
+            ${activo
+                      ? "bg-white border-[#034991] text-[#034991]"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-[#034991]/70"
+                    }`}
+                >
+                  <div
+                    className={`relative flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 
+              ${activo
+                        ? "border-[#034991] bg-[#034991]"
+                        : "border-[#034991] bg-white"
+                      }`}
+                  >
+                    {activo && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="white"
+                        className="w-3 h-3"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.704 5.292a1 1 0 0 1 0 1.416l-7.5 7.5a1 1 0 0 1-1.416 0l-3.5-3.5a1 1 0 0 1 1.416-1.416L8.5 11.086l6.792-6.794a1 1 0 0 1 1.412 0Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={activo}
+                    onChange={() => handleClick(sec)}
+                    className="hidden"
+                  />
+
+                  <span className="font-medium capitalize">
+                    {sec.replace("_", " ")}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
 
-        {/* Renderizado de tablas */}
+        {/* ========================================= */}
+        {/* RENDERIZADO DE TABLAS */}
+        {/* ========================================= */}
         {sections.includes("paises") && (
           <TablaCatalogo
             titulo="Países"
@@ -571,6 +650,7 @@ export default function CatalogoIndex({
             data={areas_laborales}
           />
         )}
+
       </div>
     </>
   );

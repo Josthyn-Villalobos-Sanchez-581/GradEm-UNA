@@ -181,7 +181,7 @@ class AdminRegistroController extends Controller
 
             $this->registrarBitacora('usuarios', 'crear', "Usuario creado ID {$usuarioId} ({$validated['nombre_completo']})");
 
-            return redirect()->route('usuarios.index')->with('success', 'Usuario registrado correctamente');
+            return redirect()->route('usuarios.index');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('RegistroAdmin - error al crear usuario', ['error' => $e->getMessage()]);
@@ -304,7 +304,7 @@ class AdminRegistroController extends Controller
 
             $this->registrarBitacora('usuarios', 'actualizar', "Usuario actualizado ID {$id}");
 
-            return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente');
+           return redirect()->route('usuarios.index');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error al actualizar usuario', ['error' => $e->getMessage()]);

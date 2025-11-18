@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { Link } from "@inertiajs/react";
-
+import { Button } from "@/components/ui/button";
+import { useModalContext } from "@/context/ModalContext";
 type Rol = "Administrador del Sistema" | "Dirección" | "Subdirección";
 
 const tailwindStyles = `
@@ -204,23 +205,30 @@ const FormularioRegistroAdmin: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
-  const loadCarrerasForUni = async (id_universidad: number) => {
-    setLoadingCarreras(true);
-    try {
-      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
-      if (!res.ok) throw new Error("Error cargando carreras");
-      const data = await res.json();
-      const filtered = Array.isArray(data) ? data.filter((c: any) => allowedCarreras.includes(c.nombre)) : [];
-      setCarreras(filtered);
+ const loadCarrerasForUni = async (id_universidad: number) => {
+  setLoadingCarreras(true);
+  try {
+    const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("Error cargando carreras");
+    const data = await res.json();
+    const filtered = Array.isArray(data) ? data.filter((c: any) => allowedCarreras.includes(c.nombre)) : [];
+    setCarreras(filtered);
+
+    // ⚡ Setear el primer valor por defecto si no hay valor en el formulario
+    if (filtered.length > 0 && !form.data.carrera) {
+      form.setData("carrera", filtered[0].nombre);
+    } else {
       form.setData("carrera", "");
-    } catch (err) {
-      console.error(err);
-      setCarreras([]);
-      form.setData("carrera", "");
-    } finally {
-      setLoadingCarreras(false);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setCarreras([]);
+    form.setData("carrera", "");
+  } finally {
+    setLoadingCarreras(false);
+  }
+};
+
 
   const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = Number(e.target.value);
@@ -296,6 +304,7 @@ const renderCarreraField = () => {
       value={selectedOptionValue}
       onChange={handleCarreraChange}
     >
+      
       {carreras.map((c) => (
         <option key={c.id_carrera} value={c.id_carrera}>
           {c.nombre}
@@ -381,25 +390,47 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     return true;
   };
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid()) return;
-    form.post(route("usuarios.store"), {
-      preserveScroll: true,
-      onSuccess: () => {
-        form.reset(
-          "nombre_completo",
-          "correo",
-          "identificacion",
-          "telefono",
-          "universidad",
-          "carrera",
-          "contrasena",
-          "contrasena_confirmation"
-        );
-      },
-    });
-  };
+  const modal = useModalContext();
+
+ const submit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!isFormValid()) return;
+
+  // 1️⃣ Confirmación antes de enviar
+  const confirmado = await modal.confirmacion({
+    titulo: "Crear usuario",
+    mensaje: "¿Está seguro que desea crear este usuario?",
+    textoAceptar: "Sí, crear",
+    textoCancelar: "Cancelar",
+  });
+
+  if (!confirmado) return;
+
+  // 2️⃣ Enviar al backend
+  form.post(route("usuarios.store"), {
+    preserveScroll: true,
+    onSuccess: async () => {
+      // 3️⃣ Mostrar modal de éxito
+      await modal.alerta({
+        titulo: "Registro exitoso",
+        mensaje: "El usuario se creó correctamente.",
+        textoAceptar: "Aceptar",
+      });
+
+      // 4️⃣ Resetear formulario
+      form.reset(
+        "nombre_completo",
+        "correo",
+        "identificacion",
+        "telefono",
+        "universidad",
+        "carrera",
+        "contrasena",
+        "contrasena_confirmation"
+      );
+    },
+  });
+};
 
   const nombreError = !String(form.data.nombre_completo || "").trim() ? "Requerido" : "";
   const correoError =
@@ -430,11 +461,10 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           </h2>
           <p className="section-sub">Complete los datos para crear la cuenta.</p>
         </div>
-        <Link
-          href={route("usuarios.index")}
-          className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-        >
-          Volver
+        <Link href={route("usuarios.index")}>
+          <Button variant="secondary" size="sm">
+            Volver
+          </Button>
         </Link>
       </div>
 
@@ -550,15 +580,16 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           <div className="full-row help-text">Campos con * son obligatorios. La contraseña debe tener mínimo 8 caracteres y cumplir las reglas.</div>
         </div>
 
-        <div className="mt-6">
-          <button
+        <div className="mt-6 flex justify-center">
+          <Button
             type="submit"
+            variant="default"
+            size="default"
             disabled={form.processing || !valid}
-            className="btn-primary"
             title={valid ? "Registrar" : "Complete todos los campos correctamente"}
           >
             {form.processing ? "Enviando..." : "Registrar"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -3,6 +3,8 @@ import { Inertia } from "@inertiajs/inertia";
 import { Link, Head } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
+
 
 interface Props {
   userPermisos: number[];
@@ -54,12 +56,10 @@ export default function Create({ userPermisos }: Props) {
       <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-6 text-black">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Crear Rol</h2>
-          <Link
-            href="/roles_permisos"
-            className="bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            Volver
-          </Link>
+          {/* Botón Volver */}
+          <Button asChild variant="secondary">
+            <Link href="/roles_permisos">Volver</Link>
+          </Button>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <label htmlFor="nombreRol" className="font-medium">Nombre del rol</label>
@@ -74,13 +74,16 @@ export default function Create({ userPermisos }: Props) {
           />
           {errorNombre && <p className="text-red-500 text-sm">{errorNombre}</p>}
           <p className="text-gray-500 text-sm">Debe tener entre 3 y 50 caracteres, solo letras y espacios.</p>
-          <button
+          <Button
             type="submit"
+            variant="default"
+            size="default"
             disabled={!!errorNombre || submitting || !nombreRol.trim()}
-            className={`bg-[#034991] hover:bg-[#0563c1] text-white px-4 py-2 rounded mt-2 ${(!nombreRol.trim() || errorNombre || submitting) ? "opacity-50 cursor-not-allowed" : ""}`}
+            className="mt-2"
           >
             {submitting ? "Creando..." : "Crear"}
-          </button>
+          </Button>
+
         </form>
       </div>
     </>

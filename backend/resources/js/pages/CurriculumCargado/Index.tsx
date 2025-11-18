@@ -1,95 +1,148 @@
 import React, { useRef, useState } from "react";
-import { Head, usePage } from "@inertiajs/react";
+import { Head } from "@inertiajs/react";
+import axios from "axios";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
-import { Inertia } from "@inertiajs/inertia";
 import { route } from "ziggy-js";
+import { Button } from "@/components/ui/button";
 
-
-interface Curriculum {
-  id_curriculum: number;
-  ruta_archivo_pdf: string;
-  fecha_creacion: string;
+interface Documento {
+  id_documento: number;
+  ruta_archivo: string;
+  fecha_subida: string;
+  nombre_original?: string;
 }
 
 interface Props {
-  usuario: { id_usuario: number; nombre_completo: string };
-  curriculum?: Curriculum | null;
+  documentos: Documento[];
   userPermisos: number[];
 }
 
-export default function CurriculumIndex({ usuario, curriculum }: Props) {
+export default function CurriculumIndex({ documentos = [], userPermisos }: Props) {
   const modal = useModal();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
   const validarArchivo = (file: File) => {
-    if (file.type !== "application/pdf") return "El archivo debe ser un PDF.";
-    if (file.size > 10 * 1024 * 1024) return "El archivo supera el tamaño máximo permitido (10MB).";
+    const allowed = ["application/pdf"];
+    if (!allowed.includes(file.type)) return "Solo se permite formato PDF.";
+    if (file.size > 2 * 1024 * 1024) return "El archivo supera el límite de 2MB.";
     return null;
   };
 
-  const handleFileChange = (file: File) => {
-    const errorMsg = validarArchivo(file);
-    if (errorMsg) {
-      modal.alerta({ titulo: "Archivo inválido", mensaje: errorMsg });
-      setFile(null);
-      return;
+  const handleAddFiles = (newFiles: FileList | null) => {
+    if (!newFiles) return;
+    const arr = Array.from(newFiles);
+    for (const f of arr) {
+      const err = validarArchivo(f);
+      if (err) {
+        modal.alerta({ titulo: "Archivo inválido", mensaje: `${f.name}: ${err}` });
+        continue;
+      }
+      setFiles([f]); // Solo un currículum permitido
     }
-    setFile(file);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      modal.alerta({ titulo: "Error", mensaje: "Debe seleccionar un archivo PDF válido." });
+
+    if (files.length === 0) {
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: "Debe seleccionar un archivo PDF.",
+      });
       return;
     }
 
     const ok = await modal.confirmacion({
       titulo: "Confirmar carga",
-      mensaje: "¿Está seguro que desea subir este currículum? Se reemplazará el currículum actual si existe.",
+      mensaje: `¿Desea subir el currículum "${files[0].name}"?`,
     });
     if (!ok) return;
 
     const formData = new FormData();
-    formData.append("curriculum", file);
+    formData.append("curriculum", files[0]);
 
     try {
-      await Inertia.post(route("curriculum.upload"), formData, {
-        forceFormData: true,
-        onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Currículum cargado con éxito." });
-          setFile(null);
-        },
-        onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo cargar el archivo. Verifique el formato y el tamaño." });
-        },
+      const response = await axios.post(route("api.curriculum.upload"), formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-    } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al subir el archivo." });
+
+      if (response.data.ok) {
+        await modal.alerta({
+          titulo: "Éxito",
+          mensaje: response.data.mensaje,
+        });
+        setFiles([]);
+        window.location.reload(); //Solo se ejecuta cuando el usuario da "Aceptar"
+      } else {
+        await modal.alerta({
+          titulo: "Error",
+          mensaje: response.data.mensaje || "No se pudo cargar el archivo.",
+        });
+      }
+    } catch (error: any) {
+      console.error(error);
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: error.response?.data?.message || "Error inesperado al subir el archivo.",
+      });
     }
   };
 
-  const handleDelete = async () => {
-    const ok = await modal.confirmacion({
-      titulo: "Eliminar Currículum",
-      mensaje: "¿Está seguro que desea eliminar su currículum actual?",
-    });
-    if (!ok) return;
 
-    try {
-      await Inertia.delete(route("curriculum.delete"), {
-        onSuccess: () => {
-          modal.alerta({ titulo: "Éxito", mensaje: "Currículum eliminado correctamente." });
-        },
-        onError: () => {
-          modal.alerta({ titulo: "Error", mensaje: "No se pudo eliminar el currículum." });
-        },
+  const handleDelete = async (id: number) => {
+  const ok = await modal.confirmacion({
+    titulo: "Eliminar Currículum",
+    mensaje: "¿Está seguro que desea eliminar su currículum?",
+  });
+  if (!ok) return;
+
+  try {
+    const response = await axios.delete(route("api.curriculum.delete"), {
+      data: { id_documento: id },
+    });
+
+    if (response.data.ok) {
+      await modal.alerta({
+        titulo: "Éxito",
+        mensaje: response.data.mensaje || "Currículum eliminado correctamente.",
       });
-    } catch {
-      modal.alerta({ titulo: "Error", mensaje: "Error inesperado al eliminar el archivo." });
+      window.location.reload(); // 🔹 solo se ejecuta tras aceptar el modal
+    } else {
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: response.data.mensaje || "No se pudo eliminar el currículum.",
+      });
+    }
+  } catch (error: any) {
+    console.error(error);
+    await modal.alerta({
+      titulo: "Error",
+      mensaje: error.response?.data?.message || "Error inesperado al eliminar.",
+    });
+  }
+  };
+
+  const handleGoToDocumentos = async () => {
+    try {
+      const response = await axios.get(route("api.documentos.url"));
+      if (response.data?.ok && response.data?.url) {
+        window.location.href = response.data.url;
+        return;
+      }
+
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: "No se pudo obtener la ruta de Documentos.",
+      });
+    } catch (error: any) {
+      console.error(error);
+      await modal.alerta({
+        titulo: "Error",
+        mensaje: error.response?.data?.message || "No se pudo acceder a Documentos.",
+      });
     }
   };
 
@@ -100,102 +153,120 @@ export default function CurriculumIndex({ usuario, curriculum }: Props) {
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-[#034991]">Carga de Currículum</h2>
-            <button
-                type="button"
-                onClick={() => Inertia.get(route("documentos.index"))}
-                className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-1 rounded shadow text-sm"
+            <Button
+              type="button"
+              onClick={handleGoToDocumentos}
+              variant="default"
+              size="sm"
+              className="shadow"
+              style={{ backgroundColor: "#034991" }}
             >
-                Ir a Documentos
-            </button>
+              Ir a Documentos
+            </Button>
           </div>
+
           <p className="text-gray-600 mb-4">
-            Solo se permiten archivos <strong>PDF</strong> de máximo <strong>10MB</strong>.
+            Solo se permite formato <strong>PDF</strong>. Tamaño máximo: <strong>2MB</strong>.
           </p>
-        
+
           {/* Dropzone */}
           <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
-                    dragOver
-                    ? "border-red-500 bg-red-50" // 👈 rojo cuando arrastran archivo encima
-                    : file
-                    ? "border-green-400"
-                    : "border-gray-300"
-                }`}
-                onClick={() => inputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={() => setDragOver(true)}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handleFileChange(e.dataTransfer.files[0]);
-                    }
-                }}
-                >
-                {!file ? (
-                    <p className="text-gray-500">
-                    Arrastre su archivo aquí o{" "}
-                    <span className="text-[#034991] font-semibold">haga clic</span> para seleccionar
-                    </p>
-                ) : (
-                    <p className="text-green-600 font-medium">{file.name}</p>
-                )}
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={(e) => e.target.files && handleFileChange(e.target.files[0])}
-                />
-            </div>
-
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${dragOver
+              ? "border-red-500 bg-red-50"
+              : files.length
+                ? "border-green-400"
+                : "border-gray-300"
+              }`}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDragEnter={() => setDragOver(true)}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              handleAddFiles(e.dataTransfer.files);
+            }}
+          >
+            {!files.length ? (
+              <p className="text-gray-500">
+                Arrastre su currículum aquí o{" "}
+                <span className="text-[#034991] font-semibold">haga clic</span> para seleccionar
+              </p>
+            ) : (
+              <div className="text-left">
+                <p className="font-medium text-green-700 mb-2">Archivo listo para subir:</p>
+                <p className="text-sm">{files[0].name} ({Math.round(files[0].size / 1024)} KB)</p>
+              </div>
+            )}
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => handleAddFiles(e.target.files)}
+            />
+          </div>
 
           {/* Botones */}
           <form onSubmit={handleUpload} className="mt-6 flex justify-center gap-3">
-            <button
+            <Button
               type="submit"
-              className="bg-[#034991] hover:bg-[#0563c1] text-white px-6 py-2 rounded shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={!file}
+              variant="default"
+              size="default"
+              disabled={!files.length}
+              className="shadow"
             >
               Subir Currículum
-            </button>
-            {file && (
-              <button
+            </Button>
+            {files.length > 0 && (
+              <Button
                 type="button"
-                onClick={() => setFile(null)}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
+                onClick={() => setFiles([])}
+                variant="destructive"
+                size="default"
+                className="shadow"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </form>
 
-          {/* Currículum existente */}
-          {curriculum && (
-            <div className="mt-8 border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Currículum actual:</h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Subido el {new Date(curriculum.fecha_creacion).toLocaleDateString()}
-              </p>
-              <div className="flex gap-3">
-                <a
-                  href={`/storage/${curriculum.ruta_archivo_pdf}`}
-                  target="_blank"
-                  className="bg-[#034991] hover:bg-blue-800 text-white px-4 py-2 rounded shadow text-center"
-                >
-                  Ver Currículum
-                </a>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Lista existente */}
+          <div className="mt-8 border-t pt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Currículum actual:</h3>
+            {documentos && documentos.length > 0 ? (
+              <ul className="divide-y divide-gray-200">
+                {documentos.map((doc) => (
+                  <li key={doc.id_documento} className="flex justify-between items-center py-2">
+                    <Button
+                      type="button"
+                      onClick={() => window.open(`/storage/${doc.ruta_archivo}`, "_blank")}
+                      variant="outline"
+                      size="sm"
+                      className="text-center"
+                    >
+                      {doc.nombre_original || doc.ruta_archivo.split("/").pop()}
+                    </Button>
+                    <div className="flex gap-2">
+                      <span className="text-sm text-gray-500">
+                        {new Date(doc.fecha_subida).toLocaleDateString()}
+                      </span>
+                      <Button
+                        type="button"
+                        onClick={() => handleDelete(doc.id_documento)}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600">No ha cargado un currículum aún.</p>
+            )}
+          </div>
         </div>
       </div>
     </>
