@@ -74,9 +74,9 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     // ==========================================
     Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
-});
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
+    });
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -88,6 +88,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
         Route::get('/perfil/editar', [PerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
+        Route::post('/perfil/verificar-identificacion', [PerfilController::class, 'verificarIdentificacion'])
+            ->name('perfil.verificar-identificacion');
+
+        Route::post('/perfil/verificar-correo', [PerfilController::class, 'verificarCorreo'])
+            ->name('perfil.verificar-correo');
+
+        Route::post('/perfil/enviar-codigo-correo', [PerfilController::class, 'enviarCodigoCorreo'])
+            ->name('perfil.enviar-codigo-correo');
+
+        Route::post('/perfil/validar-codigo-correo', [PerfilController::class, 'validarCodigoCorreo'])
+            ->name('perfil.validar-codigo-correo');
 
         Route::post('/perfil/foto', [FotoPerfilController::class, 'subirFoto'])->name('perfil.foto.subir');
         Route::get('/perfil/foto', [FotoPerfilController::class, 'mostrarFoto'])->name('perfil.foto.mostrar');
@@ -99,19 +110,19 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
         Route::get('/curriculum/generar', function () {
-    $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
-    return Inertia::render('Frt_FormularioGeneracionCurriculum', [
-        'userPermisos' => getUserPermisos(),
-        'usuario' => [
-            'id_usuario' => $usuario->id_usuario,
-            'nombre_completo' => $usuario->nombre_completo,
-            'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
-            'correo' => $usuario->correo,
-            'telefono' => $usuario->telefono ?? '',
-            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
-        ]
-    ]);
-})->name('curriculum.generar');
+            $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+            return Inertia::render('Frt_FormularioGeneracionCurriculum', [
+                'userPermisos' => getUserPermisos(),
+                'usuario' => [
+                    'id_usuario' => $usuario->id_usuario,
+                    'nombre_completo' => $usuario->nombre_completo,
+                    'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
+                    'correo' => $usuario->correo,
+                    'telefono' => $usuario->telefono ?? '',
+                    'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+                ]
+            ]);
+        })->name('curriculum.generar');
 
         Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])->name('api.curriculum.generate');
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');

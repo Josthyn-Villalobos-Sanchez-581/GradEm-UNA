@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
+import axios from "axios";
+import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+
 
 // -------------------------
 // INTERFACES
@@ -79,7 +82,7 @@ export default function EditarEgresado({
 
   // Secciones (igual formato que el componente admin: sidebar + secciones)
   const [activeSection, setActiveSection] = useState<
-    "personales" | "residencia" | "academicos" | "laborales"
+    "personales" | "residencia" | "academicos" | "laborales" | "correo"
   >("personales");
 
   // selects dependientes
@@ -142,6 +145,42 @@ export default function EditarEgresado({
       });
     }
   }, [formData.estado_empleo]);
+
+  useEffect(() => {
+
+    // Solo verificar si cambió la identificación real
+    if (formData.identificacion === usuario.identificacion) {
+      setErrores(prev => ({ ...prev, identificacion: "" }));
+      return;
+    }
+
+    // Si falla la validación local → no llamar backend
+    const errorLocal = validarCampo("identificacion", formData.identificacion);
+    if (errorLocal) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await axios.post("/perfil/verificar-identificacion", {
+          identificacion: formData.identificacion
+        });
+
+        if (resp.data.existe) {
+          setErrores(prev => ({
+            ...prev,
+            identificacion: "La identificación ya existe en el sistema."
+          }));
+        } else {
+          setErrores(prev => ({ ...prev, identificacion: "" }));
+        }
+
+      } catch (e) {
+        console.error("Error validando identificación", e);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+
+  }, [formData.identificacion]);
 
   // -------------------------
   // FOTO - eliminar
@@ -440,6 +479,7 @@ export default function EditarEgresado({
 
           <nav className="flex flex-col space-y-2">
             <SectionLink title="Datos Personales" active={activeSection === "personales"} onClick={() => setActiveSection("personales")} />
+            <SectionLink title="Cambio de correo" active={activeSection === 'correo'} onClick={() => setActiveSection('correo')} />
             <SectionLink title="Lugar de Residencia" active={activeSection === "residencia"} onClick={() => setActiveSection("residencia")} />
             <SectionLink title="Datos Académicos" active={activeSection === "academicos"} onClick={() => setActiveSection("academicos")} />
             <SectionLink title="Datos Laborales" active={activeSection === "laborales"} onClick={() => setActiveSection("laborales")} />
@@ -455,6 +495,7 @@ export default function EditarEgresado({
                 {activeSection === "residencia" && "Lugar de Residencia"}
                 {activeSection === "academicos" && "Datos Académicos"}
                 {activeSection === "laborales" && "Datos Laborales"}
+                {activeSection === 'correo' && 'Cambiar correo electrónico'}
               </h3>
 
               <div className="flex gap-3">
@@ -566,6 +607,19 @@ export default function EditarEgresado({
                 </div>
               </div>
             )}
+
+            {activeSection === 'correo' && (
+              <div className="max-w-lg">
+                <CorreoVerificacion
+                  correoInicial={formData.correo}
+                  onCorreoVerificado={(nuevoCorreo) => {
+                    setFormData(prev => ({ ...prev, correo: nuevoCorreo }));
+                    setErrores(prev => ({ ...prev, correo: "" })); // Limpia error en caso de existir
+                  }}
+                />
+              </div>
+            )}
+
 
             {/* LUGAR DE RESIDENCIA */}
             {activeSection === "residencia" && (

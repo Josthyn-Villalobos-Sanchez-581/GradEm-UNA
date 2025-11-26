@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
+import axios from "axios";
+import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+
 
 // -------------------------
 // INTERFACES
@@ -128,7 +131,7 @@ export default function EditarEmpresa({
   const [erroresEmpresa, setErroresEmpresa] = useState<{ [key: string]: string }>({});
 
   // sección activa para mostrar / ocultar secciones
-  const [seccionActiva, setSeccionActiva] = useState<"representante" | "empresa" | "ubicacion">("representante");
+  const [seccionActiva, setSeccionActiva] = useState<"representante" | "empresa" | "ubicacion" | "correo">("representante");
 
   // ------------------------------------------------
   // Foto - eliminar
@@ -171,6 +174,42 @@ export default function EditarEmpresa({
       }) : prev);
     }
   }, [empresaData?.id_canton, paises, provincias, cantones]);
+
+  useEffect(() => {
+
+    // Solo verificar si cambió la identificación real
+    if (formData.identificacion === usuario.identificacion) {
+      setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+      return;
+    }
+
+    // Si falla la validación local → no llamar backend
+    const errorLocal = validarUsuario("identificacion", formData.identificacion);
+    if (errorLocal) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await axios.post("/perfil/verificar-identificacion", {
+          identificacion: formData.identificacion
+        });
+
+        if (resp.data.existe) {
+          setErroresUsuario(prev => ({
+            ...prev,
+            identificacion: "La identificación ya existe en el sistema."
+          }));
+        } else {
+          setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+        }
+
+      } catch (e) {
+        console.error("Error validando identificación", e);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+
+  }, [formData.identificacion]);
 
   // ------------------------------------------------
   // VALIDACIONES (basadas en tu código original, adaptadas a limites)
@@ -239,7 +278,6 @@ export default function EditarEmpresa({
     const { name } = e.target;
     let value = (e.target as HTMLInputElement).value ?? "";
 
-    // enforce limits before updating state
     if (name === "nombre_completo") {
       if (value.length > MAX_NAME) value = value.slice(0, MAX_NAME);
     }
@@ -447,7 +485,7 @@ export default function EditarEmpresa({
   // ------------------------------------------------
   // UI: SectionLink component
   // ------------------------------------------------
-  const SectionLink = ({ title, id }: { title: string; id: "representante" | "empresa" | "ubicacion" }) => (
+  const SectionLink = ({ title, id }: { title: string; id: "representante" | "empresa" | "ubicacion" | "correo" }) => (
     <button
       type="button"
       onClick={() => setSeccionActiva(id)}
@@ -500,12 +538,13 @@ export default function EditarEmpresa({
             )}
 
             <p className="text-2xl font-bold mt-4"> Empresa: {empresa?.nombre}</p>
-              <p className="text-base text-gray-700">
-                Usuario: {usuario.nombre_completo}</p>
+            <p className="text-base text-gray-700">
+              Usuario: {usuario.nombre_completo}</p>
           </div>
 
           <nav className="flex flex-col space-y-2">
             <SectionLink title="Datos del representante" id="representante" />
+            <SectionLink title="Correo de verificación" id="correo" />
             <SectionLink title="Datos de la empresa" id="empresa" />
             <SectionLink title="Ubicación" id="ubicacion" />
           </nav>
@@ -616,6 +655,18 @@ export default function EditarEmpresa({
                     {erroresEmpresa.persona_contacto && <span className="text-red-500 text-xs">{erroresEmpresa.persona_contacto}</span>}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {seccionActiva === 'correo' && (
+              <div className="max-w-lg">
+                <CorreoVerificacion
+                  correoInicial={formData.correo ?? ""}  
+                  onCorreoVerificado={(nuevoCorreo) => {
+                    setFormData(prev => ({ ...prev, correo: nuevoCorreo }));
+                    setErroresEmpresa(prev => ({ ...prev, correo: "" }));
+                  }}
+                />
               </div>
             )}
 

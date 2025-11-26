@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Usuario;
 use App\Models\PlataformaExterna;
+use App\Mail\CodigoVerificacionMail;
+use Illuminate\Support\Facades\Mail;
 
-use Illuminate\Support\Facades\Log; // 👈 aquí
+use Illuminate\Support\Facades\Log;
 class PerfilController extends Controller
 {
     /**
@@ -53,7 +55,7 @@ class PerfilController extends Controller
             ->where('id_rol', $usuario->id_rol)
             ->value('nombre_rol');
 
-            
+
         $plataformas = PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get();
         // Cargar empresa asociada al usuario
         $empresa = DB::table('empresas')
@@ -230,5 +232,91 @@ class PerfilController extends Controller
             Log::error('Error al actualizar perfil: ' . $e->getMessage());
             return back()->with('error', 'Ocurrió un error al actualizar los datos.')->withInput();
         }
+    }
+
+    public function verificarCorreo(Request $request)
+    {
+        $request->validate([
+            'correo' => 'required|email|max:100',
+        ]);
+
+        $correo = $request->correo;
+
+        // Verificar si existe en la BD
+        $existe = DB::table('usuarios')
+            ->where('correo', $correo)
+            ->where('id_usuario', '!=', Auth::id()) // evitar conflicto con su mismo correo
+            ->exists();
+
+        return response()->json([
+            'existe' => $existe
+        ]);
+    }
+
+
+    public function enviarCodigoCorreo(Request $request)
+    {
+        $request->validate([
+            'correo' => 'required|email|max:100',
+        ]);
+
+        $codigo = rand(100000, 999999);
+
+        session([
+            'codigo_verificacion_correo' => $codigo,
+            'correo_a_verificar' => $request->correo,
+            'codigo_expira' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($request->correo)->send(new CodigoVerificacionMail($codigo));
+
+        return response()->json([
+            'message' => 'Código enviado con éxito al correo proporcionado.'
+        ]);
+    }
+
+
+
+    public function validarCodigoCorreo(Request $request)
+    {
+        $request->validate([
+            'codigo' => 'required',
+        ]);
+
+        if (!session()->has('codigo_verificacion_correo')) {
+            return response()->json(['error' => 'Debe solicitar un código primero'], 422);
+        }
+
+        if (now()->greaterThan(session('codigo_expira'))) {
+            return response()->json(['error' => 'El código ha expirado'], 422);
+        }
+
+        if ($request->codigo != session('codigo_verificacion_correo')) {
+            return response()->json(['error' => 'El código es incorrecto'], 422);
+        }
+
+        return response()->json([
+            'message' => 'Correo verificado con éxito',
+            'correoVerificado' => session('correo_a_verificar'),
+        ]);
+    }
+
+    public function verificarIdentificacion(Request $request)
+    {
+        $request->validate([
+            'identificacion' => 'required|string|max:12',
+        ]);
+
+        $identificacion = $request->identificacion;
+
+        // Verificar si existe, excluyendo al usuario actual
+        $existe = DB::table('usuarios')
+            ->where('identificacion', $identificacion)
+            ->where('id_usuario', '!=', Auth::id())
+            ->exists();
+
+        return response()->json([
+            'existe' => $existe
+        ]);
     }
 }
