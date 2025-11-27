@@ -12,6 +12,7 @@ use App\Mail\CodigoVerificacionMail;
 use Illuminate\Support\Facades\Mail;
 
 use Illuminate\Support\Facades\Log;
+
 class PerfilController extends Controller
 {
     /**
@@ -162,32 +163,46 @@ class PerfilController extends Controller
             // 🔹 CASO 1: EMPRESA
             // ======================================================
             if (trim(strtolower($rolNombre)) === 'empresa') {
+
                 $validated = validator($dataToValidate, [
                     'nombre_completo'          => 'required|string|max:100',
                     'identificacion'           => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
+
+                    // VALIDACIÓN DE CORREO DEL USUARIO
+                    'correo'                   => 'required|email|max:100|unique:usuarios,correo,' . $usuario->id_usuario . ',id_usuario',
+
+                    // VALIDACIÓN DE DATOS DE EMPRESA
                     'empresa_nombre'           => 'required|string|max:100',
-                    'empresa_correo'           => 'nullable|email|max:100',
+                    'empresa_correo'           => 'required|email|max:100', // ← AHORA TAMBIÉN REQUIRED
                     'empresa_telefono'         => 'nullable|string|max:20',
                     'empresa_persona_contacto' => 'required|string|max:100',
                     'id_canton'                => 'nullable|integer|exists:cantones,id_canton',
                 ])->validate();
 
-                // Actualizar datos del usuario
+
+                // ======================================================
+                // 🔹 ACTUALIZAR USUARIO (INCLUYENDO CORREO)
+                // ======================================================
                 $usuario->update([
                     'nombre_completo' => $validated['nombre_completo'],
                     'identificacion'  => $validated['identificacion'],
+                    'correo'          => $validated['correo'],       // <<< ***AQUÍ ESTÁ LA SOLUCIÓN***
                     'id_canton'       => $validated['id_canton'],
                 ]);
 
-                // Actualizar datos de la empresa
+
+                // ======================================================
+                // 🔹 ACTUALIZAR EMPRESA
+                // ======================================================
                 DB::table('empresas')
                     ->where('usuario_id', $usuario->id_usuario)
                     ->update([
                         'nombre'           => $validated['empresa_nombre'],
-                        'correo'           => $validated['empresa_correo'] ?? null,
+                        'correo'           => $validated['empresa_correo'],
                         'telefono'         => $validated['empresa_telefono'] ?? null,
                         'persona_contacto' => $validated['empresa_persona_contacto'],
                     ]);
+
 
                 return redirect(route('perfil.index'))
                     ->with('success', 'Datos de la empresa actualizados con éxito.');

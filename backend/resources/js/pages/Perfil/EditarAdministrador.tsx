@@ -85,7 +85,10 @@ export default function EditarAdministrador({
   const modal = useModal();
 
   const [formData, setFormData] = useState<UsuarioAdministrador>(usuario);
+  const [nombreFijo] = useState(usuario.nombre_completo);
+
   const [errores, setErrores] = useState<{ [key: string]: string }>({});
+  const [idDuplicada, setIdDuplicada] = useState(false);
   const [activeSection, setActiveSection] = useState<'personales' | 'residencia' | 'academicos' | 'correo'>('personales');
   const [selectedPais, setSelectedPais] = useState<number | null>(usuario.id_pais);
   const [selectedProvincia, setSelectedProvincia] = useState<number | null>(usuario.id_provincia);
@@ -138,20 +141,24 @@ export default function EditarAdministrador({
 ============================================================ */
   useEffect(() => {
 
-    // Solo verificar si cambió la identificación real
+    // Si no cambió, no es error
     if (formData.identificacion === usuario.identificacion) {
       setErrores(prev => ({ ...prev, identificacion: "" }));
+      setIdDuplicada(false);
       return;
     }
 
-    // Si falla la validación local → no llamar backend
+    // Validación local básica
     const errorLocal = validarCampo("identificacion", formData.identificacion);
-    if (errorLocal) return;
+    if (errorLocal) {
+      setIdDuplicada(false);
+      return;
+    }
 
     const timer = setTimeout(async () => {
       try {
         const resp = await axios.post("/perfil/verificar-identificacion", {
-          identificacion: formData.identificacion
+          identificacion: formData.identificacion,
         });
 
         if (resp.data.existe) {
@@ -159,18 +166,21 @@ export default function EditarAdministrador({
             ...prev,
             identificacion: "La identificación ya existe en el sistema."
           }));
+          setIdDuplicada(true); // <- BLOQUEA EL SUBMIT
         } else {
           setErrores(prev => ({ ...prev, identificacion: "" }));
+          setIdDuplicada(false); // <- IDENT NO ESTÁ DUPLICADA
         }
 
       } catch (e) {
         console.error("Error validando identificación", e);
       }
-    }, 600);
+    }, 200);
 
     return () => clearTimeout(timer);
 
   }, [formData.identificacion]);
+
 
 
   /* ============================================================
@@ -188,20 +198,13 @@ export default function EditarAdministrador({
         error = "Solo letras y espacios.";
     }
 
-    if (name === "correo") {
-      if (!value) {
-        error = "El correo es obligatorio.";
-      } else if (strValue.length > 100) {
-        error = "Máximo 100 caracteres.";
-      } else if (!/^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/i.test(strValue)) {
-        // Validación de formato de correo genérica
-        error = "Formato de correo inválido.";
-      }
-    }
-
     if (name === "identificacion") {
       if (!/^(?=.*\d)[A-Za-z0-9]{5,12}$/.test(strValue)) {
         error = "Identificación alfanumérica (5-12 caracteres) y debe incluir números.";
+      }
+
+      if (idDuplicada === true) {
+        error = "La identificación ya existe en el sistema."
       }
     }
 
@@ -246,6 +249,12 @@ export default function EditarAdministrador({
     if (name === "identificacion") {
       value = value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
       newValue = value;
+
+      setIdDuplicada(false);
+      setErrores((prev) => ({
+        ...prev,
+        identificacion: ""
+      }));
     }
 
     // Normalizar a número si es un campo ID y es un string vacío
@@ -262,6 +271,16 @@ export default function EditarAdministrador({
   ============================================================ */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (idDuplicada) {
+      await modal.alerta({
+        titulo: "Identificación duplicada",
+        mensaje: "Esta identificación ya existe en el sistema. Corrija el campo para continuar.",
+      });
+      setActiveSection("personales"); // te lleva a la sección correcta
+      return;
+    }
+
 
     // ✅ CORRECCIÓN: Declarar 'hayErrores' y 'nuevosErrores' localmente.
     let hayErrores = false;
@@ -410,7 +429,18 @@ export default function EditarAdministrador({
             )}
             {/* 📸 FIN FOTO Y ACCIONES DE PERFIL */}
 
-            <p className="text-lg font-semibold text-gray-800 mt-4">{formData.nombre_completo}</p>
+            <p
+              className="
+               text-lg font-semibold text-gray-800 mt-4 
+               break-words 
+               whitespace-normal 
+               max-w-full 
+               overflow-hidden 
+               text-ellipsis
+             "
+            >
+              {nombreFijo}
+            </p>
             <p className="text-sm text-gray-500">Administrador</p>
           </div>
 
@@ -477,24 +507,6 @@ export default function EditarAdministrador({
                   />
                   {errores.nombre_completo && (
                     <span className="text-red-500 text-xs mt-1">{errores.nombre_completo}</span>
-                  )}
-                </div>
-
-                {/* Correo */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Correo electrónico</label>
-                  <input
-                    type="email"
-                    name="correo"
-                    value={formData.correo}
-                    maxLength={100}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.correo ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.correo && (
-                    <span className="text-red-500 text-xs mt-1">{errores.correo}</span>
                   )}
                 </div>
 
