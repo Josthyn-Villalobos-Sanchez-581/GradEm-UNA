@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
+import axios from "axios";
+import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+
 
 // -------------------------
 // INTERFACES
@@ -58,7 +61,6 @@ interface Props {
 // CONSTANTS (limits)
 // -------------------------
 const MAX_NAME = 80;   // nombres: persona / empresa / persona_contacto
-const MAX_EMAIL = 100; // correos
 
 // -------------------------
 // COMPONENT
@@ -126,9 +128,10 @@ export default function EditarEmpresa({
   // errores para campos (usuario y empresa)
   const [erroresUsuario, setErroresUsuario] = useState<{ [key: string]: string }>({});
   const [erroresEmpresa, setErroresEmpresa] = useState<{ [key: string]: string }>({});
+  const [idDuplicada, setIdDuplicada] = useState(false);
 
   // sección activa para mostrar / ocultar secciones
-  const [seccionActiva, setSeccionActiva] = useState<"representante" | "empresa" | "ubicacion">("representante");
+  const [seccionActiva, setSeccionActiva] = useState<"representante" | "empresa" | "ubicacion" | "correo">("representante");
 
   // ------------------------------------------------
   // Foto - eliminar
@@ -172,6 +175,49 @@ export default function EditarEmpresa({
     }
   }, [empresaData?.id_canton, paises, provincias, cantones]);
 
+  useEffect(() => {
+
+    // Si no ha cambiado, limpiar error y no validar
+    if (formData.identificacion === usuario.identificacion) {
+      setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+      return;
+    }
+
+    // Validación local (longitud, formato…)
+    const errorLocal = validarUsuario("identificacion", formData.identificacion);
+    if (errorLocal) {
+      setErroresUsuario(prev => ({ ...prev, identificacion: errorLocal }));
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await axios.post("/perfil/verificar-identificacion", {
+          identificacion: formData.identificacion
+        });
+
+        if (resp.data.existe) {
+          setErroresUsuario(prev => ({
+            ...prev,
+            identificacion: "La identificación ya existe en el sistema."
+          }));
+          setIdDuplicada(true);
+        } else {
+          setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+          setIdDuplicada(false);
+        }
+
+
+      } catch (e) {
+        console.error("Error validando identificación:", e);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+
+  }, [formData.identificacion]);
+
+
   // ------------------------------------------------
   // VALIDACIONES (basadas en tu código original, adaptadas a limites)
   // ------------------------------------------------
@@ -189,11 +235,42 @@ export default function EditarEmpresa({
       if (!/^(?=.*\d)[A-Za-z0-9]{5,12}$/.test(v)) {
         error = "Identificación alfanumérica (5-12 caracteres) y debe incluir números.";
       }
+
+      if (idDuplicada === true) {
+        error = "La identificación ya existe en el sistema."
+      }
     }
+
 
     setErroresUsuario(prev => ({ ...prev, [name]: error }));
     return error;
   };
+
+  const validarIdentificacionOnBlur = async () => {
+    const v = formData.identificacion;
+
+    const localError = validarUsuario("identificacion", v);
+    if (localError) return;
+
+    try {
+      const resp = await axios.post("/perfil/verificar-identificacion", {
+        identificacion: v
+      });
+
+      if (resp.data.existe) {
+        setErroresUsuario(prev => ({
+          ...prev,
+          identificacion: "La identificación ya existe en el sistema."
+        }));
+        setIdDuplicada(true);
+      } else {
+        setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+        setIdDuplicada(false);
+      }
+    } catch (e) { }
+  };
+
+
 
   const validarEmpresa = (name: string, value: string | number | null) => {
     let error = "";
@@ -202,13 +279,6 @@ export default function EditarEmpresa({
     if (name === "nombre") {
       if (!valStr.trim()) error = "El nombre de la empresa es obligatorio.";
       else if (valStr.length > MAX_NAME) error = `Máximo ${MAX_NAME} caracteres.`;
-    }
-
-    if (name === "correo") {
-      const val = String(value ?? "");
-      if (!val.trim()) error = "El correo es obligatorio.";
-      else if (val.length > MAX_EMAIL) error = `Máximo ${MAX_EMAIL} caracteres.`;
-      else if (!/^[\w.%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(val)) error = "Correo inválido.";
     }
 
     if (name === "telefono") {
@@ -237,24 +307,37 @@ export default function EditarEmpresa({
   // ------------------------------------------------
   const handleChangeUsuario = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name } = e.target;
-    let value = (e.target as HTMLInputElement).value ?? "";
+    let value = e.target.value ?? "";
 
-    // enforce limits before updating state
     if (name === "nombre_completo") {
       if (value.length > MAX_NAME) value = value.slice(0, MAX_NAME);
-    }
-
-    if (name === "correo") {
-      if (value.length > MAX_EMAIL) value = value.slice(0, MAX_EMAIL);
+      validarUsuario(name, value);
     }
 
     if (name === "identificacion") {
       value = value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
+
+      //Si el usuario cambia la identificación → borrar estado de duplicado
+      if (idDuplicada) {
+        setIdDuplicada(false);
+      }
+
+      // Revalidar formato inmediatamente
+      const err = validarUsuario("identificacion", value);
+
+      // Si no hay error de formato → borrar error visual
+      if (!err) {
+        setErroresUsuario(prev => ({ ...prev, identificacion: "" }));
+      }
+
+      setFormData(prev => ({ ...prev, identificacion: value }));
+      return;
     }
 
-    validarUsuario(name, String(value));
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+
 
   // ------------------------------------------------
   // HANDLE CHANGE (empresa)
@@ -312,10 +395,6 @@ export default function EditarEmpresa({
       if (value.length > MAX_NAME) value = value.slice(0, MAX_NAME);
     }
 
-    if (name === "correo") {
-      if (value.length > MAX_EMAIL) value = value.slice(0, MAX_EMAIL);
-    }
-
     if (name === "telefono") {
       value = value.replace(/\D/g, "").slice(0, 8);
     }
@@ -334,6 +413,13 @@ export default function EditarEmpresa({
   // ------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (idDuplicada) {
+      return modal.alerta({
+        titulo: "Error en la identificación",
+        mensaje: "La identificación ya existe en el sistema."
+      });
+    }
 
     // Revalidar usuario
     const nuevosErroresUsuario: { [key: string]: string } = {};
@@ -394,7 +480,6 @@ export default function EditarEmpresa({
     // Limpiar campos que vienen desde empresaData
     const {
       nombre: _nombre,
-      correo: _correo,
       telefono: _telefono,
       persona_contacto: _persona_contacto,
       ...cleanPayload
@@ -447,7 +532,7 @@ export default function EditarEmpresa({
   // ------------------------------------------------
   // UI: SectionLink component
   // ------------------------------------------------
-  const SectionLink = ({ title, id }: { title: string; id: "representante" | "empresa" | "ubicacion" }) => (
+  const SectionLink = ({ title, id }: { title: string; id: "representante" | "empresa" | "ubicacion" | "correo" }) => (
     <button
       type="button"
       onClick={() => setSeccionActiva(id)}
@@ -499,14 +584,24 @@ export default function EditarEmpresa({
               </button>
             )}
 
-            <p className="text-2xl font-bold mt-4"> Empresa: {empresa?.nombre}</p>
-              <p className="text-base text-gray-700">
-                Usuario: {usuario.nombre_completo}</p>
+            <p 
+            className="
+               text-lg font-semibold text-gray-800 mt-4 
+               break-words 
+               whitespace-normal 
+               max-w-full 
+               overflow-hidden 
+               text-ellipsis
+             "
+            > Empresa: {empresa?.nombre}</p>
+            <p className="text-base text-gray-700 break-all text-center">
+              Usuario: {usuario.nombre_completo}</p>
           </div>
 
           <nav className="flex flex-col space-y-2">
             <SectionLink title="Datos del representante" id="representante" />
             <SectionLink title="Datos de la empresa" id="empresa" />
+            <SectionLink title="Correo de la empresa" id="correo" />
             <SectionLink title="Ubicación" id="ubicacion" />
           </nav>
         </div>
@@ -545,10 +640,11 @@ export default function EditarEmpresa({
                       name="identificacion"
                       value={formData.identificacion}
                       onChange={handleChangeUsuario}
-                      onBlur={(e) => validarUsuario(e.target.name, e.target.value)}
+                      onBlur={() => validarIdentificacionOnBlur()}
                       className={`border p-2 rounded ${erroresUsuario.identificacion ? "border-red-500" : "border-gray-300"}`}
                       maxLength={12}
                     />
+
                     {erroresUsuario.identificacion && <span className="text-red-500 text-xs">{erroresUsuario.identificacion}</span>}
                   </div>
                 </div>
@@ -572,20 +668,6 @@ export default function EditarEmpresa({
                       maxLength={MAX_NAME}
                     />
                     {erroresEmpresa.nombre && <span className="text-red-500 text-xs">{erroresEmpresa.nombre}</span>}
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label>Correo de contacto</label>
-                    <input
-                      type="email"
-                      name="correo"
-                      value={empresaData?.correo ?? ""}
-                      onChange={handleChangeEmpresa}
-                      onBlur={(e) => validarEmpresa("correo", e.target.value)}
-                      className={`border p-2 rounded ${erroresEmpresa.correo ? "border-red-500" : "border-gray-300"}`}
-                      maxLength={MAX_EMAIL}
-                    />
-                    {erroresEmpresa.correo && <span className="text-red-500 text-xs">{erroresEmpresa.correo}</span>}
                   </div>
 
                   <div className="flex flex-col">
@@ -618,6 +700,34 @@ export default function EditarEmpresa({
                 </div>
               </div>
             )}
+
+            {seccionActiva === 'correo' && (
+              <div className="max-w-lg">
+                <CorreoVerificacion
+                  correoInicial={formData.correo ?? ""}
+                  onCorreoVerificado={(nuevoCorreo) => {
+                    // Actualizar correo del usuario
+                    setFormData(prev => ({
+                      ...prev,
+                      correo: nuevoCorreo
+                    }));
+
+                    // Actualizar correo de la empresa
+                    setEmpresaData(prev =>
+                      prev
+                        ? { ...prev, correo: nuevoCorreo }
+                        : prev
+                    );
+
+                    // Limpiar mensajes de error
+                    setErroresUsuario(prev => ({ ...prev, correo: "" }));
+                    setErroresEmpresa(prev => ({ ...prev, correo: "" }));
+                  }}
+                />
+              </div>
+            )}
+
+
 
             {/* Sección: Ubicación de la empresa */}
             {seccionActiva === "ubicacion" && (

@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
+import axios from "axios";
+import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+
 
 // -------------------------
 // INTERFACES
@@ -75,11 +78,14 @@ export default function EditarEgresado({
   const modal = useModal();
 
   const [formData, setFormData] = useState<UsuarioEgresado>(usuario);
+  const [nombreFijo] = useState(usuario.nombre_completo);
+
   const [errores, setErrores] = useState<{ [key: string]: string }>({});
+  const [idDuplicada, setIdDuplicada] = useState(false);
 
   // Secciones (igual formato que el componente admin: sidebar + secciones)
   const [activeSection, setActiveSection] = useState<
-    "personales" | "residencia" | "academicos" | "laborales"
+    "personales" | "residencia" | "academicos" | "laborales" | "correo"
   >("personales");
 
   // selects dependientes
@@ -143,6 +149,49 @@ export default function EditarEgresado({
     }
   }, [formData.estado_empleo]);
 
+  useEffect(() => {
+
+    // Si el estudiante no modificó la identificación original → no verificar
+    if (formData.identificacion === usuario.identificacion) {
+      setErrores(prev => ({ ...prev, identificacion: "" }));
+      setIdDuplicada(false);
+      return;
+    }
+
+    // Validación local
+    const errorLocal = validarCampo("identificacion", formData.identificacion);
+    if (errorLocal) {
+      setIdDuplicada(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await axios.post("/perfil/verificar-identificacion", {
+          identificacion: formData.identificacion,
+        });
+
+        if (resp.data.existe) {
+          setErrores(prev => ({
+            ...prev,
+            identificacion: "La identificación ya existe en el sistema."
+          }));
+          setIdDuplicada(true); //activa bloqueo
+        } else {
+          setErrores(prev => ({ ...prev, identificacion: "" }));
+          setIdDuplicada(false); //no está duplicada
+        }
+
+      } catch (e) {
+        console.error("Error validando identificación", e);
+      }
+
+    }, 200);
+
+    return () => clearTimeout(timer);
+
+  }, [formData.identificacion]);
+
   // -------------------------
   // FOTO - eliminar
   // -------------------------
@@ -156,7 +205,7 @@ export default function EditarEgresado({
     Inertia.post("/perfil/foto/eliminar", {}, {
       onSuccess: async () => {
         await modal.alerta({ titulo: "Éxito", mensaje: "Foto de perfil eliminada." });
-        // Actualizar estado local para quitar url (opcional, si backend retorna nuevo estado sería mejor)
+        // Actualizar estado local para quitar url
         setFormData(prev => ({ ...prev, fotoPerfil: null }));
       },
       onError: (errors: any) => {
@@ -166,7 +215,7 @@ export default function EditarEgresado({
   };
 
   // -------------------------
-  // VALIDACIONES (idénticas al código original)
+  // VALIDACIONES
   // -------------------------
   const validarCampo = (name: string, value: string | number | null) => {
     let error = "";
@@ -179,12 +228,6 @@ export default function EditarEgresado({
       else if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(str)) error = "Solo letras y espacios.";
     }
 
-    if (name === "correo") {
-      if (!value) error = "El correo es obligatorio.";
-      else if (str.length > 100) error = "Máximo 100 caracteres.";
-      else if (!/^[\w.%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(str)) error = "Correo inválido.";
-    }
-
     if (name === "telefono") {
       if (!/^\d{8}$/.test(str)) error = "Debe ser un número de 8 dígitos.";
     }
@@ -192,6 +235,10 @@ export default function EditarEgresado({
     if (name === "identificacion") {
       if (!/^(?=.*\d)[A-Za-z0-9]{5,12}$/.test(str)) {
         error = "Identificación alfanumérica (5-12 caracteres) y debe incluir números.";
+      }
+
+      if (idDuplicada === true) {
+        error = "La identificación ya existe en el sistema."
       }
     }
 
@@ -243,7 +290,7 @@ export default function EditarEgresado({
   };
 
   // -------------------------
-  // HANDLE CHANGE (idéntico al original)
+  // HANDLE CHANGE 
   // -------------------------
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let { name, value } = e.target;
@@ -258,6 +305,11 @@ export default function EditarEgresado({
     if (name === "identificacion") {
       value = value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
       newValue = value;
+      setIdDuplicada(false);
+      setErrores(prev => ({
+        ...prev,
+        identificacion: ""
+      }));
     }
 
     // Campos que son numéricos o null
@@ -270,7 +322,7 @@ export default function EditarEgresado({
       value = value.replace(/\D/g, "").slice(0, 3); // limitar a 3 dígitos
       newValue = value === "" ? null : Number(value);
     }
-    // Si cambia estado_empleo a desempleado, limpiar los campos laborales (igual que original)
+    // Si cambia estado_empleo a desempleado, limpiar los campos laborales
     if (name === "estado_empleo" && value === "desempleado") {
       const cleaned = {
         ...formData,
@@ -297,10 +349,21 @@ export default function EditarEgresado({
   };
 
   // -------------------------
-  // SUBMIT (idéntico al original)
+  // SUBMIT
   // -------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    //Bloqueo inmediato si la identificación ya existe
+    if (idDuplicada) {
+      await modal.alerta({
+        titulo: "Identificación duplicada",
+        mensaje: "La identificación ingresada ya existe en el sistema. Corrija este campo para continuar.",
+      });
+
+      setActiveSection("personales"); // lleva a la sección correcta
+      return;
+    }
 
     // Revalidar todo (excluir fotoPerfil e id_usuario)
     const nuevosErrores: { [key: string]: string } = {};
@@ -434,12 +497,24 @@ export default function EditarEgresado({
               </button>
             )}
 
-            <p className="text-lg font-semibold text-gray-800 mt-4">{formData.nombre_completo}</p>
+            <p
+              className="
+               text-lg font-semibold text-gray-800 mt-4 
+               break-words 
+               whitespace-normal 
+               max-w-full 
+               overflow-hidden 
+               text-ellipsis
+             "
+            >
+              {nombreFijo}
+            </p>
             <p className="text-sm text-gray-500">Egresado</p>
           </div>
 
           <nav className="flex flex-col space-y-2">
             <SectionLink title="Datos Personales" active={activeSection === "personales"} onClick={() => setActiveSection("personales")} />
+            <SectionLink title="Cambio de correo" active={activeSection === 'correo'} onClick={() => setActiveSection('correo')} />
             <SectionLink title="Lugar de Residencia" active={activeSection === "residencia"} onClick={() => setActiveSection("residencia")} />
             <SectionLink title="Datos Académicos" active={activeSection === "academicos"} onClick={() => setActiveSection("academicos")} />
             <SectionLink title="Datos Laborales" active={activeSection === "laborales"} onClick={() => setActiveSection("laborales")} />
@@ -455,6 +530,7 @@ export default function EditarEgresado({
                 {activeSection === "residencia" && "Lugar de Residencia"}
                 {activeSection === "academicos" && "Datos Académicos"}
                 {activeSection === "laborales" && "Datos Laborales"}
+                {activeSection === 'correo' && 'Cambiar correo electrónico'}
               </h3>
 
               <div className="flex gap-3">
@@ -481,22 +557,6 @@ export default function EditarEgresado({
                       }`}
                   />
                   {errores.nombre_completo && <span className="text-red-500 text-xs mt-1">{errores.nombre_completo}</span>}
-                </div>
-
-                {/* Correo */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Correo electrónico</label>
-                  <input
-                    type="email"
-                    name="correo"
-                    value={formData.correo}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    maxLength={100}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.correo ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.correo && <span className="text-red-500 text-xs mt-1">{errores.correo}</span>}
                 </div>
 
                 {/* Identificación */}
@@ -566,6 +626,19 @@ export default function EditarEgresado({
                 </div>
               </div>
             )}
+
+            {activeSection === 'correo' && (
+              <div className="max-w-lg">
+                <CorreoVerificacion
+                  correoInicial={formData.correo}
+                  onCorreoVerificado={(nuevoCorreo) => {
+                    setFormData(prev => ({ ...prev, correo: nuevoCorreo }));
+                    setErrores(prev => ({ ...prev, correo: "" })); // Limpia error en caso de existir
+                  }}
+                />
+              </div>
+            )}
+
 
             {/* LUGAR DE RESIDENCIA */}
             {activeSection === "residencia" && (
