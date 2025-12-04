@@ -27,18 +27,21 @@ class AuthService
      */
     public function login(array $datos)
     {
-        $usuario = $this->repository->buscarUsuarioPorCorreo($datos['correo']);
+        $this->repository->limpiarCorreosExpirados(self::LOCKOUT_SECONDS);
 
         $correo = $datos['correo'];
 
-        // BLOQUEO GENERAL (correo)
+        $usuario = $this->repository->buscarUsuarioPorCorreo($correo);
         $registro = $this->repository->obtenerIntentosCorreo($correo);
         $estadoIds = $this->repository->obtenerEstadoIds();
 
-        // SI EL USUARIO ESTÁ SUSPENDIDO, VERIFICAR SI EL TIEMPO YA VENCIO
-        if ($usuario && (int)$usuario->estado_id === (int)($estadoIds['suspendido'] ?? -1)) {
 
-            $registro = $this->repository->obtenerIntentosCorreo($correo);
+        /*
+    |--------------------------------------------------------------------------
+    | 1. Si existe usuario suspendido → verificar si el tiempo ya venció
+    |--------------------------------------------------------------------------
+    */
+        if ($usuario && (int)$usuario->estado_id === (int)($estadoIds['suspendido'] ?? -1)) {
 
             if ($registro) {
                 $inicio = Carbon::parse($registro->fecha_ultimo_intento);
@@ -46,60 +49,92 @@ class AuthService
 
                 if (now()->gte($fin)) {
 
-                    // TIEMPO VENCIDO → restaurar usuario
+                    // TIEMPO VENCIDO → restaurar
                     $usuario->estado_id = $estadoIds['activo'];
                     $this->repository->guardarUsuario($usuario);
 
-                    // limpiar intentos correo
                     $this->repository->limpiarIntentosCorreo($correo);
 
-                    // limpiar credencial
-                    $credencial = $this->repository->obtenerCredencial($usuario->id_usuario);
-                    if ($credencial) {
-                        $credencial->intentos_fallidos = 0;
-                        $credencial->fecha_ultimo_cambio = null;
-                        $this->repository->guardarCredencial($credencial);
+                    $cred = $this->repository->obtenerCredencial($usuario->id_usuario);
+                    if ($cred) {
+                        $cred->intentos_fallidos = 0;
+                        $cred->fecha_ultimo_cambio = null;
+                        $this->repository->guardarCredencial($cred);
                     }
+                } else {
+                    return $this->errorBloqueo(now()->diffInSeconds($fin));
                 }
             }
         }
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | 2. BLOQUEO GENERAL POR CORREO (exista o no exista usuario)
+    |--------------------------------------------------------------------------
+    */
         if ($registro && $registro->intentos >= self::MAX_FAILED_ATTEMPTS) {
             $inicio = Carbon::parse($registro->fecha_ultimo_intento);
             $fin = $inicio->copy()->addSeconds(self::LOCKOUT_SECONDS);
 
             if (now()->lt($fin)) {
-                return response()->json([
-                    'message' => 'Cuenta bloqueada temporalmente por intentos fallidos.',
-                    'code' => 'too_many_attempts',
-                    'retryAfter' => now()->diffInSeconds($fin)
-                ], Response::HTTP_LOCKED);
-            } else {
-                $this->repository->limpiarIntentosCorreo($correo);
+                return $this->errorBloqueo(now()->diffInSeconds($fin));
             }
+
+            // Tiempo vencido → limpiar
+            $this->repository->limpiarIntentosCorreo($correo);
+            $registro = null;
         }
 
+
+        /*
+    |--------------------------------------------------------------------------
+    | 3. Usuario no existe → solo bloqueo por correo
+    |--------------------------------------------------------------------------
+    */
         if (!$usuario) {
+
+            // 1. Registrar intento
             $intentos = $this->repository->registrarIntentoCorreo($correo);
 
+            // 2. Si llega al límite → bloquear
             if ($intentos >= self::MAX_FAILED_ATTEMPTS) {
                 return $this->errorBloqueo(self::LOCKOUT_SECONDS);
+            }
+
+            // 3. Si no llegó al límite → limpieza automática de correos inexistentes
+            if ($registro) {
+                $inicio = Carbon::parse($registro->fecha_ultimo_intento);
+                $fin = $inicio->copy()->addSeconds(self::LOCKOUT_SECONDS);
+
+                // Si ya pasó el tiempo → eliminar registro fantasma
+                if (now()->gte($fin)) {
+                    $this->repository->limpiarIntentosCorreo($correo);
+                }
             }
 
             return $this->error("Los datos ingresados son incorrectos", 422);
         }
 
 
+
+        /*
+    |--------------------------------------------------------------------------
+    | 4. Usuario existe: obtener credencial
+    |--------------------------------------------------------------------------
+    */
         $credencial = $this->repository->obtenerCredencial($usuario->id_usuario);
 
         if (!$credencial) {
             return $this->error("Los datos ingresados son incorrectos", 422);
         }
 
-        $estadoIds = $this->repository->obtenerEstadoIds();
 
-        // Validación de estado inactivo
+        /*
+    |--------------------------------------------------------------------------
+    | 5. Estado INACTIVO → no permitir login
+    |--------------------------------------------------------------------------
+    */
         if ((int)$usuario->estado_id === (int)($estadoIds['inactivo'] ?? -1)) {
             return $this->error(
                 "La cuenta se encuentra inactiva. Comuníquese con el administrador.",
@@ -107,52 +142,50 @@ class AuthService
             );
         }
 
-        // Validación de estado suspendido
-        if ((int)$usuario->estado_id === (int)($estadoIds['suspendido'] ?? -1)) {
 
-            // buscar registro de intentos por correo
-            $registro = $this->repository->obtenerIntentosCorreo($datos['correo']);
-
-            if ($registro) {
-                $inicio = Carbon::parse($registro->fecha_ultimo_intento);
-                $fin = $inicio->copy()->addSeconds(self::LOCKOUT_SECONDS);
-
-                $remaining = now()->lt($fin)
-                    ? now()->diffInSeconds($fin)
-                    : 0;
-            } else {
-                $remaining = self::LOCKOUT_SECONDS;
-            }
-
-            return response()->json([
-                'message' => 'Su cuenta está temporalmente suspendida por intentos fallidos.',
-                'code' => 'too_many_attempts',
-                'retryAfter' => $remaining
-            ], Response::HTTP_LOCKED);
-        }
-
-
-
-        // Evaluar bloqueo
+        /*
+    |--------------------------------------------------------------------------
+    | 6. Bloqueo por intentos fallidos en CREDENCIAL
+    |--------------------------------------------------------------------------
+    */
         $bloqueo = $this->evaluarBloqueoActivo($credencial);
 
         if ($bloqueo['locked']) {
             $this->ponerSuspendido($usuario, $estadoIds);
+
+            // También guardamos en login_attempts para tener tiempo real
+            $this->repository->registrarIntentoCorreo($correo, true);
+
             return $this->errorBloqueo($bloqueo['remaining']);
         }
 
-        // Validar contraseña
+
+        /*
+    |--------------------------------------------------------------------------
+    | 7. Validar contraseña
+    |--------------------------------------------------------------------------
+    */
         if (!Hash::check($datos['password'], $credencial->hash_contrasena)) {
-            $resultadoFallo = $this->registrarIntentoFallido($usuario, $credencial, $estadoIds);
-            if ($resultadoFallo['locked']) {
-                return $this->errorBloqueo($resultadoFallo['remaining']);
+
+            $resultado = $this->registrarIntentoFallido($usuario, $credencial, $estadoIds);
+
+            if ($resultado['locked']) {
+                $this->repository->registrarIntentoCorreo($correo, true);
+                return $this->errorBloqueo($resultado['remaining']);
             }
+
             return $this->error("Los datos ingresados son incorrectos", 422);
         }
 
-        // Login correcto => restaurar intento fallidos
+
+        /*
+    |--------------------------------------------------------------------------
+    | 8. Login correcto → limpiar intentos y avanzar
+    |--------------------------------------------------------------------------
+    */
         return $this->loginCorrecto($usuario, $credencial, $estadoIds, force: ($datos['force'] ?? false));
     }
+
 
 
 

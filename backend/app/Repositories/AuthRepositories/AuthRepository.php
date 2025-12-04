@@ -6,6 +6,7 @@ use App\Models\Usuario;
 use App\Models\Credencial;
 use App\Models\CatalogoEstado;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AuthRepository
 {
@@ -74,4 +75,33 @@ class AuthRepository
     {
         DB::table('login_attempts')->where('correo', $correo)->delete();
     }
+
+
+    public function limpiarCorreosExpirados(int $lockoutSeconds)
+{
+    $registros = DB::table('login_attempts')->get();
+
+    foreach ($registros as $registro) {
+
+        // ¿Existe usuario real con este correo?
+        $usuario = DB::table('usuarios')->where('correo', $registro->correo)->first();
+
+        // Si existe usuario → NO eliminar
+        if ($usuario) {
+            continue;
+        }
+
+        // Calcular expiración
+        $inicio = Carbon::parse($registro->fecha_ultimo_intento);
+        $fin = $inicio->copy()->addSeconds($lockoutSeconds);
+
+        // Expirado → eliminar
+        if (now()->gte($fin)) {
+            DB::table('login_attempts')
+                ->where('correo', $registro->correo)
+                ->delete();
+        }
+    }
+}
+
 }
