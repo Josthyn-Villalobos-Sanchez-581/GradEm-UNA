@@ -40,7 +40,7 @@
                     <!-- CÓDIGO -->
                     <tr>
                         <td align="center" style="padding:30px 0;">
-                            <div style="font-size:48px; font-weight:bold; color:#1a73e8; letter-spacing:8px;">
+                            <div style="font-size:48px; font-weight:bold; color:#CD1719; letter-spacing:8px;">
                                 {{ $codigo }}
                             </div>
                         </td>

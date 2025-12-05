@@ -17,6 +17,10 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
     const [correo, setCorreo] = useState<string>(correoInicial);
     const [correoEditado, setCorreoEditado] = useState<boolean>(false);
     const [correoValido, setCorreoValido] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [correoVerificando, setCorreoVerificando] = useState<boolean>(false);
+
+
     const [errorCorreo, setErrorCorreo] = useState<string>("");
 
     const [codigo, setCodigo] = useState<string>("");
@@ -52,49 +56,54 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
        VALIDACIÓN BACKEND (DEBOUNCE)
     ============================ */
     useEffect(() => {
-    if (correo === correoInicial) {
-        setCorreoEditado(false);
-        setCorreoValido(true);
-        setErrorCorreo("");
-        setCodigoEnviado(false);
-        setCodigoVerificado(false);
-        return;
-    }
-
-    setCorreoEditado(true);
-    setCodigoEnviado(false);
-    setCodigoVerificado(false);
-
-    // SOLO aplicar delay si el código ya ha sido enviado alguna vez
-    if (codigoFueEnviadoAntes) {
-        setDelayCambioCorreo(5);
-    } else {
-        setDelayCambioCorreo(0); // primera vez => sin espera
-    }
-
-    const timer = setTimeout(async () => {
-        const err = validarCorreoFormato(correo);
-
-        if (err) {
-            setCorreoValido(false);
-            setErrorCorreo(err);
+        if (correo === correoInicial) {
+            setCorreoEditado(false);
+            setCorreoValido(true);
+            setErrorCorreo("");
+            setCodigoEnviado(false);
+            setCodigoVerificado(false);
+            setCorreoVerificando(false);
             return;
         }
 
-        const resp = await axios.post("/perfil/verificar-correo", { correo });
+        setCorreoEditado(true);
+        setCodigoEnviado(false);
+        setCodigoVerificado(false);
 
-        if (resp.data.existe) {
-            setCorreoValido(false);
-            setErrorCorreo("Este correo ya está registrado.");
-        } else {
-            setCorreoValido(true);
-            setErrorCorreo("");
-        }
-    }, 600);
+        // Ahora SIEMPRE esperar 5 segundos
+        setDelayCambioCorreo(5);
 
-    return () => clearTimeout(timer);
+        setCorreoVerificando(true);
 
-}, [correo]);
+        const timer = setTimeout(async () => {
+            const err = validarCorreoFormato(correo);
+
+            if (err) {
+                setCorreoValido(false);
+                setErrorCorreo(err);
+                setCorreoVerificando(false);
+                return;
+            }
+
+            const resp = await axios.post("/perfil/verificar-correo", { correo });
+
+            if (resp.data.existe) {
+                setCorreoValido(false);
+                setErrorCorreo("Este correo ya está registrado.");
+            } else {
+                setCorreoValido(true);
+                setErrorCorreo("");
+            }
+
+            setCorreoVerificando(false);
+
+        }, 600);
+
+        return () => clearTimeout(timer);
+
+    }, [correo]);
+
+
 
 
     /* ============================
@@ -124,80 +133,128 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
         }
     }, [bloqueado, bloqueoTime]);
 
+
     /* ============================
        ENVIAR CÓDIGO
     ============================ */
     const handleEnviarCodigo = async () => {
+        const MAX_REINTENTOS = 3; // Permitir 3 intentos fallidos antes de bloquear por 5 minutos
+
+        // 1. Verificar bloqueo por límite de reintentos
         if (bloqueado) {
-            return modal.alerta({
-                titulo: "Límite alcanzado",
-                mensaje: `Debe esperar ${Math.floor(bloqueoTime / 60)}:${("0" + (bloqueoTime % 60)).slice(-2)} antes de reenviar.`,
+            await modal.alerta({
+                titulo: "Bloqueo de seguridad",
+                mensaje: `Ha excedido el límite de reintentos. Debe esperar ${Math.ceil(bloqueoTime / 60)} minutos para volver a intentarlo.`
             });
+            return;
         }
 
-        if (delayCambioCorreo > 0) {
-            return modal.alerta({
-                titulo: "Espere",
-                mensaje: `Debe esperar ${delayCambioCorreo}s después de modificar el correo.`,
+        // *** Guard Clause for Race Condition ***
+        if (loading || !correoValido || correoVerificando || delayCambioCorreo > 0 || errorCorreo) {
+            console.warn("Intento de envío bloqueado por estado inválido.");
+
+            // Si el correo es inválido, mostramos el error de forma proactiva
+            if (!correoValido && errorCorreo) {
+                await modal.alerta({
+                    titulo: "Correo inválido o duplicado",
+                    mensaje: errorCorreo
+                });
+            }
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const resp = await axios.post("/perfil/enviar-codigo-correo", { correo });
+
+            setCodigo("");
+            setCodigoEnviado(true);
+            setTimeLeft(300);
+
+            // Si el envío fue exitoso, reseteamos el contador de fallos
+            setReenviarCount(0);
+            setCodigoFueEnviadoAntes(true);
+
+            // Resetear el delay tras el envío exitoso
+            setDelayCambioCorreo(0);
+
+            await modal.alerta({
+                titulo: "Código enviado",
+                mensaje: resp.data.message || "Se ha enviado el código a su correo electrónico."
             });
-        }
 
-        const err = validarCorreoFormato(correo);
-        if (err) {
-            return modal.alerta({ titulo: "Correo inválido", mensaje: err });
-        }
+        } catch (err: any) {
 
-        if (!correoValido) {
-            return modal.alerta({ titulo: "Correo no válido", mensaje: errorCorreo });
-        }
+            // 2. Aumentar el contador de fallos y aplicar bloqueo si es necesario
+            const newCount = reenviarCount + 1;
+            setReenviarCount(newCount);
 
-        if (reenviarCount >= 3) {
-            setBloqueado(true);
-            setBloqueoTime(300);
-            return modal.alerta({
-                titulo: "Demasiados intentos",
-                mensaje: "Debe esperar 5 minutos para reenviar otro código.",
+            if (newCount >= MAX_REINTENTOS) {
+                setBloqueado(true);
+                setBloqueoTime(300); // Bloqueo de 5 minutos
+            }
+
+            // *** Extracción de error del JSON del backend (solicitado por el usuario) ***
+            // Buscamos 'error' o 'message' en la respuesta del backend
+            const backendError = err.response?.data?.error || err.response?.data?.message;
+            const errorMessage = backendError || "Error desconocido al intentar enviar el código.";
+
+            await modal.alerta({
+                titulo: "No se puede enviar",
+                mensaje: errorMessage
             });
+
+            // Si el error del backend fue duplicación, actualizamos el estado para deshabilitar el botón
+            // En un caso real, el backend debería devolver un código 409 o un campo 'existe: true' con el error.
+            if (errorMessage.toLowerCase().includes("duplicado") || errorMessage.toLowerCase().includes("registrado")) {
+                setCorreoValido(false);
+                setErrorCorreo(errorMessage);
+            }
+
+        } finally {
+            setLoading(false);
         }
-
-        const resp = await axios.post("/perfil/enviar-codigo-correo", { correo });
-
-        setCodigo("");
-        setCodigoEnviado(true);
-        setTimeLeft(300);
-        setReenviarCount(c => c + 1);
-
-        setCodigoFueEnviadoAntes(true);
-
-        modal.alerta({
-            titulo: "Código enviado",
-            mensaje: resp.data.message,
-        });
     };
+
+
 
     /* ============================
        VALIDAR CÓDIGO
     ============================ */
     const handleValidarCodigo = async () => {
+        if (isSendButtonDisabled) return;        // evita doble submit
+        setLoading(true);
+
         try {
             const resp = await axios.post("/perfil/validar-codigo-correo", { codigo });
 
             setCodigoVerificado(true);
             setCodigoEnviado(false);
 
-            modal.alerta({
+            await modal.alerta({
                 titulo: "Éxito",
                 mensaje: "Correo verificado correctamente. Recuerde guardar los cambios.",
             });
 
             onCorreoVerificado(resp.data.correoVerificado);
         } catch (e: any) {
-            modal.alerta({
+            await modal.alerta({
                 titulo: "Error",
                 mensaje: e.response?.data?.error || "Código incorrecto.",
             });
+        } finally {
+            setLoading(false);
         }
     };
+
+    const isSendButtonDisabled =
+        loading ||
+        bloqueado || // Deshabilitar si está bloqueado por demasiados reintentos fallidos
+        delayCambioCorreo > 0 ||
+        correoVerificando || // SIEMPRE deshabilitar si la verificación asíncrona está corriendo
+        !correoValido;
+
 
     /* ============================
        UI
@@ -250,10 +307,11 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
                         <Button
                             type="button"
                             variant="destructive"
-                            disabled={delayCambioCorreo > 0}
+                            disabled={isSendButtonDisabled}
                             onClick={handleEnviarCodigo}
                         >
-                            {delayCambioCorreo > 0 ? `Espere ${delayCambioCorreo}s` : "Enviar código"}
+                            {loading ? "Procesando..." :
+                                delayCambioCorreo > 0 ? `Espere ${delayCambioCorreo}s` : "Enviar código"}
                         </Button>
                     )}
 
@@ -262,9 +320,10 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
                         <Button
                             type="button"
                             variant="outline"
+                            disabled={loading}
                             onClick={handleEnviarCodigo}
                         >
-                            Reenviar código
+                            {loading ? "Procesando..." : "Reenviar código"}
                         </Button>
                     )}
                 </div>
@@ -292,9 +351,9 @@ const CorreoVerificacion: React.FC<Props> = ({ correoInicial, onCorreoVerificado
                         type="button"
                         variant="destructive"
                         onClick={handleValidarCodigo}
-                        disabled={codigoVerificado}
+                        disabled={isSendButtonDisabled || codigoVerificado || loading}
                     >
-                        Validar código
+                        {loading ? "Validando..." : "Validar código"}
                     </Button>
                 </div>
             )}
