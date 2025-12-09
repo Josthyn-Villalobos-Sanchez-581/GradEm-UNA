@@ -6,6 +6,19 @@ import grademLogo from "../assets/GradEm.png";
 import { useModal } from "../hooks/useModal";
 import { Button } from "@/components/ui/button";//para usar el botn definido como componente
 
+// Obtener CSRF token del meta tag
+const getCsrfToken = () => {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+};
+
+// Configurar axios con CSRF token
+const setupAxiosCSRF = () => {
+    const token = getCsrfToken();
+    if (token) {
+        axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    }
+};
+
 // Aquí agregamos los estilos personalizados de Tailwind
 const tailwindStyles = `
     .font-open-sans { font-family: 'Open Sans', sans-serif; }
@@ -40,8 +53,14 @@ interface RegistroEmpresaProps {
 }
 
 const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo }) => {
+    // Estados del flujo OTP
+    const [paso, setPaso] = useState<'correo' | 'validacion' | 'registro'>('correo');
+    const [codigo, setCodigo] = useState<string>("");
+    const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
+    const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
+
     // Inicializamos el estado del correo con la prop que se recibe
-    const [correo, setCorreo] = useState<string>("");
+    const [correo, setCorreo] = useState<string>(propCorreo || "");
     const [nombreEmpresa, setNombreEmpresa] = useState<string>("");
     const [telefono, setTelefono] = useState<string>("");
     const [personaContacto, setPersonaContacto] = useState<string>("");
@@ -122,28 +141,86 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
     
     const modal = useModal(); // MOD: usar el modal
 
-    // Sincronizar el estado interno si la prop 'correo' cambia
+    const handleEnviarCodigo = async () => {
+        const error = validarCorreo(correo);
+        console.log('handleEnviarCodigo: correo=', correo, 'error=', error);
+        
+        if (!error) {
+            try {
+                await axios.post("/registro-empresa/enviar-codigo", { correo });
+                setCodigoEnviado(true);
+                setPaso('validacion');
+                await modal.alerta({ titulo: "Éxito", mensaje: "Código enviado al correo electrónico" });
+            } catch (error: any) {
+                await modal.alerta({ 
+                    titulo: "Error", 
+                    mensaje: error.response?.data?.message || "Error al enviar el código" 
+                });
+            }
+        } else {
+            await modal.alerta({ titulo: "Error", mensaje: error });
+        }
+    };
+
+    const handleValidarCodigo = async () => {
+        console.log('handleValidarCodigo: correo=', correo, 'codigo=', codigo);
+        
+        try {
+            await axios.post("/registro-empresa/validar-codigo", { correo, codigo });
+            setCodigoValidado(true);
+            setPaso('registro');
+            sessionStorage.setItem("correo_validado_empresa", "true");
+            sessionStorage.setItem("correo_empresa", correo);
+            await modal.alerta({ titulo: "Éxito", mensaje: "Correo verificado correctamente" });
+        } catch (error: any) {
+            await modal.alerta({ 
+                titulo: "Error", 
+                mensaje: error.response?.data?.message || "Código incorrecto o expirado" 
+            });
+        }
+    };
+
+    // Sincronizar el estado interno si la prop 'correo' cambia (en paso 'correo')
     useEffect(() => {
-    setCorreo(propCorreo || "");
-}, [propCorreo]);
+        if (paso === 'correo') {
+            setCorreo(propCorreo || "");
+        }
+    }, [propCorreo, paso]);
 
     useEffect(() => {
+        // Configurar CSRF token en axios
+        setupAxiosCSRF();
+        
         const correoValidado = sessionStorage.getItem("correo_validado_empresa");
         const correoGuardado = sessionStorage.getItem("correo_empresa");
 
-        if (!correoValidado || !correoGuardado) {
-            // Si no hay validación, redirigir al login
-            router.get("/login");
-        } else {
-            // Si está validado, cargar el correo en el input automáticamente
+        console.log('RegistroEmpresa useEffect: correoValidado=', correoValidado, 'correoGuardado=', correoGuardado);
+
+        if (correoValidado && correoGuardado) {
             setCorreo(correoGuardado);
+            setCodigoValidado(true);
+            setPaso('registro');
+        } else {
+            // Si no hay datos guardados, limpiar y empezar desde el correo
+            sessionStorage.removeItem("correo_validado_empresa");
+            sessionStorage.removeItem("correo_empresa");
+            setPaso('correo');
+            setCodigoValidado(false);
         }
     }, []);
 
     const handleRegistroEmpresa = async (e: FormEvent) => {
         e.preventDefault();
+        console.log('handleRegistroEmpresa: paso=', paso, 'codigoValidado=', codigoValidado);
+        
         setErrors({});
         setSuccessMessage("");
+
+        // Validación de OTP primero
+        if (!codigoValidado) {
+            await modal.alerta({ titulo: "Advertencia", mensaje: "Primero debes validar tu correo" });
+            return;
+        }
 
         // Validación frontend antes de enviar
         if (errorNombreEmpresa || errorCorreo || errorTelefono || errorPersonaContacto || errorIdentificacion || errorPassword || errorPasswordConfirm) {
@@ -198,8 +275,21 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
             setPasswordConfirmation("");
         } catch (error: any) {
             if (error.response?.status === 422) {
-                // Errores de validación
-                setErrors(error.response.data.errors);
+                // Errores de validación o de lógica
+                const serverErrors = error.response.data.errors || {};
+                const serverMessage = error.response.data.message;
+                
+                if (Object.keys(serverErrors).length > 0) {
+                    // Hay errores de validación de campos
+                    setErrors(serverErrors);
+                    const firstError = (Object.values(serverErrors as any)[0] as any)?.[0] || 'Errores de validación';
+                    try { await modal.alerta({ titulo: 'Advertencia', mensaje: firstError }); } catch { }
+                } else if (serverMessage) {
+                    // Es un error de lógica (ej: OTP no validado)
+                    try { await modal.alerta({ titulo: 'Advertencia', mensaje: serverMessage }); } catch { }
+                } else {
+                    try { await modal.alerta({ titulo: 'Advertencia', mensaje: 'Errores de validación' }); } catch { }
+                }
             } else {
                 await modal.alerta({
                     titulo: "Error",
@@ -231,7 +321,7 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                             <h1
                                 style={{
                                     fontFamily: "'Goudy Old Style', serif",
-                                    fontSize: "clamp(20px, 4vw, 36px)", // 🔹 Más pequeño
+                                    fontSize: "clamp(20px, 4vw, 36px)",
                                     color: "#000000",
                                     marginBottom: "20px",
                                     textAlign: "center",
@@ -240,10 +330,85 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                 Registro de Empresa
                             </h1>
                             <p className="mt-4 text-center text-lg text-gray-800 font-open-sans">
-                                Complete la información de su empresa para crear la cuenta.
+                                {paso === 'correo' 
+                                    ? "Ingresa tu correo electrónico para comenzar el registro"
+                                    : paso === 'validacion'
+                                    ? "Verifica tu correo con el código enviado"
+                                    : "Complete la información de su empresa para crear la cuenta"}
                             </p>
                         </div>
+
+                        {/* PASO 1: Validación de Correo */}
+                        {paso === 'correo' && (
+                            <form className="mt-8 space-y-6" onSubmit={(e) => { e.preventDefault(); handleEnviarCodigo(); }}>
+                                <div>
+                                    <label htmlFor="correo-otp" className="block text-sm font-bold text-black font-open-sans">
+                                        Correo Electrónico
+                                    </label>
+                                    <input
+                                        id="correo-otp"
+                                        type="email"
+                                        required
+                                        value={correo}
+                                        onChange={(e) => setCorreo(e.target.value)}
+                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        placeholder="empresa@ejemplo.com"
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    size="default"
+                                    className="w-full"
+                                >
+                                    Enviar Código
+                                </Button>
+                            </form>
+                        )}
+
+                        {/* PASO 2: Validación de Código OTP */}
+                        {paso === 'validacion' && (
+                            <form className="mt-8 space-y-6" onSubmit={(e) => { e.preventDefault(); handleValidarCodigo(); }}>
+                                <div>
+                                    <label htmlFor="codigo-otp" className="block text-sm font-bold text-black font-open-sans">
+                                        Código de Verificación
+                                    </label>
+                                    <p className="mt-2 text-sm text-gray-600">
+                                        Se ha enviado un código a: <strong>{correo}</strong>
+                                    </p>
+                                    <input
+                                        id="codigo-otp"
+                                        type="text"
+                                        required
+                                        value={codigo}
+                                        onChange={(e) => setCodigo(e.target.value)}
+                                        className="mt-2 appearance-none rounded-md relative block w-full px-3 py-2 border border-una-gray placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm"
+                                        placeholder="123456"
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    size="default"
+                                    className="w-full"
+                                >
+                                    Validar Código
+                                </Button>
+                                <button
+                                    type="button"
+                                    onClick={handleEnviarCodigo}
+                                    className="w-full text-center text-sm text-una-red hover:text-una-red/80"
+                                >
+                                    ¿No recibiste el código? Reenviar
+                                </button>
+                            </form>
+                        )}
+
+                        {/* PASO 3: Formulario de Registro */}
+                        {paso === 'registro' && (
                         <form className="mt-8 space-y-6" onSubmit={handleRegistroEmpresa}>
+                            {/* Email validado se muestra en la ventana Crear Cuenta; aquí no mostramos opción de cambio */}
+
                             <div className="rounded-md -space-y-px">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -360,7 +525,7 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                     </div>
                                     <div>
                                         <label htmlFor="correo" className="block text-sm font-bold text-black font-open-sans">
-                                            Correo Electrónico
+                                            Correo Electrónico (Correo de la empresa)
                                         </label>
                                         <input
                                             id="correo"
@@ -368,23 +533,12 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                             type="email"
                                             required
                                             value={correo}
-                                            onChange={(e) => {
-                                                setCorreo(e.target.value);
-                                                setErrors((prev: any) => {
-                                                    const err = validarCorreo(e.target.value);
-                                                    if (err) return { ...prev, correo: [err] };
-                                                    const { correo, ...rest } = prev;
-                                                    return rest;
-                                                });
-                                            }}
-                                            className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${(errors as any).correo ? 'border-red-500' : 'border-una-gray'} placeholder-una-gray text-gray-900 focus:outline-none focus:ring-una-red focus:border-una-red sm:text-sm`}
+                                            disabled
+                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-una-gray text-gray-700 bg-gray-100 focus:outline-none sm:text-sm cursor-not-allowed opacity-70"
                                             placeholder="ejemplo@empresa.com"
-                                            aria-invalid={!!(errors as any).correo}
-                                            aria-describedby={(errors as any).correo ? 'correo-error' : undefined}
+                                            aria-invalid={false}
                                         />
-                                        {(errors as any).correo && (
-                                            <p id="correo-error" className="mt-1 text-sm text-red-600" role="alert" aria-live="assertive">{(errors as any).correo[0]}</p>
-                                        )}
+                                        <p className="mt-1 text-xs text-gray-500">Este correo fue validado y no puede ser modificado</p>
                                     </div>
                                     {/* Contraseña y Confirmar Contraseña en la misma fila */}
                                     <div className="md:col-span-2 flex flex-col md:flex-row gap-4">
@@ -469,6 +623,7 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
                                 </div>
                             </div>
                         </form>
+                        )}
                     </div>
                 </main>
                 {/* Footer */}

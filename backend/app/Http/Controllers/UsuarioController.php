@@ -4,62 +4,58 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use Illuminate\Http\Request;
+use App\Services\UsuarioServices\UsuarioService;
 
 class UsuarioController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    protected $usuarioService;
+
+    public function __construct(UsuarioService $usuarioService)
+    {
+        $this->usuarioService = $usuarioService;
+    }
+
     public function index()
     {
-        //
+        $usuarios = $this->usuarioService->obtenerListadoUsuarios();
+        return inertia('Usuario/Index', compact('usuarios'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return inertia('Usuario/Create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $this->usuarioService->registrarUsuario($request);
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario registrado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Usuario $usuario)
     {
-        //
+        $usuarioDetalles = $this->usuarioService->obtenerUsuario($usuario);
+        return inertia('Usuario/Show', compact('usuarioDetalles'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Usuario $usuario)
     {
-        //
+        $usuarioDetalles = $this->usuarioService->obtenerUsuario($usuario);
+        return inertia('Usuario/Edit', compact('usuarioDetalles'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Usuario $usuario)
     {
-        //
+        $this->usuarioService->actualizarUsuario($request, $usuario);
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario actualizado correctamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Usuario $usuario)
     {
-        //
+        $this->usuarioService->eliminarUsuario($usuario);
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario eliminado correctamente.');
     }
 }
