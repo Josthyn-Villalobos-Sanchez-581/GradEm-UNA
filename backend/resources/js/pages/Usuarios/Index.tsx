@@ -327,6 +327,8 @@ export default function Index(props: IndexProps) {
                                 Eliminar
                               </Button>
                             )}
+
+                            
                           </div>
                         </td>
                       )}
