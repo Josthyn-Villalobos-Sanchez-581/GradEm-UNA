@@ -16,7 +16,6 @@ class Usuario extends Authenticatable
     protected $table = 'usuarios';
     protected $primaryKey = 'id_usuario';
     public $timestamps = false; // no hay created_at / updated_at
-    protected $guarded = [];
 
     protected $fillable = [
         'nombre_completo',
