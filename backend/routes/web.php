@@ -24,8 +24,8 @@ use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReporteController;
-use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\OfertaController;
+use App\Http\Controllers\PostulacionController;
 
 
 // ==========================================
@@ -266,44 +266,70 @@ Route::middleware('auth')->group(function () {
         Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
     });
 
-
     // ==========================================
-    // Reportes de Egresados (Permiso 14)
+    // 5 - Publicación de Ofertas Laborales
+    //    (empresas / admin crean y gestionan ofertas)
     // ==========================================
-    Route::middleware(['auth', 'permiso:14'])->group(function () {
+    Route::middleware(['auth', 'permiso:5'])->prefix('empresa')->group(function () {
 
-        Route::get('/reportes-egresados', function () {
-            return Inertia::render('Reportes/ReporteEgresados');
-        })->name('reportes.egresados');
+        Route::get('/ofertas', [OfertaController::class, 'indexEmpresa'])
+            ->name('empresa.ofertas.index');
 
-        Route::get('/reportes/egresados', [ReporteController::class, 'obtenerEgresados'])
-            ->name('reportes.egresados');
+        Route::get('/ofertas/crear', [OfertaController::class, 'crear'])
+            ->name('empresa.ofertas.crear');
 
-        Route::get('/reportes/grafico-empleo', [ReporteController::class, 'graficoEmpleo'])
-            ->name('reportes.grafico-empleo');
+        Route::post('/ofertas', [OfertaController::class, 'guardar'])
+            ->name('empresa.ofertas.guardar');
 
-        Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
-            ->name('reportes.grafico-anual');
+        Route::get('/ofertas/{oferta}/editar', [OfertaController::class, 'editar'])
+            ->name('empresa.ofertas.editar');
 
-        Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
+        Route::put('/ofertas/{oferta}', [OfertaController::class, 'actualizar'])
+            ->name('empresa.ofertas.actualizar');
 
-
-        // Catálogos
-        Route::get('universidades', [ReporteController::class, 'universidades']);
-        Route::get('carreras', [ReporteController::class, 'carreras']);
-        Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
-        Route::get('paises', [ReporteController::class, 'paises']);
-        Route::get('provincias', [ReporteController::class, 'provincias']);
-        Route::get('cantones', [ReporteController::class, 'cantones']);
-
+        Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
+            ->name('empresa.ofertas.eliminar');
     });
+
+    // ==========================================
+    // 6 - Postulación a Ofertas Laborales
+    //    (listado, detalle y postulación)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:6'])->group(function () {
+
+        // HU-25 + HU-27: Listar ofertas con filtros
+        Route::get('/ofertas', [OfertaController::class, 'listar'])
+            ->name('ofertas.listar');
+
+        // HU-24: Ver detalle de una oferta
+        Route::get('/ofertas/{oferta}', [OfertaController::class, 'mostrar'])
+            ->name('ofertas.mostrar');
+
+        // Otra HU: Postularse a una oferta
+        Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
+            ->name('ofertas.postular');
+    });
+
+    // ==========================================
+    // 7 - Gestión de Postulaciones
+    //    (empresa/admin revisan y gestionan postulaciones)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:7'])->group(function () {
+
+        Route::get('/postulaciones', [PostulacionController::class, 'index'])
+            ->name('postulaciones.index');
+
+        Route::get('/postulaciones/{postulacion}', [PostulacionController::class, 'mostrar'])
+            ->name('postulaciones.mostrar');
+
+        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
+            ->name('postulaciones.actualizar-estado');
+    });
+
 
     // ==========================================
     // 🚧 Pendientes (cuando estén desarrollados)
     // ==========================================
-    // 5 - Publicación de Ofertas Laborales
-    // 6 - Postulación a Ofertas Laborales
-    // 7 - Gestión de Postulaciones
     // 8 - Gestión de Cursos
     // 9 - Inscripción a Cursos
     // 10 - Gestión de Eventos
