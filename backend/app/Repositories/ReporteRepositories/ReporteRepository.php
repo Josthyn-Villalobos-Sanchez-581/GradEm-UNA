@@ -24,7 +24,11 @@ class ReporteRepository
         ?int $areaLaboral,
         ?string $salario,
         ?string $tipoEmpleo,
+
+        ?int $pais,
+        ?int $provincia,
         ?int $canton,
+
         ?int $idRol
     ) {
         try {
@@ -41,19 +45,23 @@ class ReporteRepository
                 $areaLaboral,
                 $salario,
                 $tipoEmpleo,
+
+                $pais,
+                $provincia,
                 $canton,
+
                 $idRol
             ];
 
-            // Llamada al SP
-            $result = DB::select('CALL sp_reporte_egresados(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
+            // AHORA SON 16 PLACEHOLDERS
+            $result = DB::select('CALL sp_reporte_egresados(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
 
             return $result;
         } catch (Throwable $e) {
-            // Re-lanzar la excepción para que la capa superior la maneje
             throw $e;
         }
     }
+
 
     /**
      * Ejecuta sp_reporte_grafico_empleo
@@ -121,7 +129,7 @@ class ReporteRepository
             throw $e;
         }
     }
-    
+
     public function obtenerCarreras()
     {
         try {
@@ -182,5 +190,13 @@ class ReporteRepository
         } catch (Throwable $e) {
             throw $e;
         }
+    }
+
+    public function obtenerPermisosRol($idRol)
+    {
+        return DB::table('roles_permisos')
+            ->where('id_rol', $idRol)
+            ->pluck('id_permiso')
+            ->toArray();
     }
 }

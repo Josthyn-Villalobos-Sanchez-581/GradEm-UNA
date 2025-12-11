@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Services\ReporteServices\ReporteService;
 use Illuminate\Http\Request;
-use App\Services\ReporteServices\CatalogosReporteService;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 use Exception;
+
 
 class ReporteController extends Controller
 {
@@ -17,6 +18,12 @@ class ReporteController extends Controller
         $this->service = $service;
     }
 
+    public function index()
+    {
+        $datos = $this->service->obtenerDatosIniciales();
+
+        return Inertia::render('Reportes/ReporteEgresados', $datos);
+    }
 
     /**
      * GET /api/reportes/egresados
@@ -24,21 +31,25 @@ class ReporteController extends Controller
      */
     public function obtenerEgresados(Request $request)
     {
-        // Validación básica (adaptar según necesites)
         $data = $request->validate([
-            'universidad' => 'nullable|integer',
-            'carrera' => 'nullable|integer',
-            'fecha_inicio' => 'nullable|integer',
-            'fecha_fin' => 'nullable|integer',
-            'genero' => 'nullable|string',
+            'universidad'     => 'nullable|integer',
+            'carrera'         => 'nullable|integer',
+            'fecha_inicio'    => 'nullable|integer',
+            'fecha_fin'       => 'nullable|integer',
+
+            'genero'          => 'nullable|string',
             'estado_estudios' => 'nullable|string',
             'nivel_academico' => 'nullable|string',
-            'estado_empleo' => 'nullable|string',
-            'tiempo_empleo' => 'nullable|integer',
-            'area_laboral' => 'nullable|integer',
-            'salario' => 'nullable|string',
-            'tipo_empleo' => 'nullable|string',
-            'canton' => 'nullable|integer',
+
+            'estado_empleo'   => 'nullable|string',
+            'tiempo_empleo'   => 'nullable|integer',
+            'area_laboral'    => 'nullable|integer',
+            'salario'         => 'nullable|string',
+            'tipo_empleo'     => 'nullable|string',
+
+            'pais'            => 'nullable|integer',
+            'provincia'       => 'nullable|integer',
+            'canton'          => 'nullable|integer',
         ]);
 
         try {
@@ -55,16 +66,24 @@ class ReporteController extends Controller
                 $data['area_laboral'] ?? null,
                 $data['salario'] ?? null,
                 $data['tipo_empleo'] ?? null,
+
+                // NUEVOS CAMPOS
+                $data['pais'] ?? null,
+                $data['provincia'] ?? null,
                 $data['canton'] ?? null,
-                7 // id_rol egresado fijo
+
+                7 // id_rol egresado
             );
 
             return response()->json(['success' => true, 'data' => $result]);
         } catch (Exception $e) {
-            // Loguear error según tu política
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
+
 
     /**
      * GET /api/reportes/grafico-empleo

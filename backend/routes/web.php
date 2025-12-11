@@ -26,6 +26,8 @@ use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PostulacionController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UbicacionController;
 
 
 // ==========================================
@@ -264,6 +266,37 @@ Route::middleware('auth')->group(function () {
         // ======== ÁREAS LABORALES ========
         Route::post('/catalogo/areas_laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
         Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
+    });
+
+    // ==========================================
+    // Reportes de Egresados (Permiso 14)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:14'])->group(function () {
+
+        Route::get('/reportes-egresados', [ReporteController::class, 'index'])
+            ->middleware(['auth', 'permiso:14'])
+            ->name('reportes.egresados');
+
+
+        Route::get('/reportes/egresados', [ReporteController::class, 'obtenerEgresados'])
+            ->name('reportes.egresados');
+
+        Route::get('/reportes/grafico-empleo', [ReporteController::class, 'graficoEmpleo'])
+            ->name('reportes.grafico-empleo');
+
+        Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
+            ->name('reportes.grafico-anual');
+
+        Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
+
+
+        // Catálogos
+        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('carreras', [ReporteController::class, 'carreras']);
+        Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
+        Route::get('paises', [ReporteController::class, 'paises']);
+        Route::get('provincias', [ReporteController::class, 'provincias']);
+        Route::get('cantones', [ReporteController::class, 'cantones']);
     });
 
     // ==========================================

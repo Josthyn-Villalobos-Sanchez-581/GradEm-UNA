@@ -1,10 +1,10 @@
 <?php
+
 namespace App\Services\ReporteServices;
 
 use App\Repositories\ReporteRepositories\ReporteRepository;
 use Throwable;
-use Illuminate\Support\Collection;
-use App\Repositories\ReporteRepositories\CatalogosReporteRepository;
+use Illuminate\Support\Facades\Auth;
 
 class ReporteService
 {
@@ -32,11 +32,14 @@ class ReporteService
         ?int $areaLaboral,
         ?string $salario,
         ?string $tipoEmpleo,
+
+        ?int $pais,
+        ?int $provincia,
         ?int $canton,
+
         ?int $idRol = 7
     ) {
         try {
-            // Aquí puedes agregar normalizaciones a los parámetros si querés.
             $raw = $this->repo->obtenerReporteEgresadosRaw(
                 $universidad,
                 $carrera,
@@ -50,18 +53,20 @@ class ReporteService
                 $areaLaboral,
                 $salario,
                 $tipoEmpleo,
+
+                $pais,
+                $provincia,
                 $canton,
+
                 $idRol
             );
 
-            // Convertir a array asociativo
-            $data = json_decode(json_encode($raw), true);
-
-            return $data;
+            return json_decode(json_encode($raw), true);
         } catch (Throwable $e) {
             throw $e;
         }
     }
+
 
     /**
      * Obtener datos para gráfico de empleo (pie / donut).
@@ -111,7 +116,6 @@ class ReporteService
                 'pct_desempleados' => (float) ($r['pct_desempleados'] ?? 0),
                 'pct_no_especificado' => (float) ($r['pct_no_especificado'] ?? 0),
             ];
-
         } catch (Throwable $e) {
             throw $e;
         }
@@ -215,5 +219,13 @@ class ReporteService
             throw $e;
         }
     }
-}
 
+    public function obtenerDatosIniciales()
+    {
+        $usuario = Auth::user();
+
+        return [
+            'userPermisos' => $this->repo->obtenerPermisosRol($usuario->id_rol),
+        ];
+    }
+}
