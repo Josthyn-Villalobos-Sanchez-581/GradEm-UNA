@@ -19,6 +19,10 @@ export default function ReportesFiltros({
   setErroresGlobales,
   mostrarFiltro,   // 👈 Agregar aquí
 }: Props) {
+  const limitarAño = (value: string) => {
+    const soloNumeros = value.replace(/\D/g, "");
+    return soloNumeros.slice(0, 4);
+  };
   const [errores, setErrores] = useState({
     fechaInicio: "",
     fechaFin: "",
@@ -28,9 +32,12 @@ export default function ReportesFiltros({
   // 🌐 FILTRADOS DEPENDIENTES
   // ---------------------------------------
   const carrerasFiltradas = filtros.universidadId ? catalogos.carreras.filter((c) => c.id_universidad === Number(filtros.universidadId)) : [];
+  const ANO_MIN = 2007;
+  const ANO_MAX = new Date().getFullYear();
 
   const provinciasFiltradas = filtros.paisId ? catalogos.provincias.filter((p) => p.id_pais === Number(filtros.paisId)) : [];
   const cantonesFiltrados = filtros.provinciaId ? catalogos.cantones.filter((c) => c.id_provincia === Number(filtros.provinciaId)) : [];
+
   // ---------------------------------------
   // 🔁 RESET AUTOMÁTICO DE FILTROS HIJOS
   // ---------------------------------------
@@ -58,17 +65,21 @@ export default function ReportesFiltros({
     const inicio = filtros.fechaInicio ? Number(filtros.fechaInicio) : null;
     const fin = filtros.fechaFin ? Number(filtros.fechaFin) : null;
 
-    if (inicio !== null && inicio < 2007) {
-      nuevosErrores.fechaInicio = "El año inicio debe ser 2007 o mayor.";
+    if (inicio !== null) {
+      if (inicio < ANO_MIN) {
+        nuevosErrores.fechaInicio = "El año de inicio debe ser 2007 o mayor.";
+      } else if (inicio > ANO_MAX) {
+        nuevosErrores.fechaInicio = "El año de inicio no puede ser mayor que el año actual.";
+      }
     }
 
     if (fin !== null) {
-      if (fin < 2007) {
-        nuevosErrores.fechaFin = "El año fin debe ser 2007 o mayor.";
-      }
-      if (inicio !== null && fin < inicio) {
-        nuevosErrores.fechaFin =
-          "El año fin no puede ser menor que el año inicio.";
+      if (fin < ANO_MIN) {
+        nuevosErrores.fechaFin = "El año de fin debe ser 2007 o mayor.";
+      } else if (fin > ANO_MAX) {
+        nuevosErrores.fechaFin = "El año de fin no puede ser mayor que el año actual.";
+      } else if (inicio !== null && fin < inicio) {
+        nuevosErrores.fechaFin = "El año de fin no puede ser menor que el año de inicio.";
       }
     }
 
@@ -79,6 +90,8 @@ export default function ReportesFiltros({
 
     setErroresGlobales(hayErrores);
   }, [filtros.fechaInicio, filtros.fechaFin]);
+
+
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
@@ -220,15 +233,15 @@ export default function ReportesFiltros({
               Año inicio
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
               className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
               value={filtros.fechaInicio ?? ""}
-              onChange={(e) =>
-                actualizarFiltros(
-                  "fechaInicio",
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
+              onChange={(e) => {
+                const valor = limitarAño(e.target.value);
+                actualizarFiltros("fechaInicio", valor ? Number(valor) : null);
+              }}
             />
             {errores.fechaInicio && (
               <p className="text-red-500 text-xs mt-1">{errores.fechaInicio}</p>
@@ -243,15 +256,15 @@ export default function ReportesFiltros({
               Año fin
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
               className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
               value={filtros.fechaFin ?? ""}
-              onChange={(e) =>
-                actualizarFiltros(
-                  "fechaFin",
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
+              onChange={(e) => {
+                const valor = limitarAño(e.target.value);
+                actualizarFiltros("fechaFin", valor ? Number(valor) : null);
+              }}
             />
             {errores.fechaFin && (
               <p className="text-red-500 text-xs mt-1">{errores.fechaFin}</p>

@@ -31,11 +31,13 @@ class ReporteController extends Controller
      */
     public function obtenerEgresados(Request $request)
     {
+        $maxAno = date('Y') + 100;
+
         $data = $request->validate([
             'universidad'     => 'nullable|integer',
             'carrera'         => 'nullable|integer',
-            'fecha_inicio'    => 'nullable|integer',
-            'fecha_fin'       => 'nullable|integer',
+            'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
+            'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
 
             'genero'          => 'nullable|string',
             'estado_estudios' => 'nullable|string',
@@ -90,11 +92,12 @@ class ReporteController extends Controller
      */
     public function graficoEmpleo(Request $request)
     {
+        $maxAno = date('Y') + 100;
         $data = $request->validate([
             'universidad' => 'nullable|integer',
             'carrera' => 'nullable|integer',
-            'fecha_inicio' => 'nullable|integer',
-            'fecha_fin' => 'nullable|integer',
+            'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
+            'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
             'genero' => 'nullable|string',
         ]);
 
@@ -118,13 +121,14 @@ class ReporteController extends Controller
      */
     public function graficoAnual(Request $request)
     {
+        $maxAno = date('Y') + 100;
         $data = $request->validate([
             'universidad' => 'nullable|integer',
             'carrera' => 'nullable|integer',
-            'fecha_inicio' => 'nullable|integer',
-            'fecha_fin' => 'nullable|integer',
+            'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
+            'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
             'genero' => 'nullable|string',
-            'estado_empleo' => 'nullable|string'
+            'estado_empleo' => 'nullable|string',            
         ]);
 
         try {
