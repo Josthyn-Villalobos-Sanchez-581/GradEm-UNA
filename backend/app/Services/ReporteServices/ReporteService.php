@@ -226,6 +226,57 @@ class ReporteService
 
         return [
             'userPermisos' => $this->repo->obtenerPermisosRol($usuario->id_rol),
+
+            // NUEVO: catálogos iniciales
+            'catalogosIniciales' => [
+                'universidades'    => $this->obtenerUniversidades(),
+                'carreras'         => $this->obtenerCarreras(),
+                'areasLaborales'   => $this->obtenerAreasLaborales(),
+                'paises'           => $this->obtenerPaises(),
+                'provincias'       => $this->obtenerProvincias(),
+                'cantones'         => $this->obtenerCantones(),
+
+                // Catálogos fijos
+                'generos' => [
+                    ['id' => 'masculino', 'nombre' => 'Masculino'],
+                    ['id' => 'femenino',  'nombre' => 'Femenino'],
+                    ['id' => 'otro',      'nombre' => 'Otro'],
+                ],
+
+                'estadosEstudios' => [
+                    ['id' => 'activo',     'nombre' => 'Activo'],
+                    ['id' => 'pausado',    'nombre' => 'Pausado'],
+                    ['id' => 'finalizado', 'nombre' => 'Finalizado'],
+                ],
+
+                'nivelesAcademicos' => [
+                    ['id' => 'Diplomado',    'nombre' => 'Diplomado'],
+                    ['id' => 'Bachillerato', 'nombre' => 'Bachillerato'],
+                    ['id' => 'Licenciatura', 'nombre' => 'Licenciatura'],
+                    ['id' => 'Maestría',     'nombre' => 'Maestría'],
+                    ['id' => 'Doctorado',    'nombre' => 'Doctorado'],
+                ],
+
+                'estadosEmpleo' => [
+                    ['id' => 'empleado',    'nombre' => 'Empleado'],
+                    ['id' => 'desempleado', 'nombre' => 'Desempleado'],
+                ],
+
+                'rangosSalariales' => [
+                    ['id' => '<300000',         'nombre' => 'Menor a ₡300,000'],
+                    ['id' => '300000-600000',   'nombre' => '₡300,000 - ₡600,000'],
+                    ['id' => '600000-1000000',  'nombre' => '₡600,000 - ₡1,000,000'],
+                    ['id' => '>1000000',        'nombre' => 'Mayor a ₡1,000,000'],
+                ],
+
+                'tiposEmpleo' => [
+                    ['id' => 'Tiempo completo', 'nombre' => 'Tiempo completo'],
+                    ['id' => 'Medio tiempo',    'nombre' => 'Medio tiempo'],
+                    ['id' => 'Temporal',        'nombre' => 'Temporal'],
+                    ['id' => 'Independiente',   'nombre' => 'Independiente'],
+                    ['id' => 'Práctica',        'nombre' => 'Práctica'],
+                ],
+            ],
         ];
     }
 }
