@@ -1,5 +1,19 @@
+import React, { useState } from "react";
+import { Head } from "@inertiajs/react";
+import axios from "axios";
+import PpLayout from "@/layouts/PpLayout";
+import { Button } from "@/components/ui/button";
+import { useModal } from "@/hooks/useModal";
+
+import TablaEgresados from "@/components/reportes/TablaEgresados";
+import GraficoPie from "@/components/reportes/GraficoPie";
+import GraficoBarras from "@/components/reportes/GraficoBarras";
+import ReportesFiltros from "@/components/reportes/ReportesFiltros";
+
+import { useParametrosReporte } from "@/hooks/useParametrosReporte";
+
 // ------------------------------------------------------
-// TIPOS REQUERIDOS PARA GRÁFICOS
+// TIPOS
 // ------------------------------------------------------
 interface GraficoEmpleo {
   empleados: number;
@@ -28,56 +42,36 @@ interface Catalogo {
 }
 
 // ------------------------------------------------------
-
-import React, { useState } from "react";
-import { Head } from "@inertiajs/react";
-import axios from "axios";
-import PpLayout from "@/layouts/PpLayout";
-import { Button } from "@/components/ui/button";
-import { useModal } from "@/hooks/useModal";
-
-import TablaEgresados from "@/components/reportes/TablaEgresados";
-import GraficoPie from "@/components/reportes/GraficoPie";
-import GraficoBarras from "@/components/reportes/GraficoBarras";
-import ReportesFiltros from "@/components/reportes/ReportesFiltros";
-
-import { useParametrosReporte } from "@/hooks/useParametrosReporte";
-
-// ------------------------------------------------------
-// MAPEO DE FILTROS POR TIPO DE REPORTE
+// MAPEO FILTROS
 // ------------------------------------------------------
 const filtrosPorReporte: Record<string, string[]> = {
-  barras: [
-    "universidadId",
-    "carreraId",
-    "fechaInicio",
-    "fechaFin",
-    "genero",
-    "estadoEmpleo",
-  ],
-
+  barras: ["universidadId", "carreraId", "fechaInicio", "fechaFin", "genero", "estadoEmpleo"],
   tabla: [
     "universidadId",
     "carreraId",
     "fechaInicio",
     "fechaFin",
-
     "genero",
     "estadoEstudios",
     "nivelAcademico",
-
     "estadoEmpleo",
     "tiempoEmpleo",
     "areaLaboralId",
     "salario",
     "tipoEmpleo",
-
     "paisId",
     "provinciaId",
     "cantonId",
   ],
-};
 
+  pie: [
+    "universidadId",
+    "carreraId",
+    "fechaInicio",
+    "fechaFin",
+    "genero",
+  ],
+};
 
 interface Props {
   userPermisos: number[];
@@ -95,25 +89,20 @@ export default function ReporteEgresados({
   const {
     filtros,
     actualizarFiltros,
-    limpiarFiltros,
     obtenerParametrosBackend,
   } = useParametrosReporte();
 
   const [tipoReporte, setTipoReporte] = useState<string | null>(null);
-  const mostrarFiltro = (campo: string) => {
-    if (!tipoReporte) return false;
-
-    // Si selecciona "todos", mostrar todos los filtros
-    if (tipoReporte === "todos") return true;
-
-    // Para los otros tipos, mostrar solo los definidos
-    return filtrosPorReporte[tipoReporte]?.includes(campo);
-  };
-
   const [resultados, setResultados] = useState<any[]>([]);
   const [graficoEmpleo, setGraficoEmpleo] = useState<GraficoEmpleo | null>(null);
   const [graficoAnual, setGraficoAnual] = useState<GraficoAnualRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const mostrarFiltro = (campo: string) => {
+    if (!tipoReporte) return false;
+    if (tipoReporte === "todos") return true;
+    return filtrosPorReporte[tipoReporte]?.includes(campo);
+  };
 
   // -------------------------------------------------------
   // GENERAR REPORTE
@@ -122,15 +111,15 @@ export default function ReporteEgresados({
     if (!tipoReporte) {
       modal.alerta({
         titulo: "Reporte no seleccionado",
-        mensaje: "Debe seleccionar un tipo de reporte antes de generar.",
+        mensaje: "Debe seleccionar el tipo de reporte.",
       });
       return;
     }
 
     if (hayErrores) {
       modal.alerta({
-        titulo: "Errores en el formulario",
-        mensaje: "Debe corregir los errores antes de generar el reporte.",
+        titulo: "Errores en filtros",
+        mensaje: "Corrija los errores antes de continuar.",
       });
       return;
     }
@@ -162,18 +151,14 @@ export default function ReporteEgresados({
       setGraficoEmpleo(pie);
       setGraficoAnual(barras);
 
-      // Modal si todo está vacío
       if (
         tabla.length === 0 &&
-        (!pie ||
-          (pie.empleados === 0 &&
-            pie.desempleados === 0 &&
-            pie.no_especificado === 0)) &&
+        (!pie || (pie.empleados + pie.desempleados + pie.no_especificado === 0)) &&
         barras.length === 0
       ) {
         modal.alerta({
           titulo: "Sin resultados",
-          mensaje: "No se encontraron resultados con los filtros aplicados.",
+          mensaje: "No se encontraron datos con los filtros aplicados.",
         });
       }
     } finally {
@@ -181,96 +166,130 @@ export default function ReporteEgresados({
     }
   };
 
-  // -------------------------------------------------------
-  // DATOS PARA GRÁFICO PIE
-  // -------------------------------------------------------
-  const datosPie =
-    graficoEmpleo
-      ? [
-        { nombre: "Empleados", valor: graficoEmpleo.empleados ?? 0 },
-        { nombre: "Desempleados", valor: graficoEmpleo.desempleados ?? 0 },
-        { nombre: "No especificado", valor: graficoEmpleo.no_especificado ?? 0 },
-      ]
-      : [];
+  const datosPie = graficoEmpleo
+    ? [
+      { nombre: "Empleados", valor: graficoEmpleo.empleados },
+      { nombre: "Desempleados", valor: graficoEmpleo.desempleados },
+      { nombre: "No especificado", valor: graficoEmpleo.no_especificado },
+    ]
+    : [];
 
   // -------------------------------------------------------
   // RENDER
   // -------------------------------------------------------
   return (
     <>
-      <Head title="Reportes - Egresados" />
+      <Head title="Reportes de Egresados" />
 
-      <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
-        <div className="bg-white rounded-xl shadow-sm w-full max-w-7xl p-8">
-          <h1 className="text-2xl font-bold text-[#034991] mb-6">
-            Reporte de Egresados
-          </h1>
+      <div className="min-h-screen bg-gray-100 py-10 text-black">
+        <div className="w-full px-6 space-y-6 text-black">
 
-          {/* Select tipo de reporte */}
-          <div className="mb-6">
-            <label className="font-bold text-[#034991]">Tipo de reporte:</label>
-            <select
-              className="border p-2 rounded ml-3"
-              value={tipoReporte ?? ""}
-              onChange={(e) => setTipoReporte(e.target.value || null)}
 
-            >
-              <option value="">Seleccione</option>
-              <option value="tabla">Tabla</option>
-              <option value="pie">Gráfico pie</option>
-              <option value="barras">Gráfico barras</option>
-              <option value="todos">Todos</option>
-            </select>
-          </div>
-          {/* Si no se ha seleccionado tipo de reporte → no mostrar filtros */}
-          {!tipoReporte && (
-            <div className="text-center text-gray-600 text-lg py-10">
-              Seleccione el tipo de reporte para continuar.
-            </div>
-          )}
-          {tipoReporte && (
-            <ReportesFiltros
-              catalogos={catalogos}
-              filtros={filtros}
-              actualizarFiltros={actualizarFiltros}
-              setErroresGlobales={setHayErrores}
-              mostrarFiltro={mostrarFiltro} // 🔥 SE LO PASAMOS AL COMPONENTE
-            />
-          )}
+          {/* Encabezado */}
+          <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <h1 className="text-2xl font-bold text-[#034991]">
+              Reportes de Egresados
+            </h1>
 
-          {/* Botón */}
-          {tipoReporte && !hayErrores && (
-            <div className="text-center mt-6 mb-8">
-              <Button className="px-10 py-3" onClick={fetchReportes}>
-                Generar Reporte
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 w-full lg:w-auto">
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <label className="text-base font-medium text-black whitespace-nowrap">
+                  Tipo de reporte
+                </label>
+
+                <select
+                  className="w-full sm:w-auto min-w-[180px]
+                   text-base border border-gray-300 rounded-md
+                   px-2 py-2 bg-white text-black
+                   focus:ring-1 focus:ring-[#034991]"
+                  value={tipoReporte ?? ""}
+                  onChange={(e) => setTipoReporte(e.target.value || null)}
+                >
+                  <option value="">Seleccione</option>
+                  <option value="tabla">Tabla</option>
+                  <option value="pie">Gráfico pie</option>
+                  <option value="barras">Gráfico barras</option>
+                  <option value="todos">Todos</option>
+                </select>
+              </div>
+
+              <Button
+                onClick={fetchReportes}
+                disabled={!tipoReporte || hayErrores}
+                className="w-full sm:w-auto h-[42px]"
+              >
+                Generar reporte
               </Button>
             </div>
-          )}
+          </header>
 
-          {hayErrores && (
-            <p className="text-red-600 font-semibold mt-2 flex justify-center">
-              Corrija los errores para generar el reporte.
-            </p>
-          )}
 
-          {!tipoReporte && (
-            <p className="text-red-600 font-semibold mt-2 flex justify-center">
-              Seleccione el ripo de reporte para continuar.
-            </p>
-          )}
 
-          {loading && <p className="mt-4 text-center">Cargando...</p>}
+          {/* Contenido */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-black">
 
-          {(tipoReporte === "tabla" || tipoReporte === "todos") &&
-            resultados.length > 0 && <TablaEgresados filas={resultados} />}
+            {/* Filtros */}
+            <aside className="lg:col-span-1 bg-white rounded-xl shadow flex flex-col h-[calc(100vh-9rem)] sticky top-24">
 
-          {(tipoReporte === "pie" || tipoReporte === "todos") &&
-            graficoEmpleo && <GraficoPie datos={datosPie} />}
+              {/* CONTENEDOR CON SCROLL */}
+              <div
+                className="
+                            flex-1 overflow-y-auto px-5 py-4 space-y-4
+                            scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent
+                          "
+                style={{ direction: "rtl" }}
+              >
+                <div style={{ direction: "ltr" }}>
+                  {tipoReporte ? (
+                    <ReportesFiltros
+                      catalogos={catalogos}
+                      filtros={filtros}
+                      actualizarFiltros={actualizarFiltros}
+                      setErroresGlobales={setHayErrores}
+                      mostrarFiltro={mostrarFiltro}
+                    />
+                  ) : (
+                    <p className="text-center text-gray-600">
+                      Seleccione el tipo de reporte
+                    </p>
+                  )}
+                </div>
+              </div>
+            </aside>
 
-          {(tipoReporte === "barras" || tipoReporte === "todos") &&
-            graficoAnual.length > 0 && (
-              <GraficoBarras filas={graficoAnual} />
-            )}
+
+
+            {/* Resultados */}
+            <main className="lg:col-span-3 space-y-6">
+
+              {loading && (
+                <p className="text-center text-gray-600">Cargando...</p>
+              )}
+
+              {(tipoReporte === "pie" || tipoReporte === "todos") &&
+                graficoEmpleo && (
+                  <GraficoPie datos={datosPie} />
+                )}
+
+
+              {(tipoReporte === "barras" || tipoReporte === "todos") &&
+                graficoAnual.length > 0 && (
+                  <GraficoBarras filas={graficoAnual} />
+                )}
+
+
+              {(tipoReporte === "tabla" || tipoReporte === "todos") &&
+                resultados.length > 0 && (
+                  <div className="bg-white rounded-xl shadow p-6">
+                    <h2 className="font-semibold mb-4">
+                      Detalle de egresados
+                    </h2>
+                    <TablaEgresados filas={resultados} />
+                  </div>
+                )}
+            </main>
+          </div>
         </div>
       </div>
     </>

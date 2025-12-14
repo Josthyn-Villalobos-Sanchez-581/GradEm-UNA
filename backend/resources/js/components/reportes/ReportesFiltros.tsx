@@ -23,9 +23,15 @@ export default function ReportesFiltros({
     const soloNumeros = value.replace(/\D/g, "");
     return soloNumeros.slice(0, 4);
   };
+  const limitarMeses = (value: string) => {
+    const soloNumeros = value.replace(/\D/g, "");
+    return soloNumeros.slice(0, 3);
+  };
+
   const [errores, setErrores] = useState({
     fechaInicio: "",
     fechaFin: "",
+    tiempoEmpleo: "",
   });
 
   // ---------------------------------------
@@ -60,7 +66,11 @@ export default function ReportesFiltros({
   // 🔍 VALIDACIÓN DE AÑOS
   // ---------------------------------------
   useEffect(() => {
-    const nuevosErrores = { fechaInicio: "", fechaFin: "" };
+    const nuevosErrores = {
+      fechaInicio: "",
+      fechaFin: "",
+      tiempoEmpleo: "",
+    };
 
     const inicio = filtros.fechaInicio ? Number(filtros.fechaInicio) : null;
     const fin = filtros.fechaFin ? Number(filtros.fechaFin) : null;
@@ -91,6 +101,34 @@ export default function ReportesFiltros({
     setErroresGlobales(hayErrores);
   }, [filtros.fechaInicio, filtros.fechaFin]);
 
+  useEffect(() => {
+    const nuevosErrores = { ...errores };
+
+    const tiempo = filtros.tiempoEmpleo !== null
+      ? Number(filtros.tiempoEmpleo)
+      : null;
+
+    if (tiempo !== null) {
+      if (tiempo < 0) {
+        nuevosErrores.tiempoEmpleo = "El tiempo de empleo no puede ser negativo.";
+      } else if (tiempo > 999) {
+        nuevosErrores.tiempoEmpleo = "El tiempo máximo permitido es 999 meses.";
+      } else {
+        nuevosErrores.tiempoEmpleo = "";
+      }
+    } else {
+      nuevosErrores.tiempoEmpleo = "";
+    }
+
+    setErrores(nuevosErrores);
+
+    const hayErrores =
+      nuevosErrores.fechaInicio !== "" ||
+      nuevosErrores.fechaFin !== "" ||
+      nuevosErrores.tiempoEmpleo !== "";
+
+    setErroresGlobales(hayErrores);
+  }, [filtros.tiempoEmpleo]);
 
 
   return (
@@ -99,16 +137,16 @@ export default function ReportesFiltros({
         Filtros de búsqueda
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-3">
 
         {/* UNIVERSIDAD */}
         {mostrarFiltro("universidadId") && (
           <div className="flex flex-col" key="filtro-universidad">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Universidad
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.universidadId ?? ""}
               onChange={(e) =>
                 actualizarConResets("universidadId", e.target.value)
@@ -127,11 +165,11 @@ export default function ReportesFiltros({
         {/* CARRERA */}
         {mostrarFiltro("carreraId") && (
           <div className="flex flex-col" key="filtro-carrera">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Carrera
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 disabled:bg-gray-200"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               disabled={!filtros.universidadId}
               value={filtros.carreraId ?? ""}
               onChange={(e) =>
@@ -154,11 +192,11 @@ export default function ReportesFiltros({
         {/* PAÍS */}
         {mostrarFiltro("paisId") && (
           <div className="flex flex-col" key="filtro-pais">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               País
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.paisId ?? ""}
               onChange={(e) => {
                 actualizarConResets("paisId", e.target.value)
@@ -177,14 +215,14 @@ export default function ReportesFiltros({
         {/* PROVINCIA */}
         {mostrarFiltro("provinciaId") && (
           <div className="flex flex-col" key="filtro-provincia">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Provincia
             </label>
             <select
               disabled={!filtros.paisId}
               value={filtros.provinciaId ?? ""}
               onChange={(e) => actualizarConResets("provinciaId", e.target.value)}
-              className="h-11 border rounded-lg px-3 bg-gray-50"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
             >
               <option value="">
                 {filtros.paisId ? "Seleccione" : "Seleccione país"}
@@ -202,11 +240,11 @@ export default function ReportesFiltros({
         {/* CANTÓN */}
         {mostrarFiltro("cantonId") && (
           <div className="flex flex-col" key="filtro-canton">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Cantón
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 disabled:bg-gray-200"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               disabled={!filtros.provinciaId}
               value={filtros.cantonId ?? ""}
               onChange={(e) => {
@@ -229,14 +267,14 @@ export default function ReportesFiltros({
         {/* ------------ AÑO INICIO ------------ */}
         {mostrarFiltro("fechaInicio") && (
           <div className="flex flex-col" key="filtro-anio-inicio">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Año inicio
             </label>
             <input
               type="text"
               inputMode="numeric"
               maxLength={4}
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.fechaInicio ?? ""}
               onChange={(e) => {
                 const valor = limitarAño(e.target.value);
@@ -252,14 +290,14 @@ export default function ReportesFiltros({
         {/* ------------ AÑO FIN ------------ */}
         {mostrarFiltro("fechaFin") && (
           <div className="flex flex-col" key="filtro-anio-fin">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Año fin
             </label>
             <input
               type="text"
               inputMode="numeric"
               maxLength={4}
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.fechaFin ?? ""}
               onChange={(e) => {
                 const valor = limitarAño(e.target.value);
@@ -275,11 +313,11 @@ export default function ReportesFiltros({
         {/* ------------ AREA LABORAL ------------ */}
         {mostrarFiltro("areaLaboralId") && (
           <div className="flex flex-col" key="filtro-area-laboral">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Área laboral
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.areaLaboralId ?? ""}
               onChange={(e) => actualizarFiltros("areaLaboralId", Number(e.target.value))}
             >
@@ -296,9 +334,9 @@ export default function ReportesFiltros({
         {/* ------------ GÉNERO ------------ */}
         {mostrarFiltro("genero") && (
           <div className="flex flex-col" key="filtro-genero">
-            <label className="font-semibold text-sm text-gray-700 mb-1">Género</label>
+            <label className="text-base font-semibold text-black mb-1">Género</label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.genero ?? ""}
               onChange={(e) => actualizarFiltros("genero", e.target.value)}
             >
@@ -315,11 +353,11 @@ export default function ReportesFiltros({
         {/* ------------ ESTADO DE ESTUDIOS ------------ */}
         {mostrarFiltro("estadoEstudios") && (
           <div className="flex flex-col" key="filtro-estado-estudios">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Estado de estudios
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.estadoEstudios ?? ""}
               onChange={(e) => actualizarFiltros("estadoEstudios", e.target.value)}
             >
@@ -336,11 +374,11 @@ export default function ReportesFiltros({
         {/* ------------ NIVEL ACADEMICO ------------ */}
         {mostrarFiltro("nivelAcademico") && (
           <div className="flex flex-col" key="filtro-nivel-academico">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Nivel académico
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.nivelAcademico ?? ""}
               onChange={(e) => actualizarFiltros("nivelAcademico", e.target.value)}
             >
@@ -357,11 +395,11 @@ export default function ReportesFiltros({
         {/* ------------ ESTADO EMPLEO ------------ */}
         {mostrarFiltro("estadoEmpleo") && (
           <div className="flex flex-col" key="filtro-estado-empleo">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Estado laboral
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.estadoEmpleo ?? ""}
               onChange={(e) => actualizarFiltros("estadoEmpleo", e.target.value)}
             >
@@ -378,31 +416,37 @@ export default function ReportesFiltros({
         {/* ------------ TIEMPO EMPLEO ------------ */}
         {mostrarFiltro("tiempoEmpleo") && (
           <div className="flex flex-col" key="filtro-tiempo-empleo">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Tiempo de empleo (meses)
             </label>
             <input
-              type="number"
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              type="text"
+              inputMode="numeric"
+              maxLength={3}
+              className="w-full h-9 text-base border border-gray-300 rounded-md px-2 bg-white text-black focus:ring-1 focus:ring-[#034991]"
               value={filtros.tiempoEmpleo ?? ""}
-              onChange={(e) =>
-                actualizarFiltros(
-                  "tiempoEmpleo",
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
+              onChange={(e) => {
+                const valor = limitarMeses(e.target.value);
+                actualizarFiltros("tiempoEmpleo", valor ? Number(valor) : null);
+              }}
             />
+
+            {errores.tiempoEmpleo && (
+              <p className="text-red-500 text-xs mt-1">
+                {errores.tiempoEmpleo}
+              </p>
+            )}
           </div>
         )}
 
         {/* ------------ RANGO SALARIAL ------------ */}
         {mostrarFiltro("salario") && (
           <div className="flex flex-col" key="filtro-rango-salarial">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Rango salarial
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.salario ?? ""}
               onChange={(e) => actualizarFiltros("salario", e.target.value)}
             >
@@ -419,11 +463,11 @@ export default function ReportesFiltros({
         {/* ------------ TIPO EMPLEO ------------ */}
         {mostrarFiltro("tipoEmpleo") && (
           <div className="flex flex-col" key="filtro-tipo-empleo">
-            <label className="font-semibold text-sm text-gray-700 mb-1">
+            <label className="text-base font-semibold text-black mb-1">
               Tipo de empleo
             </label>
             <select
-              className="h-11 border rounded-lg px-3 bg-gray-50 hover:bg-gray-100 transition"
+              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
               value={filtros.tipoEmpleo ?? ""}
               onChange={(e) => actualizarFiltros("tipoEmpleo", e.target.value)}
             >

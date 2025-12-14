@@ -17,7 +17,7 @@ export interface ParametrosReporte {
   provinciaId: string | null;
   cantonId: string | null;
 }
-
+//hook perteneciente a REPORTES
 export function useParametrosReporte() {
   const [filtros, setFiltros] = useState<ParametrosReporte>({
     universidadId: null,

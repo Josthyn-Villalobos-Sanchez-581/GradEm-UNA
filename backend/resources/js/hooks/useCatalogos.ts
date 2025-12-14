@@ -20,7 +20,7 @@ export type Catalogo = {
 };
 
 /** --------------------------
- * Hook principal
+ * Hook principal para reportes
  ---------------------------*/
 export function useCatalogos() {
   const [catalogos, setCatalogos] = useState<Catalogo>({
