@@ -5,6 +5,7 @@ namespace App\Services\ReporteServices;
 use App\Repositories\ReporteRepositories\ReporteRepository;
 use Throwable;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReporteService
 {
@@ -279,4 +280,66 @@ class ReporteService
             ],
         ];
     }
+
+    public function generarPdfReportes(string $tipoReporte, array $p, array $filtrosLegibles = [])
+    {
+        $tabla = [];
+        $pie = null;
+        $barras = [];
+
+        if (in_array($tipoReporte, ['tabla', 'todos'])) {
+            $tabla = $this->obtenerReporteEgresados(
+                $p['universidad'] ?? null,
+                $p['carrera'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null,
+                $p['estado_estudios'] ?? null,
+                $p['nivel_academico'] ?? null,
+                $p['estado_empleo'] ?? null,
+                $p['tiempo_empleo'] ?? null,
+                $p['area_laboral'] ?? null,
+                $p['salario'] ?? null,
+                $p['tipo_empleo'] ?? null,
+                $p['pais'] ?? null,
+                $p['provincia'] ?? null,
+                $p['canton'] ?? null,
+                7
+            );
+        }
+
+        if (in_array($tipoReporte, ['pie', 'todos'])) {
+            $pie = $this->obtenerGraficoEmpleo(
+                $p['universidad'] ?? null,
+                $p['carrera'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null
+            );
+        }
+
+        if (in_array($tipoReporte, ['barras', 'todos'])) {
+            $barras = $this->obtenerGraficoAnual(
+                $p['universidad'] ?? null,
+                $p['carrera'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null,
+                $p['estado_empleo'] ?? null
+            );
+        }
+
+        return Pdf::loadView('pdf.reportes', [
+            'tipoReporte' => $tipoReporte,
+            'tabla' => $tabla,
+            'pie' => $pie,
+            'barras' => $barras,
+            'filtros' => $filtrosLegibles,
+            'fecha' => now()->format('d/m/Y H:i'),
+        ])
+            ->setPaper('a4', 'portrait')
+            ->download('Reporte_GradEm_UNA.pdf');
+    }
+
+    
 }

@@ -128,7 +128,7 @@ class ReporteController extends Controller
             'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
             'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
             'genero' => 'nullable|string',
-            'estado_empleo' => 'nullable|string',            
+            'estado_empleo' => 'nullable|string',
         ]);
 
         try {
@@ -145,5 +145,20 @@ class ReporteController extends Controller
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function descargarPdf(Request $request)
+    {
+        $data = $request->validate([
+            'tipoReporte'     => 'required|string|in:tabla,pie,barras,todos',
+            'parametros'      => 'required|array',
+            'filtrosLegibles' => 'nullable|array',
+        ]);
+
+        return $this->service->generarPdfReportes(
+            $data['tipoReporte'],
+            $data['parametros'],
+            $data['filtrosLegibles'] ?? [] 
+        );
     }
 }

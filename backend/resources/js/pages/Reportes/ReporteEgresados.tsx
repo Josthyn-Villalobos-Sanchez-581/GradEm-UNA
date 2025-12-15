@@ -73,6 +73,18 @@ const filtrosPorReporte: Record<string, string[]> = {
   ],
 };
 
+// ------------------------------------------------------
+// RESOLVER ID -> NOMBRE DESDE CATÁLOGOS
+// ------------------------------------------------------
+const resolverNombre = (
+  catalogo: { id: any; nombre: string }[],
+  valor: any
+) => {
+  const item = catalogo.find((c) => String(c.id) === String(valor));
+  return item ? item.nombre : valor;
+};
+
+
 interface Props {
   userPermisos: number[];
   catalogosIniciales: Catalogo;
@@ -86,6 +98,29 @@ export default function ReporteEgresados({
   const [hayErrores, setHayErrores] = useState(false);
   const [catalogos] = useState(catalogosIniciales);
 
+  // ------------------------------------------------------
+  // CATÁLOGO ASOCIADO A CADA FILTRO
+  // ------------------------------------------------------
+  const catalogoPorFiltro: Record<string, any[] | null> = {
+    universidadId: catalogos.universidades,
+    carreraId: catalogos.carreras,
+    areaLaboralId: catalogos.areasLaborales,
+    paisId: catalogos.paises,
+    provinciaId: catalogos.provincias,
+    cantonId: catalogos.cantones,
+
+    genero: catalogos.generos,
+    estadoEstudios: catalogos.estadosEstudios,
+    nivelAcademico: catalogos.nivelesAcademicos,
+    estadoEmpleo: catalogos.estadosEmpleo,
+    salario: catalogos.rangosSalariales,
+    tipoEmpleo: catalogos.tiposEmpleo,
+
+    fechaInicio: null,
+    fechaFin: null,
+  };
+
+
   const {
     filtros,
     actualizarFiltros,
@@ -98,11 +133,38 @@ export default function ReporteEgresados({
   const [graficoAnual, setGraficoAnual] = useState<GraficoAnualRow[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const hayResultados =
+    resultados.length > 0 ||
+    graficoAnual.length > 0 ||
+    (graficoEmpleo &&
+      graficoEmpleo.empleados +
+      graficoEmpleo.desempleados +
+      graficoEmpleo.no_especificado >
+      0);
+
+
   const mostrarFiltro = (campo: string) => {
     if (!tipoReporte) return false;
     if (tipoReporte === "todos") return true;
     return filtrosPorReporte[tipoReporte]?.includes(campo);
   };
+
+  // -------------------------------------------------------
+  // FILTROS LEGIBLES (ID -> NOMBRE)
+  // -------------------------------------------------------
+  const filtrosLegibles = Object.entries(filtros)
+    .filter(([_, valor]) => valor !== null && valor !== "")
+    .map(([campo, valor]) => {
+      const catalogo = catalogoPorFiltro[campo];
+
+      return {
+        campo,
+        valor: catalogo
+          ? resolverNombre(catalogo, valor)
+          : valor,
+      };
+    });
+
 
   // -------------------------------------------------------
   // GENERAR REPORTE
@@ -166,6 +228,38 @@ export default function ReporteEgresados({
     }
   };
 
+  const descargarPdf = async () => {
+    if (!tipoReporte) return;
+
+    const params = obtenerParametrosBackend();
+
+    try {
+      const res = await axios.post(
+        "/reportes/descargar-pdf",
+        {
+          tipoReporte,
+          parametros: params,
+          filtrosLegibles,
+        },
+        { responseType: "blob" }
+      );
+
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Reporte_GradEm_UNA.pdf";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      modal.alerta({
+        titulo: "Error",
+        mensaje: "No fue posible generar el PDF del reporte.",
+      });
+    }
+  };
+
+
   const datosPie = graficoEmpleo
     ? [
       { nombre: "Empleados", valor: graficoEmpleo.empleados },
@@ -193,6 +287,7 @@ export default function ReporteEgresados({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 w-full lg:w-auto">
 
+              {/* Selector tipo */}
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <label className="text-base font-medium text-black whitespace-nowrap">
                   Tipo de reporte
@@ -200,9 +295,9 @@ export default function ReporteEgresados({
 
                 <select
                   className="w-full sm:w-auto min-w-[180px]
-                   text-base border border-gray-300 rounded-md
-                   px-2 py-2 bg-white text-black
-                   focus:ring-1 focus:ring-[#034991]"
+        text-base border border-gray-300 rounded-md
+        px-2 py-2 bg-white text-black
+        focus:ring-1 focus:ring-[#034991]"
                   value={tipoReporte ?? ""}
                   onChange={(e) => setTipoReporte(e.target.value || null)}
                 >
@@ -214,15 +309,29 @@ export default function ReporteEgresados({
                 </select>
               </div>
 
-              <Button
-                onClick={fetchReportes}
-                disabled={!tipoReporte || hayErrores}
-                className="w-full sm:w-auto h-[42px]"
-              >
-                Generar reporte
-              </Button>
+              {/* Botones */}
+              <div className="flex gap-3 w-full sm:w-auto">
+                <Button
+                  onClick={fetchReportes}
+                  disabled={!tipoReporte || hayErrores}
+                  className="w-full sm:w-auto h-[42px]"
+                >
+                  Generar reporte
+                </Button>
+
+                {hayResultados && (
+                  <Button
+                    variant="destructive"
+                    onClick={descargarPdf}
+                    className="w-full sm:w-auto h-[42px]"
+                  >
+                    Descargar PDF
+                  </Button>
+                )}
+              </div>
             </div>
           </header>
+
 
 
 

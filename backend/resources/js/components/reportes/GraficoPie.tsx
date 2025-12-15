@@ -47,11 +47,49 @@ export default function GraficoPie({ datos }: Props) {
     );
   }
 
-  const resumen = datos.map((d, index) => ({
-    nombre: d.nombre,
-    valor: d.valor,
+  // Enriquecemos datos con porcentaje
+  const datosConPorcentaje = datos.map((d, index) => ({
+    ...d,
+    porcentaje: ((d.valor / total) * 100).toFixed(1),
     color: COLORES[index % COLORES.length],
   }));
+
+  // Label dentro del pie
+  const renderLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+    value,
+  }: any) => {
+
+    // ⛔ No mostrar porcentaje si el valor es 0
+    if (value === 0 || percent === 0) {
+      return null;
+    }
+
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.52;
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#fff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={14}
+        fontWeight="bold"
+      >
+        {(percent * 100).toFixed(0)}%
+      </text>
+    );
+  };
+
+
 
   return (
     <div className="bg-white rounded-xl shadow p-6 min-h-[420px]">
@@ -66,7 +104,7 @@ export default function GraficoPie({ datos }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={datos}
+                  data={datosConPorcentaje}
                   dataKey="valor"
                   nameKey="nombre"
                   cx="50%"
@@ -74,19 +112,21 @@ export default function GraficoPie({ datos }: Props) {
                   outerRadius={110}
                   innerRadius={65}
                   paddingAngle={3}
+                  label={renderLabel}
+                  labelLine={false}
                   animationDuration={900}
                 >
-                  {datos.map((_, index) => (
+                  {datosConPorcentaje.map((entry, index) => (
                     <Cell
                       key={index}
-                      fill={COLORES[index % COLORES.length]}
+                      fill={entry.color}
                     />
                   ))}
                 </Pie>
 
                 <Tooltip
-                  formatter={(value: number, name: string) => [
-                    value,
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value} (${props.payload.porcentaje}%)`,
                     name,
                   ]}
                   contentStyle={{
@@ -115,7 +155,7 @@ export default function GraficoPie({ datos }: Props) {
 
         {/* Resumen lateral */}
         <div className="flex flex-col justify-center gap-4 text-black">
-          {resumen.map((item) => (
+          {datosConPorcentaje.map((item) => (
             <div
               key={item.nombre}
               className="flex items-center justify-between border rounded-lg px-4 py-3"
@@ -124,15 +164,21 @@ export default function GraficoPie({ datos }: Props) {
                 <span
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: item.color }}
-                ></span>
+                />
                 <span className="text-sm font-medium">
                   {item.nombre}
                 </span>
               </div>
 
-              <span className="text-lg font-bold">
-                {item.valor}
-              </span>
+              <div className="text-right">
+                <span className="text-lg font-bold block">
+                  {item.valor}
+                </span>
+                <span className="text-sm font-semibold text-gray-600">
+                  {item.porcentaje}%
+                </span>
+
+              </div>
             </div>
           ))}
         </div>
