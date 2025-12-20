@@ -291,6 +291,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
 
+        Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
 
         // Catálogos
         Route::get('universidades', [ReporteController::class, 'universidades']);
