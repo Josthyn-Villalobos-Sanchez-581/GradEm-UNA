@@ -36,9 +36,7 @@ class ReporteService
 
         ?int $pais,
         ?int $provincia,
-        ?int $canton,
-
-        ?int $idRol = 7
+        ?int $canton
     ) {
         try {
             $raw = $this->repo->obtenerReporteEgresadosRaw(
@@ -57,9 +55,7 @@ class ReporteService
 
                 $pais,
                 $provincia,
-                $canton,
-
-                $idRol
+                $canton
             );
 
             return json_decode(json_encode($raw), true);
@@ -78,7 +74,17 @@ class ReporteService
         ?int $carrera,
         ?int $fechaInicio,
         ?int $fechaFin,
-        ?string $genero
+        ?string $genero,
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
     ) {
         try {
             $raw = $this->repo->obtenerGraficoEmpleoRaw(
@@ -86,7 +92,17 @@ class ReporteService
                 $carrera,
                 $fechaInicio,
                 $fechaFin,
-                $genero
+                $genero,
+                $estadoEstudios,
+                $nivelAcademico,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+
+                $pais,
+                $provincia,
+                $canton
             );
 
             $rows = json_decode(json_encode($raw), true);
@@ -132,7 +148,17 @@ class ReporteService
         ?int $fechaInicio,
         ?int $fechaFin,
         ?string $genero,
-        ?string $estadoEmpleo
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?string $estadoEmpleo,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
     ) {
         try {
             $raw = $this->repo->obtenerGraficoAnualRaw(
@@ -141,7 +167,17 @@ class ReporteService
                 $fechaInicio,
                 $fechaFin,
                 $genero,
-                $estadoEmpleo
+                $estadoEstudios,
+                $nivelAcademico,
+                $estadoEmpleo,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+
+                $pais,
+                $provincia,
+                $canton
             );
 
             $rows = json_decode(json_encode($raw), true);
@@ -281,13 +317,17 @@ class ReporteService
         ];
     }
 
-    public function generarPdfReportes(string $tipoReporte, array $p, array $filtrosLegibles = [])
+    public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [])
     {
         $tabla = [];
         $pie = null;
         $barras = [];
 
-        if (in_array($tipoReporte, ['tabla', 'todos'])) {
+        $tabla = [];
+        $pie = null;
+        $barras = [];
+
+        if (in_array('tabla', $reportes)) {
             $tabla = $this->obtenerReporteEgresados(
                 $p['universidad'] ?? null,
                 $p['carrera'] ?? null,
@@ -303,43 +343,58 @@ class ReporteService
                 $p['tipo_empleo'] ?? null,
                 $p['pais'] ?? null,
                 $p['provincia'] ?? null,
-                $p['canton'] ?? null,
-                7
+                $p['canton'] ?? null
             );
         }
 
-        if (in_array($tipoReporte, ['pie', 'todos'])) {
-            $pie = $this->obtenerGraficoEmpleo(
-                $p['universidad'] ?? null,
-                $p['carrera'] ?? null,
-                $p['fecha_inicio'] ?? null,
-                $p['fecha_fin'] ?? null,
-                $p['genero'] ?? null
-            );
-        }
-
-        if (in_array($tipoReporte, ['barras', 'todos'])) {
+        if (in_array('barras', $reportes)) {
             $barras = $this->obtenerGraficoAnual(
                 $p['universidad'] ?? null,
                 $p['carrera'] ?? null,
                 $p['fecha_inicio'] ?? null,
                 $p['fecha_fin'] ?? null,
                 $p['genero'] ?? null,
-                $p['estado_empleo'] ?? null
+                $p['estado_estudios'] ?? null,
+                $p['nivel_academico'] ?? null,
+                $p['estado_empleo'] ?? null,
+                $p['tiempo_empleo'] ?? null,
+                $p['area_laboral'] ?? null,
+                $p['salario'] ?? null,
+                $p['tipo_empleo'] ?? null,
+                $p['pais'] ?? null,
+                $p['provincia'] ?? null,
+                $p['canton'] ?? null
+            );
+        }
+
+        if (in_array('pie', $reportes)) {
+            $pie = $this->obtenerGraficoEmpleo(
+                $p['universidad'] ?? null,
+                $p['carrera'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null,
+                $p['estado_estudios'] ?? null,
+                $p['nivel_academico'] ?? null,
+                $p['tiempo_empleo'] ?? null,
+                $p['area_laboral'] ?? null,
+                $p['salario'] ?? null,
+                $p['tipo_empleo'] ?? null,
+                $p['pais'] ?? null,
+                $p['provincia'] ?? null,
+                $p['canton'] ?? null
             );
         }
 
         return Pdf::loadView('pdf.reportes', [
-            'tipoReporte' => $tipoReporte,
-            'tabla' => $tabla,
-            'pie' => $pie,
-            'barras' => $barras,
-            'filtros' => $filtrosLegibles,
-            'fecha' => now()->format('d/m/Y H:i'),
+            'reportes' => $reportes,
+            'tabla'    => $tabla,
+            'pie'      => $pie,
+            'barras'   => $barras,
+            'filtros'  => $filtrosLegibles,
+            'fecha'    => now()->format('d/m/Y H:i'),
         ])
             ->setPaper('a4', 'portrait')
             ->download('Reporte_GradEm_UNA.pdf');
     }
-
-    
 }

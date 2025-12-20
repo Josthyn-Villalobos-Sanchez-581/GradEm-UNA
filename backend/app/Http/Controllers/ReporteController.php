@@ -72,9 +72,7 @@ class ReporteController extends Controller
                 // NUEVOS CAMPOS
                 $data['pais'] ?? null,
                 $data['provincia'] ?? null,
-                $data['canton'] ?? null,
-
-                7 // id_rol egresado
+                $data['canton'] ?? null
             );
 
             return response()->json(['success' => true, 'data' => $result]);
@@ -94,11 +92,23 @@ class ReporteController extends Controller
     {
         $maxAno = date('Y') + 100;
         $data = $request->validate([
-            'universidad' => 'nullable|integer',
-            'carrera' => 'nullable|integer',
+            'universidad'     => 'nullable|integer',
+            'carrera'         => 'nullable|integer',
             'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
             'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
-            'genero' => 'nullable|string',
+
+            'genero'          => 'nullable|string',
+            'estado_estudios' => 'nullable|string',
+            'nivel_academico' => 'nullable|string',
+
+            'tiempo_empleo'   => 'nullable|integer',
+            'area_laboral'    => 'nullable|integer',
+            'salario'         => 'nullable|string',
+            'tipo_empleo'     => 'nullable|string',
+
+            'pais'            => 'nullable|integer',
+            'provincia'       => 'nullable|integer',
+            'canton'          => 'nullable|integer',
         ]);
 
         try {
@@ -107,7 +117,16 @@ class ReporteController extends Controller
                 $data['carrera'] ?? null,
                 $data['fecha_inicio'] ?? null,
                 $data['fecha_fin'] ?? null,
-                $data['genero'] ?? null
+                $data['genero'] ?? null,
+                $data['estado_estudios'] ?? null,
+                $data['nivel_academico'] ?? null,
+                $data['tiempo_empleo'] ?? null,
+                $data['area_laboral'] ?? null,
+                $data['salario'] ?? null,
+                $data['tipo_empleo'] ?? null,
+                $data['pais'] ?? null,
+                $data['provincia'] ?? null,
+                $data['canton'] ?? null
             );
 
             return response()->json(['success' => true, 'data' => $result]);
@@ -123,12 +142,24 @@ class ReporteController extends Controller
     {
         $maxAno = date('Y') + 100;
         $data = $request->validate([
-            'universidad' => 'nullable|integer',
-            'carrera' => 'nullable|integer',
+            'universidad'     => 'nullable|integer',
+            'carrera'         => 'nullable|integer',
             'fecha_inicio' => "nullable|integer|min:2007|max:$maxAno",
             'fecha_fin'    => "nullable|integer|min:2007|max:$maxAno",
-            'genero' => 'nullable|string',
-            'estado_empleo' => 'nullable|string',
+
+            'genero'          => 'nullable|string',
+            'estado_estudios' => 'nullable|string',
+            'nivel_academico' => 'nullable|string',
+
+            'estado_empleo'   => 'nullable|string',
+            'tiempo_empleo'   => 'nullable|integer',
+            'area_laboral'    => 'nullable|integer',
+            'salario'         => 'nullable|string',
+            'tipo_empleo'     => 'nullable|string',
+
+            'pais'            => 'nullable|integer',
+            'provincia'       => 'nullable|integer',
+            'canton'          => 'nullable|integer',
         ]);
 
         try {
@@ -138,7 +169,16 @@ class ReporteController extends Controller
                 $data['fecha_inicio'] ?? null,
                 $data['fecha_fin'] ?? null,
                 $data['genero'] ?? null,
-                $data['estado_empleo'] ?? null
+                $data['estado_estudios'] ?? null,
+                $data['nivel_academico'] ?? null,
+                $data['estado_empleo'] ?? null,
+                $data['tiempo_empleo'] ?? null,
+                $data['area_laboral'] ?? null,
+                $data['salario'] ?? null,
+                $data['tipo_empleo'] ?? null,
+                $data['pais'] ?? null,
+                $data['provincia'] ?? null,
+                $data['canton'] ?? null
             );
 
             return response()->json(['success' => true, 'data' => $result]);
@@ -150,15 +190,16 @@ class ReporteController extends Controller
     public function descargarPdf(Request $request)
     {
         $data = $request->validate([
-            'tipoReporte'     => 'required|string|in:tabla,pie,barras,todos',
-            'parametros'      => 'required|array',
-            'filtrosLegibles' => 'nullable|array',
+            'reportes'         => 'required|array|min:1',
+            'reportes.*'       => 'in:tabla,pie,barras',
+            'parametros'       => 'required|array',
+            'filtrosLegibles'  => 'nullable|array',
         ]);
 
         return $this->service->generarPdfReportes(
-            $data['tipoReporte'],
+            $data['reportes'],
             $data['parametros'],
-            $data['filtrosLegibles'] ?? [] 
+            $data['filtrosLegibles'] ?? []
         );
     }
 }
