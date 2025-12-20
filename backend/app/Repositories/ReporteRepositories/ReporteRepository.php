@@ -28,8 +28,6 @@ class ReporteRepository
         ?int $pais,
         ?int $provincia,
         ?int $canton,
-
-        ?int $idRol
     ) {
         try {
             $params = [
@@ -48,13 +46,11 @@ class ReporteRepository
 
                 $pais,
                 $provincia,
-                $canton,
-
-                $idRol
+                $canton
             ];
 
-            // AHORA SON 16 PLACEHOLDERS
-            $result = DB::select('CALL sp_reporte_egresados(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
+            // AHORA SON 15 PLACEHOLDERS
+            $result = DB::select('CALL sp_reporte_egresados(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
 
             return $result;
         } catch (Throwable $e) {
@@ -71,7 +67,16 @@ class ReporteRepository
         ?int $carrera,
         ?int $fechaInicio,
         ?int $fechaFin,
-        ?string $genero
+        ?string $genero,
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
     ) {
         try {
             $params = [
@@ -79,10 +84,19 @@ class ReporteRepository
                 $carrera,
                 $fechaInicio,
                 $fechaFin,
-                $genero
+                $genero,
+                $estadoEstudios,
+                $nivelAcademico,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+                $pais,
+                $provincia,
+                $canton
             ];
 
-            $result = DB::select('CALL sp_reporte_grafico_empleo(?,?,?,?,?)', $params);
+            $result = DB::select('CALL sp_reporte_grafico_empleo(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
             return $result;
         } catch (Throwable $e) {
             throw $e;
@@ -93,12 +107,22 @@ class ReporteRepository
      * Ejecuta sp_grafico_barras_egresados_anual
      */
     public function obtenerGraficoAnualRaw(
-        ?int $universidad,
-        ?int $carrera,
-        ?int $fechaInicio,
-        ?int $fechaFin,
-        ?string $genero,
-        ?string $estadoEmpleo
+        $universidad,
+        $carrera,
+        $fechaInicio,
+        $fechaFin,
+        $genero,
+        $estadoEstudios,
+        $nivelAcademico,
+        $estadoEmpleo,
+        $tiempoEmpleo,
+        $areaLaboral,
+        $salario,
+        $tipoEmpleo,
+
+        $pais,
+        $provincia,
+        $canton
     ) {
         try {
             $params = [
@@ -107,10 +131,19 @@ class ReporteRepository
                 $fechaInicio,
                 $fechaFin,
                 $genero,
-                $estadoEmpleo
+                $estadoEstudios,
+                $nivelAcademico,
+                $estadoEmpleo,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+                $pais,
+                $provincia,
+                $canton
             ];
 
-            $result = DB::select('CALL sp_grafico_barras_egresados_anual(?,?,?,?,?,?)', $params);
+            $result = DB::select('CALL sp_grafico_barras_egresados_anual(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $params);
             return $result;
         } catch (Throwable $e) {
             throw $e;
