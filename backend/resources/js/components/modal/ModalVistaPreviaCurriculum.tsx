@@ -4,7 +4,7 @@ import Frt_VistaPreviaCurriculum from '../../pages/Frt_VistaPreviaCurriculum';
 import type { FormCV } from '../../types/curriculum';
 
 interface ModalVistaPreviaProps {
-  isOpen: boolean;
+  isOpen:  boolean;
   onClose: () => void;
   datos: FormCV;
   fotoPerfilUrl: string;
@@ -20,9 +20,14 @@ export default function ModalVistaPreviaCurriculum({
 
   return (
     <>
-      {/* Overlay oscuro */}
+      {/* ✅ Overlay con estilo inline para forzar el efecto */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-60 z-50 transition-opacity"
+        className="fixed inset-0 bg-black z-50 transition-all duration-300"
+        style={{ 
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)' 
+        }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -31,11 +36,11 @@ export default function ModalVistaPreviaCurriculum({
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
           <div 
-            className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
             
-            {/* Header fijo */}
+            {/* Header fijo con degradado profesional */}
             <div className="sticky top-0 bg-gradient-to-r from-[#034991] to-[#023970] text-white px-6 py-4 flex items-center justify-between z-10 shadow-md">
               <div>
                 <h2 className="text-xl font-bold">Vista Previa del Currículum</h2>
@@ -88,6 +93,24 @@ export default function ModalVistaPreviaCurriculum({
           </div>
         </div>
       </div>
+
+      {/* ✅ Agregar animación personalizada */}
+      <style>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 }
