@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { usePage, router } from '@inertiajs/react';
+import { usePage, router, Link } from '@inertiajs/react';
 import PpLayout from '../layouts/PpLayout';
 import { validarPaso, ErrorMapa } from '../components/Frt_ValidacionClienteGeneracionCurriculum';
 import { postGenerarCurriculum } from '../services/curriculumService';
@@ -127,14 +127,14 @@ const validacionesEducacion = {
   institucion: { 
     required:  true, 
     minLength: 3, 
-    maxLength: 100,  
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
+    maxLength: 150,  
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()\-'"]+$/ 
   },
   titulo: { 
     required: true, 
     minLength: 3, 
-    maxLength:  100, 
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()'-]+$/ 
+    maxLength:  150, 
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()\-'"]+$/ 
   },
   fecha_fin: { 
     required: true, 
@@ -151,18 +151,41 @@ const validacionesEducacion = {
   }
 };
 
+// ⭐ NUEVO: Validaciones para certificaciones
+const validacionesCertificacion = {
+  nombre: {
+    required: true,
+    minLength: 3,
+    maxLength: 150
+  },
+  institucion: {
+    required: false,
+    minLength: 3,
+    maxLength: 150
+  },
+  fecha_obtencion: {
+    required: false,
+    validate: (valor: unknown) => {
+      if (!valor || typeof valor !== 'string') return true;
+      const fecha = new Date(valor);
+      const hoy = new Date();
+      return fecha <= hoy || 'La fecha no puede ser futura';
+    }
+  }
+};
+
 const validacionesExperiencia = {
   empresa: { 
     required: true, 
     minLength: 2,    
-    maxLength: 60,    
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&'-]+$/ 
+    maxLength: 120,    
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&'"\-–—]+$/ 
   },
   puesto: { 
     required:  true, 
     minLength:  3, 
-    maxLength: 60,   
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'-]+$/ 
+    maxLength: 100,   
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/\-–—'"]+$/ 
   },
   periodo_inicio: { 
     required: true, 
@@ -207,8 +230,8 @@ const validacionesHabilidad = {
   descripcion: { 
     required:  false, 
     minLength:  2,    
-    maxLength: 40,   
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/+#'-]+$/ 
+    maxLength: 60,   
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/+#'\-\.]+$/ 
   }
 };
 
@@ -275,12 +298,21 @@ export default function Frt_FormularioGeneracionCurriculum() {
     datosPersonales: {
       nombreCompleto: usuario?.nombre_completo ?? '',
       correo: usuario?.correo ?? '',
-      telefono: usuario?.telefono ?? ''
+      telefono: usuario?.telefono ?? '',
+      linkedin: '',   // ⭐ NUEVO
+      github: ''      // ⭐ NUEVO
     },
     resumenProfesional: '',
     educaciones: [],
     experiencias: [],
-    habilidades: [],
+    
+    // ⭐ MODIFICADO: Separación de habilidades
+    habilidadesTecnicas: [],   // ⭐ NUEVO
+    habilidadesBlandas: [],     // ⭐ NUEVO
+    
+    // ⭐ NUEVO: Certificaciones
+    certificaciones: [],        // ⭐ NUEVO
+    
     idiomas: [],
     incluirFotoPerfil: false,
   }), [usuario]);
@@ -289,13 +321,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
   const [paso, setPaso] = useState<number>(1);
   const [errores, setErrores] = useState<ErrorMapa>({});
   const [cargando, setCargando] = useState<boolean>(false);
-  const [mostrarBtnDashboard, setMostrarBtnDashboard] = useState<boolean>(false);
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState<boolean>(false);
 
   // ✅ Validación consolidada para todos los campos
   const formularioCompleto = useMemo(() => {
-    const habilidadesOk = form.habilidades.length === 0 || form.habilidades.every(h => {
-      const desc = (h.descripcion ??  '').trim();
+    const habilidadesTecnicasOk = form.habilidadesTecnicas.length === 0 || form.habilidadesTecnicas.every(h => {
+      const desc = (h.descripcion ?? '').trim();
+      return desc && desc.length >= 2 && desc.length <= 40;
+    });
+
+    const habilidadesBlandasOk = form.habilidadesBlandas.length === 0 || form.habilidadesBlandas.every(h => {
+      const desc = (h.descripcion ?? '').trim();
       return desc && desc.length >= 2 && desc.length <= 40;
     });
 
@@ -305,12 +341,14 @@ export default function Frt_FormularioGeneracionCurriculum() {
       return nombre && nombre.length >= 2 && nombre.length <= 15 && nivel;
     });
 
-    return habilidadesOk && idiomasOk;
+    return habilidadesTecnicasOk && habilidadesBlandasOk && idiomasOk;
   }, [
-    form.habilidades, 
-    form.idiomas, 
-    ... form.habilidades. map(h => h.descripcion),
-    ...form.idiomas. map(i => `${i.nombre}|${i.nivel}`)
+    form.habilidadesTecnicas,
+    form.habilidadesBlandas,
+    form.idiomas,
+    ...form.habilidadesTecnicas.map(h => h.descripcion),
+    ...form.habilidadesBlandas.map(h => h.descripcion),
+    ...form.idiomas.map(i => `${i.nombre}|${i.nivel}`)
   ]);
 
   const botonGenerarDeshabilitado = cargando || ! formularioCompleto;
@@ -409,13 +447,15 @@ export default function Frt_FormularioGeneracionCurriculum() {
       msg = validarCampoSegunReglas(exp.periodo_inicio, validacionesExperiencia.periodo_inicio, 'Fecha inicio');
       if (msg) errs[`experiencias.${i}.periodo_inicio`] = msg;
 
-      msg = validarCampoSegunReglas(
-        exp.periodo_fin,
-        validacionesExperiencia. periodo_fin,
-        'Fecha fin',
-        { periodo_inicio: exp.periodo_inicio }
-      );
-      if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+      if (!exp.trabajando_actualmente) {
+        msg = validarCampoSegunReglas(
+          exp.periodo_fin,
+          validacionesExperiencia. periodo_fin,
+          'Fecha fin',
+          { periodo_inicio: exp.periodo_inicio }
+        );
+        if (msg) errs[`experiencias.${i}.periodo_fin`] = msg;
+      }
 
       // Validar funciones
       if (! exp.funciones || exp.funciones.length === 0) {
@@ -473,15 +513,27 @@ export default function Frt_FormularioGeneracionCurriculum() {
       }
     });
 
-    // HABILIDADES
-    formActual.habilidades.forEach((h, i) => {
-      const desc = (h.descripcion ??  '').trim();
+    // HABILIDADES TÉCNICAS
+    formActual.habilidadesTecnicas?.forEach((h, i) => {
+      const desc = (h.descripcion ?? '').trim();
       
-      if (formActual.habilidades.length > 0 && !desc) {
-        errs[`habilidades.${i}.descripcion`] = 'Completa la habilidad o elimínala';
+      if (formActual.habilidadesTecnicas.length > 0 && !desc) {
+        errs[`habilidadesTecnicas.${i}.descripcion`] = 'Completa la habilidad o elimínala';
       } else if (desc) {
-        const msg = validarCampoSegunReglas(desc, validacionesHabilidad.descripcion, 'Descripción de habilidad');
-        if (msg) errs[`habilidades.${i}.descripcion`] = msg;
+        const msg = validarCampoSegunReglas(desc, validacionesHabilidad.descripcion, 'Descripción de habilidad técnica');
+        if (msg) errs[`habilidadesTecnicas.${i}.descripcion`] = msg;
+      }
+    });
+
+    // HABILIDADES BLANDAS
+    formActual.habilidadesBlandas?.forEach((h, i) => {
+      const desc = (h.descripcion ?? '').trim();
+      
+      if (formActual.habilidadesBlandas.length > 0 && !desc) {
+        errs[`habilidadesBlandas.${i}.descripcion`] = 'Completa la competencia o elimínala';
+      } else if (desc) {
+        const msg = validarCampoSegunReglas(desc, validacionesHabilidad.descripcion, 'Descripción de competencia');
+        if (msg) errs[`habilidadesBlandas.${i}.descripcion`] = msg;
       }
     });
 
@@ -525,8 +577,8 @@ export default function Frt_FormularioGeneracionCurriculum() {
     if (pasoAValidar === 1 || pasoAValidar === 3) {
       if (!(form.resumenProfesional ??  '').trim()) {
         e['resumenProfesional'] = 'Campo requerido:  Resumen profesional';
-      } else if ((form.resumenProfesional ?? '').length > 600) {
-        e['resumenProfesional'] = 'Máximo 600 caracteres. ';
+      } else if ((form.resumenProfesional ?? '').length > 1000) {
+        e['resumenProfesional'] = 'Máximo 1000 caracteres.';
       }
     }
 
@@ -677,8 +729,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
       return;
     }
 
-    setMostrarBtnDashboard(false);
-
     try {
       setCargando(true);
       
@@ -702,8 +752,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
           titulo: "¡Currículum generado!",
           mensaje: "Tu currículum se ha descargado correctamente.",
         });
-        
-        setMostrarBtnDashboard(true);
       } else {
         throw new Error("No se pudo generar el PDF");
       }
@@ -800,7 +848,19 @@ export default function Frt_FormularioGeneracionCurriculum() {
 
   return (
     <PpLayout userPermisos={userPermisos}>
-      <h1 className="text-2xl font-bold text-[#034991] mb-4">Generación de Currículum</h1>
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-[#034991] transition-colors duration-200 shadow-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          Volver al Dashboard
+        </Link>
+        <h1 className="text-2xl font-bold text-[#034991]">Generación de Currículum</h1>
+        <div className="w-[180px]"></div>
+      </div>
 
       {/* Banner con información del usuario */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-[#034991] rounded-lg p-4 mb-4 shadow-sm">
@@ -843,47 +903,32 @@ export default function Frt_FormularioGeneracionCurriculum() {
       </div>
 
       <div className="max-w-6xl mx-auto p-4 text-gray-900">
-        {/* ✅ ACTUALIZADO: Solo 3 pasos */}
-        <ol className="flex gap-2 mb-4 text-sm flex-wrap">
+        {/* Indicador de pasos */}
+        <div className="flex items-center justify-between mb-6">
           {[
-            { numero: 1, nombre: 'Perfil Profesional', icono: '👤' },
-            { numero: 2, nombre: 'Formación Académica', icono:  '🎓' },
-            { numero: 3, nombre: 'Experiencia Profesional', icono: '💼' }
+            { num: 1, label: 'Datos Personales' },
+            { num: 2, label: 'Educación' },
+            { num: 3, label: 'Experiencia' },
+            { num: 4, label: 'Certificaciones y Habilidades' }
           ].map((p) => (
-            <li 
-              key={p.numero}
-              onClick={async () => {
-                if (p.numero > paso) {
-                  const erroresFormateados = formatearErroresConEtiquetas(validarFormularioCompleto(paso));
-                  setErrores(erroresFormateados);
-                  if (Object.keys(erroresFormateados).length === 0) {
-                    setPaso(p.numero);
-                  } else {
-                    await modal. alerta({
-                      mensaje: "Completa los campos requeridos antes de continuar.",
-                    });
-                  }
-                } else {
-                  setPaso(p.numero);
-                }
-              }}
-              className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer flex items-center ${
-                paso === p.numero 
-                  ? 'bg-[#034991] text-white shadow-md' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-sm'
-              }`}
-              role="button"
-              tabIndex={0}
-              aria-label={`Ir a ${p.nombre}`}
-              aria-current={paso === p.numero ? 'step' : undefined}
-            >
-              <span className="mr-2">{p.icono}</span>
-              <span className="font-semibold">{p.numero}. </span> {p.nombre}
-            </li>
+            <div key={p.num} className="flex items-center">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                  paso === p.num
+                    ? 'bg-[#034991] text-white'
+                    : paso > p.num
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}
+              >
+                {paso > p.num ? '✓' : p.num}
+              </div>
+              <span className="ml-2 text-sm font-medium">{p.label}</span>
+            </div>
           ))}
-        </ol>
+        </div>
 
-               {/* PASO 1: Perfil Profesional (con Habilidades e Idiomas integrados) */}
+        {/* PASO 1: Perfil Profesional */}
         {paso === 1 && (
           <section className="grid grid-cols-2 gap-4">
             {/* Nombre completo */}
@@ -947,6 +992,60 @@ export default function Frt_FormularioGeneracionCurriculum() {
               }
             </div>
 
+            {/* LinkedIn */}
+            <div>
+              <label htmlFor="linkedin" className="block text-sm font-medium text-gray-700 mb-1">
+                LinkedIn
+                <span className="text-xs text-gray-500 ml-2">(Opcional - Recomendado para ATS)</span>
+              </label>
+              <input
+                id="linkedin"
+                type="text"
+                placeholder="https://linkedin.com/in/tu-perfil"
+                value={form.datosPersonales.linkedin || ''}
+                onChange={(e) => setForm({
+                  ...form,
+                  datosPersonales: {
+                    ...form.datosPersonales,
+                    linkedin: e.target.value
+                  }
+                })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errores['datosPersonales.linkedin'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errores['datosPersonales.linkedin'] && (
+                <p className="text-red-500 text-xs mt-1">{errores['datosPersonales.linkedin']}</p>
+              )}
+            </div>
+
+            {/* GitHub */}
+            <div>
+              <label htmlFor="github" className="block text-sm font-medium text-gray-700 mb-1">
+                GitHub
+                <span className="text-xs text-gray-500 ml-2">(Opcional - Ideal para roles técnicos)</span>
+              </label>
+              <input
+                id="github"
+                type="text"
+                placeholder="https://github.com/tu-usuario"
+                value={form.datosPersonales.github || ''}
+                onChange={(e) => setForm({
+                  ...form,
+                  datosPersonales: {
+                    ...form.datosPersonales,
+                    github: e.target.value
+                  }
+                })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errores['datosPersonales.github'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errores['datosPersonales.github'] && (
+                <p className="text-red-500 text-xs mt-1">{errores['datosPersonales.github']}</p>
+              )}
+            </div>
+
             {/* Foto de Perfil */}
             <div className="bg-gray-50 p-4 rounded-lg border col-span-2">
               <h3 className="text-lg font-semibold text-gray-700 mb-4">Foto de Perfil</h3>
@@ -991,7 +1090,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 id="dp_resumen"
                 className={`peer ${(form.resumenProfesional ??  '').trim() ? 'has-value' : ''}`}
                 placeholder=" "
-                maxLength={600}
+                maxLength={1000}
                 value={form.resumenProfesional}
                 onChange={e => setCampo('resumenProfesional', e.target.value)}
                 aria-invalid={getAriaInvalid('resumenProfesional')}
@@ -1003,131 +1102,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
               }
             </div>
 
-            {/* ====== HABILIDADES E IDIOMAS EN PASO 1 ====== */}
-            <div className="col-span-2 mt-6 p-4 bg-gray-50 rounded-lg border">
-              <h3 className="text-lg font-bold text-[#034991] mb-4">💪 Habilidades</h3>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, habilidades: [... prev.habilidades, { descripcion: '' }] }));
-                }}
-                className="mb-3"
-              >
-                + Agregar habilidad ({form.habilidades.length})
-              </Button>
 
-              <div className="grid md:grid-cols-2 gap-3">
-                {form.habilidades.map((h, i) => (
-                  <div key={i} className="flex gap-2">
-                    <div className="float-label-input w-full">
-                      <input
-                        id={`hab_${i}_descripcion`}
-                        className="peer"
-                        placeholder=" "
-                        maxLength={40}
-                        value={h. descripcion}
-                        onChange={e => setCampo(`habilidades.${i}.descripcion`, e.target.value)}
-                        aria-invalid={getAriaInvalid(`habilidades.${i}.descripcion`)}
-                        aria-describedby={getDescribedBy(`habilidades.${i}.descripcion`)}
-                      />
-                      <label htmlFor={`hab_${i}_descripcion`}>Habilidad {i + 1}</label>
-                      {errores[`habilidades.${i}.descripcion`] && (
-                        <p id={`habilidades_${i}_descripcion_err`} className="text-red-600 text-sm mt-1">
-                          {errores[`habilidades.${i}.descripcion`]}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeArrayItem('habilidades', i)}
-                      aria-label={`Eliminar habilidad ${i + 1}`}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="col-span-2 mt-4 p-4 bg-gray-50 rounded-lg border">
-              <h3 className="text-lg font-bold text-[#034991] mb-4">🌐 Idiomas</h3>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setForm(prev => ({ ...prev, idiomas: [... prev.idiomas, { nombre: '', nivel: '' }] }));
-                }}
-                className="mb-3"
-              >
-                + Agregar idioma ({form.idiomas.length})
-              </Button>
-
-              <div className="grid md:grid-cols-2 gap-3">
-                {form.idiomas.map((i2, idx) => (
-                  <div key={idx} className="p-3 border rounded bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">Idioma {idx + 1}</span>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeArrayItem('idiomas', idx)}
-                        aria-label={`Eliminar idioma ${idx + 1}`}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="float-label-input col-span-2">
-                        <input
-                          id={`idioma_${idx}_nombre`}
-                          className="peer"
-                          placeholder=" "
-                          maxLength={15}
-                          value={i2.nombre}
-                          onChange={e => setCampo(`idiomas.${idx}.nombre`, e.target.value)}
-                          aria-invalid={getAriaInvalid(`idiomas.${idx}.nombre`)}
-                          aria-describedby={getDescribedBy(`idiomas.${idx}.nombre`)}
-                        />
-                        <label htmlFor={`idioma_${idx}_nombre`}>Idioma</label>
-                        {errores[`idiomas.${idx}.nombre`] && (
-                          <p id={`idiomas_${idx}_nombre_err`} className="text-red-600 text-xs mt-1">
-                            {errores[`idiomas.${idx}.nombre`]}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="float-label-input">
-                        <select
-                          id={`idioma_${idx}_nivel`}
-                          className={`peer ${i2.nivel ? 'has-value' : ''}`}
-                          value={i2.nivel}
-                          onChange={e => setCampo(`idiomas.${idx}.nivel`, e.target.value)}
-                          aria-invalid={getAriaInvalid(`idiomas.${idx}.nivel`)}
-                          aria-describedby={getDescribedBy(`idiomas.${idx}.nivel`)}
-                        >
-                          <option value="">Nivel</option>
-                          <option value="A1">A1</option>
-                          <option value="A2">A2</option>
-                          <option value="B1">B1</option>
-                          <option value="B2">B2</option>
-                          <option value="C1">C1</option>
-                          <option value="C2">C2</option>
-                          <option value="Nativo">Nativo</option>
-                        </select>
-                        <label htmlFor={`idioma_${idx}_nivel`}>Nivel</label>
-                        {errores[`idiomas.${idx}.nivel`] && (
-                          <p id={`idiomas_${idx}_nivel_err`} className="text-red-600 text-xs mt-1">
-                            {errores[`idiomas.${idx}.nivel`]}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* ====== FIN:  Habilidades e Idiomas ====== */}
           </section>
         )}
 
@@ -1172,12 +1147,13 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       aria-invalid={getAriaInvalid(`educaciones.${i}.tipo`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.tipo`)}
                     >
-                      <option value="">Seleccione un tipo... </option>
+                      <option value="">Seleccione un tipo...</option>
                       <option value="Título">Título</option>
-                      <option value="Certificación">Certificación</option>
-                      <option value="Curso">Curso</option>
                       <option value="Diplomado">Diplomado</option>
-                      <option value="Técnico">Técnico</option>
+                      <option value="Bachillerato">Bachillerato</option>
+                      <option value="Bachillerato Universitario">Bachillerato Universitario</option>
+                      <option value="Licenciatura">Licenciatura</option>
+                      <option value="Maestría">Maestría</option>
                     </select>
                     <label htmlFor={`ed_${i}_tipo`}>Tipo de educación</label>
                     {errores[`educaciones.${i}.tipo`] && (
@@ -1198,7 +1174,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                         onChange={e => setCampo(`educaciones.${i}.institucion`, e.target.value)}
                         aria-invalid={getAriaInvalid(`educaciones.${i}.institucion`)}
                         aria-describedby={getDescribedBy(`educaciones.${i}.institucion`)}
-                        maxLength={100}
+                        maxLength={150}
                       />
                       <label htmlFor={`ed_${i}_institucion`}>Institución</label>
                       {errores[`educaciones.${i}.institucion`] && (
@@ -1241,7 +1217,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       onChange={e => setCampo(`educaciones.${i}.titulo`, e.target.value)}
                       aria-invalid={getAriaInvalid(`educaciones.${i}.titulo`)}
                       aria-describedby={getDescribedBy(`educaciones.${i}.titulo`)}
-                      maxLength={100}
+                      maxLength={150}
                     />
                     <label htmlFor={`ed_${i}_titulo`}>Título obtenido</label>
                     {errores[`educaciones.${i}.titulo`] && (
@@ -1304,7 +1280,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       onChange={e => setCampo(`experiencias.${i}.empresa`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.empresa`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.empresa`)}
-                      maxLength={60}
+                      maxLength={120}
                     />
                     <label htmlFor={`ex_${i}_empresa`}>Empresa</label>
                   </div>
@@ -1319,7 +1295,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       onChange={e => setCampo(`experiencias.${i}.puesto`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.puesto`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.puesto`)}
-                      maxLength={60}
+                      maxLength={100}
                     />
                     <label htmlFor={`ex_${i}_puesto`}>Puesto</label>
                   </div>
@@ -1354,9 +1330,33 @@ export default function Frt_FormularioGeneracionCurriculum() {
                       onChange={e => setCampo(`experiencias.${i}.periodo_fin`, e.target.value)}
                       aria-invalid={getAriaInvalid(`experiencias.${i}.periodo_fin`)}
                       aria-describedby={getDescribedBy(`experiencias.${i}.periodo_fin`)}
+                      disabled={ex.trabajando_actualmente ?? false}
                     />
                     <label htmlFor={`ex_${i}_periodo_fin`}>Fecha fin</label>
                   </div>
+                </div>
+
+                {/* Checkbox: Trabajo actualmente aquí */}
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    id={`ex_${i}_trabajando_actualmente`}
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    checked={ex.trabajando_actualmente ?? false}
+                    onChange={e => {
+                      const trabajandoActualmente = e.target.checked;
+                      setCampo(`experiencias.${i}.trabajando_actualmente`, trabajandoActualmente);
+                      if (trabajandoActualmente) {
+                        setCampo(`experiencias.${i}.periodo_fin`, '');
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor={`ex_${i}_trabajando_actualmente`}
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                  >
+                    Trabajo actualmente aquí
+                  </label>
                 </div>
 
                 {/* Sección de Funciones */}
@@ -1401,7 +1401,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                             }}
                             aria-invalid={getAriaInvalid(`experiencias.${i}.funciones. ${fIdx}. descripcion`)}
                             aria-describedby={getDescribedBy(`experiencias.${i}.funciones.${fIdx}. descripcion`)}
-                            maxLength={150}
+                            maxLength={250}
                           />
                         </div>
                         {errores[`experiencias.${i}.funciones.${fIdx}.descripcion`] && (
@@ -1609,7 +1609,308 @@ export default function Frt_FormularioGeneracionCurriculum() {
           </section>
         )}
 
-        {/* ✅ Botones de navegación ACTUALIZADOS (paso < 3) */}
+        {/* PASO 4: Certificaciones y Habilidades */}
+        {paso === 4 && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Paso 4: Certificaciones y Habilidades</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Las certificaciones son clave para sistemas ATS. Separaremos habilidades técnicas de competencias blandas.
+              </p>
+            </div>
+
+            {/* ⭐ CERTIFICACIONES */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-gray-900">Certificaciones y Cursos</h4>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      ...form,
+                      certificaciones: [...form.certificaciones, { nombre: '', institucion: '', fecha_obtencion: '' }]
+                    });
+                  }}
+                  className="text-sm"
+                >
+                  + Agregar Certificación
+                </Button>
+              </div>
+
+              {form.certificaciones.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay certificaciones agregadas</p>
+              ) : (
+                <div className="space-y-4">
+                  {form.certificaciones.map((cert, index) => (
+                    <div key={index} className="bg-white p-4 rounded border border-gray-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-sm font-semibold text-gray-700">Certificación {index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nuevas = form.certificaciones.filter((_, i) => i !== index);
+                            setForm({ ...form, certificaciones: nuevas });
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Nombre de la certificación */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre de la certificación *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: AWS Solutions Architect, Scrum Master, etc."
+                            value={cert.nombre}
+                            onChange={(e) => {
+                              const nuevas = [...form.certificaciones];
+                              nuevas[index].nombre = e.target.value;
+                              setForm({ ...form, certificaciones: nuevas });
+                            }}
+                            className={`w-full px-3 py-2 border rounded-md ${
+                              errores[`certificaciones.${index}.nombre`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                          {errores[`certificaciones.${index}.nombre`] && (
+                            <p className="text-red-500 text-xs mt-1">{errores[`certificaciones.${index}.nombre`]}</p>
+                          )}
+                        </div>
+
+                        {/* Institución */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Institución emisora
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: Amazon Web Services, Scrum Alliance"
+                            value={cert.institucion || ''}
+                            onChange={(e) => {
+                              const nuevas = [...form.certificaciones];
+                              nuevas[index].institucion = e.target.value;
+                              setForm({ ...form, certificaciones: nuevas });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+
+                        {/* Fecha de obtención */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Fecha de obtención
+                          </label>
+                          <input
+                            type="date"
+                            value={cert.fecha_obtencion || ''}
+                            onChange={(e) => {
+                              const nuevas = [...form.certificaciones];
+                              nuevas[index].fecha_obtencion = e.target.value;
+                              setForm({ ...form, certificaciones: nuevas });
+                            }}
+                            className={`w-full px-3 py-2 border rounded-md ${
+                              errores[`certificaciones.${index}.fecha_obtencion`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                          {errores[`certificaciones.${index}.fecha_obtencion`] && (
+                            <p className="text-red-500 text-xs mt-1">{errores[`certificaciones.${index}.fecha_obtencion`]}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ⭐ HABILIDADES TÉCNICAS */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="font-semibold text-gray-900">Habilidades Técnicas</h4>
+                  <p className="text-xs text-gray-600">Lenguajes, frameworks, herramientas, tecnologías</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      ...form,
+                      habilidadesTecnicas: [...form.habilidadesTecnicas, { descripcion: '' }]
+                    });
+                  }}
+                  className="text-sm"
+                >
+                  + Agregar
+                </Button>
+              </div>
+
+              {form.habilidadesTecnicas.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay habilidades técnicas agregadas</p>
+              ) : (
+                <div className="space-y-2">
+                  {form.habilidadesTecnicas.map((hab, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ej: React, TypeScript, Laravel, Docker"
+                        value={hab.descripcion}
+                        onChange={(e) => {
+                          const nuevas = [...form.habilidadesTecnicas];
+                          nuevas[index].descripcion = e.target.value;
+                          setForm({ ...form, habilidadesTecnicas: nuevas });
+                        }}
+                        className={`flex-1 px-3 py-2 border rounded-md ${
+                          errores[`habilidadesTecnicas.${index}.descripcion`] ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nuevas = form.habilidadesTecnicas.filter((_, i) => i !== index);
+                          setForm({ ...form, habilidadesTecnicas: nuevas });
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ⭐ HABILIDADES BLANDAS */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="font-semibold text-gray-900">Competencias Profesionales (Habilidades Blandas)</h4>
+                  <p className="text-xs text-gray-600">Liderazgo, trabajo en equipo, comunicación, etc.</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      ...form,
+                      habilidadesBlandas: [...form.habilidadesBlandas, { descripcion: '' }]
+                    });
+                  }}
+                  className="text-sm"
+                >
+                  + Agregar
+                </Button>
+              </div>
+
+              {form.habilidadesBlandas.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay competencias agregadas</p>
+              ) : (
+                <div className="space-y-2">
+                  {form.habilidadesBlandas.map((hab, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ej: Liderazgo de equipos, Resolución de conflictos"
+                        value={hab.descripcion}
+                        onChange={(e) => {
+                          const nuevas = [...form.habilidadesBlandas];
+                          nuevas[index].descripcion = e.target.value;
+                          setForm({ ...form, habilidadesBlandas: nuevas });
+                        }}
+                        className={`flex-1 px-3 py-2 border rounded-md ${
+                          errores[`habilidadesBlandas.${index}.descripcion`] ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nuevas = form.habilidadesBlandas.filter((_, i) => i !== index);
+                          setForm({ ...form, habilidadesBlandas: nuevas });
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Idiomas */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-gray-900">Idiomas</h4>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      ...form,
+                      idiomas: [...form.idiomas, { nombre: '', nivel: '' }]
+                    });
+                  }}
+                  className="text-sm"
+                >
+                  + Agregar Idioma
+                </Button>
+              </div>
+
+              {form.idiomas.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay idiomas agregados</p>
+              ) : (
+                <div className="space-y-3">
+                  {form.idiomas.map((idioma, index) => (
+                    <div key={index} className="flex gap-3 items-start">
+                      <input
+                        type="text"
+                        placeholder="Ej: Inglés, Español"
+                        value={idioma.nombre}
+                        onChange={(e) => {
+                          const nuevos = [...form.idiomas];
+                          nuevos[index].nombre = e.target.value;
+                          setForm({ ...form, idiomas: nuevos });
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                      <select
+                        value={idioma.nivel}
+                        onChange={(e) => {
+                          const nuevos = [...form.idiomas];
+                          nuevos[index].nivel = e.target.value as any;
+                          setForm({ ...form, idiomas: nuevos });
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Selecciona nivel</option>
+                        <option value="A1">A1 - Básico</option>
+                        <option value="A2">A2 - Elemental</option>
+                        <option value="B1">B1 - Intermedio</option>
+                        <option value="B2">B2 - Intermedio Alto</option>
+                        <option value="C1">C1 - Avanzado</option>
+                        <option value="C2">C2 - Maestría</option>
+                        <option value="Nativo">Nativo</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nuevos = form.idiomas.filter((_, i) => i !== index);
+                          setForm({ ...form, idiomas: nuevos });
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Botones de navegación */}
         <div className="mt-6 flex justify-between">
           {paso > 1 ?  (
             <Button 
@@ -1622,7 +1923,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
             <div />
           )}
           
-          {paso < 3 ? (
+          {paso < 4 ? (
             <Button 
               variant="default"
               onClick={siguiente}
@@ -1642,17 +1943,6 @@ export default function Frt_FormularioGeneracionCurriculum() {
             </Button>
           )}
         </div>
-
-        {mostrarBtnDashboard && (
-          <div className="mt-4">
-            <Button
-              variant="secondary"
-              onClick={() => router.visit('/dashboard')}
-            >
-              Ir al Dashboard
-            </Button>
-          </div>
-        )}
 
         {/* Botón flotante de Vista Previa */}
         <button
