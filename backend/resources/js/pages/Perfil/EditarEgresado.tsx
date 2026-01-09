@@ -85,7 +85,7 @@ export default function EditarEgresado({
 
   // Secciones (igual formato que el componente admin: sidebar + secciones)
   const [activeSection, setActiveSection] = useState<
-    "personales" | "residencia" | "academicos" | "laborales" | "correo"
+    "personales" | "residencia" | "academicos" | "laborales" | "correo" | "condicion"
   >("personales");
 
   // selects dependientes
@@ -349,6 +349,57 @@ export default function EditarEgresado({
   };
 
   // -------------------------
+  // CAMBIO DE ROL EGRESADO → ESTUDIANTE
+  // -------------------------
+  const handleCambioEgresadoAEstudiante = async () => {
+
+    // PRIMER MODAL (INFORMATIVO)
+    const confirmarImpacto = await modal.confirmacion({
+      titulo: "Aviso importante",
+      mensaje:
+        "Al realizar este proceso, su perfil académico será actualizado a " +
+        "Estudiante y podria eliminar información asociada a la condición de Egresado. " +
+        "Asimismo, se modificarán los accesos y funcionalidades disponibles dentro del sistema.",
+    });
+
+    if (!confirmarImpacto) return;
+
+    // SEGUNDO MODAL (CONFIRMACIÓN FINAL)
+    const confirmarCambio = await modal.confirmacion({
+      titulo: "Confirmar cambio de condición",
+      mensaje:
+        "¿Está seguro que desea cambiar su condición académica de Egresado a Estudiante?",
+    });
+
+    if (!confirmarCambio) return;
+
+    try {
+      await axios.post("/perfil/cambiar-condicion/egresado-estudiante");
+
+      await modal.alerta({
+        titulo: "Cambio realizado",
+        mensaje:
+          "Su condición académica fue actualizada a Estudiante correctamente.",
+      });
+
+      // Recargar perfil
+      window.location.href = route("perfil.index");
+
+    } catch (error: any) {
+      const mensaje =
+        error?.response?.data?.error ||
+        "No fue posible realizar el cambio de condición.";
+
+      await modal.alerta({
+        titulo: "Error",
+        mensaje,
+      });
+    }
+  };
+
+
+
+  // -------------------------
   // SUBMIT
   // -------------------------
   const handleSubmit = async (e: React.FormEvent) => {
@@ -518,6 +569,7 @@ export default function EditarEgresado({
             <SectionLink title="Lugar de Residencia" active={activeSection === "residencia"} onClick={() => setActiveSection("residencia")} />
             <SectionLink title="Datos Académicos" active={activeSection === "academicos"} onClick={() => setActiveSection("academicos")} />
             <SectionLink title="Datos Laborales" active={activeSection === "laborales"} onClick={() => setActiveSection("laborales")} />
+            <SectionLink title="Cambio de condición académica" active={activeSection === "condicion"} onClick={() => setActiveSection("condicion")} />
           </nav>
         </div>
 
@@ -912,6 +964,89 @@ export default function EditarEgresado({
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* CAMBIO DE ROL A ESTUDIANTE */}
+            {activeSection === "condicion" && (
+              <div className="w-full max-w-none space-y-6">
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+
+                  {/* HEADER */}
+                  <div className="flex items-center gap-3 px-5 py-4 bg-yellow-50 border-b">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-yellow-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M12 20.5C7.305 20.5 3.5 16.695 3.5 12S7.305 3.5 12 3.5 20.5 7.305 20.5 12 16.695 20.5 12 20.5z"
+                      />
+                    </svg>
+
+                    <h4 className="text-lg font-semibold text-yellow-800">
+                      Cambio de condición académica
+                    </h4>
+                  </div>
+
+                  {/* BODY */}
+                  <div className="px-8 py-6 space-y-6 text-lg text-gray-700">
+                    <p className="leading-relaxed">
+                      Esta opción está destinada a usuarios que, por error, registraron su
+                      condición académica como <strong>Egresado</strong> cuando en realidad
+                      aún mantienen la condición de <strong>Estudiante</strong>.
+                    </p>
+
+                    {/* DESPLEGABLE */}
+                    <details className="group">
+                      <summary className="cursor-pointer font-semibold text-red-700 flex items-center gap-2 text-lg">
+                        <span>¿Qué implica realizar este cambio?</span>
+                        <span className="transition-transform group-open:rotate-180">▼</span>
+                      </summary>
+
+                      <div className="mt-4 pl-6 space-y-2 text-gray-700 text-lg">
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Su perfil será actualizado a condición <strong>Estudiante</strong>.</li>
+                          <li>La información exclusiva de egresado será eliminada.</li>
+                          <li>
+                            Las funcionalidades y beneficios disponibles se ajustarán
+                            automáticamente según la nueva condición.
+                          </li>
+                        </ul>
+                      </div>
+                    </details>
+
+                    {/* ADVERTENCIA INSTITUCIONAL */}
+                    <div className="p-5 rounded-md bg-red-50 border-l-4 border-red-600">
+                      <p className="text-base text-red-700 leading-relaxed">
+                        <strong>Advertencia:</strong><br />
+                        La información registrada en el sistema debe ser real, veraz y
+                        actualizada. Los datos recopilados serán utilizados para análisis
+                        estadísticos y estudios institucionales que contribuyen a la mejora
+                        continua, planificación académica y toma de decisiones de la universidad.
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* BOTÓN */}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleCambioEgresadoAEstudiante}
+                    className="px-6 py-2 text-sm w-auto"
+                  >
+                    Cambiar condición a Estudiante
+                  </Button>
+                </div>
+
               </div>
             )}
           </form>

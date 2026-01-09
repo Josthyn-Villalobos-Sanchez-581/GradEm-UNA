@@ -95,6 +95,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/perfil/verificar-identificacion', [PerfilController::class, 'verificarIdentificacion'])
             ->name('perfil.verificar-identificacion');
 
+        //cambio de rol egresado-estudiante o estudiante-egresado
+        Route::post(
+            '/perfil/cambiar-condicion/estudiante-egresado',
+            [PerfilController::class, 'cambiarCondicionEstudianteAEgresado']
+        );
+
+        Route::post(
+            '/perfil/cambiar-condicion/egresado-estudiante',
+            [PerfilController::class, 'cambiarCondicionEgresadoAEstudiante']
+        );
+
+
         Route::post('/perfil/verificar-correo', [PerfilController::class, 'verificarCorreo'])
             ->name('perfil.verificar-correo');
 
