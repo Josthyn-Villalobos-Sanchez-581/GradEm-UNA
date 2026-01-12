@@ -1,6 +1,8 @@
+// resources/js/components/reportes/KPICard.tsx
+
 interface Props {
   titulo: string;
-  valor: string | number;
+  valor: number | string;
   subtitulo?: string;
 }
 

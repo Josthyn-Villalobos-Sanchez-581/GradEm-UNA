@@ -3,154 +3,176 @@
 namespace App\Repositories\EstadisticasRepositories;
 
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class EstadisticasRepository
 {
-    /* ========================
-     * KPIs
-     * ======================== */
+    /* ============================================================
+       ============================ KPIs ===========================
+       ============================================================ */
+
     public function obtenerKpisRaw(
         ?string $fechaInicio,
         ?string $fechaFin,
         ?string $tipoOferta,
-        ?string $campoAplicacion,
-        ?string $empresaNombre
+        ?int $carrera,
+        ?int $empresa
     ) {
-        $query = DB::table('vw_ofertas_reporte');
-
-        if ($fechaInicio) {
-            $query->whereDate('fecha_publicacion', '>=', $fechaInicio);
+        try {
+            return DB::select(
+                'CALL sp_kpis_estadisticas(?,?,?,?,?)',
+                [
+                    $fechaInicio,
+                    $fechaFin,
+                    $tipoOferta,
+                    $carrera,
+                    $empresa
+                ]
+            );
+        } catch (Throwable $e) {
+            throw $e;
         }
-        if ($fechaFin) {
-            $query->whereDate('fecha_publicacion', '<=', $fechaFin);
-        }
-        if ($tipoOferta) {
-            $query->where('tipo_oferta', $tipoOferta);
-        }
-        if ($campoAplicacion) {
-            $query->where('campo_aplicacion', $campoAplicacion);
-        }
-        if ($empresaNombre) {
-            $query->where('empresa_nombre', $empresaNombre);
-        }
-
-        return [
-            'totalOfertas'       => (clone $query)->count(),
-            'ofertasActivas'     => (clone $query)->where('estado', 'Activa')->count(),
-            'totalPostulaciones' => DB::table('postulaciones')->count(),
-            'empresasActivas'    => (clone $query)->distinct('empresa_nombre')->count(),
-        ];
     }
 
-    /* ========================
-     * Ofertas por mes
-     * ======================== */
+    /* ============================================================
+       ====================== OFERTAS POR MES =====================
+       ============================================================ */
+
     public function obtenerOfertasPorMesRaw(
         ?string $fechaInicio,
         ?string $fechaFin,
         ?string $tipoOferta,
-        ?string $campoAplicacion,
-        ?string $empresaNombre
+        ?int $carrera,
+        ?int $empresa
     ) {
-        $query = DB::table('vw_ofertas_reporte')
-            ->selectRaw('MONTH(fecha_publicacion) mes, COUNT(*) total')
-            ->groupBy('mes')
-            ->orderBy('mes');
-
-        if ($fechaInicio) {
-            $query->whereDate('fecha_publicacion', '>=', $fechaInicio);
+        try {
+            return DB::select(
+                'CALL sp_ofertas_por_mes(?,?,?,?,?)',
+                [
+                    $fechaInicio,
+                    $fechaFin,
+                    $tipoOferta,
+                    $carrera,
+                    $empresa
+                ]
+            );
+        } catch (Throwable $e) {
+            throw $e;
         }
-        if ($fechaFin) {
-            $query->whereDate('fecha_publicacion', '<=', $fechaFin);
-        }
-        if ($tipoOferta) {
-            $query->where('tipo_oferta', $tipoOferta);
-        }
-        if ($campoAplicacion) {
-            $query->where('campo_aplicacion', $campoAplicacion);
-        }
-        if ($empresaNombre) {
-            $query->where('empresa_nombre', $empresaNombre);
-        }
-
-        return $query->get();
     }
 
-    /* ========================
-     * Postulaciones por tipo
-     * ======================== */
-    public function obtenerPostulacionesTipoRaw(
+    /* ============================================================
+       ================= POSTULACIONES POR TIPO ===================
+       ============================================================ */
+
+    public function obtenerPostulacionesPorTipoRaw(
         ?string $fechaInicio,
         ?string $fechaFin,
         ?string $tipoOferta,
-        ?string $campoAplicacion,
-        ?string $empresaNombre
+        ?int $carrera,
+        ?int $empresa
     ) {
-        $query = DB::table('postulaciones')
-            ->selectRaw('tipo_postulacion label, COUNT(*) value')
-            ->groupBy('tipo_postulacion');
-
-        if ($fechaInicio) {
-            $query->whereDate('created_at', '>=', $fechaInicio);
+        try {
+            return DB::select(
+                'CALL sp_postulaciones_por_tipo(?,?,?,?,?)',
+                [
+                    $fechaInicio,
+                    $fechaFin,
+                    $tipoOferta,
+                    $carrera,
+                    $empresa
+                ]
+            );
+        } catch (Throwable $e) {
+            throw $e;
         }
-        if ($fechaFin) {
-            $query->whereDate('created_at', '<=', $fechaFin);
-        }
-
-        return $query->get();
     }
 
-    /* ========================
-     * Top empresas
-     * ======================== */
+    /* ============================================================
+       ======================= TOP EMPRESAS =======================
+       ============================================================ */
+
     public function obtenerTopEmpresasRaw(
         ?string $fechaInicio,
         ?string $fechaFin,
         ?string $tipoOferta,
-        ?string $campoAplicacion,
-        ?string $empresaNombre
+        ?int $carrera,
+        ?int $empresa
     ) {
-        return DB::table('vw_ofertas_reporte')
-            ->selectRaw('empresa_nombre nombre, COUNT(*) postulaciones')
-            ->groupBy('empresa_nombre')
-            ->orderByDesc('postulaciones')
-            ->limit(10)
-            ->get();
+        return DB::select(
+            'CALL sp_top_empresas(?,?,?,?,?)',
+            [
+                $fechaInicio,
+                $fechaFin,
+                $tipoOferta,
+                $carrera,
+                $empresa
+            ]
+        );
     }
 
-    /* ========================
-     * Top carreras
-     * ======================== */
+    /* ============================================================
+       ======================= TOP CARRERAS =======================
+       ============================================================ */
+
     public function obtenerTopCarrerasRaw(
         ?string $fechaInicio,
         ?string $fechaFin,
         ?string $tipoOferta,
-        ?string $campoAplicacion,
-        ?string $empresaNombre
+        ?int $empresa
     ) {
-        return DB::table('vw_ofertas_reporte')
-            ->selectRaw('campo_aplicacion carrera, COUNT(*) vacantes')
-            ->groupBy('campo_aplicacion')
-            ->orderByDesc('vacantes')
-            ->limit(10)
-            ->get();
+        return DB::select(
+            'CALL sp_top_carreras(?,?,?,?)',
+            [
+                $fechaInicio,
+                $fechaFin,
+                $tipoOferta,
+                $empresa
+            ]
+        );
     }
 
-    /* ========================
-     * Catálogos
-     * ======================== */
-    public function obtenerTiposOferta()
-    {
-        return DB::table('ofertas')->distinct()->pluck('tipo_oferta');
-    }
+    /* ============================================================
+       ========================== CATÁLOGOS =======================
+       ============================================================ */
 
-    public function obtenerCamposAplicacion()
+    public function obtenerCarreras()
     {
-        return DB::table('ofertas')->distinct()->pluck('campo_aplicacion');
+        try {
+            return DB::table('carreras')
+                ->select('id_carrera as id', 'nombre')
+                ->orderBy('nombre')
+                ->get();
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 
     public function obtenerEmpresas()
     {
-        return DB::table('empresas')->select('id', 'nombre')->get();
+        try {
+            return DB::table('empresas')
+                ->select('id_empresa as id', 'nombre')
+                ->orderBy('nombre')
+                ->get();
+        } catch (Throwable $e) {
+            throw $e;
+        }
+    }
+
+    /* ============================================================
+       ======================= PERMISOS ROL =======================
+       ============================================================ */
+
+    public function obtenerPermisosRol(int $idRol): array
+    {
+        try {
+            return DB::table('roles_permisos')
+                ->where('id_rol', $idRol)
+                ->pluck('id_permiso')
+                ->toArray();
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 }

@@ -317,6 +317,9 @@ Route::middleware('auth')->group(function () {
         Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
     });
 
+    Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
+        ->name('reportes-ofertas.descargar-pdf');
+    
     });
 
 

@@ -17,6 +17,19 @@ export interface ParametrosReporte {
   provinciaId: string | null;
   cantonId: string | null;
 }
+
+const convertirFechaAISO = (fecha: string | null) => {
+  if (!fecha) return null;
+
+  // Espera dd/mm/yyyy
+  const partes = fecha.split("/");
+  if (partes.length !== 3) return null;
+
+  const [dia, mes, anio] = partes;
+
+  return `${anio}-${mes}-${dia}`; // yyyy-mm-dd
+};
+
 //hook perteneciente a REPORTES
 export function useParametrosReporte() {
   const [filtros, setFiltros] = useState<ParametrosReporte>({
@@ -93,8 +106,8 @@ const actualizarFiltros = (campo: keyof ParametrosReporte, valor: any) => {
     return {
       universidad: filtros.universidadId,
       carrera: filtros.carreraId,
-      fecha_inicio: filtros.fechaInicio,
-      fecha_fin: filtros.fechaFin,
+      fecha_inicio: convertirFechaAISO(filtros.fechaInicio),
+      fecha_fin: convertirFechaAISO(filtros.fechaFin),
       genero: filtros.genero,
       estado_estudios: filtros.estadoEstudios,
       nivel_academico: filtros.nivelAcademico,

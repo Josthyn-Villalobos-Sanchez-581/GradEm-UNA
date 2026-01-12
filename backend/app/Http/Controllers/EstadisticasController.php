@@ -5,106 +5,178 @@ namespace App\Http\Controllers;
 use App\Services\EstadisticasServices\EstadisticasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Exception;
+use Throwable;
 
 class EstadisticasController extends Controller
 {
-    protected $service;
+    protected EstadisticasService $service;
 
     public function __construct(EstadisticasService $service)
     {
         $this->service = $service;
     }
 
+    /* ============================================================
+       ===============   VISTA PRINCIPAL (INERTIA)   ===============
+       ============================================================ */
+
     public function index()
     {
         $datos = $this->service->obtenerDatosIniciales();
-
         return Inertia::render('Reportes/ReportesOfertas', $datos);
     }
 
-    public function obtenerKpis(Request $request)
+    /* ============================================================
+       ======================== VALIDACIÓN ========================
+       ============================================================ */
+
+    private function normalizarFiltros(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if ($value === '' || $value === 'null') {
+                $data[$key] = null;
+            }
+        }
+        return $data;
+    }
+
+    private function validarFiltros(Request $request): array
+    {
+        $maxAno = date('Y') + 1;
+
+        $data = $request->validate([
+            'fecha_inicio'     => 'nullable|date',
+            'fecha_fin'        => 'nullable|date',
+
+            'tipo_oferta'      => 'nullable|in:empleo,practica,todas',
+            'carrera'          => 'nullable|integer',
+            'empresa'          => 'nullable|integer',
+        ]);
+
+        return $this->normalizarFiltros($data);
+    }
+
+    /* ============================================================
+       ========================== KPIs =============================
+       ============================================================ */
+
+    public function kpis(Request $request)
     {
         try {
-            $result = $this->service->obtenerKpis(
-                $request->fecha_inicio,
-                $request->fecha_fin,
-                $request->tipo_oferta,
-                $request->campo_aplicacion,
-                $request->empresa_nombre
-            );
+            $f = $this->validarFiltros($request);
 
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(
+                $this->service->obtenerKpis(
+                    $f['fecha_inicio'] ?? null,
+                    $f['fecha_fin'] ?? null,
+                    $f['tipo_oferta'] ?? null,
+                    $f['carrera'] ?? null,
+                    $f['empresa'] ?? null
+                )
+            );
+        } catch (Throwable $e) {
+            return response()->json([
+                'error'   => 'Error al obtener KPIs',
+                'detalle' => $e->getMessage(),
+            ], 500);
         }
     }
 
-    public function obtenerOfertasPorMes(Request $request)
+    public function ofertasPorMes(Request $request)
     {
         try {
-            $result = $this->service->obtenerOfertasPorMes(
-                $request->fecha_inicio,
-                $request->fecha_fin,
-                $request->tipo_oferta,
-                $request->campo_aplicacion,
-                $request->empresa_nombre
-            );
+            $f = $this->validarFiltros($request);
 
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(
+                $this->service->obtenerOfertasPorMes(
+                    $f['fecha_inicio'] ?? null,
+                    $f['fecha_fin'] ?? null,
+                    $f['tipo_oferta'] ?? null,
+                    $f['carrera'] ?? null,
+                    $f['empresa'] ?? null
+                )
+            );
+        } catch (Throwable $e) {
+            return response()->json([], 500);
         }
     }
 
-    public function obtenerPostulacionesTipo(Request $request)
+    public function postulacionesPorTipo(Request $request)
     {
         try {
-            $result = $this->service->obtenerPostulacionesTipo(
-                $request->fecha_inicio,
-                $request->fecha_fin,
-                $request->tipo_oferta,
-                $request->campo_aplicacion,
-                $request->empresa_nombre
-            );
+            $f = $this->validarFiltros($request);
 
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(
+                $this->service->obtenerPostulacionesPorTipo(
+                    $f['fecha_inicio'] ?? null,
+                    $f['fecha_fin'] ?? null,
+                    $f['tipo_oferta'] ?? null,
+                    $f['carrera'] ?? null,
+                    $f['empresa'] ?? null
+                )
+            );
+        } catch (Throwable $e) {
+            return response()->json([], 500);
         }
     }
 
-    public function obtenerTopEmpresas(Request $request)
+    public function topEmpresas(Request $request)
     {
         try {
-            $result = $this->service->obtenerTopEmpresas(
-                $request->fecha_inicio,
-                $request->fecha_fin,
-                $request->tipo_oferta,
-                $request->campo_aplicacion,
-                $request->empresa_nombre
-            );
+            $f = $this->validarFiltros($request);
 
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(
+                $this->service->obtenerTopEmpresas(
+                    $f['fecha_inicio'] ?? null,
+                    $f['fecha_fin'] ?? null,
+                    $f['tipo_oferta'] ?? null,
+                    $f['carrera'] ?? null,
+                    $f['empresa'] ?? null
+                )
+            );
+        } catch (Throwable $e) {
+            return response()->json([], 500);
         }
     }
 
-    public function obtenerTopCarreras(Request $request)
+    public function topCarreras(Request $request)
     {
         try {
-            $result = $this->service->obtenerTopCarreras(
-                $request->fecha_inicio,
-                $request->fecha_fin,
-                $request->tipo_oferta,
-                $request->campo_aplicacion,
-                $request->empresa_nombre
-            );
+            $f = $this->validarFiltros($request);
 
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(
+                $this->service->obtenerTopCarreras(
+                    $f['fecha_inicio'] ?? null,
+                    $f['fecha_fin'] ?? null,
+                    $f['tipo_oferta'] ?? null,
+                    $f['empresa'] ?? null
+                )
+            );
+        } catch (Throwable $e) {
+            return response()->json([], 500);
+        }
+    }
+
+    public function descargarPdf(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'reportes'        => 'required|array|min:1',
+                'reportes.*'      => 'in:ofertas_mes,postulaciones_tipo,top_empresas,top_carreras',
+                'parametros'      => 'required|array',
+                'filtrosLegibles' => 'nullable|array',
+            ]);
+
+            return $this->service->generarPdfReportes(
+                $data['reportes'],
+                $data['parametros'],
+                $data['filtrosLegibles'] ?? []
+            );
+        } catch (Throwable $e) {
+            return response()->json([
+                'error'   => 'Error al generar PDF',
+                'detalle' => $e->getMessage(),
+            ], 500);
         }
     }
 }

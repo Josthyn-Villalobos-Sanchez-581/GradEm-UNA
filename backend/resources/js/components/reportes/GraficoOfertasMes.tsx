@@ -17,16 +17,35 @@ interface Props {
 }
 
 export default function GraficoOfertasMes({ data }: Props) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 min-h-[420px] flex items-center justify-center">
+        <p className="text-gray-600">
+          No hay datos para mostrar.
+        </p>
+      </div>
+    );
+  }
+
   const ultimo = data.length - 1;
 
-  return (
-    <div className="card grafico">
-      <h3 className="mb-4 font-semibold">Ofertas por Mes</h3>
+  const formatearMes = (mes: string) => {
+  const fecha = new Date(mes + "-01");
+  return fecha
+    .toLocaleDateString("es-ES", { month: "short" })
+    .toUpperCase();
+};
 
-      <div className="h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
+  return (
+    <div className="bg-white rounded-xl shadow p-6 min-h-[420px] flex flex-col">
+      <h3 className="mb-4 font-semibold text-black">
+        Ofertas por Mes
+      </h3>
+
+      <div className="flex-1">
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data}>
-            <XAxis dataKey="mes" />
+            <XAxis dataKey="mes" tickFormatter={formatearMes} />
             <YAxis />
             <Tooltip />
             <Bar dataKey="valor" radius={[6, 6, 0, 0]}>
@@ -44,6 +63,10 @@ export default function GraficoOfertasMes({ data }: Props) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <p className="mt-4 text-center text-sm text-gray-600">
+        Cantidad de ofertas publicadas por mes según los filtros aplicados
+      </p>
     </div>
   );
 }

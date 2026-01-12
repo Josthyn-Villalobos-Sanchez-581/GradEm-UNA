@@ -1,13 +1,13 @@
 // resources/js/types/estadisticas.ts
 
-export type TipoOferta = 'empleo' | 'practica' | 'todas';
+export type TipoOferta = "empleo" | "practica" | "todas" | null;
 
 export interface FiltrosStats {
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  tipo_oferta?: TipoOferta;
-  campo_aplicacion?: string;
-  empresa?: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  tipo_oferta: TipoOferta;
+  carrera: number | null;
+  empresa: number | null;
 }
 
 /* ================= KPIs ================= */

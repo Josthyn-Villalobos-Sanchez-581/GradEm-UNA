@@ -1,27 +1,7 @@
 // resources/js/components/reportes/GraficoKpis.tsx
 
 import type { KpiInfo } from "@/types/estadisticas";
-
-/* ================= SUBCOMPONENTE ================= */
-
-function KPICard({
-  titulo,
-  valor,
-}: {
-  titulo: string;
-  valor: number;
-}) {
-  return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <div className="text-sm text-gray-500">{titulo}</div>
-      <div className="text-3xl font-bold text-[#034991] mt-2">
-        {valor}
-      </div>
-    </div>
-  );
-}
-
-/* ================= PRINCIPAL ================= */
+import KPICard from "@/components/reportes/KPICard";
 
 interface Props {
   datos: KpiInfo;
@@ -40,7 +20,7 @@ export default function GraficoKpis({ datos }: Props) {
         <KPICard titulo="Total Ofertas" valor={datos.total_ofertas} />
         <KPICard titulo="Ofertas Activas" valor={datos.ofertas_activas} />
         <KPICard titulo="Postulaciones" valor={datos.total_postulaciones} />
-        <KPICard titulo="Empresas" valor={datos.empresas_activas} />
+        <KPICard titulo="Empresas Activas" valor={datos.empresas_activas} />
       </div>
     </div>
   );
