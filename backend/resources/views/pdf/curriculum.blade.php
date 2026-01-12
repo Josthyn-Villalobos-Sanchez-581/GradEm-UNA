@@ -1,12 +1,8 @@
 @php
   // Normalizamos el payload que llega desde el ServicioPlantillaCurriculum
   $d = $datos ?? [];
-
-  // Teléfono y correo en una sola línea con separador solo si ambos existen
-  $lineaContacto = trim(($d['datosPersonales']['correo'] ?? '') . ' ' .
-                    ((isset($d['datosPersonales']['telefono']) && $d['datosPersonales']['telefono'] !== '')
-                      ? '· ' . $d['datosPersonales']['telefono'] : ''));
-
+  $datosPersonales = $d['datosPersonales'] ?? [];
+  
   // Idiomas normalizados
   $idiomasNormalizados = $d['idiomas_normalizados'] ?? collect($d['idiomas'] ?? [])->map(function ($i) {
       $nombre = trim($i['nombre'] ?? '');
@@ -33,98 +29,235 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<title>Currículum</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    color: #000000;
-    margin: 20px;
-    line-height: 1.6;
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
+  
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000000;
+    padding: 30px 40px;
+    background-color: #ffffff;
+  }
+  
+  /* ===== ENCABEZADO - ATS OPTIMIZADO ===== */
   .header {
-    background-color: #000000;
-    color: white;
-    padding: 15px;
     text-align: center;
     margin-bottom: 20px;
-  }
-  .titulo {
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-  }
-  .sub {
-    color: #000000;
-    font-weight: bold;
+    padding-bottom: 15px;
     border-bottom: 2px solid #000000;
-    padding-bottom: 5px;
-    margin-top: 15px;
-    margin-bottom: 10px;
   }
-  section {
-    margin-bottom: 15px;
+  
+  .nombre {
+    font-size: 20pt;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
+  
+  .contacto {
+    font-size: 10pt;
+    color: #333333;
+    line-height: 1.6;
+  }
+  
+  .contacto-linea {
+    margin: 3px 0;
+  }
+  
   .foto-perfil {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #000000;
+    border: 3px solid #000000;
+    margin: 0 auto 10px;
+    display: block;
   }
-  .header-con-foto {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+  
+  /* ===== SECCIONES - ENCABEZADOS ATS ===== */
+  .seccion {
+    margin-bottom: 18px;
+    page-break-inside: avoid;
   }
-  .info-personal {
-    flex: 1;
+  
+  .seccion-titulo {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #000000;
+    text-transform: uppercase;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
   }
-  .chip {
-    display: inline-block;
-    background-color: #f0f0f0;
-    border: 1px solid #000000;
-    border-radius: 12px;
-    padding: 4px 10px;
-    margin: 2px 4px 2px 0;
-    font-size: 11px;
+  
+  /* ===== RESUMEN PROFESIONAL ===== */
+  .resumen {
+    font-size: 10pt;
+    color: #333333;
+    text-align: justify;
+    line-height: 1.6;
+    margin-bottom: 15px;
+  }
+  
+  /* ===== ITEMS DE CONTENIDO ===== */
+  .item {
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+  }
+  
+  .item-titulo {
+    font-size: 11pt;
+    font-weight: bold;
     color: #000000;
   }
+  
+  .item-subtitulo {
+    font-size: 10pt;
+    color: #333333;
+    font-style: italic;
+  }
+  
+  .item-fecha {
+    font-size: 9pt;
+    color: #666666;
+  }
+  
+  .item-descripcion {
+    font-size: 10pt;
+    color: #333333;
+    margin-top: 4px;
+  }
+  
+  /* ===== LISTAS ===== */
+  ul {
+    margin: 6px 0 6px 20px;
+    padding: 0;
+  }
+  
+  li {
+    font-size: 10pt;
+    color: #333333;
+    margin-bottom: 3px;
+    line-height: 1.4;
+  }
+  
+  /* ===== HABILIDADES (Texto plano para ATS) ===== */
+  .habilidades-texto {
+    font-size: 10pt;
+    color: #000000;
+    line-height: 1.8;
+  }
+  
+  .habilidad-item {
+    display: inline;
+  }
+  
+  .habilidad-item:after {
+    content: " • ";
+    color: #666666;
+  }
+  
+  .habilidad-item:last-child:after {
+    content: "";
+  }
+  
+  /* ===== REFERENCIAS ===== */
+  .referencias {
+    margin-top: 8px;
+    padding-left: 15px;
+    border-left: 3px solid #cccccc;
+    font-size: 9pt;
+  }
+  
+  .referencia-titulo {
+    font-weight: bold;
+    font-size: 9pt;
+    color: #000000;
+    margin-bottom: 4px;
+  }
+  
+  .referencia-item {
+    margin-bottom: 4px;
+    color: #333333;
+  }
+  
+  /* ===== ETIQUETAS (Opcional - menos decorativo) ===== */
+  .etiqueta {
+    font-size: 9pt;
+    color: #666666;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  
   strong {
+    font-weight: bold;
     color: #000000;
   }
 </style>
 </head>
 <body>
 
-  <section>
-    <h3 class="sub">Datos personales</h3>
-    
-    @if(isset($d['fotoPerfil']) && $d['fotoPerfil'])
-      <div class="header-con-foto">
-        <img src="{{ $srcFoto }}" alt="Foto de perfil" class="foto-perfil">
-        <div class="info-personal">
-          <div><strong>{{ $d['datosPersonales']['nombreCompleto'] ?? '' }}</strong></div>
-          @if($lineaContacto !== '')
-            <div>{{ $lineaContacto }}</div>
-          @endif
-          @if(!empty($d['resumenProfesional']))
-            <p style="margin-top:8px;">{{ $d['resumenProfesional'] }}</p>
-          @endif
-        </div>
-      </div>
-    @else
-      <div><strong>{{ $d['datosPersonales']['nombreCompleto'] ?? '' }}</strong></div>
-      @if($lineaContacto !== '')
-        <div>{{ $lineaContacto }}</div>
-      @endif
-      @if(!empty($d['resumenProfesional']))
-        <p style="margin-top:8px;">{{ $d['resumenProfesional'] }}</p>
-      @endif
+  {{-- Encabezado: Datos personales --}}
+  <div class="header">
+    {{-- Foto de perfil (si está incluida) --}}
+    @if(isset($d['fotoPerfil']) && $d['fotoPerfil'] && $srcFoto)
+      <img src="{{ $srcFoto }}" alt="Foto de perfil" class="foto-perfil">
     @endif
-  </section>
+    
+    {{-- Nombre completo --}}
+    <div class="nombre">{{ $datosPersonales['nombreCompleto'] ?? '' }}</div>
+    
+    {{-- Información de contacto --}}
+    <div class="contacto">
+      @if(!empty($datosPersonales['correo']))
+        <div class="contacto-linea">
+          <strong>Email:</strong> {{ $datosPersonales['correo'] }}
+        </div>
+      @endif
+      
+      @if(!empty($datosPersonales['telefono']))
+        <div class="contacto-linea">
+          <strong>Teléfono:</strong> {{ $datosPersonales['telefono'] }}
+        </div>
+      @endif
+      
+      @if(!empty($datosPersonales['linkedin']))
+        <div class="contacto-linea">
+          <strong>LinkedIn:</strong> {{ $datosPersonales['linkedin'] }}
+        </div>
+      @endif
+      
+      @if(!empty($datosPersonales['github']))
+        <div class="contacto-linea">
+          <strong>GitHub:</strong> {{ $datosPersonales['github'] }}
+        </div>
+      @endif
+    </div>
+  </div>
 
+  {{-- Resumen profesional --}}
+  @if(!empty($d['resumenProfesional']))
+  <div class="seccion">
+    <div class="seccion-titulo">Perfil Profesional</div>
+    <div class="resumen">{{ $d['resumenProfesional'] }}</div>
+  </div>
+  @endif
+
+  {{-- Formación académica --}}
   @if(!empty($d['educaciones']))
-  <section>
-    <h3 class="sub">Formación académica</h3>
+  <div class="seccion">
+    <div class="seccion-titulo">Formación Académica</div>
     @foreach($d['educaciones'] as $e)
       @php
         $tipo = trim($e['tipo'] ?? '');
@@ -133,64 +266,122 @@
         $fechaFin = trim($e['fecha_fin'] ?? '');
       @endphp
       
-      @if($institucion && $titulo)
-        <div style="margin-bottom:8px;">
-          @if($tipo)
-            <span style="font-size:10px; color:#666; text-transform:uppercase;">[{{ $tipo }}]</span>
+      @if($titulo)
+        <div class="item">
+          <div class="item-titulo">
+            @if($tipo)
+              <span class="etiqueta">[{{ $tipo }}]</span>
+            @endif
+            {{ $titulo }}
+          </div>
+          @if($institucion)
+            <div class="item-subtitulo">{{ $institucion }}</div>
           @endif
-          <strong>{{ $titulo }}</strong> - {{ $institucion }}
-          @if($fechaFin) <em>({{ $fechaFin }})</em> @endif
+          @if($fechaFin)
+            <div class="item-fecha">Fecha de finalización: {{ $fechaFin }}</div>
+          @endif
         </div>
       @endif
     @endforeach
-  </section>
+  </div>
   @endif
 
+  {{-- Certificaciones --}}
+  @if(!empty($d['certificaciones']) && count($d['certificaciones']) > 0)
+  <div class="seccion">
+    <div class="seccion-titulo">Certificaciones y Cursos</div>
+    
+    @foreach($d['certificaciones'] as $cert)
+      @php
+        $nombreCert = trim($cert['nombre'] ?? '');
+        $institucionCert = trim($cert['institucion'] ?? '');
+        $fechaCert = trim($cert['fecha_obtencion'] ?? '');
+        
+        $fechaCertFormateada = '';
+        if ($fechaCert) {
+            try {
+                $fechaCertFormateada = date('m/Y', strtotime($fechaCert));
+            } catch (\Exception $e) {
+                $fechaCertFormateada = $fechaCert;
+            }
+        }
+      @endphp
+      
+      @if($nombreCert)
+        <div class="item">
+          <div class="item-titulo">{{ $nombreCert }}</div>
+          @if($institucionCert)
+            <div class="item-subtitulo">{{ $institucionCert }}</div>
+          @endif
+          @if($fechaCertFormateada)
+            <div class="item-fecha">Fecha de obtención: {{ $fechaCertFormateada }}</div>
+          @endif
+        </div>
+      @endif
+    @endforeach
+  </div>
+  @endif
+
+  {{-- Experiencia profesional --}}
   @if(!empty($d['experiencias']))
-  <section>
-    <h3 class="sub">Experiencia laboral</h3>
+  <div class="seccion">
+    <div class="seccion-titulo">Experiencia Profesional</div>
     @foreach($d['experiencias'] as $ex)
       @php
         $empresa = trim($ex['empresa'] ?? '');
         $puesto = trim($ex['puesto'] ?? '');
-        $funciones = trim($ex['funciones'] ?? '');
         $periodoInicio = trim($ex['periodo_inicio'] ?? '');
         $periodoFin = trim($ex['periodo_fin'] ?? '');
+        $trabajandoActualmente = $ex['trabajando_actualmente'] ?? false;
         
         $periodo = '';
-        if ($periodoInicio && $periodoFin) {
-            $periodo = "({$periodoInicio} - {$periodoFin})";
+        if ($trabajandoActualmente && $periodoInicio) {
+            $periodo = "{$periodoInicio} - Actual";
+        } elseif ($periodoInicio && $periodoFin) {
+            $periodo = "{$periodoInicio} - {$periodoFin}";
         } elseif ($periodoInicio) {
-            $periodo = "(Desde {$periodoInicio})";
+            $periodo = "Desde {$periodoInicio}";
         } elseif ($periodoFin) {
-            $periodo = "(Hasta {$periodoFin})";
+            $periodo = "Hasta {$periodoFin}";
         }
         
+        // Funciones como array
         $funcionesArray = [];
-        if ($funciones) {
-            $funcionesArray = preg_split('/[\r\n;]+/', $funciones);
-            $funcionesArray = array_map('trim', $funcionesArray);
-            $funcionesArray = array_filter($funcionesArray);
+        if (!empty($ex['funciones']) && is_array($ex['funciones'])) {
+            foreach ($ex['funciones'] as $func) {
+                $desc = trim($func['descripcion'] ?? '');
+                if ($desc) {
+                    $funcionesArray[] = $desc;
+                }
+            }
         }
         
         $referencias = $ex['referencias'] ?? [];
       @endphp
       
-      @if($empresa && $puesto)
-        <div style="margin-bottom:12px;">
-          <div><strong>{{ $puesto }}</strong> - {{ $empresa }} @if($periodo) <em>{{ $periodo }}</em> @endif</div>
+      @if($puesto)
+        <div class="item">
+          <div class="item-titulo">{{ $puesto }}</div>
+          @if($empresa)
+            <div class="item-subtitulo">{{ $empresa }}</div>
+          @endif
+          @if($periodo)
+            <div class="item-fecha">{{ $periodo }}</div>
+          @endif
           
+          {{-- Funciones --}}
           @if(!empty($funcionesArray))
-            <ul style="margin-top:4px; margin-bottom:4px; padding-left:20px; font-size:11px;">
+            <ul>
               @foreach($funcionesArray as $funcion)
-                <li style="margin-bottom:2px;">{{ $funcion }}</li>
+                <li>{{ $funcion }}</li>
               @endforeach
             </ul>
           @endif
           
+          {{-- Referencias --}}
           @if(!empty($referencias))
-            <div style="margin-top:6px; padding-left:10px; border-left:2px solid #ddd;">
-              <div style="font-size:10px; font-weight:bold; margin-bottom:3px;">Referencias:</div>
+            <div class="referencias">
+              <div class="referencia-titulo">Referencias:</div>
               @foreach($referencias as $ref)
                 @php
                   $nombre = trim($ref['nombre'] ?? '');
@@ -199,12 +390,12 @@
                   $relacion = trim($ref['relacion'] ?? '');
                 @endphp
                 
-                @if($nombre && ($contacto || $correo))
-                  <div style="font-size:10px; margin-bottom:2px;">
+                @if($nombre)
+                  <div class="referencia-item">
                     <strong>{{ $nombre }}</strong>
-                    @if($relacion) - {{ $relacion }} @endif
-                    @if($contacto) · Tel: {{ $contacto }} @endif
-                    @if($correo) · Email: {{ $correo }} @endif
+                    @if($relacion) ({{ $relacion }}) @endif
+                    @if($contacto) - Tel: {{ $contacto }} @endif
+                    @if($correo) - Email: {{ $correo }} @endif
                   </div>
                 @endif
               @endforeach
@@ -213,36 +404,57 @@
         </div>
       @endif
     @endforeach
-  </section>
+  </div>
   @endif
 
-  @if(!empty($d['habilidades']))
-  <section>
-    <h3 class="sub">Habilidades</h3>
-    <div>
-      @foreach($d['habilidades'] as $h)
-        @php 
-          $desc = trim($h['descripcion'] ?? ''); 
-        @endphp
-        @if($desc) 
-          <span class="chip">{{ $desc }}</span> 
-        @endif
+  {{-- Habilidades técnicas --}}
+  @php
+    $habilidadesTecnicas = collect($d['habilidadesTecnicas'] ?? [])->map(function($h) {
+        return trim($h['descripcion'] ?? '');
+    })->filter()->values();
+  @endphp
+  
+  @if($habilidadesTecnicas->isNotEmpty())
+  <div class="seccion">
+    <div class="seccion-titulo">Habilidades Técnicas</div>
+    <div class="habilidades-texto">
+      @foreach($habilidadesTecnicas as $hab)
+        <span class="habilidad-item">{{ $hab }}</span>
       @endforeach
     </div>
-  </section>
+  </div>
   @endif
-
+  
+  {{-- Competencias profesionales --}}
+  @php
+    $habilidadesBlandas = collect($d['habilidadesBlandas'] ?? [])->map(function($h) {
+        return trim($h['descripcion'] ?? '');
+    })->filter()->values();
+  @endphp
+  
+  @if($habilidadesBlandas->isNotEmpty())
+  <div class="seccion">
+    <div class="seccion-titulo">Competencias Profesionales</div>
+    <div class="habilidades-texto">
+      @foreach($habilidadesBlandas as $hab)
+        <span class="habilidad-item">{{ $hab }}</span>
+      @endforeach
+    </div>
+  </div>
+  @endif
+  
+  {{-- Idiomas --}}
   @if(!empty($idiomasNormalizados))
-  <section>
-    <h3 class="sub">Idiomas</h3>
-    <div>
+  <div class="seccion">
+    <div class="seccion-titulo">Idiomas</div>
+    <div class="habilidades-texto">
       @foreach($idiomasNormalizados as $idioma)
-        @if($idioma) 
-          <span class="chip">{{ $idioma }}</span> 
+        @if($idioma)
+          <span class="habilidad-item">{{ $idioma }}</span>
         @endif
       @endforeach
     </div>
-  </section>
+  </div>
   @endif
 </body>
 </html>

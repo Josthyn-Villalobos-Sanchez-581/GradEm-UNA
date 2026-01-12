@@ -19,25 +19,30 @@ class GenerarCurriculumRequest extends FormRequest
             'datosPersonales.nombreCompleto' => 'required|string|min:3|max:80',
             'datosPersonales.correo'        => 'required|email|max:255',
             'datosPersonales.telefono'      => ['nullable','regex:/^[0-9]{8}$/'],
+            
+            // ⭐ NUEVO: Validaciones para LinkedIn y GitHub
+            'datosPersonales.linkedin'      => ['nullable', 'url', 'max:255'],
+            'datosPersonales.github'        => ['nullable', 'url', 'max:255'],
 
-            'resumenProfesional' => 'nullable|string|max:600',
+            'resumenProfesional' => 'nullable|string|max:1000',
 
             'incluirFotoPerfil' => 'boolean',
 
             // EDUCACIONES - actualizado
             'educaciones' => 'array',
             'educaciones.*.tipo'         => 'required_with:educaciones.*.titulo|string|in:Título,Certificación,Curso,Diplomado,Técnico',
-            'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|min:3|max:100',
-            'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|min:3|max:100',
+            'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|min:3|max:150',
+            'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|min:3|max:150',
             'educaciones.*.fecha_fin'    => 'required_with:educaciones.*.titulo|date',
 
             // EXPERIENCIAS - actualizado
             'experiencias' => 'array',
-            'experiencias.*.empresa'        => 'required_with:experiencias.*.puesto|string|min:2|max:60',
-            'experiencias.*.puesto'         => 'required_with:experiencias.*.empresa|string|min:3|max:60',
-            'experiencias.*.periodo_inicio' => 'required_with:experiencias.*.puesto|date',
-            'experiencias.*.periodo_fin'    => 'required_with:experiencias.*.puesto|date',
-            'experiencias.*.funciones'      => 'nullable|string|max:2000',
+            'experiencias.*.empresa'                => 'required_with:experiencias.*.puesto|string|min:2|max:120',
+            'experiencias.*.puesto'                 => 'required_with:experiencias.*.empresa|string|min:3|max:100',
+            'experiencias.*.periodo_inicio'         => 'required_with:experiencias.*.puesto|date',
+            'experiencias.*.trabajando_actualmente' => 'nullable|boolean',
+            'experiencias.*.periodo_fin'            => 'nullable|date',
+            'experiencias.*.funciones'              => 'nullable|string|max:2000',
 
             // REFERENCIAS dentro de experiencias - NUEVO
             'experiencias.*.referencias'            => 'array',
@@ -48,7 +53,7 @@ class GenerarCurriculumRequest extends FormRequest
 
             // HABILIDADES
             'habilidades' => 'array',
-            'habilidades.*.descripcion' => 'required_with:habilidades|string|min:2|max:40',
+            'habilidades.*.descripcion' => 'required_with:habilidades|string|min:2|max:60',
 
             // IDIOMAS
             'idiomas' => 'array',
@@ -92,5 +97,24 @@ class GenerarCurriculumRequest extends FormRequest
             'idiomas.*.nivel.required_with' => 'El nivel del idioma es obligatorio.',
             'idiomas.*.nivel.in' => 'El nivel debe ser: A1, A2, B1, B2, C1, C2 o Nativo.',
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $experiencias = $this->input('experiencias', []);
+            
+            foreach ($experiencias as $index => $experiencia) {
+                $trabajandoActualmente = $experiencia['trabajando_actualmente'] ?? false;
+                $periodoFin = $experiencia['periodo_fin'] ?? null;
+                
+                if (!$trabajandoActualmente && empty($periodoFin)) {
+                    $validator->errors()->add(
+                        "experiencias.{$index}.periodo_fin",
+                        'La fecha de fin es obligatoria si no trabajas actualmente aquí.'
+                    );
+                }
+            }
+        });
     }
 }

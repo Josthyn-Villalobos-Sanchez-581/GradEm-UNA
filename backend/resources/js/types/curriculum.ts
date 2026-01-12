@@ -13,13 +13,15 @@ export type Educacion = {
 
 export type Experiencia = {
   empresa: string;
-  puesto: string;
-  periodo_inicio?: string;
-  periodo_fin?: string;
-  funciones: Funcion[];
-  referencias: Referencia[]; // NUEVO: Referencias asociadas a esta experiencia
+  puesto:  string;
+  periodo_inicio?:  string;
+  periodo_fin?:  string;
+  trabajando_actualmente?: boolean;
+  funciones:  Funcion[];
+  referencias:  Referencia[];
 };
 
+// ⭐ SEPARAMOS:  Habilidades técnicas y blandas ahora usan el mismo tipo
 export type Habilidad = {
   descripcion: string;
 };
@@ -30,31 +32,41 @@ export type Idioma = {
 };
 
 export type Referencia = {
-  nombre: string;
+  nombre:  string;
   contacto: string;
   correo: string;
   relacion: string;
 };
 
+// ⭐ YA EXISTÍA: Ahora lo usaremos en el FormCV
 export type Certificacion = {
   nombre: string;
-  institucion?: string;
+  institucion?:  string;
   fecha_obtencion?: string;
 };
 
+// ⭐ MODIFICADO: Agregamos certificaciones y separamos habilidades
 export type FormCV = {
   usuarioId: number;
   datosPersonales: {
     nombreCompleto: string;
-    correo: string;
+    correo:  string;
     telefono: string;
+    linkedin?:  string;
+    github?: string;
   };
   resumenProfesional: string;
   educaciones: Educacion[];
   experiencias: Experiencia[];
-  habilidades: Habilidad[];
+  
+  // ⭐ NUEVO: Separación de habilidades
+  habilidadesTecnicas: Habilidad[];   // ⭐ NUEVO
+  habilidadesBlandas: Habilidad[];    // ⭐ NUEVO
+  
+  // ⭐ NUEVO: Certificaciones como sección separada
+  certificaciones:  Certificacion[];   // ⭐ NUEVO
+  
   idiomas: Idioma[];
-  // referencias: Referencia[]; // ELIMINADO: Ahora están dentro de cada experiencia
-  incluirFotoPerfil?: boolean;
+  incluirFotoPerfil?:  boolean;
   [key: string]: unknown;
 };
