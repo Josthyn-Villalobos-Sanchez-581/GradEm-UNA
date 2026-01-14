@@ -28,6 +28,8 @@ use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PostulacionController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\ReportesOfertasController;
+use App\Http\Controllers\EstadisticasController;
 
 
 // ==========================================
@@ -311,6 +313,27 @@ Route::middleware('auth')->group(function () {
         Route::get('provincias', [ReporteController::class, 'provincias']);
         Route::get('cantones', [ReporteController::class, 'cantones']);
     });
+
+    // ==========================================
+    // Reportes de Ofertas / Postulaciones (Permiso 15)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:15'])->group(function () {
+
+    Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
+
+    Route::prefix('estadisticas/ofertas')->group(function () {
+        Route::get('kpis', [EstadisticasController::class, 'kpis']);
+        Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
+        Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
+        Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
+        Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
+    });
+
+    Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
+        ->name('reportes-ofertas.descargar-pdf');
+    
+    });
+
 
     // ==========================================
     // 5 - Publicación de Ofertas Laborales
