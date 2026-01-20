@@ -9,7 +9,7 @@ import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
 import { Button } from "@/components/ui/button";
 interface UsuarioItem {
-  id: number;
+  id_usuario: number;
   nombre_completo?: string;
   correo?: string;
   identificacion?: string;
@@ -179,6 +179,7 @@ export default function Index(props: IndexProps) {
           </div>
 
           {/* 📊 Tabla */}
+   
           <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
             <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
               <thead className="bg-gray-100">
@@ -202,9 +203,11 @@ export default function Index(props: IndexProps) {
                     </td>
                   </tr>
                 ) : (
+                  
                   usuarios.map((u, idx) => (
+                    
                     <tr
-                      key={u.id}
+                      key={u.id_usuario}
                       className={`hover:bg-gray-50 ${idx === usuarios.length - 1 ? "last-row" : ""
                         }`}
                     >
@@ -215,6 +218,7 @@ export default function Index(props: IndexProps) {
                         >
                           {u.nombre_completo ?? "-"}
                         </td>
+                        
                       )}
                       {visibleCols.includes("correo") && (
                         <td className="px-4 py-2 border">{u.correo ?? "-"}</td>
@@ -247,7 +251,8 @@ export default function Index(props: IndexProps) {
                         >
                           <div className="flex justify-center gap-2">
                             {/* Editar */}
-                            <Link href={route("admin.editar", { id: u.id })}>
+                            <Link href={route("admin.editar", { id: u.id_usuario })}>
+                            
                               <Button variant="default" size="sm" className="font-semibold">
                                 Editar
                               </Button>
@@ -268,14 +273,14 @@ export default function Index(props: IndexProps) {
                                   if (!confirmado) return;
 
                                   try {
-                                    const res = await axios.put(`/usuarios/${u.id}/toggle-estado`);
+                                    const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
                                     alerta({
                                       titulo: "Estado actualizado",
                                       mensaje: res.data.message,
                                     });
                                     setUsuarios((prev) =>
                                       prev.map((usr) =>
-                                        usr.id === u.id ? { ...usr, estado_id: res.data.nuevo_estado } : usr
+                                        usr.id_usuario === u.id_usuario ? { ...usr, estado_id: res.data.nuevo_estado } : usr
                                       )
                                     );
                                   } catch (err) {
@@ -307,10 +312,10 @@ export default function Index(props: IndexProps) {
                                   if (!ok) return;
 
                                   try {
-                                    const res = await axios.delete(route("admin.eliminar", { id: u.id }));
+                                    const res = await axios.delete(route("admin.eliminar", { id: u.id_usuario }));
                                     if (res.data.status === "success") {
                                       alerta({ titulo: "Eliminado", mensaje: res.data.message });
-                                      setUsuarios((prev) => prev.filter((usr) => usr.id !== u.id));
+                                      setUsuarios((prev) => prev.filter((usr) => usr.id_usuario !== u.id_usuario));
                                     } else {
                                       alerta({ titulo: "Error", mensaje: res.data.message });
                                     }

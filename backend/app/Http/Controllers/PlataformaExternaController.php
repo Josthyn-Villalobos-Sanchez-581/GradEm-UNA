@@ -1,4 +1,5 @@
 <?php
+/*
 //backend/app/Http/Controllers/PlataformaExternaController.php
 namespace App\Http\Controllers;
 
@@ -9,7 +10,7 @@ class PlataformaExternaController extends Controller
 {
     /**
      * Agregar un enlace externo
-     */
+     *//*
   public function store(PlataformaExternaRequest $request)
 {
     $usuario = Auth::user();
@@ -57,4 +58,40 @@ public function destroy($id)
         'plataformas' => PlataformaExterna::where('id_usuario', $usuario->id_usuario)->get()
     ]);
 }
+}
+*/
+namespace App\Http\Controllers;
+
+use App\Http\Requests\PlataformaExternaRequest;
+use App\Services\PlataformaExternaService;
+use Illuminate\Support\Facades\Auth;
+
+class PlataformaExternaController extends Controller
+{
+    private PlataformaExternaService $service;
+
+    public function __construct(PlataformaExternaService $service)
+    {
+        $this->service = $service;
+    }
+
+    /**
+     * Agregar un enlace externo
+     */
+    public function store(PlataformaExternaRequest $request)
+    {
+        $usuario = Auth::user();
+
+        return $this->service->agregarPlataforma($usuario, $request->validated());
+    }
+
+    /**
+     * Eliminar un enlace externo
+     */
+    public function destroy(int $id)
+    {
+        $usuario = Auth::user();
+
+        return $this->service->eliminarPlataforma($usuario, $id);
+    }
 }
