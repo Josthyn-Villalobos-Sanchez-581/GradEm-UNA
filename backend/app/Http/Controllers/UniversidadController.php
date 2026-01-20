@@ -2,21 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Universidad;
-use App\Models\Carrera;
 use Illuminate\Http\Request;
+use App\Services\UniversidadServices\UniversidadService;
 
 class UniversidadController extends Controller
 {
-    public function getUniversidades()
+    protected UniversidadService $universidadService;
+
+    public function __construct(UniversidadService $universidadService)
     {
-        return response()->json(Universidad::all());
+        $this->universidadService = $universidadService;
     }
 
+    /**
+     * Obtener todas las universidades
+     */
+    public function getUniversidades()
+    {
+        $universidades = $this->universidadService->obtenerUniversidades();
+
+        return response()->json($universidades);
+    }
+
+    /**
+     * Obtener carreras por universidad
+     */
     public function getCarreras($idUniversidad)
     {
-        return response()->json(
-            Carrera::where('id_universidad', $idUniversidad)->get()
-        );
+        $carreras = $this->universidadService->obtenerCarrerasPorUniversidad($idUniversidad);
+
+        return response()->json($carreras);
     }
 }

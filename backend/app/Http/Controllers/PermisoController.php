@@ -2,112 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Permiso;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Services\PermisoServices\PermisoService;
 
 class PermisoController extends Controller
 {
+    protected PermisoService $permisoService;
+
+    public function __construct(PermisoService $permisoService)
+    {
+        $this->permisoService = $permisoService;
+    }
+
     public function index()
     {
-        $permisos = Permiso::paginate(10)->withQueryString();
         $usuario = Auth::user();
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
 
-        return Inertia::render('Roles_Permisos/Index', [
-            'permisos' => $permisos,
-            'userPermisos' => $userPermisos,
-        ]);
+        if (!$usuario) {
+            return redirect()->route('login');
+        }
+
+        $datosVista = $this->permisoService->obtenerDatosIndex($usuario);
+
+        return Inertia::render('Roles_Permisos/Index', $datosVista);
     }
 
     public function create()
     {
         $usuario = Auth::user();
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
 
-        return Inertia::render('Roles_Permisos/Permisos/Create', [
-            'userPermisos' => $userPermisos
-        ]);
+        if (!$usuario) {
+            return redirect()->route('login');
+        }
+
+        $datosVista = $this->permisoService->obtenerDatosCreate($usuario);
+
+        return Inertia::render('Roles_Permisos/Permisos/Create', $datosVista);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nombre' => ['required','string','max:50', Rule::unique('permisos','nombre')]
+            'nombre' => ['required', 'string', 'max:50', Rule::unique('permisos', 'nombre')],
         ]);
 
-        $permiso = Permiso::create($data);
-        $this->registrarBitacora('permisos','crear',"Permiso creado ID {$permiso->id_permiso}");
+        $this->permisoService->crearPermiso($data['nombre']);
 
-        // Redirigir al index después de crear
-        return redirect()->route('roles_permisos.index')
+        return redirect()
+            ->route('roles_permisos.index')
             ->with('success', 'Permiso creado correctamente.');
     }
 
     public function edit($id)
     {
-        $permiso = Permiso::findOrFail($id);
         $usuario = Auth::user();
-        $userPermisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
 
-        return Inertia::render('Roles_Permisos/Permisos/Edit', [
-            'permiso' => $permiso,
-            'userPermisos' => $userPermisos
-        ]);
+        if (!$usuario) {
+            return redirect()->route('login');
+        }
+
+        $datosVista = $this->permisoService->obtenerDatosEdit((int) $id, $usuario);
+
+        return Inertia::render('Roles_Permisos/Permisos/Edit', $datosVista);
     }
 
     public function update(Request $request, $id)
     {
-        $permiso = Permiso::findOrFail($id);
+        $permisoId = (int) $id;
+
         $data = $request->validate([
-            'nombre' => ['required','string','max:50', Rule::unique('permisos','nombre')->ignore($permiso->id_permiso,'id_permiso')]
+            'nombre' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('permisos', 'nombre')->ignore($permisoId, 'id_permiso'),
+            ],
         ]);
 
-        $permiso->update($data);
-        $this->registrarBitacora('permisos','actualizar',"Permiso actualizado ID {$id}");
+        $this->permisoService->actualizarPermiso($permisoId, $data['nombre']);
 
-        // Redirigir al index después de actualizar
-        return redirect()->route('roles_permisos.index')
+        return redirect()
+            ->route('roles_permisos.index')
             ->with('success', 'Permiso actualizado correctamente.');
     }
 
     public function destroy($id)
     {
-        $permiso = Permiso::findOrFail($id);
+        $permisoId = (int) $id;
 
-        if ($permiso->roles()->exists()) {
-            return redirect()->route('roles_permisos.index')
-                ->withErrors([
-                    'error' => "No se puede eliminar el permiso '{$permiso->nombre}' porque está asignado a uno o más roles."
-                ]);
+        $mensajeError = $this->permisoService->intentarEliminarPermiso($permisoId);
+
+        if ($mensajeError) {
+            return redirect()
+                ->route('roles_permisos.index')
+                ->withErrors(['error' => $mensajeError]);
         }
 
-        $permiso->delete();
-
-        return redirect()->route('roles_permisos.index')
+        return redirect()
+            ->route('roles_permisos.index')
             ->with('success', 'Permiso eliminado correctamente.');
-    }
-
-    private function registrarBitacora($tabla,$operacion,$descripcion)
-    {
-        DB::table('bitacora_cambios')->insert([
-            'tabla_afectada'=>$tabla,
-            'operacion'=>$operacion,
-            'usuario_responsable'=>Auth::id(),
-            'descripcion_cambio'=>$descripcion,
-            'fecha_cambio'=>now()
-        ]);
     }
 }

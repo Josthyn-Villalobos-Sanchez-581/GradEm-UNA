@@ -13,7 +13,6 @@ use App\Http\Controllers\RecuperarContrasenaController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PerfilController;
-use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UniversidadController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FotoPerfilController;
@@ -24,6 +23,13 @@ use App\Http\Controllers\TitulosController;
 use App\Http\Controllers\OtrosController;
 use App\Http\Controllers\PlataformaExternaController;
 use App\Http\Controllers\CatalogoController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OfertaController;
+use App\Http\Controllers\PostulacionController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\ReportesOfertasController;
+use App\Http\Controllers\EstadisticasController;
 
 
 // ==========================================
@@ -73,9 +79,10 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Dashboard
     // ==========================================
-    Route::get('/dashboard', fn() => Inertia::render('Dashboard', [
-        'userPermisos' => getUserPermisos()
-    ]))->name('dashboard');
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
+    });
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -87,6 +94,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
         Route::get('/perfil/editar', [PerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
+        Route::post('/perfil/verificar-identificacion', [PerfilController::class, 'verificarIdentificacion'])
+            ->name('perfil.verificar-identificacion');
+
+        Route::post('/perfil/verificar-correo', [PerfilController::class, 'verificarCorreo'])
+            ->name('perfil.verificar-correo');
+
+        Route::post('/perfil/enviar-codigo-correo', [PerfilController::class, 'enviarCodigoCorreo'])
+            ->name('perfil.enviar-codigo-correo');
+
+        Route::post('/perfil/validar-codigo-correo', [PerfilController::class, 'validarCodigoCorreo'])
+            ->name('perfil.validar-codigo-correo');
 
         Route::post('/perfil/foto', [FotoPerfilController::class, 'subirFoto'])->name('perfil.foto.subir');
         Route::get('/perfil/foto', [FotoPerfilController::class, 'mostrarFoto'])->name('perfil.foto.mostrar');
@@ -98,19 +116,19 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
         Route::get('/curriculum/generar', function () {
-    $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
-    return Inertia::render('Frt_FormularioGeneracionCurriculum', [
-        'userPermisos' => getUserPermisos(),
-        'usuario' => [
-            'id_usuario' => $usuario->id_usuario,
-            'nombre_completo' => $usuario->nombre_completo,
-            'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
-            'correo' => $usuario->correo,
-            'telefono' => $usuario->telefono ?? '',
-            'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
-        ]
-    ]);
-})->name('curriculum.generar');
+            $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+            return Inertia::render('Frt_FormularioGeneracionCurriculum', [
+                'userPermisos' => getUserPermisos(),
+                'usuario' => [
+                    'id_usuario' => $usuario->id_usuario,
+                    'nombre_completo' => $usuario->nombre_completo,
+                    'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
+                    'correo' => $usuario->correo,
+                    'telefono' => $usuario->telefono ?? '',
+                    'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
+                ]
+            ]);
+        })->name('curriculum.generar');
 
         Route::post('/api/curriculum/generate', [CurriculumController::class, 'generar'])->name('api.curriculum.generate');
         Route::get('/curriculum-cargado', [CurriculumController::class, 'indexCarga'])->name('curriculum.index');
@@ -253,11 +271,122 @@ Route::middleware('auth')->group(function () {
     });
 
     // ==========================================
-    // 🚧 Pendientes (cuando estén desarrollados)
+    // Reportes de Egresados (Permiso 14)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:14'])->group(function () {
+
+        Route::get('/reportes-egresados', [ReporteController::class, 'index'])
+            ->middleware(['auth', 'permiso:14'])
+            ->name('reportes.egresados');
+
+
+        Route::get('/reportes/egresados', [ReporteController::class, 'obtenerEgresados'])
+            ->name('reportes.egresados');
+
+        Route::get('/reportes/grafico-empleo', [ReporteController::class, 'graficoEmpleo'])
+            ->name('reportes.grafico-empleo');
+
+        Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
+            ->name('reportes.grafico-anual');
+
+        Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
+
+        Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
+
+        // Catálogos
+        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('carreras', [ReporteController::class, 'carreras']);
+        Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
+        Route::get('paises', [ReporteController::class, 'paises']);
+        Route::get('provincias', [ReporteController::class, 'provincias']);
+        Route::get('cantones', [ReporteController::class, 'cantones']);
+    });
+
+    // ==========================================
+    // Reportes de Ofertas / Postulaciones (Permiso 15)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:15'])->group(function () {
+
+    Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
+
+    Route::prefix('estadisticas/ofertas')->group(function () {
+        Route::get('kpis', [EstadisticasController::class, 'kpis']);
+        Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
+        Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
+        Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
+        Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
+    });
+
+    Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
+        ->name('reportes-ofertas.descargar-pdf');
+    
+    });
+
+
     // ==========================================
     // 5 - Publicación de Ofertas Laborales
+    //    (empresas / admin crean y gestionan ofertas)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:5'])->prefix('empresa')->group(function () {
+
+        Route::get('/ofertas', [OfertaController::class, 'indexEmpresa'])
+            ->name('empresa.ofertas.index');
+
+        Route::get('/ofertas/crear', [OfertaController::class, 'crear'])
+            ->name('empresa.ofertas.crear');
+
+        Route::post('/ofertas', [OfertaController::class, 'guardar'])
+            ->name('empresa.ofertas.guardar');
+
+        Route::get('/ofertas/{oferta}/editar', [OfertaController::class, 'editar'])
+            ->name('empresa.ofertas.editar');
+
+        Route::put('/ofertas/{oferta}', [OfertaController::class, 'actualizar'])
+            ->name('empresa.ofertas.actualizar');
+
+        Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
+            ->name('empresa.ofertas.eliminar');
+    });
+
+    // ==========================================
     // 6 - Postulación a Ofertas Laborales
+    //    (listado, detalle y postulación)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:6'])->group(function () {
+
+        // HU-25 + HU-27: Listar ofertas con filtros
+        Route::get('/ofertas', [OfertaController::class, 'listar'])
+            ->name('ofertas.listar');
+
+        // HU-24: Ver detalle de una oferta
+        Route::get('/ofertas/{oferta}', [OfertaController::class, 'mostrar'])
+            ->name('ofertas.mostrar');
+
+        // Otra HU: Postularse a una oferta
+        Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
+            ->name('ofertas.postular');
+    });
+
+    // ==========================================
     // 7 - Gestión de Postulaciones
+    //    (empresa/admin revisan y gestionan postulaciones)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:7'])->group(function () {
+
+        Route::get('/postulaciones', [PostulacionController::class, 'index'])
+            ->name('postulaciones.index');
+
+        Route::get('/postulaciones/{postulacion}', [PostulacionController::class, 'mostrar'])
+            ->name('postulaciones.mostrar');
+
+        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
+            ->name('postulaciones.actualizar-estado');
+    });
+
+
+    // ==========================================
+    // 🚧 Pendientes (cuando estén desarrollados)
+    // ==========================================
     // 8 - Gestión de Cursos
     // 9 - Inscripción a Cursos
     // 10 - Gestión de Eventos

@@ -1,6 +1,6 @@
 // backend/resources/js/pages/Usuarios/PerfilesUsuarios.tsx
 import React, { useState } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
@@ -30,6 +30,8 @@ interface Props {
 export default function PerfilesUsuarios(props: Props) {
   const [usuarios, setUsuarios] = useState<Usuario[]>(props.usuarios);
   const modal = useModal();
+  const { auth } = usePage().props as any;
+  const puedeGestionar = [1, 2].includes(auth?.user?.id_rol);
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState<string>("todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
