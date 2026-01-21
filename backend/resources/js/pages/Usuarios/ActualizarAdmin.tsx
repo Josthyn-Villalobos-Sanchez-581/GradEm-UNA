@@ -168,8 +168,8 @@ interface Props {
     identificacion: string;
     telefono?: string;
     rol: string;
-    universidad?: string;
-    carrera?: string;
+     id_universidad?: number | null;
+  id_carrera?: number | null;
   };
   userPermisos?: number[];
 }
@@ -181,12 +181,14 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
     identificacion: usuario.identificacion,
     telefono: usuario.telefono ?? "",
     rol: (usuario.rol as Rol) ?? ("Administrador del Sistema" as Rol),
-    universidad: usuario.universidad ?? "",
-    carrera: usuario.carrera ?? "",
+      id_universidad: usuario.id_universidad ?? "",
+  id_carrera: usuario.id_carrera ?? "",
     contrasena: "",
     contrasena_confirmation: "",
+    
   });
 
+    //console.log("USUARIO EDIT:", usuario); 
   const [universidades, setUniversidades] = useState<Universidad[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [loadingUnis, setLoadingUnis] = useState(false);
@@ -201,6 +203,7 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
   const labelFromNombre = (nombre: string) => {
     if (nombre === "Ingeniería en Sistemas") return "Ing. Sistemas";
     return nombre;
+
   };
 
   // -------------------------
@@ -316,18 +319,16 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const listaUnis = Array.isArray(dataRes) ? dataRes : [];
         setUniversidades(listaUnis);
 
-        let uniActual = listaUnis.find(
-          (u) =>
-            normalize(u.nombre) === normalize(usuario.universidad) ||
-            normalize(u.sigla) === normalize(usuario.universidad)
-        );
+    let uniActual = listaUnis.find(
+  (u) => u.id_universidad === usuario.id_universidad
+);
 
         if (!uniActual && listaUnis.length > 0) {
           uniActual = listaUnis[0];
         }
 
         if (uniActual) {
-          setData("universidad", uniActual.nombre);
+          setData("id_universidad", uniActual.id_universidad);
           await loadCarrerasForUni(uniActual.id_universidad);
         }
       } catch (e) {
@@ -342,86 +343,70 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usuario.universidad]);
+  }, [usuario.id_universidad]);
 
-  const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = Number(e.target.value);
-    const selected = universidades.find((u) => u.id_universidad === selectedId);
-    if (!selected) {
-      setData("universidad", e.target.value);
-      setCarreras([]);
-      setData("carrera", "");
-      return;
-    }
-    setData("universidad", selected.nombre);
-    await loadCarrerasForUni(selectedId);
-    setData("carrera", "");
-  };
+const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectedId = Number(e.target.value);
 
-  const handleCarreraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    if (val === "") {
-      setData("carrera", "");
-      return;
-    }
-    const selectedId = Number(val);
-    const selected = carreras.find((c) => c.id_carrera === selectedId);
-    if (selected) setData("carrera", selected.nombre);
-  };
+  setData("id_universidad", selectedId);
+  setData("id_carrera", "");
 
-  const renderUniversidadField = () => {
-    if (loadingUnis) return <div>Cargando universidades...</div>;
-    if (universidades.length === 0) {
-      return (
-        <input
-          className="input"
-          value={data.universidad}
-          onChange={(e) => setData("universidad", e.target.value)}
-          placeholder="Ej: Universidad Nacional"
-        />
-      );
-    }
-    const found = universidades.find((u) => u.nombre === data.universidad || u.sigla === data.universidad);
-    const value = found ? String(found.id_universidad) : "";
-    return (
-      <select className="select input" value={value} onChange={handleUniChange}>
-        {universidades.map((u) => (
-          <option key={u.id_universidad} value={u.id_universidad}>
-            {u.sigla ? `${u.sigla} — ${u.nombre}` : u.nombre}
-          </option>
-        ))}
-      </select>
-    );
-  };
+  if (!selectedId) {
+    setCarreras([]);
+    return;
+  }
 
-  const renderCarreraField = () => {
-    if (loadingCarreras) return <div>Cargando carreras...</div>;
-    if (carreras.length === 0) {
-      return (
-        <input
-          className="input"
-          value={data.carrera}
-          onChange={(e) => setData("carrera", e.target.value)}
-          placeholder="Ej: Ingeniería en Sistemas"
-        />
-      );
-    }
-    const selectedOptionValue = (() => {
-      const found = carreras.find((c) => c.nombre === data.carrera);
-      return found ? String(found.id_carrera) : "";
-    })();
+  await loadCarrerasForUni(selectedId);
+};
 
-    return (
-      <select className="select input" value={selectedOptionValue} onChange={handleCarreraChange}>
-        {/* <option value="">Ninguna</option> */}
-        {carreras.map((c) => (
-          <option key={c.id_carrera} value={c.id_carrera}>
-            {labelFromNombre(c.nombre)}
-          </option>
-        ))}
-      </select>
-    );
-  };
+
+
+const handleCarreraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectedId = Number(e.target.value);
+  setData("id_carrera", selectedId || "");
+};
+
+const renderUniversidadField = () => {
+  if (loadingUnis) return <div>Cargando universidades...</div>;
+
+  return (
+    <select
+      className="select input"
+      value={data.id_universidad ?? ""}
+      onChange={handleUniChange}
+    >
+      <option value="">Seleccione una universidad</option>
+      {universidades.map((u) => (
+        <option key={u.id_universidad} value={u.id_universidad}>
+          {u.sigla ? `${u.sigla} — ${u.nombre}` : u.nombre}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+
+const renderCarreraField = () => {
+  if (loadingCarreras) return <div>Cargando carreras...</div>;
+
+  return (
+    <select
+      className="select input"
+      value={data.id_carrera ?? ""}
+      onChange={handleCarreraChange}
+      disabled={!data.id_universidad}
+    >
+      <option value="">Seleccione una carrera</option>
+      {carreras.map((c) => (
+        <option key={c.id_carrera} value={c.id_carrera}>
+          {labelFromNombre(c.nombre)}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+
 
   // -------------------------
   // Validación general antes de enviar (y para deshabilitar botón)
@@ -456,12 +441,12 @@ const isFormValid = () => {
   return true;
 };
 
-const modal = useModalContext(); 
- const submit = async (e: React.FormEvent) => {
+const modal = useModalContext();
+
+const submit = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!isFormValid()) return;
 
-  // 1️⃣ Confirmación antes de enviar
   const confirmado = await modal.confirmacion({
     titulo: "Actualizar usuario",
     mensaje: "¿Está seguro que desea actualizar este usuario?",
@@ -470,12 +455,13 @@ const modal = useModalContext();
   });
 
   if (!confirmado) return;
-
-  // 2️⃣ Enviar al backend
+console.log("USUARIO COMPLETO:", usuario);
+console.log("ID:", usuario.id);
+console.log("ID ENVIADO A ZIGGY:", usuario.id);
   put(route("admin.actualizar", { id: usuario.id }), {
+    
     preserveScroll: true,
     onSuccess: async () => {
-      // 3️⃣ Mostrar modal de éxito
       await modal.alerta({
         titulo: "Actualización exitosa",
         mensaje: "Los datos del usuario se actualizaron correctamente.",
@@ -484,6 +470,7 @@ const modal = useModalContext();
     },
   });
 };
+
 
   const nombreError = !data.nombre_completo.trim() ? "Requerido" : "";
   const correoError =
@@ -589,7 +576,7 @@ const telefonoError =
             <div className="field">
               <label className="label">Universidad asociada</label>
               {renderUniversidadField()}
-              <div className="error-text">{fieldError("universidad")}</div>
+              <div className="error-text">{fieldError("id_universidad")}</div>
             </div>
 
 
@@ -610,7 +597,7 @@ const telefonoError =
             <div className="field">
               <label className="label">Carrera asociada</label>
               {renderCarreraField()}
-              <div className="error-text">{fieldError("carrera")}</div>
+              <div className="error-text">{fieldError("id_carrera")}</div>
             </div>
             
             {/* Confirmar contraseña */}

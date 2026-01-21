@@ -9,24 +9,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminRegistroRepository
 {
-  /*  public function obtenerUsuariosAdmin(?string $search)
-    {
-        $roles = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
-        $roleIds = Rol::whereIn('nombre_rol', $roles)->pluck('id_rol')->toArray() ?: [0];
 
-        $query = Usuario::with('rol')
-            ->whereIn('id_rol', $roleIds)
-            ->orderByDesc('fecha_registro');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombre_completo', 'like', "%{$search}%")
-                  ->orWhere('identificacion', 'like', "%{$search}%");
-            });
-        }
-
-        return $query->paginate(5)->withQueryString();
-    }*/
 public function obtenerUsuariosAdmin(?string $search)
 {
     $roles = ['Administrador del Sistema', 'Dirección', 'Subdirección'];
@@ -35,16 +18,20 @@ public function obtenerUsuariosAdmin(?string $search)
     $query = Usuario::query()
         ->join('roles', 'usuarios.id_rol', '=', 'roles.id_rol')
         ->whereIn('usuarios.id_rol', $roleIds)
-        ->select([
-            'usuarios.id_usuario',
-            'usuarios.nombre_completo',
-            'usuarios.correo',
-            'usuarios.identificacion',
-            'usuarios.telefono',
-            'usuarios.estado_id',
-            'usuarios.fecha_registro',
-            'roles.nombre_rol as rol',
-        ])
+     ->leftJoin('universidades', 'usuarios.id_universidad', '=', 'universidades.id_universidad')
+->leftJoin('carreras', 'usuarios.id_carrera', '=', 'carreras.id_carrera')
+->select([
+    'usuarios.id_usuario',
+    'usuarios.nombre_completo',
+    'usuarios.correo',
+    'usuarios.identificacion',
+    'usuarios.telefono',
+    'usuarios.estado_id',
+    'usuarios.fecha_registro',
+    'roles.nombre_rol as rol',
+    'universidades.nombre as universidad',
+    'carreras.nombre as carrera',
+])
         ->orderByDesc('usuarios.fecha_registro');
 
     if ($search) {
@@ -73,12 +60,8 @@ public function obtenerUsuariosAdmin(?string $search)
             'identificacion' => $u->identificacion,
             'telefono' => $u->telefono,
             'rol' => $u->rol?->nombre_rol,
-            'universidad' => DB::table('universidades')
-                ->where('id_universidad', $u->id_universidad)
-                ->value('nombre') ?? '',
-            'carrera' => DB::table('carreras')
-                ->where('id_carrera', $u->id_carrera)
-                ->value('nombre') ?? '',
+        'id_universidad' => $u->id_universidad,
+    'id_carrera' => $u->id_carrera,
         ];
     }
 
@@ -92,6 +75,8 @@ public function obtenerUsuariosAdmin(?string $search)
             'identificacion' => $data['identificacion'],
             'telefono' => $data['telefono'] ?? null,
             'id_rol' => $rolId,
+                'id_universidad' => $data['id_universidad'] ?? null,
+        'id_carrera' => $data['id_carrera'] ?? null,
             'fecha_registro' => now(),
             'estado_id' => 1,
         ]);
@@ -114,6 +99,8 @@ public function obtenerUsuariosAdmin(?string $search)
             'identificacion' => $data['identificacion'],
             'telefono' => $data['telefono'] ?? null,
             'id_rol' => $rolId,
+            'id_universidad' => $data['id_universidad'] ?? null,
+    'id_carrera' => $data['id_carrera'] ?? null,
         ]);
 
         if (!empty($data['contrasena'])) {

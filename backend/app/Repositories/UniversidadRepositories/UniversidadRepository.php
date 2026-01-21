@@ -10,10 +10,16 @@ class UniversidadRepository
     /**
      * Traer todas las universidades
      */
-    public function traerUniversidades()
-    {
-        return Universidad::all();
-    }
+ public function traerUniversidades()
+{
+    return Universidad::select(
+        'id_universidad',
+        'nombre',
+        'sigla'
+    )
+    ->orderBy('nombre')
+    ->get();
+}
 
     /**
      * Traer carreras filtradas por universidad

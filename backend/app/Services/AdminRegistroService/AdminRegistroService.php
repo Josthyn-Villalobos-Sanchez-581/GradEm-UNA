@@ -166,6 +166,8 @@ class AdminRegistroService
             'contrasena' => $id
                 ? 'nullable|string|min:8|confirmed'
                 : 'required|string|min:8|confirmed',
+                'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
+                'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
         ]);
     }
 }
