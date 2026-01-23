@@ -187,6 +187,51 @@ class ReporteService
         }
     }
 
+    /**
+     * Obtener gráfico de egresados por carrera
+     * Devuelve array de { id_carrera, carrera, total_egresados }
+     */
+    public function obtenerGraficoPorCarrera(
+        ?int $universidad,
+        ?int $fechaInicio,
+        ?int $fechaFin,
+        ?string $genero,
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?string $estadoEmpleo,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
+    ) {
+        try {
+            $raw = $this->repo->obtenerGraficoPorCarreraRaw(
+                $universidad,
+                $fechaInicio,
+                $fechaFin,
+                $genero,
+                $estadoEstudios,
+                $nivelAcademico,
+                $estadoEmpleo,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+                $pais,
+                $provincia,
+                $canton
+            );
+
+            return json_decode(json_encode($raw), true);
+        } catch (Throwable $e) {
+            throw $e;
+        }
+    }
+
+
     /* ============================================================
        ===============    CATÁLOGOS DESDE BD     ==================
        ============================================================ */

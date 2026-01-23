@@ -30,6 +30,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
+use App\Http\Controllers\NotificacionCursoController;
 
 
 // ==========================================
@@ -186,6 +187,91 @@ Route::middleware('auth')->group(function () {
     });
 
     // ==========================================
+    // 5 - Publicación de Ofertas Laborales
+    //    (empresas / admin crean y gestionan ofertas)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:5'])->prefix('empresa')->group(function () {
+
+        Route::get('/ofertas', [OfertaController::class, 'indexEmpresa'])
+            ->name('empresa.ofertas.index');
+
+        Route::get('/ofertas/crear', [OfertaController::class, 'crear'])
+            ->name('empresa.ofertas.crear');
+
+        Route::post('/ofertas', [OfertaController::class, 'guardar'])
+            ->name('empresa.ofertas.guardar');
+
+        Route::get('/ofertas/{oferta}/editar', [OfertaController::class, 'editar'])
+            ->name('empresa.ofertas.editar');
+
+        Route::put('/ofertas/{oferta}', [OfertaController::class, 'actualizar'])
+            ->name('empresa.ofertas.actualizar');
+
+        Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
+            ->name('empresa.ofertas.eliminar');
+    });
+
+    // ==========================================
+    // 6 - Postulación a Ofertas Laborales
+    //    (listado, detalle y postulación)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:6'])->group(function () {
+
+        // HU-25 + HU-27: Listar ofertas con filtros
+        Route::get('/ofertas', [OfertaController::class, 'listar'])
+            ->name('ofertas.listar');
+
+        // HU-24: Ver detalle de una oferta
+        Route::get('/ofertas/{oferta}', [OfertaController::class, 'mostrar'])
+            ->name('ofertas.mostrar');
+
+        // Otra HU: Postularse a una oferta
+        Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
+            ->name('ofertas.postular');
+    });
+
+    // ==========================================
+    // 7 - Gestión de Postulaciones
+    //    (empresa/admin revisan y gestionan postulaciones)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:7'])->group(function () {
+
+        Route::get('/postulaciones', [PostulacionController::class, 'index'])
+            ->name('postulaciones.index');
+
+        Route::get('/postulaciones/{postulacion}', [PostulacionController::class, 'mostrar'])
+            ->name('postulaciones.mostrar');
+
+        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
+            ->name('postulaciones.actualizar-estado');
+    });
+
+    // ==========================================
+    // Gestión de Cursos (Permiso 8)
+    // HU-32
+    // ==========================================
+    Route::middleware(['auth', 'permiso:16'])->group(function () {
+
+        // Correo masivo manual a inscritos
+        Route::post(
+            '/notificaciones/cursos/correo-masivo',
+            [NotificacionCursoController::class, 'enviarCorreoMasivo']
+        )->name('notificaciones.cursos.correo-masivo');
+
+        // Recordatorios automáticos (cuando exista scheduler)
+        Route::post(
+            '/notificaciones/cursos/recordatorio',
+            [NotificacionCursoController::class, 'enviarRecordatorio']
+        )->name('notificaciones.cursos.recordatorio');
+
+        // Notificación de inscripción o cancelación
+        Route::post(
+            '/notificaciones/cursos/cambio-inscripcion',
+            [NotificacionCursoController::class, 'notificarCambioInscripcion']
+        )->name('notificaciones.cursos.cambio-inscripcion');
+    });
+
+    // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================
     Route::middleware('permiso:12')->group(function () {
@@ -301,6 +387,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
             ->name('reportes.grafico-anual');
 
+        Route::get('/reportes/grafico-por-carrera', [ReporteController::class, 'graficoPorCarrera'])
+            ->name('reportes.grafico-por-carrera');
+
+            
+
         Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
 
         Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
@@ -319,83 +410,19 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware(['auth', 'permiso:15'])->group(function () {
 
-    Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
+        Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
 
-    Route::prefix('estadisticas/ofertas')->group(function () {
-        Route::get('kpis', [EstadisticasController::class, 'kpis']);
-        Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
-        Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
-        Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
-        Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
+        Route::prefix('estadisticas/ofertas')->group(function () {
+            Route::get('kpis', [EstadisticasController::class, 'kpis']);
+            Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
+            Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
+            Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
+            Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
+        });
+
+        Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
+            ->name('reportes-ofertas.descargar-pdf');
     });
-
-    Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
-        ->name('reportes-ofertas.descargar-pdf');
-    
-    });
-
-
-    // ==========================================
-    // 5 - Publicación de Ofertas Laborales
-    //    (empresas / admin crean y gestionan ofertas)
-    // ==========================================
-    Route::middleware(['auth', 'permiso:5'])->prefix('empresa')->group(function () {
-
-        Route::get('/ofertas', [OfertaController::class, 'indexEmpresa'])
-            ->name('empresa.ofertas.index');
-
-        Route::get('/ofertas/crear', [OfertaController::class, 'crear'])
-            ->name('empresa.ofertas.crear');
-
-        Route::post('/ofertas', [OfertaController::class, 'guardar'])
-            ->name('empresa.ofertas.guardar');
-
-        Route::get('/ofertas/{oferta}/editar', [OfertaController::class, 'editar'])
-            ->name('empresa.ofertas.editar');
-
-        Route::put('/ofertas/{oferta}', [OfertaController::class, 'actualizar'])
-            ->name('empresa.ofertas.actualizar');
-
-        Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
-            ->name('empresa.ofertas.eliminar');
-    });
-
-    // ==========================================
-    // 6 - Postulación a Ofertas Laborales
-    //    (listado, detalle y postulación)
-    // ==========================================
-    Route::middleware(['auth', 'permiso:6'])->group(function () {
-
-        // HU-25 + HU-27: Listar ofertas con filtros
-        Route::get('/ofertas', [OfertaController::class, 'listar'])
-            ->name('ofertas.listar');
-
-        // HU-24: Ver detalle de una oferta
-        Route::get('/ofertas/{oferta}', [OfertaController::class, 'mostrar'])
-            ->name('ofertas.mostrar');
-
-        // Otra HU: Postularse a una oferta
-        Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
-            ->name('ofertas.postular');
-    });
-
-    // ==========================================
-    // 7 - Gestión de Postulaciones
-    //    (empresa/admin revisan y gestionan postulaciones)
-    // ==========================================
-    Route::middleware(['auth', 'permiso:7'])->group(function () {
-
-        Route::get('/postulaciones', [PostulacionController::class, 'index'])
-            ->name('postulaciones.index');
-
-        Route::get('/postulaciones/{postulacion}', [PostulacionController::class, 'mostrar'])
-            ->name('postulaciones.mostrar');
-
-        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
-            ->name('postulaciones.actualizar-estado');
-    });
-
-
     // ==========================================
     // 🚧 Pendientes (cuando estén desarrollados)
     // ==========================================

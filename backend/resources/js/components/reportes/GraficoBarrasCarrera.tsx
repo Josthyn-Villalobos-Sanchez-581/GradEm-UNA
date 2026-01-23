@@ -1,23 +1,23 @@
 import React, { useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  LabelList,
+  CartesianGrid,
+  ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 
-export interface FilaGraficoAnual {
-  anio: number | string;
+interface FilaCarrera {
+  carrera: string;
   total_egresados: number;
 }
 
 interface Props {
-  filas: FilaGraficoAnual[];
+  filas: FilaCarrera[];
 }
 
 /* =======================
@@ -84,12 +84,12 @@ const obtenerColorPorIndice = (
 const TooltipPremium = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
 
-  const { anio, total_egresados, porcentaje } = payload[0].payload;
+  const { carrera, total_egresados, porcentaje } = payload[0].payload;
 
   return (
     <div className="bg-white rounded-xl shadow-xl border px-4 py-2 text-sm">
       <p className="font-semibold text-[#034991] text-base">
-        Año {anio}
+        {carrera}
       </p>
       <p className="text-gray-800">
         Egresados: <span className="font-bold">{total_egresados}</span>
@@ -101,14 +101,11 @@ const TooltipPremium = ({ active, payload }: any) => {
   );
 };
 
-/* =======================
-   COMPONENTE PRINCIPAL
-======================= */
-export default function GraficoBarrasAnual({ filas }: Props) {
+export default function GraficoBarrasCarrera({ filas }: Props) {
   const [horizontal, setHorizontal] = useState(false);
 
   const [paletaActiva, setPaletaActiva] = useState(() => {
-    return localStorage.getItem("graficoAnualColor") || "azul";
+    return localStorage.getItem("graficoCarreraColor") || "azul";
   });
 
   const colores = PALETAS[paletaActiva];
@@ -122,14 +119,14 @@ export default function GraficoBarrasAnual({ filas }: Props) {
     const total = filas.reduce((s, f) => s + f.total_egresados, 0);
 
     return [...filas]
-      .sort((a, b) => Number(a.anio) - Number(b.anio))
+      .sort((a, b) => b.total_egresados - a.total_egresados)
       .map((f) => ({
         ...f,
         porcentaje: total ? (f.total_egresados / total) * 100 : 0,
       }));
   }, [filas]);
 
-  const necesitaScroll = datos.length > 7;
+  const necesitaScroll = datos.length > 6;
 
   return (
     <section className="bg-white shadow-xl rounded-2xl p-6">
@@ -137,10 +134,10 @@ export default function GraficoBarrasAnual({ filas }: Props) {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-[#034991]">
-            Egresados por año
+            Egresados por carrera
           </h2>
           <p className="text-sm text-gray-600">
-            Distribución anual de egresados
+            Distribución total por carrera académica
           </p>
 
           {/* SELECTOR DE COLOR */}
@@ -154,7 +151,7 @@ export default function GraficoBarrasAnual({ filas }: Props) {
                 key={key}
                 onClick={() => {
                   setPaletaActiva(key);
-                  localStorage.setItem("graficoAnualColor", key);
+                  localStorage.setItem("graficoCarreraColor", key);
                 }}
                 className={`
                   w-6 h-6 rounded-full border transition
@@ -209,16 +206,18 @@ export default function GraficoBarrasAnual({ filas }: Props) {
                     tick={{ fontSize: 13, fill: "#1f2937" }}
                   />
                   <YAxis
-                    dataKey="anio"
+                    dataKey="carrera"
                     type="category"
-                    width={80}
+                    width={160}
                     tick={{ fontSize: 13, fill: "#1f2937" }}
                   />
                 </>
               ) : (
                 <>
                   <XAxis
-                    dataKey="anio"
+                    dataKey="carrera"
+                    angle={-20}
+                    textAnchor="end"
                     interval={0}
                     tick={{ fontSize: 13, fill: "#1f2937" }}
                   />
