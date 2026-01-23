@@ -233,7 +233,7 @@ export default function GraficoPie({ datos }: Props) {
                 </p>
                 <p className="text-xs text-gray-600">
                   {modoValor === "porcentaje"
-                    ? `${item.porcentaje.toFixed(1)}%`
+                    ? `${item.porcentaje.toFixed(1)}%${item.valor} egresados`
                     : `${item.valor} egresados`}
                 </p>
               </div>

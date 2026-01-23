@@ -367,6 +367,17 @@ export default function ReporteEgresados({
           reportes: reportesSeleccionados,
           parametros: params,
           filtrosLegibles,
+          // 🔽 NUEVO
+          visual: {
+            barras: {
+              paleta: localStorage.getItem("graficoAnualColor") || "azul",
+              modo: localStorage.getItem("graficoBarrasModo") || "numero",
+            },
+            pie: {
+              paleta: localStorage.getItem("graficoPiePaleta") || "institucional",
+              modo: localStorage.getItem("graficoPieModo") || "porcentaje",
+            },
+          },
         },
         { responseType: "blob" }
       );

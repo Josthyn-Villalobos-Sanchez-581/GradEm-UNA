@@ -249,12 +249,14 @@ class ReporteController extends Controller
             'reportes.*'       => 'in:tabla,pie,barras',
             'parametros'       => 'required|array',
             'filtrosLegibles'  => 'nullable|array',
+            'visual'          => 'nullable|array',
         ]);
 
         return $this->service->generarPdfReportes(
             $data['reportes'],
             $data['parametros'],
-            $data['filtrosLegibles'] ?? []
+            $data['filtrosLegibles'] ?? [],
+            $data['visual'] ?? []
         );
     }
 }

@@ -362,7 +362,7 @@ class ReporteService
         ];
     }
 
-    public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [])
+    public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [], array $visual = [])
     {
         $tabla = [];
         $pie = null;
@@ -437,6 +437,7 @@ class ReporteService
             'pie'      => $pie,
             'barras'   => $barras,
             'filtros'  => $filtrosLegibles,
+            'visual'   => $visual,
             'fecha'    => now()->format('d/m/Y H:i'),
         ])
             ->setPaper('a4', 'portrait')

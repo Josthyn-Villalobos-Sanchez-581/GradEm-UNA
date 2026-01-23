@@ -232,6 +232,7 @@ export default function GraficoBarrasAnual({ filas }: Props) {
               <Tooltip content={<TooltipPremium />} />
 
               <Bar
+                key={paletaActiva}
                 dataKey="total_egresados"
                 radius={[12, 12, 12, 12]}
                 animationDuration={900}
