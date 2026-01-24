@@ -30,6 +30,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
+use App\Http\Controllers\CursoController;
 
 
 // ==========================================
@@ -381,6 +382,27 @@ Route::middleware('auth')->group(function () {
 
         Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
             ->name('postulaciones.actualizar-estado');
+    });
+
+    // ==========================================
+    // 8 - Gestión de Cursos
+    // ==========================================
+    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
+
+        Route::get('/', [CursoController::class, 'index'])
+            ->name('cursos.index');
+
+        Route::post('/', [CursoController::class, 'store'])
+            ->name('cursos.store');
+
+        Route::put('/{idCurso}', [CursoController::class, 'update'])
+            ->name('cursos.update');
+
+        Route::delete('/{id}', [CursoController::class, 'destroy'])
+            ->name('cursos.destroy');
+
+        Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
+            ->name('cursos.publicar');
     });
 
 
