@@ -31,6 +31,7 @@ use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\NotificacionCursoController;
+use App\Http\Controllers\CursoController;
 
 
 // ==========================================
@@ -247,10 +248,24 @@ Route::middleware('auth')->group(function () {
     });
 
     // ==========================================
-    // Gestión de Cursos (Permiso 8)
-    // HU-32
+    // 8 - Gestión de Cursos
     // ==========================================
-    Route::middleware(['auth', 'permiso:16'])->group(function () {
+    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
+
+        Route::get('/', [CursoController::class, 'index'])
+            ->name('cursos.index');
+
+        Route::post('/', [CursoController::class, 'store'])
+            ->name('cursos.store');
+
+        Route::put('/{idCurso}', [CursoController::class, 'update'])
+            ->name('cursos.update');
+
+        Route::delete('/{id}', [CursoController::class, 'destroy'])
+            ->name('cursos.destroy');
+
+        Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
+            ->name('cursos.publicar');
 
         // Correo masivo manual a inscritos
         Route::post(
@@ -321,6 +336,11 @@ Route::middleware('auth')->group(function () {
         // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
         Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
         Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
+
+        //HU21 mostrar perfil estudiante a empresa o administrador 
+        Route::middleware(['auth', 'permiso:12'])
+        ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
+        ->name('usuarios.ver');
     });
 
 
@@ -423,6 +443,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
             ->name('reportes-ofertas.descargar-pdf');
     });
+
+
     // ==========================================
     // 🚧 Pendientes (cuando estén desarrollados)
     // ==========================================
@@ -445,15 +467,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('perfil.plataformas.destroy');
 });
 
-// Ruta adicional duplicada de perfil (cuidado con conflicto)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
-});
-
-//HU21 mostrar perfil estudiante a empresa o administrador 
-Route::middleware(['auth', 'permiso:12'])
-    ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
-    ->name('usuarios.ver');
 
 // ==========================================
 // Archivos de configuración adicionales

@@ -290,7 +290,7 @@ const filtrosLegibles = Object.entries(filtros)
               Panel de Estadísticas de Empleos
             </h1>
             <p className="text-sm text-gray-600 mt-1 max-w-3xl">
-              Aplicación web para la generación de estadísticas sobre empleos y postulaciones.
+              Página para la generación de estadísticas sobre empleos y postulaciones.
             </p>
           </div>
 
