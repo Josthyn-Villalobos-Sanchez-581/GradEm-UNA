@@ -550,7 +550,7 @@ export default function EditarEmpresa({
     <>
       <Head title="Editar empresa" />
 
-      <div className="max-w-6xl mx-auto mb-4">
+      <div className="w-full px-6 mb-4">
         <Button asChild variant="ghost" className="text-gray-600 hover:text-red-500">
           <Link href="/perfil">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -561,7 +561,9 @@ export default function EditarEmpresa({
         </Button>
       </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 p-6 bg-white shadow-lg rounded-xl text-black">
+      <div className="w-full px-6">
+  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white shadow-lg rounded-xl p-6 text-black">
+
         {/* Left column: sidebar + foto */}
         <div className="md:col-span-4 lg:col-span-3 border-r pr-6">
           <h2 className="text-2xl font-bold mb-6 text-gray-800">Editar Perfil</h2>
@@ -785,6 +787,7 @@ export default function EditarEmpresa({
             )}
           </form>
         </div>
+      </div>
       </div>
     </>
   );

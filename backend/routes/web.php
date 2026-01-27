@@ -30,6 +30,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
+use App\Http\Controllers\NotificacionCursoController;
 use App\Http\Controllers\CursoController;
 
 
@@ -97,6 +98,18 @@ Route::middleware('auth')->group(function () {
         Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
         Route::post('/perfil/verificar-identificacion', [PerfilController::class, 'verificarIdentificacion'])
             ->name('perfil.verificar-identificacion');
+
+        //cambio de rol egresado-estudiante o estudiante-egresado
+        Route::post(
+            '/perfil/cambiar-condicion/estudiante-egresado',
+            [PerfilController::class, 'cambiarCondicionEstudianteAEgresado']
+        );
+
+        Route::post(
+            '/perfil/cambiar-condicion/egresado-estudiante',
+            [PerfilController::class, 'cambiarCondicionEgresadoAEstudiante']
+        );
+
 
         Route::post('/perfil/verificar-correo', [PerfilController::class, 'verificarCorreo'])
             ->name('perfil.verificar-correo');
@@ -173,156 +186,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/otros-cargados/upload', [OtrosController::class, 'upload'])->name('otros.upload');
         Route::delete('/otros-cargados/delete', [OtrosController::class, 'delete'])->name('otros.delete');
     });
-
-    // ==========================================
-    // Gestión de Usuarios y Roles (Permiso 12)
-    // ==========================================
-    Route::middleware('permiso:12')->group(function () {
-
-        // --- ROLES ---
-        Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
-        Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
-        Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
-        Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
-        Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
-        Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
-
-        // --- PERMISOS ---
-        Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
-        Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
-        Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
-        Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
-        Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
-        Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
-
-        // --- ROLES_PERMISOS ---
-        Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
-        Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
-
-        // Usuarios - CRUD principal
-        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-        Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-        Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-        Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
-
-        // Toggle estado (activar/inactivar)
-        Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
-
-        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
-        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
-
-        // Rutas alternativas bajo prefijo /admin (si aplica)
-        Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
-        Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-        Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
-        Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
-        Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
-
-
-        // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
-        Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
-        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
-    });
-
-
-    // ==========================================
-    // Gestión de Catálogos (Permiso 13)
-    // ==========================================
-    Route::middleware('permiso:13')->group(function () {
-        // Vista principal del Catálogo
-        Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
-
-        // ======== PAISES ========
-        Route::post('/catalogo/paises', [CatalogoController::class, 'guardarPais'])->name('catalogo.paises.guardar');
-        Route::delete('/catalogo/paises/{id}', [CatalogoController::class, 'eliminarPais'])->name('catalogo.paises.eliminar');
-
-        // ======== PROVINCIAS ========
-        Route::post('/catalogo/provincias', [CatalogoController::class, 'guardarProvincia'])->name('catalogo.provincias.guardar');
-        Route::delete('/catalogo/provincias/{id}', [CatalogoController::class, 'eliminarProvincia'])->name('catalogo.provincias.eliminar');
-
-        // ======== CANTONES ========
-        Route::post('/catalogo/cantones', [CatalogoController::class, 'guardarCanton'])->name('catalogo.cantones.guardar');
-        Route::delete('/catalogo/cantones/{id}', [CatalogoController::class, 'eliminarCanton'])->name('catalogo.cantones.eliminar');
-
-        // ======== UNIVERSIDADES ========
-        Route::post('/catalogo/universidades', [CatalogoController::class, 'guardarUniversidad'])->name('catalogo.universidades.guardar');
-        Route::delete('/catalogo/universidades/{id}', [CatalogoController::class, 'eliminarUniversidad'])->name('catalogo.universidades.eliminar');
-
-        // ======== CARRERAS ========
-        Route::post('/catalogo/carreras', [CatalogoController::class, 'guardarCarrera'])->name('catalogo.carreras.guardar');
-        Route::delete('/catalogo/carreras/{id}', [CatalogoController::class, 'eliminarCarrera'])->name('catalogo.carreras.eliminar');
-
-        // ======== ESTADOS ========
-        Route::post('/catalogo/estados', [CatalogoController::class, 'guardarEstado'])->name('catalogo.estados.guardar');
-        Route::delete('/catalogo/estados/{id}', [CatalogoController::class, 'eliminarEstado'])->name('catalogo.estados.eliminar');
-
-        // ======== MODALIDADES ========
-        Route::post('/catalogo/modalidades', [CatalogoController::class, 'guardarModalidad'])->name('catalogo.modalidades.guardar');
-        Route::delete('/catalogo/modalidades/{id}', [CatalogoController::class, 'eliminarModalidad'])->name('catalogo.modalidades.eliminar');
-
-        // ======== IDIOMAS ========
-        Route::post('/catalogo/idiomas', [CatalogoController::class, 'guardarIdioma'])->name('catalogo.idiomas.guardar');
-        Route::delete('/catalogo/idiomas/{id}', [CatalogoController::class, 'eliminarIdioma'])->name('catalogo.idiomas.eliminar');
-
-        // ======== ÁREAS LABORALES ========
-        Route::post('/catalogo/areas_laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
-        Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
-    });
-
-    // ==========================================
-    // Reportes de Egresados (Permiso 14)
-    // ==========================================
-    Route::middleware(['auth', 'permiso:14'])->group(function () {
-
-        Route::get('/reportes-egresados', [ReporteController::class, 'index'])
-            ->middleware(['auth', 'permiso:14'])
-            ->name('reportes.egresados');
-
-
-        Route::get('/reportes/egresados', [ReporteController::class, 'obtenerEgresados'])
-            ->name('reportes.egresados');
-
-        Route::get('/reportes/grafico-empleo', [ReporteController::class, 'graficoEmpleo'])
-            ->name('reportes.grafico-empleo');
-
-        Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
-            ->name('reportes.grafico-anual');
-
-        Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
-
-        Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
-
-        // Catálogos
-        Route::get('universidades', [ReporteController::class, 'universidades']);
-        Route::get('carreras', [ReporteController::class, 'carreras']);
-        Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
-        Route::get('paises', [ReporteController::class, 'paises']);
-        Route::get('provincias', [ReporteController::class, 'provincias']);
-        Route::get('cantones', [ReporteController::class, 'cantones']);
-    });
-
-    // ==========================================
-    // Reportes de Ofertas / Postulaciones (Permiso 15)
-    // ==========================================
-    Route::middleware(['auth', 'permiso:15'])->group(function () {
-
-    Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
-
-    Route::prefix('estadisticas/ofertas')->group(function () {
-        Route::get('kpis', [EstadisticasController::class, 'kpis']);
-        Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
-        Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
-        Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
-        Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
-    });
-
-    Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
-        ->name('reportes-ofertas.descargar-pdf');
-    
-    });
-
 
     // ==========================================
     // 5 - Publicación de Ofertas Laborales
@@ -403,6 +266,182 @@ Route::middleware('auth')->group(function () {
 
         Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
             ->name('cursos.publicar');
+
+        // Correo masivo manual a inscritos
+        Route::post(
+            '/notificaciones/cursos/correo-masivo',
+            [NotificacionCursoController::class, 'enviarCorreoMasivo']
+        )->name('notificaciones.cursos.correo-masivo');
+
+        // Recordatorios automáticos (cuando exista scheduler)
+        Route::post(
+            '/notificaciones/cursos/recordatorio',
+            [NotificacionCursoController::class, 'enviarRecordatorio']
+        )->name('notificaciones.cursos.recordatorio');
+
+        // Notificación de inscripción o cancelación
+        Route::post(
+            '/notificaciones/cursos/cambio-inscripcion',
+            [NotificacionCursoController::class, 'notificarCambioInscripcion']
+        )->name('notificaciones.cursos.cambio-inscripcion');
+    });
+
+    // ==========================================
+    // Gestión de Usuarios y Roles (Permiso 12)
+    // ==========================================
+    Route::middleware('permiso:12')->group(function () {
+
+        // --- ROLES ---
+        Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RolController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{id}/edit', [RolController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{id}', [RolController::class, 'destroy'])->name('roles.destroy');
+
+        // --- PERMISOS ---
+        Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
+        Route::get('/permisos/create', [PermisoController::class, 'create'])->name('permisos.create');
+        Route::post('/permisos', [PermisoController::class, 'store'])->name('permisos.store');
+        Route::get('/permisos/{id}/edit', [PermisoController::class, 'edit'])->name('permisos.edit');
+        Route::put('/permisos/{id}', [PermisoController::class, 'update'])->name('permisos.update');
+        Route::delete('/permisos/{id}', [PermisoController::class, 'destroy'])->name('permisos.destroy');
+
+        // --- ROLES_PERMISOS ---
+        Route::get('/roles_permisos', [RolesPermisosController::class, 'index'])->name('roles_permisos.index');
+        Route::post('/roles/{id}/permisos', [RolesPermisosController::class, 'asignarPermisos'])->name('roles.asignar');
+
+        // Usuarios - CRUD principal
+        Route::get('/usuarios', [AdminRegistroController::class, 'index'])->name('usuarios.index');
+        Route::get('/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+        Route::get('/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        Route::put('/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+        Route::delete('/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+
+        // Toggle estado (activar/inactivar)
+        Route::put('/usuarios/{id}/toggle-estado', [AdminRegistroController::class, 'toggleEstado'])->name('admin.toggle-estado');
+
+        // Consulta de Perfiles de Usuarios (Egresados y Estudiantes)
+        Route::post('/usuarios', [AdminRegistroController::class, 'store'])->name('usuarios.store');
+
+        // Rutas alternativas bajo prefijo /admin (si aplica)
+        Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
+        Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
+        Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
+        Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
+
+
+        // --- CONSULTA DE PERFILES (UsuariosConsultaController) ---
+        Route::get('/usuarios/perfiles', [UsuariosConsultaController::class, 'index'])->name('usuarios.perfiles');
+        Route::put('/usuarios/{id}/toggle-estado', [UsuariosConsultaController::class, 'toggleEstado'])->name('usuarios.toggle-estado');
+
+        //HU21 mostrar perfil estudiante a empresa o administrador 
+        Route::middleware(['auth', 'permiso:12'])
+        ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
+        ->name('usuarios.ver');
+    });
+
+
+    // ==========================================
+    // Gestión de Catálogos (Permiso 13)
+    // ==========================================
+    Route::middleware('permiso:13')->group(function () {
+        // Vista principal del Catálogo
+        Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
+
+        // ======== PAISES ========
+        Route::post('/catalogo/paises', [CatalogoController::class, 'guardarPais'])->name('catalogo.paises.guardar');
+        Route::delete('/catalogo/paises/{id}', [CatalogoController::class, 'eliminarPais'])->name('catalogo.paises.eliminar');
+
+        // ======== PROVINCIAS ========
+        Route::post('/catalogo/provincias', [CatalogoController::class, 'guardarProvincia'])->name('catalogo.provincias.guardar');
+        Route::delete('/catalogo/provincias/{id}', [CatalogoController::class, 'eliminarProvincia'])->name('catalogo.provincias.eliminar');
+
+        // ======== CANTONES ========
+        Route::post('/catalogo/cantones', [CatalogoController::class, 'guardarCanton'])->name('catalogo.cantones.guardar');
+        Route::delete('/catalogo/cantones/{id}', [CatalogoController::class, 'eliminarCanton'])->name('catalogo.cantones.eliminar');
+
+        // ======== UNIVERSIDADES ========
+        Route::post('/catalogo/universidades', [CatalogoController::class, 'guardarUniversidad'])->name('catalogo.universidades.guardar');
+        Route::delete('/catalogo/universidades/{id}', [CatalogoController::class, 'eliminarUniversidad'])->name('catalogo.universidades.eliminar');
+
+        // ======== CARRERAS ========
+        Route::post('/catalogo/carreras', [CatalogoController::class, 'guardarCarrera'])->name('catalogo.carreras.guardar');
+        Route::delete('/catalogo/carreras/{id}', [CatalogoController::class, 'eliminarCarrera'])->name('catalogo.carreras.eliminar');
+
+        // ======== ESTADOS ========
+        Route::post('/catalogo/estados', [CatalogoController::class, 'guardarEstado'])->name('catalogo.estados.guardar');
+        Route::delete('/catalogo/estados/{id}', [CatalogoController::class, 'eliminarEstado'])->name('catalogo.estados.eliminar');
+
+        // ======== MODALIDADES ========
+        Route::post('/catalogo/modalidades', [CatalogoController::class, 'guardarModalidad'])->name('catalogo.modalidades.guardar');
+        Route::delete('/catalogo/modalidades/{id}', [CatalogoController::class, 'eliminarModalidad'])->name('catalogo.modalidades.eliminar');
+
+        // ======== IDIOMAS ========
+        Route::post('/catalogo/idiomas', [CatalogoController::class, 'guardarIdioma'])->name('catalogo.idiomas.guardar');
+        Route::delete('/catalogo/idiomas/{id}', [CatalogoController::class, 'eliminarIdioma'])->name('catalogo.idiomas.eliminar');
+
+        // ======== ÁREAS LABORALES ========
+        Route::post('/catalogo/areas_laborales', [CatalogoController::class, 'guardarAreaLaboral'])->name('catalogo.areas_laborales.guardar');
+        Route::delete('/catalogo/areas_laborales/{id}', [CatalogoController::class, 'eliminarAreaLaboral'])->name('catalogo.areas_laborales.eliminar');
+    });
+
+    // ==========================================
+    // Reportes de Egresados (Permiso 14)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:14'])->group(function () {
+
+        Route::get('/reportes-egresados', [ReporteController::class, 'index'])
+            ->middleware(['auth', 'permiso:14'])
+            ->name('reportes.egresados');
+
+
+        Route::get('/reportes/egresados', [ReporteController::class, 'obtenerEgresados'])
+            ->name('reportes.egresados');
+
+        Route::get('/reportes/grafico-empleo', [ReporteController::class, 'graficoEmpleo'])
+            ->name('reportes.grafico-empleo');
+
+        Route::get('/reportes/grafico-anual', [ReporteController::class, 'graficoAnual'])
+            ->name('reportes.grafico-anual');
+
+        Route::get('/reportes/grafico-por-carrera', [ReporteController::class, 'graficoPorCarrera'])
+            ->name('reportes.grafico-por-carrera');
+
+            
+
+        Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
+
+        Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
+
+        // Catálogos
+        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('carreras', [ReporteController::class, 'carreras']);
+        Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
+        Route::get('paises', [ReporteController::class, 'paises']);
+        Route::get('provincias', [ReporteController::class, 'provincias']);
+        Route::get('cantones', [ReporteController::class, 'cantones']);
+    });
+
+    // ==========================================
+    // Reportes de Ofertas / Postulaciones (Permiso 15)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:15'])->group(function () {
+
+        Route::get('/reportes-ofertas', [EstadisticasController::class, 'index']);
+
+        Route::prefix('estadisticas/ofertas')->group(function () {
+            Route::get('kpis', [EstadisticasController::class, 'kpis']);
+            Route::get('ofertas-mes', [EstadisticasController::class, 'ofertasPorMes']);
+            Route::get('postulaciones-tipo', [EstadisticasController::class, 'postulacionesPorTipo']);
+            Route::get('top-empresas', [EstadisticasController::class, 'topEmpresas']);
+            Route::get('top-carreras', [EstadisticasController::class, 'topCarreras']);
+        });
+
+        Route::post('/reportes-ofertas/descargar-pdf', [EstadisticasController::class, 'descargarPdf'])
+            ->name('reportes-ofertas.descargar-pdf');
     });
 
 
@@ -428,15 +467,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('perfil.plataformas.destroy');
 });
 
-// Ruta adicional duplicada de perfil (cuidado con conflicto)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
-});
-
-//HU21 mostrar perfil estudiante a empresa o administrador 
-Route::middleware(['auth', 'permiso:12'])
-    ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
-    ->name('usuarios.ver');
 
 // ==========================================
 // Archivos de configuración adicionales
