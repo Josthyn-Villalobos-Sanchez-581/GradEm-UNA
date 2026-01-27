@@ -110,4 +110,55 @@ class PerfilRepository
             ->where('id_usuario', '!=', $idUsuarioActual)
             ->exists();
     }
+
+    public function actualizarRolUsuario(int $idUsuario, int $idRol): void
+    {
+        DB::table('usuarios')
+            ->where('id_usuario', $idUsuario)
+            ->update([
+                'id_rol' => $idRol
+            ]);
+    }
+
+    public function limpiarDatosEgresado(int $idUsuario): void
+    {
+        DB::table('usuarios')
+            ->where('id_usuario', $idUsuario)
+            ->update([
+                'nivel_academico' => null,
+                'anio_graduacion' => null,
+            ]);
+    }
+
+    public function obtenerIdRolPorNombre(string $nombreRol): int
+    {
+        $rol = DB::table('roles')
+            ->whereRaw('LOWER(nombre_rol) = ?', [mb_strtolower($nombreRol)])
+            ->first();
+
+        if (!$rol) {
+            throw new \Exception("Rol '{$nombreRol}' no existe en la base de datos.");
+        }
+
+        return (int) $rol->id_rol;
+    }
+
+    public function cambiarEgresadoAEstudiante(int $idUsuario): void
+    {
+        DB::transaction(function () use ($idUsuario) {
+
+            $idRolEstudiante = $this->obtenerIdRolPorNombre('estudiante');
+
+            $this->actualizarRolUsuario($idUsuario, $idRolEstudiante);
+
+            $this->limpiarDatosEgresado($idUsuario);
+        });
+    }
+
+    public function cambiarEstudianteAEgresado(int $idUsuario): void
+    {
+        $idRolEgresado = $this->obtenerIdRolPorNombre('egresado');
+
+        $this->actualizarRolUsuario($idUsuario, $idRolEgresado);
+    }
 }

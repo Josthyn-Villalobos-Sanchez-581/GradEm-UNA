@@ -3,8 +3,8 @@ import { useState } from "react";
 export interface ParametrosReporte {
   universidadId: string | null;
   carreraId: string | null;
-  fechaInicio: string | null;
-  fechaFin: string | null;
+  fechaInicio: number | null; // ✅
+  fechaFin: number | null;    // ✅
   genero: string | null;
   estadoEstudios: string | null;
   nivelAcademico: string | null;
@@ -13,21 +13,18 @@ export interface ParametrosReporte {
   areaLaboralId: string | null;
   salario: string | null;
   tipoEmpleo: string | null;
-  paisId: string | null; 
+  paisId: string | null;
   provinciaId: string | null;
   cantonId: string | null;
 }
 
+
 const convertirFechaAISO = (fecha: string | null) => {
   if (!fecha) return null;
-
-  // Espera dd/mm/yyyy
   const partes = fecha.split("/");
   if (partes.length !== 3) return null;
-
   const [dia, mes, anio] = partes;
-
-  return `${anio}-${mes}-${dia}`; // yyyy-mm-dd
+  return `${anio}-${mes}-${dia}`;
 };
 
 //hook perteneciente a REPORTES
@@ -106,8 +103,8 @@ const actualizarFiltros = (campo: keyof ParametrosReporte, valor: any) => {
     return {
       universidad: filtros.universidadId,
       carrera: filtros.carreraId,
-      fecha_inicio: convertirFechaAISO(filtros.fechaInicio),
-      fecha_fin: convertirFechaAISO(filtros.fechaFin),
+      fecha_inicio: filtros.fechaInicio,
+      fecha_fin: filtros.fechaFin,
       genero: filtros.genero,
       estado_estudios: filtros.estadoEstudios,
       nivel_academico: filtros.nivelAcademico,

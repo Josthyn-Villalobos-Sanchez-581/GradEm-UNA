@@ -1,3 +1,5 @@
+//grafico tabla estudiantes egresados
+
 @if(!empty($tabla) && count($tabla) > 0)
     <h3 style="margin-top:20px;">Detalle de Egresados</h3>
 

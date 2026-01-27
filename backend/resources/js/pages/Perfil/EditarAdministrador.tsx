@@ -369,7 +369,7 @@ export default function EditarAdministrador({
       <Head title="Editar Usuario Administrador" />
 
       {/* BOTÓN VOLVER (Fuera del contenedor principal si el layout lo permite) */}
-      <div className="max-w-6xl mx-auto mb-4">
+      <div className="w-full px-6 mb-4">
         <Button asChild variant="ghost" className="text-gray-600 hover:text-red-500">
           <Link href="/perfil">
             <svg
@@ -392,45 +392,47 @@ export default function EditarAdministrador({
       </div>
 
       {/* CONTENEDOR PRINCIPAL ASIMÉTRICO (30% / 70%) */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 p-6 bg-white shadow-lg rounded-xl">
-        {/* ---------------------------------------------------- */}
-        {/* 1. COLUMNA IZQUIERDA (30%) - NAVEGACIÓN Y FOTO */}
-        {/* ---------------------------------------------------- */}
-        <div className="md:col-span-4 lg:col-span-3 border-r pr-6 text-black">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">Editar Perfil</h2>
+      <div className="w-full px-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white shadow-lg rounded-xl p-6">
 
-          {/* 📸 FOTO Y ACCIONES DE PERFIL - REEMPLAZO DEL BLOQUE ANTERIOR */}
-          <div className="flex flex-col items-start pb-6 border-b border-gray-200 mb-6 text-black">
-            <div className="relative">
-              <img
-                src={fotoPerfilUrl}
-                alt="Foto de Perfil"
-                className="rounded-full w-24 h-24 object-cover shadow-md mb-3 border-2 border-red-500"
-              />
-              {/* Botón de editar foto */}
-              <Link
-                href={route("perfil.foto.mostrar")} // Se asume que esta ruta existe para subir la foto
-                title="Editar foto de perfil"
-                className="absolute -bottom-1 -right-1 flex items-center justify-center h-8 w-8 rounded-full bg-white border border-gray-300 shadow-md hover:scale-110 transition"
-              >
-                <img src={IconoEdicion} alt="Editar" className="w-4 h-4" />
-              </Link>
-            </div>
+          {/* ---------------------------------------------------- */}
+          {/* 1. COLUMNA IZQUIERDA (30%) - NAVEGACIÓN Y FOTO */}
+          {/* ---------------------------------------------------- */}
+          <div className="md:col-span-4 lg:col-span-3 border-r pr-6 text-black">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">Editar Perfil</h2>
 
-            {/* Botón eliminar foto */}
-            {usuario.fotoPerfil && (
-              <button
-                type="button" // Es importante para evitar submits de formulario
-                onClick={eliminarFotoPerfil}
-                className="mt-2 text-sm text-red-600 font-semibold hover:text-red-800 transition"
-              >
-                Borrar Foto de Perfil
-              </button>
-            )}
-            {/* 📸 FIN FOTO Y ACCIONES DE PERFIL */}
+            {/* 📸 FOTO Y ACCIONES DE PERFIL - REEMPLAZO DEL BLOQUE ANTERIOR */}
+            <div className="flex flex-col items-start pb-6 border-b border-gray-200 mb-6 text-black">
+              <div className="relative">
+                <img
+                  src={fotoPerfilUrl}
+                  alt="Foto de Perfil"
+                  className="rounded-full w-24 h-24 object-cover shadow-md mb-3 border-2 border-red-500"
+                />
+                {/* Botón de editar foto */}
+                <Link
+                  href={route("perfil.foto.mostrar")} // Se asume que esta ruta existe para subir la foto
+                  title="Editar foto de perfil"
+                  className="absolute -bottom-1 -right-1 flex items-center justify-center h-8 w-8 rounded-full bg-white border border-gray-300 shadow-md hover:scale-110 transition"
+                >
+                  <img src={IconoEdicion} alt="Editar" className="w-4 h-4" />
+                </Link>
+              </div>
 
-            <p
-              className="
+              {/* Botón eliminar foto */}
+              {usuario.fotoPerfil && (
+                <button
+                  type="button" // Es importante para evitar submits de formulario
+                  onClick={eliminarFotoPerfil}
+                  className="mt-2 text-sm text-red-600 font-semibold hover:text-red-800 transition"
+                >
+                  Borrar Foto de Perfil
+                </button>
+              )}
+              {/* 📸 FIN FOTO Y ACCIONES DE PERFIL */}
+
+              <p
+                className="
                text-lg font-semibold text-gray-800 mt-4 
                break-words 
                whitespace-normal 
@@ -438,322 +440,323 @@ export default function EditarAdministrador({
                overflow-hidden 
                text-ellipsis
              "
-            >
-              {nombreFijo}
-            </p>
-            <p className="text-sm text-gray-500">Administrador</p>
-          </div>
-
-          {/* Menú de Navegación */}
-          <nav className="flex flex-col space-y-2">
-            <SectionLink
-              title="Datos Personales"
-              active={activeSection === 'personales'}
-              onClick={() => setActiveSection('personales')}
-            />
-            <SectionLink
-              title="Cambio de correo"
-              active={activeSection === 'correo'}
-              onClick={() => setActiveSection('correo')}
-            />
-            <SectionLink
-              title="Lugar de Residencia"
-              active={activeSection === 'residencia'}
-              onClick={() => setActiveSection('residencia')}
-            />
-            <SectionLink
-              title="Datos Académicos"
-              active={activeSection === 'academicos'}
-              onClick={() => setActiveSection('academicos')}
-            />
-          </nav>
-        </div>
-
-        {/* ---------------------------------------------------- */}
-        {/* 2. COLUMNA DERECHA (70%) - CONTENIDO DEL FORMULARIO */}
-        {/* ---------------------------------------------------- */}
-        <div className="md:col-span-8 lg:col-span-9 text-black">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Título de la Sección Activa y Botón de Guardar */}
-            <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-700">
-                {activeSection === 'personales' && 'Datos Personales'}
-                {activeSection === 'correo' && 'Cambiar correo electrónico'}
-                {activeSection === 'residencia' && 'Lugar de Residencia'}
-                {activeSection === 'academicos' && 'Datos Académicos'}
-              </h3>
-              <Button type="submit" variant="default">
-                Guardar
-              </Button>
+              >
+                {nombreFijo}
+              </p>
+              <p className="text-sm text-gray-500">Administrador</p>
             </div>
 
-            {/* Renderizado Condicional de Secciones */}
+            {/* Menú de Navegación */}
+            <nav className="flex flex-col space-y-2">
+              <SectionLink
+                title="Datos Personales"
+                active={activeSection === 'personales'}
+                onClick={() => setActiveSection('personales')}
+              />
+              <SectionLink
+                title="Cambio de correo"
+                active={activeSection === 'correo'}
+                onClick={() => setActiveSection('correo')}
+              />
+              <SectionLink
+                title="Lugar de Residencia"
+                active={activeSection === 'residencia'}
+                onClick={() => setActiveSection('residencia')}
+              />
+              <SectionLink
+                title="Datos Académicos"
+                active={activeSection === 'academicos'}
+                onClick={() => setActiveSection('academicos')}
+              />
+            </nav>
+          </div>
 
-            {/* DATOS PERSONALES */}
-            {activeSection === 'personales' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                {/* Nombre completo */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Nombre completo</label>
-                  <input
-                    type="text"
-                    name="nombre_completo"
-                    value={formData.nombre_completo}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    maxLength={80}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.nombre_completo ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.nombre_completo && (
-                    <span className="text-red-500 text-xs mt-1">{errores.nombre_completo}</span>
-                  )}
-                </div>
-
-                {/* Identificación */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Identificación</label>
-                  <input
-                    type="text"
-                    name="identificacion"
-                    value={formData.identificacion}
-                    maxLength={12}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.identificacion ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.identificacion && (
-                    <span className="text-red-500 text-xs mt-1">{errores.identificacion}</span>
-                  )}
-                </div>
-
-                {/* Teléfono */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Teléfono</label>
-                  <input
-                    type="text"
-                    name="telefono"
-                    value={formData.telefono}
-                    maxLength={8}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.telefono ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.telefono && (
-                    <span className="text-red-500 text-xs mt-1">{errores.telefono}</span>
-                  )}
-                </div>
-
-                {/* Fecha de Nacimiento */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Fecha de nacimiento</label>
-                  <input
-                    type="date"
-                    name="fecha_nacimiento"
-                    value={formData.fecha_nacimiento}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.fecha_nacimiento ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errores.fecha_nacimiento && (
-                    <span className="text-red-500 text-xs mt-1">{errores.fecha_nacimiento}</span>
-                  )}
-                </div>
-
-                {/* Género */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Género</label>
-                  <select
-                    name="genero"
-                    value={formData.genero}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.genero ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione género</option>
-                    <option value="masculino">Masculino</option>
-                    <option value="femenino">Femenino</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                  {errores.genero && (
-                    <span className="text-red-500 text-xs mt-1">{errores.genero}</span>
-                  )}
-                </div>
+          {/* ---------------------------------------------------- */}
+          {/* 2. COLUMNA DERECHA (70%) - CONTENIDO DEL FORMULARIO */}
+          {/* ---------------------------------------------------- */}
+          <div className="md:col-span-8 lg:col-span-9 text-black">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Título de la Sección Activa y Botón de Guardar */}
+              <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-700">
+                  {activeSection === 'personales' && 'Datos Personales'}
+                  {activeSection === 'correo' && 'Cambiar correo electrónico'}
+                  {activeSection === 'residencia' && 'Lugar de Residencia'}
+                  {activeSection === 'academicos' && 'Datos Académicos'}
+                </h3>
+                <Button type="submit" variant="default">
+                  Guardar
+                </Button>
               </div>
-            )}
 
-            {activeSection === 'correo' && (
-              <div className="max-w-lg">
-                <CorreoVerificacion
-                  correoInicial={formData.correo}
-                  onCorreoVerificado={(nuevoCorreo) => {
-                    setFormData(prev => ({ ...prev, correo: nuevoCorreo }));
-                    setErrores(prev => ({ ...prev, correo: "" })); // Limpia error en caso de existir
-                  }}
-                />
-              </div>
-            )}
+              {/* Renderizado Condicional de Secciones */}
 
-            {/* LUGAR DE RESIDENCIA */}
-            {activeSection === 'residencia' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* DATOS PERSONALES */}
+              {activeSection === 'personales' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  {/* Nombre completo */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Nombre completo</label>
+                    <input
+                      type="text"
+                      name="nombre_completo"
+                      value={formData.nombre_completo}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      maxLength={80}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.nombre_completo ? "border-red-500" : "border-gray-300"
+                        }`}
+                    />
+                    {errores.nombre_completo && (
+                      <span className="text-red-500 text-xs mt-1">{errores.nombre_completo}</span>
+                    )}
+                  </div>
 
-                {/* País */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">País</label>
-                  <select
-                    name="id_pais"
-                    value={selectedPais ?? ""}
-                    onChange={(e) => {
-                      const id = e.target.value ? Number(e.target.value) : null;
-                      setSelectedPais(id);
-                      setSelectedProvincia(null);
-                      setSelectedCanton(null);
-                      setFormData(prev => ({
-                        ...prev,
-                        id_pais: id,
-                        id_provincia: null,
-                        id_canton: null
-                      }));
-                      validarCampo("id_pais", id);
-                    }}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_pais ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione</option>
-                    {paises.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                    ))}
-                  </select>
-                  {errores.id_pais && (
-                    <span className="text-xs text-red-500 mt-1">{errores.id_pais}</span>
-                  )}
+                  {/* Identificación */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Identificación</label>
+                    <input
+                      type="text"
+                      name="identificacion"
+                      value={formData.identificacion}
+                      maxLength={12}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.identificacion ? "border-red-500" : "border-gray-300"
+                        }`}
+                    />
+                    {errores.identificacion && (
+                      <span className="text-red-500 text-xs mt-1">{errores.identificacion}</span>
+                    )}
+                  </div>
+
+                  {/* Teléfono */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Teléfono</label>
+                    <input
+                      type="text"
+                      name="telefono"
+                      value={formData.telefono}
+                      maxLength={8}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.telefono ? "border-red-500" : "border-gray-300"
+                        }`}
+                    />
+                    {errores.telefono && (
+                      <span className="text-red-500 text-xs mt-1">{errores.telefono}</span>
+                    )}
+                  </div>
+
+                  {/* Fecha de Nacimiento */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Fecha de nacimiento</label>
+                    <input
+                      type="date"
+                      name="fecha_nacimiento"
+                      value={formData.fecha_nacimiento}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.fecha_nacimiento ? "border-red-500" : "border-gray-300"
+                        }`}
+                    />
+                    {errores.fecha_nacimiento && (
+                      <span className="text-red-500 text-xs mt-1">{errores.fecha_nacimiento}</span>
+                    )}
+                  </div>
+
+                  {/* Género */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Género</label>
+                    <select
+                      name="genero"
+                      value={formData.genero}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.genero ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione género</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                    {errores.genero && (
+                      <span className="text-red-500 text-xs mt-1">{errores.genero}</span>
+                    )}
+                  </div>
                 </div>
+              )}
 
-                {/* Provincia */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Provincia</label>
-                  <select
-                    name="id_provincia"
-                    value={selectedProvincia ?? ""}
-                    disabled={!selectedPais}
-                    onChange={(e) => {
-                      const id = e.target.value ? Number(e.target.value) : null;
-                      setSelectedProvincia(id);
-                      setSelectedCanton(null);
-                      setFormData(prev => ({ ...prev, id_provincia: id, id_canton: null }));
-                      validarCampo("id_provincia", id);
+              {activeSection === 'correo' && (
+                <div className="max-w-lg">
+                  <CorreoVerificacion
+                    correoInicial={formData.correo}
+                    onCorreoVerificado={(nuevoCorreo) => {
+                      setFormData(prev => ({ ...prev, correo: nuevoCorreo }));
+                      setErrores(prev => ({ ...prev, correo: "" })); // Limpia error en caso de existir
                     }}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_provincia ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione</option>
-                    {provincias
-                      .filter((p) => p.id_pais === selectedPais)
-                      .map((p) => (
+                  />
+                </div>
+              )}
+
+              {/* LUGAR DE RESIDENCIA */}
+              {activeSection === 'residencia' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+
+                  {/* País */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">País</label>
+                    <select
+                      name="id_pais"
+                      value={selectedPais ?? ""}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setSelectedPais(id);
+                        setSelectedProvincia(null);
+                        setSelectedCanton(null);
+                        setFormData(prev => ({
+                          ...prev,
+                          id_pais: id,
+                          id_provincia: null,
+                          id_canton: null
+                        }));
+                        validarCampo("id_pais", id);
+                      }}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_pais ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione</option>
+                      {paises.map((p) => (
                         <option key={p.id} value={p.id}>{p.nombre}</option>
                       ))}
-                  </select>
-                  {errores.id_provincia && (
-                    <span className="text-xs text-red-500 mt-1">{errores.id_provincia}</span>
-                  )}
+                    </select>
+                    {errores.id_pais && (
+                      <span className="text-xs text-red-500 mt-1">{errores.id_pais}</span>
+                    )}
+                  </div>
+
+                  {/* Provincia */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Provincia</label>
+                    <select
+                      name="id_provincia"
+                      value={selectedProvincia ?? ""}
+                      disabled={!selectedPais}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setSelectedProvincia(id);
+                        setSelectedCanton(null);
+                        setFormData(prev => ({ ...prev, id_provincia: id, id_canton: null }));
+                        validarCampo("id_provincia", id);
+                      }}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_provincia ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione</option>
+                      {provincias
+                        .filter((p) => p.id_pais === selectedPais)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>{p.nombre}</option>
+                        ))}
+                    </select>
+                    {errores.id_provincia && (
+                      <span className="text-xs text-red-500 mt-1">{errores.id_provincia}</span>
+                    )}
+                  </div>
+
+                  {/* Cantón */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Cantón</label>
+                    <select
+                      name="id_canton"
+                      value={selectedCanton ?? ""}
+                      disabled={!selectedProvincia}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setSelectedCanton(id);
+                        setFormData({ ...formData, id_canton: id });
+                        validarCampo("id_canton", id);
+                      }}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_canton ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione</option>
+                      {cantones
+                        .filter((c) => c.id_provincia === selectedProvincia)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                    {errores.id_canton && (
+                      <span className="text-xs text-red-500 mt-1">{errores.id_canton}</span>
+                    )}
+                  </div>
                 </div>
+              )}
 
-                {/* Cantón */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Cantón</label>
-                  <select
-                    name="id_canton"
-                    value={selectedCanton ?? ""}
-                    disabled={!selectedProvincia}
-                    onChange={(e) => {
-                      const id = e.target.value ? Number(e.target.value) : null;
-                      setSelectedCanton(id);
-                      setFormData({ ...formData, id_canton: id });
-                      validarCampo("id_canton", id);
-                    }}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_canton ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione</option>
-                    {cantones
-                      .filter((c) => c.id_provincia === selectedProvincia)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                  </select>
-                  {errores.id_canton && (
-                    <span className="text-xs text-red-500 mt-1">{errores.id_canton}</span>
-                  )}
-                </div>
-              </div>
-            )}
+              {/* DATOS ACADÉMICOS */}
+              {activeSection === 'academicos' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 
-            {/* DATOS ACADÉMICOS */}
-            {activeSection === 'academicos' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-
-                {/* Universidad */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Universidad</label>
-                  <select
-                    name="id_universidad"
-                    value={selectedUniversidad ?? ""}
-                    onChange={(e) => {
-                      const id = e.target.value ? Number(e.target.value) : null;
-                      setSelectedUniversidad(id);
-                      setFormData({ ...formData, id_universidad: id, id_carrera: null });
-                      validarCampo("id_universidad", id);
-                    }}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_universidad ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione universidad</option>
-                    {universidades.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre} ({u.sigla})
-                      </option>
-                    ))}
-                  </select>
-                  {errores.id_universidad && (
-                    <span className="text-red-500 text-xs mt-1">{errores.id_universidad}</span>
-                  )}
-                </div>
-
-                {/* Carrera — OPCIONAL */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700">Carrera (opcional)</label>
-                  <select
-                    name="id_carrera"
-                    value={formData.id_carrera ?? ""}
-                    disabled={!selectedUniversidad}
-                    onChange={handleChange}
-                    onBlur={(e) => validarCampo(e.target.name, e.target.value)}
-                    className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_carrera ? "border-red-500" : "border-gray-300"
-                      }`}
-                  >
-                    <option value="">Seleccione carrera</option>
-                    {carreras
-                      .filter((c) => c.id_universidad === selectedUniversidad)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
+                  {/* Universidad */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Universidad</label>
+                    <select
+                      name="id_universidad"
+                      value={selectedUniversidad ?? ""}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setSelectedUniversidad(id);
+                        setFormData({ ...formData, id_universidad: id, id_carrera: null });
+                        validarCampo("id_universidad", id);
+                      }}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_universidad ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione universidad</option>
+                      {universidades.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre} ({u.sigla})
                         </option>
                       ))}
-                  </select>
-                  {/* No hay mensaje de error para id_carrera ya que no es obligatorio */}
+                    </select>
+                    {errores.id_universidad && (
+                      <span className="text-red-500 text-xs mt-1">{errores.id_universidad}</span>
+                    )}
+                  </div>
+
+                  {/* Carrera — OPCIONAL */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700">Carrera (opcional)</label>
+                    <select
+                      name="id_carrera"
+                      value={formData.id_carrera ?? ""}
+                      disabled={!selectedUniversidad}
+                      onChange={handleChange}
+                      onBlur={(e) => validarCampo(e.target.name, e.target.value)}
+                      className={`mt-1 block w-full p-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm ${errores.id_carrera ? "border-red-500" : "border-gray-300"
+                        }`}
+                    >
+                      <option value="">Seleccione carrera</option>
+                      {carreras
+                        .filter((c) => c.id_universidad === selectedUniversidad)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                    </select>
+                    {/* No hay mensaje de error para id_carrera ya que no es obligatorio */}
+                  </div>
                 </div>
-              </div>
-            )}
-          </form>
+              )}
+            </form>
+          </div>
         </div>
       </div>
     </>

@@ -4,6 +4,7 @@ namespace App\Services\PerfilServices;
 
 use App\Repositories\PerfilRepositories\PerfilRepository;
 use Illuminate\Support\Facades\Auth;
+use Exception;
 use App\Services\MailServices\MailService;
 
 
@@ -207,5 +208,47 @@ class PerfilService
             ->existeIdentificacion($identificacion, $idUsuarioActual);
 
         return ['existe' => $existe];
+    }
+
+    /* ======================================================
+     * CAMBIO DE CONDICIÓN ACADÉMICA
+     * ====================================================== */
+    public function cambiarEstudianteAEgresado(): void
+    {
+        $usuario = Auth::user();
+
+        if (!$usuario) {
+            throw new Exception('Usuario no autenticado.');
+        }
+
+        if (mb_strtolower($usuario->rol->nombre_rol) !== 'estudiante') {
+            throw new Exception(
+                'Solo los usuarios con condición de estudiante pueden realizar este cambio.'
+            );
+        }
+
+        $this->perfilRepository->cambiarEstudianteAEgresado(
+            $usuario->id_usuario
+        );
+    }
+
+
+    public function cambiarEgresadoAEstudiante(): void
+    {
+        $usuario = Auth::user();
+
+        if (!$usuario) {
+            throw new Exception('Usuario no autenticado.');
+        }
+
+        if (mb_strtolower($usuario->rol->nombre_rol) !== 'egresado') {
+            throw new Exception(
+                'Solo los usuarios con condición de egresado pueden realizar este cambio.'
+            );
+        }
+
+        $this->perfilRepository->cambiarEgresadoAEstudiante(
+            $usuario->id_usuario
+        );
     }
 }

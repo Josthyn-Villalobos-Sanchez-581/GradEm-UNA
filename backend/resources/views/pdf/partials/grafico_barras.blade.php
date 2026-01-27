@@ -1,7 +1,37 @@
 {{-- resources/views/pdf/partials/grafico_barras.blade.php --}}
 
 @php
-    // Máximo para escalar barras
+    /* ============================
+       PALETAS DISPONIBLES
+    ============================ */
+    $PALETAS_BARRAS = [
+        'azul'    => ['#034991', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'],
+        'verde'   => ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
+        'morado'  => ['#5b21b6', '#7c3aed', '#a78bfa', '#c4b5fd', '#ddd6fe'],
+        'naranja' => ['#9a3412', '#f97316', '#fb923c', '#fdba74', '#fed7aa'],
+    ];
+
+    /* ============================
+       PALETA ACTIVA (SEGURA)
+    ============================ */
+    $paleta = data_get($visual ?? [], 'barras.paleta', 'azul');
+    $colores = $PALETAS_BARRAS[$paleta] ?? $PALETAS_BARRAS['azul'];
+
+    /* ============================
+       UTILIDADES
+    ============================ */
+    function colorPorIndice($colores, $index, $total) {
+        if ($total <= 1) {
+            return $colores[0];
+        }
+
+        $pos = $index / ($total - 1);
+        $escala = $pos * (count($colores) - 1);
+        $i = floor($escala);
+
+        return $colores[$i] ?? end($colores);
+    }
+
     $max = collect($barras)->max('total_egresados') ?: 1;
 @endphp
 
@@ -16,13 +46,14 @@
         Distribución anual de egresados según los filtros aplicados
     </p>
 
-    {{-- Contenedor gráfico --}}
+    {{-- Gráfico --}}
     <table width="100%" cellpadding="6" cellspacing="0"
            style="border:1px solid #e5e7eb; border-radius:8px;">
 
         @foreach($barras as $fila)
             @php
                 $porcentaje = ($fila['total_egresados'] / $max) * 100;
+                $color = colorPorIndice($colores, $loop->index, count($barras));
             @endphp
 
             <tr>
@@ -37,7 +68,7 @@
                         <div style="
                             width: {{ $porcentaje }}%;
                             height: 18px;
-                            background: #034991;
+                            background: {{ $color }};
                             border-radius:6px;
                         "></div>
                     </div>
@@ -52,7 +83,6 @@
 
     </table>
 
-    {{-- Leyenda --}}
     <p style="font-size:10px; color:#666; margin-top:8px; text-align:center;">
         Cada barra representa la cantidad total de egresados por año
     </p>
