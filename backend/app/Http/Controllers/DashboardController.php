@@ -3,11 +3,18 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use App\Services\DashboardServices\DashboardService;
 
 class DashboardController extends Controller
 {
+    protected DashboardService $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
+
     public function index()
     {
         $usuario = Auth::user();
@@ -16,25 +23,9 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
-        // ⬇️ Obtener permisos según el ROL
-        $permisos = DB::table('roles_permisos')
-            ->where('id_rol', $usuario->id_rol)
-            ->pluck('id_permiso')
-            ->toArray();
+        // Toda la lógica se delega al servicio
+        $datosDashboard = $this->dashboardService->obtenerDatosDashboard($usuario);
 
-        // ⬇️ Obtener nombre del rol
-        $rolNombre = optional($usuario->rol)->nombre_rol ?? 'Sin rol asignado';
-
-        return Inertia::render('Dashboard', [
-            'auth' => [
-                'user' => [
-                    'id'    => $usuario->id_usuario,
-                    'name'  => $usuario->nombre_completo,
-                    'email' => $usuario->correo,
-                ],
-            ],
-            'userPermisos' => $permisos, // ⬅️ ESTO USA EL MISMO MÉTODO QUE EN RolesPermisosController
-            'userRol'      => $rolNombre, // nombre del rol del usuario
-        ]);
+        return Inertia::render('Dashboard', $datosDashboard);
     }
 }

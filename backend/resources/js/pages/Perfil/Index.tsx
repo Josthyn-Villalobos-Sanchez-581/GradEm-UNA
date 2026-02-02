@@ -8,6 +8,8 @@ import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
 import EnlacesExternos from "./EnlacesExternos";
 
+
+
 interface FotoPerfil { ruta_imagen: string }
 interface Usuario {
   id_usuario: number;
@@ -117,8 +119,9 @@ export default function Index({
     return (
       <>
         <Head title="Perfil de Empresa" />
-        <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
-          <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+        <div className="w-full max-w-screen-2xl mx-auto px-6 py-10 text-black">
+          <div className="bg-white rounded-xl shadow-sm p-8">
+
             <header className="flex justify-between items-center border-b pb-3 mb-8">
               <h1 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h1>
               <div className="flex gap-3">
@@ -154,8 +157,8 @@ export default function Index({
                 </button>
               )}
 
-              <p className="text-2xl font-bold mt-4">{rolNombre}: {empresa?.nombre}</p>
-              <p className="text-base text-gray-700">
+              <p className="text-2xl font-bold mt-4 break-words break-all text-center">{rolNombre}: {empresa?.nombre}</p>
+              <p className="text-gray-700 break-words break-all text-center">
                 Usuario: {renderValor(usuario.nombre_completo)}
               </p>
             </div>
@@ -177,8 +180,8 @@ export default function Index({
             {/* Paneles */}
             {activeTab === "empresa" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Información de la Empresa</h3>
-                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Información de la Empresa</h3>
+                <div className="grid sm:grid-cols-2 gap-4 text-black break-all text-center">
                   <p><strong>Nombre de la empresa:</strong> {renderValor(empresa?.nombre)}</p>
                   <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
                   <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
@@ -190,8 +193,8 @@ export default function Index({
 
             {activeTab === "responsable" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Usuario Responsable</h3>
-                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Usuario Responsable</h3>
+                <div className="grid sm:grid-cols-2 gap-4 text-black break-all text-center">
                   <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
                   <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
                 </div>
@@ -228,8 +231,9 @@ export default function Index({
   return (
     <>
       <Head title={`Perfil - ${usuario.nombre_completo}`} />
-      <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
-        <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+      <div className="w-full max-w-screen-2xl mx-auto px-6 py-10 text-black">
+        <div className="bg-white rounded-xl shadow-sm p-8">
+
           <header className="flex justify-between items-center border-b pb-3 mb-8">
             <h1 className="text-2xl font-bold text-[#034991]">Mi Perfil</h1>
             <div className="flex gap-3">
@@ -265,9 +269,9 @@ export default function Index({
               </button>
             )}
 
-            <p className="text-2xl font-bold mt-4">{rolNombre}: {usuario.nombre_completo}</p>
-            <p className="text-gray-700">Carrera: {carreraActual?.nombre}</p>
-            <p className="text-gray-700">Universidad: {universidadActual?.nombre}</p>
+            <p className="text-2xl font-bold mt-4 break-words break-all text-center">{rolNombre}: {usuario.nombre_completo}</p>
+            <p className="text-gray-700 break-words break-all text-center">Carrera: {carreraActual?.nombre}</p>
+            <p className="text-gray-700 break-words break-all text-center">Universidad: {universidadActual?.nombre}</p>
 
             {/* Nuevo botón Ver Currículum */}
             {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
@@ -296,8 +300,8 @@ export default function Index({
             {/* DATOS PERSONALES */}
             {activeTab === "datos" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Personales</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Personales</h3>
+                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
                   <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
                   <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
                   <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
@@ -312,8 +316,8 @@ export default function Index({
             {/* DATOS ACADÉMICOS */}
             {activeTab === "academicos" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Académicos</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Académicos</h3>
+                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
                   <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
                   <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
                   {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && (
@@ -330,8 +334,8 @@ export default function Index({
             {/* DATOS LABORALES */}
             {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && activeTab === "laborales" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Datos Laborales</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Laborales</h3>
+                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
                   <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
                   {usuario.estado_empleo?.toLowerCase() === "empleado" && (
                     <>

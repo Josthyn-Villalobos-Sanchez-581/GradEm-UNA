@@ -1,9 +1,4 @@
-﻿// ======================================================
-//  PpLayout.tsx - Layout Profesional GradEm-UNA
-//  Mejoras: Tooltip flotante + Sidebar inteligente + Mobile toggle
-//           Modal Institucional premium integrado
-//           Animación letra por letra en menú principal
-// ======================================================
+﻿
 
 import { type BreadcrumbItem } from "@/types";
 import { type ReactNode, useEffect, useState } from "react";
@@ -167,9 +162,10 @@ export default function PpLayout({
       title: "Ofertas",
       icon: Briefcase,
       subMenu: [
-        { title: "Publicar", route: "/ofertas", permisoId: 5 },
-        { title: "Postulación", route: "/postulaciones", permisoId: 6 },
-        { title: "Gestionar", route: "/gestionar-postulaciones", permisoId: 7 },
+        { title: "Publicar Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
+        { title: "Postularme", route: "/ofertas", permisoId: 6 },
+        { title: "Mis postulaciones", route: "/misPostulaciones", permisoId: 6 },
+        { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
       ],
     },
     {
@@ -289,7 +285,7 @@ export default function PpLayout({
     bg-gradient-to-b from-[#CD1719] via-[#B01517] to-[#7A0F13]
     text-white border-r border-red-900 shadow-xl
     transition-all duration-300 z-40 flex flex-col justify-between
-    ${sidebarCollapsed ? "w-20" : "w-48"}
+    ${sidebarCollapsed ? "w-18" : "w-48"}
     ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
   `}
       >
@@ -625,10 +621,11 @@ export default function PpLayout({
       {/* CONTENIDO */}
       <main
         className={`
-          flex-1 p-6 mt-20 overflow-y-auto 
-          transition-[margin] duration-500 ease-in-out
-          ${sidebarCollapsed ? "md:ml-20" : "md:ml-48"}
-        `}
+    relative
+    flex-1 p-6 mt-20 overflow-y-auto
+    transition-[margin] duration-500 ease-in-out
+    ${sidebarCollapsed ? "md:ml-18" : "md:ml-48"}
+  `}
       >
         <div className="w-full max-w-full overflow-x-hidden">
           {breadcrumbs && (

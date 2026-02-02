@@ -226,7 +226,7 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
   };
 
   const validarCorreo = (correo: string) => {
-    // dominios permitidos coherentes con lo que discutimos (ajusta si necesitas otros)
+    // dominios permitidos coherentes
     return /^.+@(una\.ac\.cr|gmail\.com)$/i.test(correo);
   };
 

@@ -2,31 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pais;
-use App\Models\Provincia;
-use App\Models\Canton;
-use Illuminate\Http\Request;
+use App\Services\UbicacionServices\UbicacionService;
 
 class UbicacionController extends Controller
 {
+    protected UbicacionService $ubicacionService;
+
+    public function __construct(UbicacionService $ubicacionService)
+    {
+        $this->ubicacionService = $ubicacionService;
+    }
+
     public function getPaises()
     {
-        return response()->json(Pais::all());
+        $paises = $this->ubicacionService->obtenerPaises();
+
+        return response()->json($paises);
     }
 
     public function getProvincias($id_pais)
     {
-        return response()->json(
-            Provincia::where('id_pais', $id_pais)->get()
-        );
+        $provincias = $this->ubicacionService->obtenerProvinciasPorPais((int) $id_pais);
+
+        return response()->json($provincias);
     }
 
     public function getCantones($id_provincia)
     {
-        return response()->json(
-            Canton::where('id_provincia', $id_provincia)->get()
-        );
+        $cantones = $this->ubicacionService->obtenerCantonesPorProvincia((int) $id_provincia);
+
+        return response()->json($cantones);
     }
 }
-
-//relaciones Eloquent completas (Pais → Provincias → Cantones), para que si en el futuro agregas otro país se traiga toda la jerarquía de una vez
