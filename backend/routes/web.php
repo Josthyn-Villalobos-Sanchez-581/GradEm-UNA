@@ -243,8 +243,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/postulaciones/{postulacion}', [PostulacionController::class, 'mostrar'])
             ->name('postulaciones.mostrar');
 
-        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'actualizarEstado'])
-            ->name('postulaciones.actualizar-estado');
+        Route::put('/empresa/ofertas/{oferta}/estado', [OfertaController::class, 'cambiarEstado'])
+        ->name('empresa.ofertas.cambiarEstado');
     });
 
     // ==========================================

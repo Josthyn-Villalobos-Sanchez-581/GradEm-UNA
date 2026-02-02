@@ -298,3 +298,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
 }
+
+.input {
+  @apply w-full rounded-lg border border-gray-300 px-3 py-2
+         text-gray-900 placeholder-gray-400
+         focus:outline-none focus:ring-2 focus:ring-red-500;
+}

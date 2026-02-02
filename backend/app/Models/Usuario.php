@@ -7,6 +7,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Empresa;
 
 class Usuario extends Authenticatable
 {
@@ -56,6 +57,8 @@ class Usuario extends Authenticatable
         'sesion_activa' => 'boolean',
         'ultima_actividad' => 'datetime',
     ];
+
+    protected $appends = ['foto_url'];
 
     /**
      * Relación uno a uno con Credencial
@@ -125,4 +128,19 @@ class Usuario extends Authenticatable
     {
         return $this->belongsTo(Canton::class, 'id_canton', 'id_canton');
     }
+
+    public function getFotoUrlAttribute()
+{
+    if ($this->relationLoaded('fotoPerfil') && $this->fotoPerfil) {
+
+        if (is_array($this->fotoPerfil)) {
+            return $this->fotoPerfil['url'] ?? asset('images/avatar-default.png');
+        }
+
+        return $this->fotoPerfil->url;
+    }
+
+    return asset('images/avatar-default.png');
+}
+
 }
