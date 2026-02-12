@@ -9,6 +9,7 @@ use App\Models\Canton;
 use App\Models\Modalidad;
 use App\Models\Postulacion;
 use App\Models\AreaLaboral;
+use App\Models\Carrera;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -17,13 +18,10 @@ class OfertaController extends Controller
 {
     /**
      * HU-25 + HU-27
-     * Listar ofertas con filtros y paginación.
+     * Listar ofertas (estudiantes / egresados)
      */
     public function listar(Request $request)
     {
-        // ============================
-        // CONSULTA BASE
-        // ============================
         $consulta = Oferta::with([
             'empresa.usuario.fotoPerfil',
             'pais',
@@ -33,98 +31,87 @@ class OfertaController extends Controller
             'areaLaboral',
         ])->where('estado_id', 1);
 
-        // ============================
-        // FILTROS HU-27
-        // ============================
-
-        // Tipo de oferta (empleo / practica)
         if ($request->filled('tipo_oferta')) {
-            $consulta->where('tipo_oferta', $request->input('tipo_oferta'));
+            $consulta->where('tipo_oferta', $request->tipo_oferta);
         }
 
-        // País
         if ($request->filled('id_pais')) {
-            $consulta->where('id_pais', $request->input('id_pais'));
+            $consulta->where('id_pais', $request->id_pais);
         }
 
-        // Provincia
         if ($request->filled('id_provincia')) {
-            $consulta->where('id_provincia', $request->input('id_provincia'));
+            $consulta->where('id_provincia', $request->id_provincia);
         }
 
-        // Cantón
         if ($request->filled('id_canton')) {
-            $consulta->where('id_canton', $request->input('id_canton'));
+            $consulta->where('id_canton', $request->id_canton);
         }
 
-        // Modalidad
         if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->input('id_modalidad'));
+            $consulta->where('id_modalidad', $request->id_modalidad);
         }
 
-        // 🔹 NUEVO: Área laboral
         if ($request->filled('id_area_laboral')) {
-            $consulta->where('id_area_laboral', $request->input('id_area_laboral'));
+            $consulta->where('id_area_laboral', $request->id_area_laboral);
         }
 
-        // Búsqueda general: título, descripción, categoría
         if ($request->filled('buscar')) {
-            $buscar = $request->input('buscar');
+            $buscar = $request->buscar;
             $consulta->where(function ($q) use ($buscar) {
                 $q->where('titulo', 'like', "%{$buscar}%")
                     ->orWhere('descripcion', 'like', "%{$buscar}%")
                     ->orWhere('categoria', 'like', "%{$buscar}%");
-                // Si quieres buscar también por área laboral, se hace con join o whereHas
             });
         }
 
-        // ============================
-        // EJECUTAR CONSULTA
-        // ============================
         $ofertas = $consulta
-            ->orderBy('fecha_publicacion', 'desc')
+            ->orderByDesc('fecha_publicacion')
             ->paginate(9)
             ->withQueryString();
 
-        // Catálogos para filtros
-        $paises = Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']);
-        $provincias = Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']);
-        $cantones = Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']);
-        $modalidades = Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']);
+        $ofertas->getCollection()->transform(function ($oferta) {
 
-        // 🔹 NUEVO: áreas laborales
-        $areasLaborales = AreaLaboral::orderBy('nombre')
-            ->get(['id_area_laboral as id', 'nombre']);
+            if (
+                $oferta->empresa &&
+                $oferta->empresa->usuario &&
+                $oferta->empresa->usuario->fotoPerfil
+            ) {
+
+                $foto = $oferta->empresa->usuario->fotoPerfil;
+
+                $url = is_array($foto)
+                    ? ($foto['url'] ?? null)
+                    : ($foto->ruta_imagen ? asset($foto->ruta_imagen) : null);
+
+                $oferta->empresa->usuario->fotoPerfil = $url
+                    ? ['url' => $url]
+                    : null;
+            } else {
+                $oferta->empresa->usuario->fotoPerfil = null;
+            }
+
+            return $oferta;
+        });
+
 
         return Inertia::render('Ofertas/OfertasIndex', [
             'ofertas'        => $ofertas,
-            'filtros'        => $request->only([
-                'tipo_oferta',
-                'id_pais',
-                'id_provincia',
-                'id_canton',
-                'id_modalidad',
-                'id_area_laboral', // 👈 nuevo filtro
-                'buscar',
-            ]),
-            'paises'         => $paises,
-            'provincias'     => $provincias,
-            'cantones'       => $cantones,
-            'modalidades'    => $modalidades,
-            'areasLaborales' => $areasLaborales, // 👈 enviado a React
+            'filtros'        => $request->all(),
+            'paises'         => Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']),
+            'provincias'     => Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']),
+            'cantones'       => Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']),
+            'modalidades'    => Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']),
+            'areasLaborales' => AreaLaboral::orderBy('nombre')->get(['id_area_laboral as id', 'nombre']),
             'userPermisos'   => getUserPermisos(),
         ]);
     }
 
-
     /**
      * HU-24
-     * Mostrar detalle de una oferta específica.
+     * Detalle de oferta
      */
     public function mostrar(Oferta $oferta)
     {
-        $usuario = Auth::user();
-
         $oferta->load([
             'empresa.usuario.fotoPerfil',
             'pais',
@@ -132,166 +119,461 @@ class OfertaController extends Controller
             'canton',
             'modalidad',
             'areaLaboral',
+            'carrera',
         ]);
 
-        $yaPostulado = false;
-        if ($usuario) {
-            $yaPostulado = Postulacion::where('id_usuario', $usuario->id_usuario)
-                ->where('id_oferta', $oferta->id_oferta)
-                ->exists();
+        $usuario = Auth::user();
+
+        $yaPostulado = $usuario
+            ? Postulacion::where('id_usuario', $usuario->id_usuario)
+            ->where('id_oferta', $oferta->id_oferta)
+            ->exists()
+            : false;
+
+        if (
+            $oferta->empresa &&
+            $oferta->empresa->usuario &&
+            $oferta->empresa->usuario->fotoPerfil
+        ) {
+            $foto = $oferta->empresa->usuario->fotoPerfil;
+
+            $url = $foto->ruta_imagen
+                ? asset('storage/' . $foto->ruta_imagen)
+                : null;
+
+            $oferta->empresa->usuario->foto_perfil = $url
+                ? ['url' => $url]
+                : null;
+
+            unset($oferta->empresa->usuario->fotoPerfil);
+        } else {
+            $oferta->empresa->usuario->fotoPerfil = null;
         }
 
-        return Inertia::render('Ofertas/OfertaDetalle', [
+
+        return Inertia::render('Ofertas/OfertaDetallePagina', [
             'oferta'       => $oferta,
             'yaPostulado'  => $yaPostulado,
             'userPermisos' => getUserPermisos(),
         ]);
     }
 
-    // =====================================================
-    // 🔹 MÉTODOS PARA PUBLICACIÓN (Permiso 5) – OPCIONALES
-    //    Los dejo preparados por si luego activas las rutas
-    // =====================================================
-
     /**
-     * (Opcional) Listar ofertas creadas por la empresa autenticada.
-     */
-    public function indexEmpresa()
-    {
-        $usuario = Auth::user();
-
-        // Aquí depende de cómo relaciones Usuario ↔ Empresa en tu modelo.
-        // Ejemplo típico: $usuario->empresa->id_empresa
-        // Ajusta esta línea según tu implementación real:
-        $idEmpresa = optional($usuario->empresa)->id_empresa ?? null;
-
-        $ofertas = Oferta::with(['pais', 'provincia', 'canton', 'modalidad'])
-            ->when($idEmpresa, function ($q) use ($idEmpresa) {
-                $q->where('id_empresa', $idEmpresa);
-            })
-            ->orderBy('fecha_publicacion', 'desc')
-            ->paginate(10);
-
-        return Inertia::render('Ofertas/EmpresaOfertasIndex', [
-            'ofertas'      => $ofertas,
-            'userPermisos' => getUserPermisos(),
-        ]);
-    }
-
-    /**
-     * (Opcional) Formulario de creación de oferta.
+     * HU-23
+     * Formulario crear oferta (empresa/admin/permiso5)
      */
     public function crear()
     {
-        $paises = Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']);
-        $provincias = Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']);
-        $cantones = Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']);
-        $modalidades = Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']);
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
 
-        return Inertia::render('Ofertas/EmpresaOfertaFormulario', [
-            'modo'         => 'crear',
-            'oferta'       => null,
-            'paises'       => $paises,
-            'provincias'   => $provincias,
-            'cantones'     => $cantones,
-            'modalidades'  => $modalidades,
-            'userPermisos' => getUserPermisos(),
+        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
+            abort(403, 'No autorizado.');
+        }
+
+        return Inertia::render('Ofertas/CrearOferta', [
+            'empresa'        => optional($empresa)->load('usuario.fotoPerfil'),
+            'areasLaborales' => AreaLaboral::orderBy('nombre')->get(['id_area_laboral as id', 'nombre']),
+            'modalidades'    => Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']),
+            'paises'         => Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']),
+            'provincias'     => Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']),
+            'cantones'       => Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']),
+            'carreras'       => Carrera::orderBy('nombre')->get(['id_carrera as id', 'nombre']),
+            'userPermisos'   => getUserPermisos(),
         ]);
     }
 
     /**
-     * (Opcional) Guardar una nueva oferta.
+     * Guardar nueva oferta
      */
     public function guardar(Request $request)
     {
         $usuario = Auth::user();
+        $empresa = $usuario->empresa;
 
-        // Ajusta según cómo obtienes la empresa del usuario
-        $idEmpresa = optional($usuario->empresa)->id_empresa ?? null;
+        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
+            abort(403, 'No autorizado.');
+        }
 
         $datos = $request->validate([
             'titulo'           => 'required|string|max:100',
             'descripcion'      => 'required|string',
-            'requisitos'       => 'nullable|string',
+            'requisitos'       => 'nullable|array',
+            'requisitos.*'     => 'string|max:255',
             'tipo_oferta'      => 'required|string|max:50',
             'categoria'        => 'required|string|max:50',
-            'campo_aplicacion' => 'required|string|max:100',
-            'id_pais'          => 'required|integer|exists:paises,id_pais',
-            'id_provincia'     => 'required|integer|exists:provincias,id_provincia',
-            'id_canton'        => 'required|integer|exists:cantones,id_canton',
-            'id_modalidad'     => 'required|integer|exists:modalidades,id_modalidad',
-            'horario'          => 'required|string|max:20',
-            'fecha_limite'     => 'required|date',
-        ]);
-
-        $datos['id_empresa'] = $idEmpresa;
-        $datos['fecha_publicacion'] = now();
-        $datos['estado_id'] = 1; // activa por defecto
-
-        Oferta::create($datos);
-
-        return redirect()->route('empresa.ofertas.index')
-            ->with('success', 'Oferta creada correctamente.');
-    }
-
-    /**
-     * (Opcional) Formulario de edición de oferta.
-     */
-    public function editar(Oferta $oferta)
-    {
-        $paises = Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']);
-        $provincias = Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']);
-        $cantones = Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']);
-        $modalidades = Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']);
-
-        return Inertia::render('Ofertas/EmpresaOfertaFormulario', [
-            'modo'         => 'editar',
-            'oferta'       => $oferta->load(['pais', 'provincia', 'canton', 'modalidad']),
-            'paises'       => $paises,
-            'provincias'   => $provincias,
-            'cantones'     => $cantones,
-            'modalidades'  => $modalidades,
-            'userPermisos' => getUserPermisos(),
-        ]);
-    }
-
-    /**
-     * (Opcional) Actualizar una oferta existente.
-     */
-    public function actualizar(Request $request, Oferta $oferta)
-    {
-        $datos = $request->validate([
-            'titulo'           => 'required|string|max:100',
-            'descripcion'      => 'required|string',
-            'requisitos'       => 'nullable|string',
-            'tipo_oferta'      => 'required|string|max:50',
-            'categoria'        => 'required|string|max:50',
-            'campo_aplicacion' => 'required|string|max:100',
-            'id_pais'          => 'required|integer|exists:paises,id_pais',
-            'id_provincia'     => 'required|integer|exists:provincias,id_provincia',
-            'id_canton'        => 'required|integer|exists:cantones,id_canton',
-            'id_modalidad'     => 'required|integer|exists:modalidades,id_modalidad',
-            'horario'          => 'required|string|max:20',
+            'id_area_laboral'  => 'required|integer',
+            'id_carrera'       => 'required|integer',
+            'id_pais'          => 'required|integer',
+            'id_provincia'     => 'required|integer',
+            'id_canton'        => 'required|integer',
+            'id_modalidad'     => 'required|integer',
+            'horario'          => 'required|string|max:255',
             'fecha_limite'     => 'required|date',
             'estado_id'        => 'required|integer',
         ]);
 
+        if ($empresa) {
+            $datos['id_empresa'] = $empresa->id_empresa;
+        }
+
+        $datos['fecha_publicacion'] = now();
+        $datos['requisitos'] = json_encode($request->requisitos);
+
+        Oferta::create($datos);
+
+        return redirect()
+            ->route('empresa.ofertas.index')
+            ->with('success', 'Oferta creada correctamente.');
+    }
+
+    /**
+     * Borrado lógico de oferta
+     */
+    public function eliminar(Oferta $oferta)
+    {
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
+
+        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
+            abort(403, 'No autorizado.');
+        }
+
+        $oferta->update([
+            'estado_id' => 3, // DESACTIVADA
+        ]);
+
+        return back()->with('success', 'Oferta desactivada correctamente.');
+    }
+
+
+    /**
+     * Listar ofertas de la empresa (empresa/admin/permiso5)
+     */
+    public function indexEmpresa(Request $request)
+    {
+        $usuario = $request->user();
+        $empresa = $usuario->empresa; // null si es admin/superadmin
+
+        // 🔒 Seguridad básica
+        if (!$usuario) {
+            abort(403, 'No autorizado.');
+        }
+
+        /**
+         * 📝 Consulta base
+         * ⚠️ OJO: cargamos TODA la cadena necesaria para el frontend
+         */
+        $consulta = Oferta::with([
+            'empresa.usuario.fotoPerfil',
+            'modalidad',
+        ])
+            ->withCount('postulaciones') // 👈 AQUÍ VA
+            ->where('estado_id', '!=', 3);
+
+        /**
+         * 🔐 Visibilidad
+         * - Empresa → solo sus ofertas
+         * - Admin/Superadmin → todas
+         */
+        if ($empresa) {
+            $consulta->where('id_empresa', $empresa->id_empresa);
+        }
+
+        // 🔍 Búsqueda
+        if ($request->filled('buscar')) {
+            $consulta->where('titulo', 'like', '%' . $request->buscar . '%');
+        }
+
+        // 🎯 Modalidad
+        if ($request->filled('id_modalidad')) {
+            $consulta->where('id_modalidad', $request->id_modalidad);
+        }
+
+        // 📅 Fechas
+        if ($request->filled('fecha_inicio')) {
+            $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
+        }
+
+        // 📄 Paginación
+        $perPage = (int) $request->get('per_page', 10);
+
+        $ofertas = $consulta
+            ->orderByDesc('fecha_publicacion')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        /**
+         * 🖼️ Normalizar foto de perfil (igual que listar / mostrar)
+         */
+        $ofertas->getCollection()->transform(function ($oferta) {
+
+            if (
+                $oferta->empresa &&
+                $oferta->empresa->usuario &&
+                $oferta->empresa->usuario->fotoPerfil
+            ) {
+                $foto = $oferta->empresa->usuario->fotoPerfil;
+
+                // 🧠 Si ya viene como array (ya transformado)
+                if (is_array($foto)) {
+                    $url = $foto['url'] ?? null;
+                }
+                // 🧠 Si viene como modelo Eloquent
+                else {
+                    $url = $foto->ruta_imagen
+                        ? asset('storage/' . $foto->ruta_imagen)
+                        : null;
+                }
+
+                $oferta->empresa->usuario->fotoPerfil = $url
+                    ? ['url' => $url]
+                    : null;
+            } else {
+                if ($oferta->empresa && $oferta->empresa->usuario) {
+                    $oferta->empresa->usuario->fotoPerfil = null;
+                }
+            }
+
+            return $oferta;
+        });
+
+
+        return Inertia::render('Ofertas/EmpresaOfertasIndex', [
+            'ofertas'      => $ofertas,
+            'modalidades'  => Modalidad::orderBy('nombre')->get(),
+            'filtros'      => $request->only([
+                'buscar',
+                'id_modalidad',
+                'fecha_inicio',
+                'fecha_fin',
+                'per_page',
+            ]),
+            'userPermisos' => getUserPermisos(),
+        ]);
+    }
+
+    public function gestionar(Request $request, Oferta $oferta)
+{
+    $usuario = Auth::user();
+    $empresa = $usuario->empresa;
+
+    // 🔒 Seguridad
+    if (
+        (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
+        ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+    ) {
+        abort(403, 'No autorizado.');
+    }
+
+    // 🔎 Cargar relaciones de la oferta
+    $oferta->load([
+        'empresa.usuario.fotoPerfil',
+        'modalidad',
+        'areaLaboral',
+        'carrera',
+        'pais',
+        'provincia',
+        'canton',
+    ]);
+
+    // 🔎 Filtro por estado
+    $estado = $request->estado;
+
+    $consulta = Postulacion::with([
+        'usuario.fotoPerfil',
+        'usuario.curriculum'
+    ])
+        ->where('id_oferta', $oferta->id_oferta);
+
+    if ($estado) {
+        $consulta->where('estado_id', $estado);
+    }
+
+    // 📄 Paginación SIN through
+    $postulaciones = $consulta
+        ->orderByDesc('fecha_postulacion')
+        ->paginate(10)
+        ->withQueryString();
+
+    // 🔄 Transformar colección correctamente
+    $postulaciones->getCollection()->transform(function ($postulacion) {
+
+        return [
+            'id_postulacion' => $postulacion->id_postulacion,
+            'mensaje' => $postulacion->mensaje,
+            'fecha_postulacion' => $postulacion->fecha_postulacion,
+            'estado_id' => $postulacion->estado_id,
+
+            'usuario' => $postulacion->usuario ? [
+                'id_usuario' => $postulacion->usuario->id_usuario,
+                'nombre' => $postulacion->usuario->nombre_completo,
+
+                'fotoPerfil' => $postulacion->usuario->fotoPerfil
+                    ? [
+                        'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
+                    ]
+                    : null,
+
+                'curriculum' => $postulacion->usuario->curriculum
+                    ? [
+                        'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
+                    ]
+                    : null,
+            ] : null,
+        ];
+    });
+
+    // 📊 Estadísticas optimizadas
+    $estadisticas = Postulacion::selectRaw("
+        COUNT(*) as total,
+        SUM(estado_id = 1) as espera,
+        SUM(estado_id = 2) as aceptado,
+        SUM(estado_id = 3) as negado,
+        SUM(estado_id = 4) as revision
+    ")
+        ->where('id_oferta', $oferta->id_oferta)
+        ->first();
+
+    return Inertia::render('Ofertas/GestionOferta', [
+        'oferta'        => $oferta,
+        'postulaciones' => $postulaciones,
+        'estadisticas'  => $estadisticas,
+        'filtroEstado'  => $estado,
+        'userPermisos'  => getUserPermisos(),
+    ]);
+}
+
+
+    /**
+     * Formulario editar oferta
+     */
+    public function editar(Oferta $oferta)
+    {
+        $usuario = Auth::user();
+
+        // 🔹 Empresa asociada (empresa dueña o admin)
+        $empresa = $usuario->empresa ?? $oferta->empresa;
+
+        // 🔒 Seguridad
+        if (
+            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
+            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+        ) {
+            abort(403, 'No autorizado.');
+        }
+
+        return Inertia::render('Ofertas/EditarOferta', [
+            // 🧾 Oferta SIN empresa anidada
+            'oferta' => $oferta,
+
+            // 🏢 Empresa IGUAL que CrearOferta
+            'empresa' => optional($empresa)->load('usuario.fotoPerfil'),
+
+            // 📦 Catálogos
+            'areasLaborales' => AreaLaboral::orderBy('nombre')->get([
+                'id_area_laboral as id',
+                'nombre',
+            ]),
+            'modalidades' => Modalidad::orderBy('nombre')->get([
+                'id_modalidad as id',
+                'nombre',
+            ]),
+            'paises' => Pais::orderBy('nombre')->get([
+                'id_pais as id',
+                'nombre',
+            ]),
+            'provincias' => Provincia::orderBy('nombre')->get([
+                'id_provincia as id',
+                'nombre',
+                'id_pais',
+            ]),
+            'cantones' => Canton::orderBy('nombre')->get([
+                'id_canton as id',
+                'nombre',
+                'id_provincia',
+            ]),
+            'carreras' => Carrera::orderBy('nombre')->get([
+                'id_carrera as id',
+                'nombre',
+            ]),
+
+            // 🔐 Permisos
+            'userPermisos' => getUserPermisos(),
+        ]);
+    }
+
+
+    /**
+     * Actualizar oferta
+     */
+    public function actualizar(Request $request, Oferta $oferta)
+    {
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
+
+        if (
+            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
+            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+        ) {
+            abort(403, 'No autorizado.');
+        }
+
+        $datos = $request->validate([
+            'titulo'           => 'required|string|max:100',
+            'descripcion'      => 'required|string',
+            'requisitos'       => 'nullable|array',
+            'requisitos.*'     => 'string|max:255',
+            'tipo_oferta'      => 'required|string|max:50',
+            'categoria'        => 'required|string|max:50',
+            'id_area_laboral'  => 'required|integer',
+            'id_carrera'       => 'required|integer',
+            'id_pais'          => 'required|integer',
+            'id_provincia'     => 'required|integer',
+            'id_canton'        => 'required|integer',
+            'id_modalidad'     => 'required|integer',
+            'horario'          => 'required|string|max:255',
+            'fecha_limite'     => 'required|date',
+            'estado_id'        => 'required|integer',
+        ]);
+
+        $datos['requisitos'] = json_encode($request->requisitos);
+
         $oferta->update($datos);
 
-        return redirect()->route('empresa.ofertas.index')
+        return redirect()
+            ->route('empresa.ofertas.index')
             ->with('success', 'Oferta actualizada correctamente.');
     }
 
     /**
-     * (Opcional) Eliminar / desactivar oferta.
+     * Cambiar estado de la oferta (Publicada ↔ Borrador)
      */
-    public function eliminar(Oferta $oferta)
+    public function cambiarEstado(Request $request, Oferta $oferta)
     {
-        // Si quieres borrado lógico, solo cambia estado_id
-        // $oferta->estado_id = 0; $oferta->save();
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
 
-        $oferta->delete();
+        // Seguridad
+        if (
+            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
+            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+        ) {
+            abort(403, 'No autorizado.');
+        }
 
-        return back()->with('success', 'Oferta eliminada correctamente.');
+        $request->validate([
+            'estado_id' => 'required|in:1,2',
+        ]);
+
+        $oferta->update([
+            'estado_id' => $request->estado_id,
+        ]);
+
+        return back()->with('success', 'Estado de la oferta actualizado.');
     }
 }

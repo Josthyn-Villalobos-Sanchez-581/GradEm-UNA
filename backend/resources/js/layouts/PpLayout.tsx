@@ -162,10 +162,10 @@ export default function PpLayout({
       title: "Ofertas",
       icon: Briefcase,
       subMenu: [
-        { title: "Publicar Oferta", route: "/PublicarOfertas", permisoId: 5 },
+        { title: "Publicar Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
         { title: "Postularme", route: "/ofertas", permisoId: 6 },
         { title: "Mis postulaciones", route: "/misPostulaciones", permisoId: 6 },
-        { title: "Gestionar Ofertas", route: "/gestionar-postulaciones", permisoId: 7 },
+        { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
       ],
     },
     {
@@ -621,10 +621,11 @@ export default function PpLayout({
       {/* CONTENIDO */}
       <main
         className={`
-          flex-1 p-6 mt-20 overflow-y-auto 
-          transition-[margin] duration-500 ease-in-out
-          ${sidebarCollapsed ? "md:ml-18" : "md:ml-48"}
-        `}
+    relative
+    flex-1 p-6 mt-20 overflow-y-auto
+    transition-[margin] duration-500 ease-in-out
+    ${sidebarCollapsed ? "md:ml-18" : "md:ml-48"}
+  `}
       >
         <div className="w-full max-w-full overflow-x-hidden">
           {breadcrumbs && (

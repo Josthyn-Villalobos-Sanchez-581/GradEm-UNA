@@ -3,9 +3,14 @@ import { Head, Link } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
+import OfertaCard from "@/components/ofertas/OfertaCard";
+
+/* =======================
+   INTERFACES
+======================= */
 
 interface FotoPerfil {
-    ruta_imagen: string;
+  url: string;
 }
 
 interface UsuarioEmpresa {
@@ -97,6 +102,10 @@ interface Props {
     userPermisos: number[];
 }
 
+/* =======================
+   COMPONENTE
+======================= */
+
 const OfertasIndex: React.FC<Props> = ({
     ofertas,
     filtros,
@@ -106,12 +115,9 @@ const OfertasIndex: React.FC<Props> = ({
     modalidades,
     areasLaborales,
 }) => {
-    // ============================
-    // ESTADO DE FILTROS (HU-27)
-    // ============================
     const [filtrosEstado, setFiltrosEstado] = useState<FiltrosProps>({
         tipo_oferta: filtros.tipo_oferta ?? "",
-        id_pais: filtros.id_pais ?? 1, // por defecto CR (si aplica)
+        id_pais: filtros.id_pais ?? 1,
         id_provincia: filtros.id_provincia ?? null,
         id_canton: filtros.id_canton ?? null,
         id_modalidad: filtros.id_modalidad ?? null,
@@ -119,12 +125,12 @@ const OfertasIndex: React.FC<Props> = ({
         buscar: filtros.buscar ?? "",
     });
 
-    const [mostrarFiltros, setMostrarFiltros] = useState<boolean>(true);
+    const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
     const provinciasFiltradas = useMemo(
         () =>
             filtrosEstado.id_pais
-                ? provincias.filter((p) => p.id_pais === filtrosEstado.id_pais)
+                ? provincias.filter(p => p.id_pais === filtrosEstado.id_pais)
                 : provincias,
         [provincias, filtrosEstado.id_pais]
     );
@@ -132,7 +138,7 @@ const OfertasIndex: React.FC<Props> = ({
     const cantonesFiltrados = useMemo(
         () =>
             filtrosEstado.id_provincia
-                ? cantones.filter((c) => c.id_provincia === filtrosEstado.id_provincia)
+                ? cantones.filter(c => c.id_provincia === filtrosEstado.id_provincia)
                 : cantones,
         [cantones, filtrosEstado.id_provincia]
     );
@@ -141,16 +147,14 @@ const OfertasIndex: React.FC<Props> = ({
         campo: keyof FiltrosProps,
         valor: string | number | null
     ) => {
-        setFiltrosEstado((prev) => {
+        setFiltrosEstado(prev => {
             const nuevo = { ...prev, [campo]: valor };
 
-            // Si cambia país, limpiar provincia y cantón
             if (campo === "id_pais") {
                 nuevo.id_provincia = null;
                 nuevo.id_canton = null;
             }
 
-            // Si cambia provincia, limpiar cantón
             if (campo === "id_provincia") {
                 nuevo.id_canton = null;
             }
@@ -164,14 +168,9 @@ const OfertasIndex: React.FC<Props> = ({
 
         const params: Record<string, any> = {};
 
-        if (filtrosEstado.tipo_oferta) params.tipo_oferta = filtrosEstado.tipo_oferta;
-        if (filtrosEstado.id_pais) params.id_pais = filtrosEstado.id_pais;
-        if (filtrosEstado.id_provincia) params.id_provincia = filtrosEstado.id_provincia;
-        if (filtrosEstado.id_canton) params.id_canton = filtrosEstado.id_canton;
-        if (filtrosEstado.id_modalidad) params.id_modalidad = filtrosEstado.id_modalidad;
-        if (filtrosEstado.id_area_laboral)
-            params.id_area_laboral = filtrosEstado.id_area_laboral;
-        if (filtrosEstado.buscar) params.buscar = filtrosEstado.buscar;
+        Object.entries(filtrosEstado).forEach(([key, value]) => {
+            if (value) params[key] = value;
+        });
 
         Inertia.get("/ofertas", params, {
             preserveState: true,
@@ -193,25 +192,6 @@ const OfertasIndex: React.FC<Props> = ({
         Inertia.get("/ofertas", {}, { preserveScroll: true });
     };
 
-    const obtenerClaseBorde = (tipo: string) => {
-        if (tipo === "empleo") return "border-l-4 border-[#034991]";
-        if (tipo === "practica") return "border-l-4 border-green-600";
-        return "border-l-4 border-gray-300";
-    };
-
-    const obtenerEtiquetaTipo = (tipo: string) => {
-        if (tipo === "empleo") return "Empleo";
-        if (tipo === "practica") return "Práctica profesional";
-        return tipo;
-    };
-
-    const obtenerFotoEmpresa = (oferta: Oferta) => {
-        return (
-            oferta.empresa?.usuario?.fotoPerfil?.ruta_imagen ??
-            "/images/empresa-default.png" 
-        );
-    };
-
     return (
         <>
             <Head title="Ofertas laborales y prácticas" />
@@ -220,7 +200,6 @@ const OfertasIndex: React.FC<Props> = ({
                 style={{ fontFamily: "Open Sans, sans-serif" }}
             >
                 {/* CARD PRINCIPAL CONTENEDOR */}
-                <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 space-y-6">
                     {/* ENCABEZADO SUPERIOR */}
                     <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-3">
                         <div>
@@ -253,8 +232,6 @@ const OfertasIndex: React.FC<Props> = ({
                             </Button>
                         </div>
                     </header>
-
-                    {/* LAYOUT: FILTROS IZQUIERDA / LISTADO DERECHA */}
                     <div className="flex flex-col lg:flex-row gap-6">
                         {/* SIDEBAR FILTROS */}
                         {mostrarFiltros && (
@@ -446,174 +423,70 @@ const OfertasIndex: React.FC<Props> = ({
                             </aside>
                         )}
 
-                        {/* LISTADO HU-25 */}
+                        {/* LISTADO */}
                         <section className="flex-1">
-                            <div className="pt-2 border-t border-gray-200 lg:border-none lg:pt-0">
-                                {ofertas.data.length === 0 ? (
-                                    <p className="text-center text-gray-500 mt-6 italic">
-                                        No se encontraron ofertas con los filtros seleccionados.
-                                    </p>
-                                ) : (
-                                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
-                                        {ofertas.data.map((oferta) => {
-                                            const fotoEmpresaUrl = obtenerFotoEmpresa(oferta);
+                            {ofertas.data.length === 0 ? (
+                                <p className="text-center text-gray-500 italic mt-6">
+                                    No se encontraron ofertas.
+                                </p>
+                            ) : (
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
+                                    {ofertas.data.map(oferta => (
+                                        <OfertaCard
+                                            key={oferta.id_oferta}
+                                            oferta={oferta}
+                                            href={`/ofertas/${oferta.id_oferta}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
 
-                                            return (
+                            {/* PAGINACIÓN (usa links de Laravel) */}
+                            {ofertas.links.length > 0 && (
+                                <div className="flex justify-center mt-6 gap-2 flex-wrap">
+                                    {ofertas.links.map((link, idx) =>
+                                        link.url ? (
+                                            <Button
+                                                key={idx}
+                                                asChild
+                                                size="sm"
+                                                variant={
+                                                    link.active ? "default" : "outline"
+                                                }
+                                                className={`px-3 py-1 text-xs rounded-full ${link.active
+                                                    ? "bg-[#034991] text-white border-[#034991]"
+                                                    : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                                                    }`}
+                                            >
                                                 <Link
-                                                    key={oferta.id_oferta}
-                                                    href={`/ofertas/${oferta.id_oferta}`}
-                                                    className={`flex flex-col justify-between h-full bg-white rounded-xl shadow-sm border ${obtenerClaseBorde(
-                                                        oferta.tipo_oferta
-                                                    )} p-4 hover:shadow-md transition`}
-                                                >
-                                                    <div>
-                                                        {/* Tipo y fecha */}
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span
-                                                                className={`text-xs font-semibold px-2 py-1 rounded-full ${oferta.tipo_oferta === "empleo"
-                                                                        ? "bg-[#034991]/10 text-[#034991]"
-                                                                        : oferta.tipo_oferta ===
-                                                                            "practica"
-                                                                            ? "bg-green-100 text-green-700"
-                                                                            : "bg-gray-100 text-gray-600"
-                                                                    }`}
-                                                            >
-                                                                {obtenerEtiquetaTipo(
-                                                                    oferta.tipo_oferta
-                                                                )}
-                                                            </span>
-
-                                                            <span className="text-[11px] text-gray-500">
-                                                                Publicada:{" "}
-                                                                {new Date(
-                                                                    oferta.fecha_publicacion
-                                                                ).toLocaleDateString("es-CR")}
-                                                            </span>
-                                                        </div>
-
-                                                        <h2 className="text-lg font-bold text-[#1F1E1E] mb-1 line-clamp-2">
-                                                            {oferta.titulo}
-                                                        </h2>
-
-                                                        <p className="text-xs text-gray-600 mb-2">
-                                                            {oferta.categoria}
-                                                            {oferta.area_laboral
-                                                                ? ` · ${oferta.area_laboral.nombre}`
-                                                                : ""}
-                                                        </p>
-
-                                                        {/* Empresa + avatar */}
-                                                        {oferta.empresa && (
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <img
-                                                                    src={fotoEmpresaUrl}
-                                                                    alt={oferta.empresa.nombre}
-                                                                    className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                                                                />
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-xs font-semibold text-gray-700">
-                                                                        {oferta.empresa.nombre}
-                                                                    </span>
-                                                                    {oferta.empresa.usuario
-                                                                        ?.nombre_completo && (
-                                                                            <span className="text-[11px] text-gray-500">
-                                                                                {
-                                                                                    oferta.empresa
-                                                                                        .usuario
-                                                                                        .nombre_completo
-                                                                                }
-                                                                            </span>
-                                                                        )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        <p className="text-sm text-gray-700 mt-1 line-clamp-3">
-                                                            {oferta.descripcion}
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-                                                        <p>
-                                                            Ubicación:{" "}
-                                                            {oferta.pais
-                                                                ? `${oferta.pais.nombre}${oferta.provincia
-                                                                    ? `, ${oferta.provincia.nombre}`
-                                                                    : ""
-                                                                }${oferta.canton
-                                                                    ? `, ${oferta.canton.nombre}`
-                                                                    : ""
-                                                                }`
-                                                                : "No especificada"}
-                                                        </p>
-                                                        <p>
-                                                            Modalidad:{" "}
-                                                            {oferta.modalidad?.nombre ??
-                                                                "No especificada"}{" "}
-                                                            · Horario: {oferta.horario}
-                                                        </p>
-                                                        <p className="mt-1 text-[#CD1719] font-semibold">
-                                                            Fecha límite:{" "}
-                                                            {new Date(
-                                                                oferta.fecha_limite
-                                                            ).toLocaleDateString("es-CR")}
-                                                        </p>
-                                                    </div>
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                {/* PAGINACIÓN (usa links de Laravel) */}
-                                {ofertas.links.length > 0 && (
-                                    <div className="flex justify-center mt-6 gap-2 flex-wrap">
-                                        {ofertas.links.map((link, idx) =>
-                                            link.url ? (
-                                                <Button
-                                                    key={idx}
-                                                    asChild
-                                                    size="sm"
-                                                    variant={
-                                                        link.active ? "default" : "outline"
-                                                    }
-                                                    className={`px-3 py-1 text-xs rounded-full ${link.active
-                                                            ? "bg-[#034991] text-white border-[#034991]"
-                                                            : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                                                        }`}
-                                                >
-                                                    <Link
-                                                        href={link.url}
-                                                        preserveScroll
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: link.label,
-                                                        }}
-                                                    />
-                                                </Button>
-                                            ) : (
-                                                <span
-                                                    key={idx}
-                                                    className="px-3 py-1 text-xs rounded-full text-gray-400 border border-gray-200"
+                                                    href={link.url}
+                                                    preserveScroll
                                                     dangerouslySetInnerHTML={{
                                                         __html: link.label,
                                                     }}
                                                 />
-                                            )
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                            </Button>
+                                        ) : (
+                                            <span
+                                                key={idx}
+                                                className="px-3 py-1 text-xs rounded-full text-gray-400 border border-gray-200"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: link.label,
+                                                }}
+                                            />
+                                        )
+                                    )}
+                                </div>
+                            )}
                         </section>
                     </div>
                 </div>
-            </div>
         </>
     );
 };
 
 (OfertasIndex as any).layout = (page: React.ReactNode & { props: Props }) => {
-    const permisos = page.props?.userPermisos ?? [];
-    return <PpLayout userPermisos={permisos}>{page}</PpLayout>;
+    return <PpLayout userPermisos={page.props.userPermisos}>{page}</PpLayout>;
 };
 
 export default OfertasIndex;

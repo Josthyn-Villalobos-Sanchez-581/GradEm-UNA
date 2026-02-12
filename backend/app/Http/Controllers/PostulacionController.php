@@ -17,91 +17,68 @@ class PostulacionController extends Controller
     {
         $usuario = Auth::user();
 
-        // Validación
         $request->validate([
             'mensaje' => 'nullable|string|max:1000',
         ]);
 
-        // Verificar que la oferta exista
         $oferta = Oferta::findOrFail($id_oferta);
 
-        // Evitar postulación duplicada
         $existe = Postulacion::where('id_usuario', $usuario->id_usuario)
             ->where('id_oferta', $id_oferta)
-            ->first();
+            ->exists();
 
         if ($existe) {
-            return back()->withErrors(['msg' => 'Ya te has postulado a esta oferta.']);
+            return back()->withErrors([
+                'msg' => 'Ya te has postulado a esta oferta.'
+            ]);
         }
 
-        // Crear postulación
         Postulacion::create([
-            'id_usuario'       => $usuario->id_usuario,
-            'id_oferta'        => $id_oferta,
-            'mensaje'          => $request->mensaje,
+            'id_usuario'        => $usuario->id_usuario,
+            'id_oferta'         => $id_oferta,
+            'mensaje'           => $request->mensaje,
             'fecha_postulacion' => now(),
-            'estado_id'        => 1, // estado "activo" o "pendiente"
+            'estado_id'         => 1, // 1 = Espera
         ]);
 
-        return redirect()->route('ofertas.mostrar', $id_oferta)
+        return redirect()
+            ->route('ofertas.mostrar', $id_oferta)
             ->with('success', 'Postulación enviada correctamente.');
     }
 
-
-
-    // ===========================================================
-    // LISTAR POSTULACIONES RECIBIDAS (permiso 7)
-    // Empresas y admin revisan postulaciones
-    // ===========================================================
-    public function index()
-    {
-        $postulaciones = Postulacion::with(['usuario', 'oferta'])
-            ->orderBy('fecha_postulacion', 'desc')
-            ->paginate(15);
-
-        return Inertia::render('Postulaciones/PostulacionesIndex', [
-            'postulaciones' => $postulaciones,
-            'userPermisos'   => getUserPermisos(),
-        ]);
-    }
-
-
-    // ===========================================================
-    // VER DETALLE DE UNA POSTULACIÓN (permiso 7)
-    // ===========================================================
-    public function mostrar($id)
-    {
-        $postulacion = Postulacion::with(['usuario', 'oferta'])
-            ->findOrFail($id);
-
-        return Inertia::render('Postulaciones/PostulacionDetalle', [
-            'postulacion' => $postulacion,
-            'userPermisos' => getUserPermisos(),
-        ]);
-    }
-
-
     // ===========================================================
     // CAMBIAR ESTADO DE POSTULACIÓN (permiso 7)
-    // ejemplo: aceptado, rechazado, en revisión, etc.
+    // 1 Espera | 2 Aceptado | 3 Negado
     // ===========================================================
-    public function actualizarEstado(Request $request, $id)
+    public function cambiarEstado(Request $request, $id)
     {
         $request->validate([
-            'estado_id' => 'required|integer'
+            'estado_id' => 'required|in:1,2,3,4'
         ]);
 
-        $postulacion = Postulacion::findOrFail($id);
-        $postulacion->estado_id = $request->estado_id;
-        $postulacion->save();
+        $postulacion = Postulacion::with('oferta')->findOrFail($id);
 
-        return back()->with('success', 'Estado actualizado correctamente.');
+        $usuario = Auth::user();
+
+        if (
+            $usuario->empresa &&
+            $postulacion->oferta->id_empresa !== $usuario->empresa->id_empresa &&
+            !$usuario->es_admin &&
+            !in_array(5, getUserPermisos())
+        ) {
+            abort(403, 'No autorizado.');
+        }
+
+        $postulacion->update([
+            'estado_id' => $request->estado_id
+        ]);
+
+        return back(); // 👈 IMPORTANTE
     }
 
 
     // ===========================================================
     // LISTAR POSTULACIONES DEL USUARIO LOGUEADO
-    // (estudiante ve sus postulaciones)
     // ===========================================================
     public function misPostulaciones()
     {
@@ -109,12 +86,12 @@ class PostulacionController extends Controller
 
         $postulaciones = Postulacion::with(['oferta'])
             ->where('id_usuario', $usuario->id_usuario)
-            ->orderBy('fecha_postulacion', 'desc')
+            ->orderByDesc('fecha_postulacion')
             ->paginate(10);
 
         return Inertia::render('Postulaciones/MisPostulaciones', [
             'postulaciones' => $postulaciones,
-            'userPermisos' => getUserPermisos(),
+            'userPermisos'  => getUserPermisos(),
         ]);
     }
 }

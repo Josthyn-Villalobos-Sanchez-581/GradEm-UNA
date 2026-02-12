@@ -97,6 +97,18 @@ class UsuariosConsultaController extends Controller
         $rolUsuarioVer = strtolower($usuario->rol->nombre_rol ?? '');
         $estadoEstudios = strtolower($authUser->estado_estudios ?? '');
 
+        if (
+            !in_array($rolAuth, ['superusuario', 'administrador del sistema']) &&
+            !(
+                $rolAuth === 'empresa' &&
+                in_array($rolUsuarioVer, ['estudiante', 'egresado'])
+            ) &&
+            $authUser->id_usuario !== $usuario->id_usuario
+        ) {
+            abort(403, 'No autorizado para ver este perfil.');
+        }
+
+
         // Estados válidos para considerar estudiante/egresado
         $estadosEstudiosPermitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
 
