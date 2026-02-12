@@ -49,12 +49,16 @@
         @include('pdf.partials.tabla')
     @endif
 
-    @if(!empty($pie))
-        @include('pdf.partials.grafico_pie')
+    @if(in_array('carrera', $reportes))
+        @include('pdf.partials.grafico_carrera')
     @endif
 
     @if(!empty($barras))
         @include('pdf.partials.grafico_barras')
+    @endif
+
+    @if(!empty($pie))
+        @include('pdf.partials.grafico_pie')
     @endif
 
 </body>

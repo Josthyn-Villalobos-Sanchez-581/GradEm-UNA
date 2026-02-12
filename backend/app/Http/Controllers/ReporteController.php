@@ -246,7 +246,7 @@ class ReporteController extends Controller
     {
         $data = $request->validate([
             'reportes'         => 'required|array|min:1',
-            'reportes.*'       => 'in:tabla,pie,barras',
+            'reportes.*'       => 'in:tabla,pie,barras,carrera',
             'parametros'       => 'required|array',
             'filtrosLegibles'  => 'nullable|array',
             'visual'          => 'nullable|array',

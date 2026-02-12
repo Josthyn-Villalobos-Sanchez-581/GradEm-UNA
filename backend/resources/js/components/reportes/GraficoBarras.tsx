@@ -118,16 +118,32 @@ export default function GraficoBarrasAnual({ filas }: Props) {
   /* =======================
      PREPARAR DATOS
   ======================= */
-  const datos = useMemo(() => {
-    const total = filas.reduce((s, f) => s + f.total_egresados, 0);
+  const { datos, sinAnioTotal } = useMemo(() => {
+    // Normalizar tipos
+    const normalizados = filas.map((f) => ({
+      anio: f.anio,
+      total_egresados: Number(f.total_egresados),
+    }));
 
-    return [...filas]
-      .sort((a, b) => Number(a.anio) - Number(b.anio))
-      .map((f) => ({
-        ...f,
-        porcentaje: total ? (f.total_egresados / total) * 100 : 0,
-      }));
+    // Separar los que no tienen año
+    const sinAnio = normalizados.find((f) => f.anio === "Sin año");
+    const sinAnioTotal = sinAnio ? sinAnio.total_egresados : 0;
+
+    // Solo los que sí tienen año numérico van al gráfico
+    const conAnio = normalizados
+      .filter((f) => f.anio !== "Sin año")
+      .sort((a, b) => Number(a.anio) - Number(b.anio));
+
+    const total = conAnio.reduce((s, f) => s + f.total_egresados, 0);
+
+    const datos = conAnio.map((f) => ({
+      ...f,
+      porcentaje: total ? (f.total_egresados / total) * 100 : 0,
+    }));
+
+    return { datos, sinAnioTotal };
   }, [filas]);
+
 
   const necesitaScroll = datos.length > 7;
 
@@ -142,6 +158,12 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           <p className="text-sm text-gray-600">
             Distribución anual de egresados
           </p>
+          
+          {sinAnioTotal > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              {sinAnioTotal} egresado(s) sin año de graduación
+            </p>
+          )}
 
           {/* SELECTOR DE COLOR */}
           <div className="flex items-center gap-2 mt-3">
@@ -183,9 +205,8 @@ export default function GraficoBarrasAnual({ filas }: Props) {
 
       {/* GRÁFICO */}
       <div
-        className={`w-full ${
-          necesitaScroll && horizontal ? "max-h-[420px] overflow-y-auto" : ""
-        }`}
+        className={`w-full ${necesitaScroll && horizontal ? "max-h-[420px] overflow-y-auto" : ""
+          }`}
       >
         <div className={horizontal ? "h-[480px]" : "h-[380px]"}>
           <ResponsiveContainer width="100%" height="100%">

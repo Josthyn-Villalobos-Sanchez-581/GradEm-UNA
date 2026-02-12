@@ -89,7 +89,7 @@ export default function GraficoPie({ datos }: Props) {
         fontWeight="bold"
       >
         {modoValor === "porcentaje"
-          ? `${(percent * 100).toFixed(0)}%`
+          ? `${(percent * 100).toFixed(1)}%`
           : value}
       </text>
     );
@@ -198,18 +198,24 @@ export default function GraficoPie({ datos }: Props) {
               </Pie>
 
               <Tooltip
-                formatter={(value: number, name: string, props: any) => [
-                  modoValor === "porcentaje"
-                    ? `${props.payload.porcentaje.toFixed(1)}%`
-                    : value,
-                  name,
-                ]}
+                formatter={(value: number, name: string, props: any) => {
+                  const porcentaje = props.payload.porcentaje.toFixed(1);
+                  const numero = value;
+
+                  return [
+                    modoValor === "numero"
+                      ? `${porcentaje}%`
+                      : `${numero} egresados`,
+                    name,
+                  ];
+                }}
                 contentStyle={{
                   backgroundColor: "#ffffff",
                   borderRadius: "10px",
                   border: "1px solid #e5e7eb",
                 }}
               />
+
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -232,9 +238,7 @@ export default function GraficoPie({ datos }: Props) {
                   {item.nombre}
                 </p>
                 <p className="text-xs text-gray-600">
-                  {modoValor === "porcentaje"
-                    ? `${item.porcentaje.toFixed(1)}%${item.valor} egresados`
-                    : `${item.valor} egresados`}
+                  {item.porcentaje.toFixed(1)}% · {item.valor} egresados
                 </p>
               </div>
             </div>

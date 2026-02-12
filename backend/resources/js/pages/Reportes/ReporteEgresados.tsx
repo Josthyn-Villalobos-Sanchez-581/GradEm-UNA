@@ -173,7 +173,6 @@ export default function ReporteEgresados({
   });
 
 
-
   const toggleFilters = () => {
     const v = !filtersCollapsed;
     setFiltersCollapsed(v);
@@ -372,6 +371,9 @@ export default function ReporteEgresados({
             barras: {
               paleta: localStorage.getItem("graficoAnualColor") || "azul",
               modo: localStorage.getItem("graficoBarrasModo") || "numero",
+            },
+            carrera: {
+              paleta: localStorage.getItem("graficoCarreraColor") || "azul",
             },
             pie: {
               paleta: localStorage.getItem("graficoPiePaleta") || "institucional",
