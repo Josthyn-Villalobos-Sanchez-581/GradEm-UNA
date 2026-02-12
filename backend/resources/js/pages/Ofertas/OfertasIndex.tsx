@@ -200,7 +200,6 @@ const OfertasIndex: React.FC<Props> = ({
                 style={{ fontFamily: "Open Sans, sans-serif" }}
             >
                 {/* CARD PRINCIPAL CONTENEDOR */}
-                <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 space-y-6">
                     {/* ENCABEZADO SUPERIOR */}
                     <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-3">
                         <div>
@@ -482,7 +481,6 @@ const OfertasIndex: React.FC<Props> = ({
                         </section>
                     </div>
                 </div>
-            </div>
         </>
     );
 };

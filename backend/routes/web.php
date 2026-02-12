@@ -210,6 +210,9 @@ Route::middleware('auth')->group(function () {
 
         Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
             ->name('empresa.ofertas.eliminar');
+
+        Route::get('/ofertas/{oferta}/gestion', [OfertaController::class, 'gestionar'])
+            ->name('empresa.ofertas.gestion');
     });
 
     // ==========================================
@@ -244,7 +247,17 @@ Route::middleware('auth')->group(function () {
             ->name('postulaciones.mostrar');
 
         Route::put('/empresa/ofertas/{oferta}/estado', [OfertaController::class, 'cambiarEstado'])
-        ->name('empresa.ofertas.cambiarEstado');
+            ->name('empresa.ofertas.cambiarEstado');
+
+        Route::get('/empresa/ofertas/{oferta}/gestion', [OfertaController::class, 'gestionar'])
+            ->name('empresa.ofertas.gestion');
+
+        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'cambiarEstado'])
+            ->name('postulaciones.cambiarEstado');
+
+        Route::get(
+            '/empresa/ofertas/{oferta}/postulantes', [PostulacionController::class, 'postulantesPorOferta']
+        )->name('empresa.ofertas.postulantes');
     });
 
     // ==========================================
@@ -339,8 +352,8 @@ Route::middleware('auth')->group(function () {
 
         //HU21 mostrar perfil estudiante a empresa o administrador 
         Route::middleware(['auth', 'permiso:12'])
-        ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
-        ->name('usuarios.ver');
+            ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
+            ->name('usuarios.ver');
     });
 
 
@@ -410,7 +423,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reportes/grafico-por-carrera', [ReporteController::class, 'graficoPorCarrera'])
             ->name('reportes.grafico-por-carrera');
 
-            
+
 
         Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
 

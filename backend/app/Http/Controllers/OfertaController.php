@@ -265,9 +265,11 @@ class OfertaController extends Controller
          * ⚠️ OJO: cargamos TODA la cadena necesaria para el frontend
          */
         $consulta = Oferta::with([
-            'empresa.usuario.fotoPerfil', // 🔥 CLAVE
+            'empresa.usuario.fotoPerfil',
             'modalidad',
-        ])->where('estado_id', '!=', 3); // ❌ No desactivadas
+        ])
+            ->withCount('postulaciones') // 👈 AQUÍ VA
+            ->where('estado_id', '!=', 3);
 
         /**
          * 🔐 Visibilidad
@@ -354,6 +356,98 @@ class OfertaController extends Controller
             'userPermisos' => getUserPermisos(),
         ]);
     }
+
+    public function gestionar(Request $request, Oferta $oferta)
+{
+    $usuario = Auth::user();
+    $empresa = $usuario->empresa;
+
+    // 🔒 Seguridad
+    if (
+        (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
+        ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+    ) {
+        abort(403, 'No autorizado.');
+    }
+
+    // 🔎 Cargar relaciones de la oferta
+    $oferta->load([
+        'empresa.usuario.fotoPerfil',
+        'modalidad',
+        'areaLaboral',
+        'carrera',
+        'pais',
+        'provincia',
+        'canton',
+    ]);
+
+    // 🔎 Filtro por estado
+    $estado = $request->estado;
+
+    $consulta = Postulacion::with([
+        'usuario.fotoPerfil',
+        'usuario.curriculum'
+    ])
+        ->where('id_oferta', $oferta->id_oferta);
+
+    if ($estado) {
+        $consulta->where('estado_id', $estado);
+    }
+
+    // 📄 Paginación SIN through
+    $postulaciones = $consulta
+        ->orderByDesc('fecha_postulacion')
+        ->paginate(10)
+        ->withQueryString();
+
+    // 🔄 Transformar colección correctamente
+    $postulaciones->getCollection()->transform(function ($postulacion) {
+
+        return [
+            'id_postulacion' => $postulacion->id_postulacion,
+            'mensaje' => $postulacion->mensaje,
+            'fecha_postulacion' => $postulacion->fecha_postulacion,
+            'estado_id' => $postulacion->estado_id,
+
+            'usuario' => $postulacion->usuario ? [
+                'id_usuario' => $postulacion->usuario->id_usuario,
+                'nombre' => $postulacion->usuario->nombre_completo,
+
+                'fotoPerfil' => $postulacion->usuario->fotoPerfil
+                    ? [
+                        'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
+                    ]
+                    : null,
+
+                'curriculum' => $postulacion->usuario->curriculum
+                    ? [
+                        'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
+                    ]
+                    : null,
+            ] : null,
+        ];
+    });
+
+    // 📊 Estadísticas optimizadas
+    $estadisticas = Postulacion::selectRaw("
+        COUNT(*) as total,
+        SUM(estado_id = 1) as espera,
+        SUM(estado_id = 2) as aceptado,
+        SUM(estado_id = 3) as negado,
+        SUM(estado_id = 4) as revision
+    ")
+        ->where('id_oferta', $oferta->id_oferta)
+        ->first();
+
+    return Inertia::render('Ofertas/GestionOferta', [
+        'oferta'        => $oferta,
+        'postulaciones' => $postulaciones,
+        'estadisticas'  => $estadisticas,
+        'filtroEstado'  => $estado,
+        'userPermisos'  => getUserPermisos(),
+    ]);
+}
+
 
     /**
      * Formulario editar oferta

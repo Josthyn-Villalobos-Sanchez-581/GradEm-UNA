@@ -6,6 +6,7 @@ import { route } from "ziggy-js";
 import { Briefcase, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import ModalDetalleOferta from "@/components/modal/ModalDetalleOferta";
+import { Filter, Users, Building2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 /* =========================
    TIPOS
@@ -29,6 +30,8 @@ interface Oferta {
   tipo_oferta: string;
   empresa: Empresa;
   modalidad?: Modalidad;
+
+  postulaciones_count?: number;
 }
 
 interface Props {
@@ -180,304 +183,235 @@ export default function EmpresaOfertasIndex({
   };
 
   /* =========================
-     RENDER
+      RENDER
   ========================= */
   return (
     <>
       <Head title="Mis ofertas laborales" />
 
-      <div className="max-w-7xl mx-auto px-6 py-6 text-black">
-        {/* HEADER */}
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-red-600" />
-            Mis ofertas laborales
-          </h1>
+      <div className="max-full w-full mx-auto px-6 py-6 text-[#000000]">
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setMostrarFiltros((v) => !v)}
-            >
-              {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
-            </Button>
+        {/* HEADER PRINCIPAL */}
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+                Ofertas laborales y prácticas
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Gestiona tus publicaciones y revisa el estado de los aplicantes.
+              </p>
+            </div>
 
-            <Button
-              onClick={() =>
-                router.visit(route("empresa.ofertas.crear"))
-              }
-            >
-              Crear oferta
-            </Button>
-          </div>
-        </header>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="rounded-full border-[#034991] text-[#034991] hover:bg-blue-50 px-6 font-bold text-xs"
+                onClick={() => setMostrarFiltros((v) => !v)}
+              >
+                {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
+              </Button>
 
-        {/* LAYOUT */}
-        <div className="flex gap-6">
-          {/* SIDEBAR */}
-          {mostrarFiltros && (
-            <aside className="w-72">
-              <div className="bg-gray-50 border rounded-2xl p-4 space-y-4">
-                <h2 className="font-semibold text-[#034991] border-b pb-2">
-                  Filtros
-                </h2>
+              <Button
+                className="rounded-full bg-[#034991] hover:bg-[#023870] text-white px-6 font-bold text-xs shadow-md transition-all"
+                onClick={() => router.visit(route("empresa.ofertas.crear"))}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Crear oferta
+              </Button>
+            </div>
+          </header>
 
-                <div>
-                  <label className="font-semibold text-sm text-black">
-                    Ofertas por página
-                  </label>
+          <div className="flex flex-col lg:flex-row gap-8">
 
-                  <select
-                    value={perPage}
-                    onChange={(e) => {
-                      setPerPage(Number(e.target.value));
-                      setTimeout(aplicarFiltros, 0);
-                    }}
-                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2
-               text-black bg-white
-               focus:ring-2 focus:ring-[#034991] focus:outline-none"
-                  >
-                    {[5, 10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* SIDEBAR DE FILTROS (Estilo igual a tu imagen) */}
+            {mostrarFiltros && (
+              <aside className="w-full lg:w-80">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-6">
+                  <h2 className="font-bold text-[#034991] text-lg mb-6 flex items-center gap-2">
+                    Filtros de búsqueda
+                  </h2>
 
+                  <div className="space-y-5">
+                    {/* BUSCADOR */}
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Buscar</label>
+                      <input
+                        className="w-full bg-[#f8fafc] border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#034991]/20 outline-none"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Título, descripción..."
+                      />
+                    </div>
 
-                <div>
-                  <label className="font-semibold text-sm text-black">
-                    Buscar
-                  </label>
+                    {/* MODALIDAD (SELECT ESTILO IMAGEN) */}
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Modalidad</label>
+                      <select
+                        className="w-full bg-[#f8fafc] border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#034991]/20 outline-none appearance-none"
+                        value={modalidadId}
+                        onChange={(e) => setModalidadId(e.target.value)}
+                      >
+                        <option value="">Todas</option>
+                        {modalidades.map((m) => (
+                          <option key={m.id} value={m.id}>{m.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div className="relative mt-1">
-                    <Search
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"
-                    />
+                    {/* FECHAS */}
+                    <div className="grid grid-cols-1 gap-4 pt-2">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2 italic">Fecha Inicio</label>
+                        <input
+                          type="date"
+                          className="w-full bg-[#f8fafc] border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-600"
+                          value={fechaInicio}
+                          onChange={(e) => setFechaInicio(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2 italic">Fecha Fin</label>
+                        <input
+                          type="date"
+                          className="w-full bg-[#f8fafc] border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-600"
+                          value={fechaFin}
+                          onChange={(e) => setFechaFin(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                    <input
-                      className="w-full border rounded-lg pl-9 pr-3 py-2
-                 text-black bg-white
-                 focus:ring-2 focus:ring-[#034991] focus:outline-none"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Buscar oferta..."
-                    />
+                  <div className="pt-8 space-y-3">
+                    <Button
+                      className="w-full bg-[#034991] hover:bg-[#023870] text-white rounded-full py-6 font-bold shadow-lg"
+                      onClick={aplicarFiltros}
+                    >
+                      Aplicar filtros
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full text-[#034991] hover:bg-blue-50 rounded-full font-bold underline"
+                      onClick={() => router.get(route("empresa.ofertas.index"))}
+                    >
+                      Limpiar
+                    </Button>
                   </div>
                 </div>
+              </aside>
+            )}
 
+            {/* LISTADO TIPO TABLA PERO CON ESTILO DE TARJETAS */}
+            {/* LISTADO TIPO TABLA COMPACTO */}
+            <section className="flex-1 min-w-0">
+              <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-50 bg-slate-50/30">
+                        {/* Reducimos el padding de p-8 a p-5 */}
+                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">Puesto de Trabajo</th>
+                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Postulantes</th>
+                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Estado</th>
+                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-right">Gestión</th>
+                      </tr>
+                    </thead>
 
-                <div>
-                  <label className="font-semibold text-sm">
-                    Modalidad
-                  </label>
-                  <select
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
-                    value={modalidadId}
-                    onChange={(e) => setModalidadId(e.target.value)}
-                  >
-                    <option value="">Todas</option>
-                    {modalidades.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    <tbody className="divide-y divide-slate-50">
+                      {ofertas.data.map((oferta) => (
+                        <tr
+                          key={oferta.id_oferta}
+                          onClick={() => router.visit(route("empresa.ofertas.gestion", oferta.id_oferta))}
+                          className="group hover:bg-[#F4F7FA]/50 transition-all cursor-pointer"
+                        >
+                          {/* Celda principal: Reducida de p-8 a py-3 px-5 */}
+                          <td className="py-3 px-5">
+                            <div className="flex items-center gap-4">
+                              {/* Icono de edificio más pequeño: de w-16 a w-12 */}
+                              <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                <Building2 className="w-6 h-6 text-slate-300" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-extrabold text-[#034991] text-base uppercase leading-tight group-hover:underline decoration-2 underline-offset-2">
+                                  {oferta.titulo}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-wider">
+                                  — {oferta.empresa?.nombre}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-5 text-center">
+                            <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-[#034991] rounded-lg font-black text-[10px] border border-blue-100">
+                              <Users className="w-3.5 h-3.5 mr-1.5" />
+                              {oferta.postulaciones_count ?? 0}
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-5 text-center">
+                            <div className="flex flex-col items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <BadgeEstado estadoId={oferta.estado_id} />
+                              <ToggleEstado
+                                activo={oferta.estado_id === 1}
+                                onChange={() => cambiarEstado(oferta)}
+                              />
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-2">
+                              {/* Botones de acción más compactos: de h-11 a h-9 */}
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 rounded-xl bg-slate-50 text-slate-400 hover:bg-[#034991] hover:text-white transition-all shadow-none"
+                                onClick={() => router.visit(route("empresa.ofertas.editar", oferta.id_oferta))}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-600 hover:text-white transition-all shadow-none"
+                                onClick={() => eliminarOferta(oferta.id_oferta)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 rounded-xl bg-[#034991] text-white hover:bg-[#023870] shadow-sm transition-all"
+                                onClick={() => setOfertaSeleccionada(oferta)}
+                              >
+                                <ChevronRight className="w-5 h-5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
-                <div>
-                  <label className="font-semibold text-sm">
-                    Fecha inicio
-                  </label>
-                  <input
-                    type="date"
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
-                    value={fechaInicio}
-                    onChange={(e) =>
-                      setFechaInicio(e.target.value)
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-sm">
-                    Fecha fin
-                  </label>
-                  <input
-                    type="date"
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    router.get(route("empresa.ofertas.index"))
-                  }
-                >
-                  Limpiar filtros
-                </Button>
-
-                <Button
-                  className="w-full"
-                  onClick={aplicarFiltros}
-                >
-                  Aplicar filtros
-                </Button>
-
-              </div>
-            </aside>
-          )}
-
-          {/* TABLA */}
-          <section className="flex-1">
-            <div className="bg-white p-6 rounded-2xl shadow border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-100 text-left">
-                    <th className="p-3">Título</th>
-                    <th className="p-3">Empresa</th>
-                    <th className="p-3">Publicación</th>
-                    <th className="p-3">Expira</th>
-                    <th className="p-3 text-center">Estado</th>
-                    <th className="p-3 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ofertas.data.map((oferta) => (
-                    <tr
-                      key={oferta.id_oferta}
-                      className="border-t hover:bg-gray-50"
-                    >
-                      <td className="p-3">{oferta.titulo}</td>
-                      <td className="p-3">
-                        {oferta.empresa.nombre}
-                      </td>
-                      <td className="p-3">
-                        {new Date(
-                          oferta.fecha_publicacion
-                        ).toLocaleDateString()}
-                      </td>
-                      <td className="p-3">
-                        {new Date(
-                          oferta.fecha_limite
-                        ).toLocaleDateString()}
-                      </td>
-                      <td className="p-3 text-center space-y-2">
-                        <BadgeEstado estadoId={oferta.estado_id} />
-                        <div className="flex justify-center">
-                          <ToggleEstado
-                            activo={oferta.estado_id === 1}
-                            onChange={() => cambiarEstado(oferta)}
-                          />
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex justify-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() =>
-                              router.visit(
-                                route(
-                                  "empresa.ofertas.editar",
-                                  oferta.id_oferta
-                                )
-                              )
-                            }
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            onClick={() =>
-                              eliminarOferta(oferta.id_oferta)
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-
-                          <Button
-                            size="icon"
-                            onClick={() =>
-                              setOfertaSeleccionada(oferta)
-                            }
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {ofertas.links.length > 1 && (
-                <div className="flex justify-center mt-4 space-x-2">
-                  {/* Botón Anterior */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="default"
-                    disabled={!ofertas.links[0].url}
-                    onClick={() =>
-                      ofertas.links[0].url &&
-                      router.visit(ofertas.links[0].url)
-                    }
-                  >
-                    Anterior
-                  </Button>
-
-                  {/* Páginas */}
-                  {ofertas.links
-                    .slice(1, -1)
-                    .map((link, index) => (
+                {/* Paginación más delgada: p-10 a p-6 */}
+                {ofertas.links.length > 3 && (
+                  <div className="p-6 bg-white border-t border-slate-50 flex justify-center items-center gap-2">
+                    {ofertas.links.map((link, index) => (
                       <Button
                         key={index}
-                        type="button"
-                        size="sm"
-                        variant={link.active ? "destructive" : "outline"}
+                        variant={link.active ? "default" : "ghost"}
+                        className={`h-8 min-w-[32px] rounded-lg font-bold text-xs ${link.active ? "bg-[#034991] text-white" : "text-slate-400"
+                          }`}
                         disabled={!link.url}
-                        onClick={() =>
-                          link.url && router.visit(link.url, { preserveScroll: true, preserveState: true, })
-                        }
-                      >
-                        {link.label}
-                      </Button>
+                        onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
+                        dangerouslySetInnerHTML={{ __html: link.label }}
+                      />
                     ))}
-
-                  {/* Botón Siguiente */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="default"
-                    disabled={
-                      !ofertas.links[ofertas.links.length - 1].url
-                    }
-                    onClick={() =>
-                      ofertas.links[ofertas.links.length - 1].url &&
-                      router.visit(
-                        ofertas.links[ofertas.links.length - 1].url!
-                      )
-                    }
-                  >
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
-
-
-            </div>
-          </section>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
 
       {ofertaSeleccionada && (
         <ModalDetalleOferta
