@@ -43,7 +43,7 @@ interface Catalogo {
 }
 
 // ------------------------------------------------------
-// MAPEO FILTROS
+// MAPEO FILTROS (ACA SE DEFINE QUE FILTROS LLEVARA CADA REPORTE)
 // ------------------------------------------------------
 const filtrosPorReporte: Record<string, string[]> = {
   barras: [
