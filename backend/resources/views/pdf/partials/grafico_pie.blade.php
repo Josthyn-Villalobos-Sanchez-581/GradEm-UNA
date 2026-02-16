@@ -1,12 +1,34 @@
+//grafico pie egresados
 @php
-    $datos = [
-        ['nombre' => 'Empleados', 'valor' => $pie['empleados'] ?? 0, 'color' => '#034991'],
-        ['nombre' => 'Desempleados', 'valor' => $pie['desempleados'] ?? 0, 'color' => '#dc2626'],
-        ['nombre' => 'No especificado', 'valor' => $pie['no_especificado'] ?? 0, 'color' => '#f59e0b'],
-    ];
+$PALETAS_PIE = [
+  'institucional' => ['#1d4ed8', '#dc2626', '#16a34a'],
+  'vibrante'      => ['#7c3aed', '#06b6d4', '#f97316'],
+  'natural'       => ['#065f46', '#92400e', '#0369a1'],
+  'contraste'     => ['#000000', '#c8cbab', '#ef4444'],
+];
 
-    $total = collect($datos)->sum('valor') ?: 1;
+$paletaPie  = $visual['pie']['paleta'] ?? 'institucional';
+$coloresPie = $PALETAS_PIE[$paletaPie] ?? $PALETAS_PIE['institucional'];
 @endphp
+
+@php
+$pie = $pie ?? [];
+
+$datos = [
+  ['nombre' => 'Empleados', 'valor' => $pie['empleados'] ?? 0],
+  ['nombre' => 'Desempleados', 'valor' => $pie['desempleados'] ?? 0],
+  ['nombre' => 'No especificado', 'valor' => $pie['no_especificado'] ?? 0],
+];
+
+$total = collect($datos)->sum('valor') ?: 1;
+
+foreach ($datos as $i => &$d) {
+  $d['color'] = $coloresPie[$i % count($coloresPie)];
+}
+unset($d);
+@endphp
+
+
 
 <div style="margin-top:30px;">
 

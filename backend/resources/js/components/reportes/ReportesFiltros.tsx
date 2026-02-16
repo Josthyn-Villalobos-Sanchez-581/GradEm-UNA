@@ -395,11 +395,30 @@ export default function ReportesFiltros({
         {/* ------------ ESTADO EMPLEO ------------ */}
         {mostrarFiltro("estadoEmpleo") && (
           <div className="flex flex-col" key="filtro-estado-empleo">
-            <label className="text-base font-semibold text-black mb-1">
+            <label className="text-base font-semibold text-black mb-1 flex items-center gap-2">
               Estado laboral
+
+              <span
+                className="
+                            flex items-center justify-center
+                            w-4 h-4
+                            rounded-full
+                            border border-gray-400
+                            text-[10px] font-bold
+                            text-gray-600
+                            cursor-help
+                            hover:bg-gray-100
+                            transition
+                          "
+                title="Este filtro NO se toma en cuenta para el gráfico de pastel (Empleados vs No empleados).
+                        Sí aplica para la tabla y el gráfico de barras."
+              >
+                !
+              </span>
             </label>
+
             <select
-              className="w-full  h-9  text-base  border border-gray-300  rounded-md  px-2  bg-white  text-black  focus:ring-1 focus:ring-[#034991]"
+              className="w-full h-9 text-base border border-gray-300 rounded-md px-2 bg-white text-black focus:ring-1 focus:ring-[#034991]"
               value={filtros.estadoEmpleo ?? ""}
               onChange={(e) => actualizarFiltros("estadoEmpleo", e.target.value)}
             >

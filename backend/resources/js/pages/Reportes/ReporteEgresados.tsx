@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
 
 import TablaEgresados from "@/components/reportes/TablaEgresados";
+import GraficoBarrasCarrera from "@/components/reportes/GraficoBarrasCarrera";
 import GraficoPie from "@/components/reportes/GraficoPie";
 import GraficoBarras from "@/components/reportes/GraficoBarras";
 import ReportesFiltros from "@/components/reportes/ReportesFiltros";
@@ -97,6 +98,23 @@ const filtrosPorReporte: Record<string, string[]> = {
     "provinciaId",
     "cantonId",
   ],
+
+  carrera: [
+    "universidadId",
+    "fechaInicio",
+    "fechaFin",
+    "genero",
+    "estadoEstudios",
+    "nivelAcademico",
+    "estadoEmpleo",
+    "tiempoEmpleo",
+    "areaLaboralId",
+    "salario",
+    "tipoEmpleo",
+    "paisId",
+    "provinciaId",
+    "cantonId",
+  ],
 };
 
 const etiquetasFiltros: Record<string, string> = {
@@ -141,6 +159,28 @@ export default function ReporteEgresados({
   const modal = useModal();
   const [hayErrores, setHayErrores] = useState(false);
   const [catalogos] = useState(catalogosIniciales);
+  const REPORTES_DISPONIBLES = ["tabla", "pie", "barras", "carrera"];
+  const [cooldownPdf, setCooldownPdf] = useState(false);
+  const [filtrosVisibles, setFiltrosVisibles] = useState(true);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const guardado = localStorage.getItem("filtersCollapsed");
+      if (guardado !== null) return guardado === "true";
+
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+
+
+  const toggleFilters = () => {
+    const v = !filtersCollapsed;
+    setFiltersCollapsed(v);
+    localStorage.setItem("filtersCollapsed", String(v));
+  };
+
+
 
   // ------------------------------------------------------
   // CATÁLOGO ASOCIADO A CADA FILTRO
@@ -177,6 +217,7 @@ export default function ReporteEgresados({
 
 
   const [resultados, setResultados] = useState<any[]>([]);
+  const [graficoCarrera, setGraficoCarrera] = useState<any[]>([]);
   const [graficoEmpleo, setGraficoEmpleo] = useState<GraficoEmpleo | null>(null);
   const [graficoAnual, setGraficoAnual] = useState<GraficoAnualRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -263,11 +304,20 @@ export default function ReporteEgresados({
       let tabla: any[] = [];
       let pie: GraficoEmpleo | null = null;
       let barras: GraficoAnualRow[] = [];
+      let carrera: any[] = [];
 
       if (reportesSeleccionados.includes("tabla")) {
         const r = await axios.get("/reportes/egresados", { params });
         tabla = r.data?.data ?? [];
       }
+
+      if (reportesSeleccionados.includes("carrera")) {
+        const r = await axios.get("/reportes/grafico-por-carrera", { params });
+        carrera = r.data?.data ?? [];
+        setGraficoCarrera(carrera);
+      }
+
+
 
       if (reportesSeleccionados.includes("pie")) {
         const r = await axios.get("/reportes/grafico-empleo", { params });
@@ -284,25 +334,31 @@ export default function ReporteEgresados({
       setGraficoEmpleo(pie);
       setGraficoAnual(barras);
 
-      if (
-        tabla.length === 0 &&
-        (!pie || (pie.empleados + pie.desempleados + pie.no_especificado === 0)) &&
-        barras.length === 0
-      ) {
+      const hayDatos =
+        tabla.length > 0 ||
+        barras.length > 0 ||
+        carrera.length > 0 ||
+        (pie &&
+          pie.empleados + pie.desempleados + pie.no_especificado > 0);
+
+
+      if (!hayDatos) {
         modal.alerta({
           titulo: "Sin resultados",
           mensaje: "No se encontraron datos con los filtros aplicados.",
         });
       }
+
     } finally {
       setLoading(false);
     }
   };
 
   const descargarPdf = async () => {
-    if (reportesSeleccionados.length === 0) return;
+    if (reportesSeleccionados.length === 0 || cooldownPdf) return;
 
     const params = obtenerParametrosBackend();
+    setCooldownPdf(true);
 
     try {
       const res = await axios.post(
@@ -311,6 +367,17 @@ export default function ReporteEgresados({
           reportes: reportesSeleccionados,
           parametros: params,
           filtrosLegibles,
+          // 🔽 NUEVO
+          visual: {
+            barras: {
+              paleta: localStorage.getItem("graficoAnualColor") || "azul",
+              modo: localStorage.getItem("graficoBarrasModo") || "numero",
+            },
+            pie: {
+              paleta: localStorage.getItem("graficoPiePaleta") || "institucional",
+              modo: localStorage.getItem("graficoPieModo") || "porcentaje",
+            },
+          },
         },
         { responseType: "blob" }
       );
@@ -321,11 +388,22 @@ export default function ReporteEgresados({
       a.download = "Reporte_GradEm_UNA.pdf";
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch {
+
+      // ✅ MODAL ÉXITO
       modal.alerta({
-        titulo: "Error",
-        mensaje: "No fue posible generar el PDF del reporte.",
+        titulo: "Descarga completada",
+        mensaje: "El reporte se descargó exitosamente.",
       });
+    } catch {
+      // ❌ MODAL ERROR
+      modal.alerta({
+        titulo: "Error inesperado",
+        mensaje: "Ocurrió un problema al generar el PDF. Intente nuevamente.",
+      });
+    } finally {
+      setTimeout(() => {
+        setCooldownPdf(false);
+      }, 5000);
     }
   };
 
@@ -414,6 +492,7 @@ export default function ReporteEgresados({
                   {[
                     { id: "todos", label: "Todos los reportes" },
                     { id: "tabla", label: "Tabla de egresados" },
+                    { id: "carrera", label: "Gráfico por carrera" },
                     { id: "barras", label: "Gráfico barras" },
                     { id: "pie", label: "Gráfico pie" },
                   ].map((opcion) => (
@@ -425,15 +504,16 @@ export default function ReporteEgresados({
                         type="checkbox"
                         checked={
                           opcion.id === "todos"
-                            ? reportesSeleccionados.length === 3
+                            ? REPORTES_DISPONIBLES.every(r => reportesSeleccionados.includes(r))
                             : reportesSeleccionados.includes(opcion.id)
                         }
+
 
                         onChange={(e) => {
                           let nuevos: string[] = [];
 
                           if (opcion.id === "todos") {
-                            nuevos = e.target.checked ? ["tabla", "pie", "barras"] : [];
+                            nuevos = e.target.checked ? [...REPORTES_DISPONIBLES] : [];
                           } else {
                             nuevos = e.target.checked
                               ? [...reportesSeleccionados.filter(r => r !== "todos"), opcion.id]
@@ -443,9 +523,9 @@ export default function ReporteEgresados({
                           actualizarTipoReporte(nuevos);
                         }}
                         className="
-                                    h-4 w-4 rounded border-gray-300
-                                    text-[#034991] focus:ring-[#034991]
-                                  "
+                      h-4 w-4 rounded border-gray-300
+                      text-[#034991] focus:ring-[#034991]
+                      "
                       />
                       <span className="text-sm text-black">
                         {opcion.label}
@@ -460,64 +540,114 @@ export default function ReporteEgresados({
               <div className="flex gap-3 w-full sm:w-auto">
                 <Button
                   onClick={fetchReportes}
-                  disabled={!tipoReporte || hayErrores}
-                  className="w-full sm:w-auto h-[42px]"
+                  disabled={!tipoReporte || hayErrores || loading}
+                  className="w-full sm:w-auto h-[42px] flex items-center justify-center gap-2"
                 >
-                  Generar reporte
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    "Generar reporte"
+                  )}
                 </Button>
+
 
                 {hayResultados && (
                   <Button
                     variant="destructive"
                     onClick={descargarPdf}
-                    className="w-full sm:w-auto h-[42px]"
+                    disabled={cooldownPdf}
+                    className="w-full sm:w-auto h-[42px] flex items-center justify-center gap-2"
                   >
-                    Descargar PDF
+                    {cooldownPdf ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Espere...
+                      </>
+                    ) : (
+                      "Descargar PDF"
+                    )}
                   </Button>
+
                 )}
               </div>
             </div>
           </header>
 
 
-
-
           {/* Contenido */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-black">
-
+          <div className="flex w-full gap-6 text-black relative">
             {/* Filtros */}
-            <aside className="lg:col-span-1 bg-white rounded-xl shadow flex flex-col h-[calc(100vh-9rem)] sticky top-24">
-
-              {/* CONTENEDOR CON SCROLL */}
-              <div
-                className="
-                            flex-1 overflow-y-auto px-5 py-4 space-y-4
-                            scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent
-                          "
-                style={{ direction: "rtl" }}
+            {tipoReporte && (
+              <aside
+                className={`
+                  relative shrink-0
+                  transition-all duration-500 ease-in-out
+                  border-r border-gray-200
+                  bg-gray-50
+                  ${filtersCollapsed ? "w-16" : "w-80"}
+                `}
               >
-                <div style={{ direction: "ltr" }}>
-                  {tipoReporte ? (
-                    <ReportesFiltros
-                      catalogos={catalogos}
-                      filtros={filtros}
-                      actualizarFiltros={actualizarFiltros}
-                      setErroresGlobales={setHayErrores}
-                      mostrarFiltro={mostrarFiltro}
-                    />
-                  ) : (
-                    <p className="text-center text-gray-600">
-                      Seleccione el tipo de reporte
-                    </p>
-                  )}
+                {/* BOTÓN AQUÍ 👇 */}
+                <button
+                  onClick={toggleFilters}
+                  className="
+                              absolute
+                              top-20 md:top-28
+                              -right-3
+                              w-7 h-7
+                              rounded-full
+                              bg-white
+                              border border-gray-300
+                              shadow-md
+                              flex items-center justify-center
+                              z-30
+                              transition
+                              hover:scale-110
+                            "
+                >
+                  <span
+                    className={`
+                      text-gray-600 text-sm
+                      transition-transform duration-300
+                      ${filtersCollapsed ? "rotate-180" : ""}
+                    `}
+                  >
+                    ❯
+                  </span>
+                </button>
+
+                {/* CONTENIDO DE FILTROS */}
+                <div
+                  className={`
+                    transition-opacity duration-300
+                    ${filtersCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"}
+                  `}
+                >
+                  <ReportesFiltros
+                    catalogos={catalogos}
+                    filtros={filtros}
+                    actualizarFiltros={actualizarFiltros}
+                    setErroresGlobales={setHayErrores}
+                    mostrarFiltro={mostrarFiltro}
+                  />
                 </div>
+              </aside>
+            )}
+            {!tipoReporte && (
+              <div className="lg:col-span-1 flex items-center justify-center text-gray-600 italic">
+                Seleccione el tipo de reporte
               </div>
-            </aside>
+            )}
 
 
 
-            {/* Resultados */}
-            <main className="lg:col-span-3 space-y-6">
+
+
+            {/* CONTENIDO DE REPORTES */}
+            <main className="flex-1 space-y-6 min-w-0">
 
               {loading && (
                 <p className="text-center text-gray-600">Cargando...</p>
@@ -525,12 +655,19 @@ export default function ReporteEgresados({
 
               {reportesSeleccionados.includes("tabla") &&
                 resultados.length > 0 && (
-                  <div className="bg-white rounded-xl shadow p-6">
-                    <h2 className="font-semibold mb-4">
-                      Detalle de egresados
-                    </h2>
-                    <TablaEgresados filas={resultados} />
-                  </div>
+                  <section className="flex-1 transition-all duration-500">
+                    <div className="bg-white shadow-lg rounded-xl p-6">
+                      <h2 className="font-semibold mb-4">
+                        Detalle de egresados
+                      </h2>
+                      <TablaEgresados filas={resultados} />
+                    </div>
+                  </section>
+                )}
+
+              {reportesSeleccionados.includes("carrera") &&
+                graficoCarrera.length > 0 && (
+                  <GraficoBarrasCarrera filas={graficoCarrera} />
                 )}
 
               {reportesSeleccionados.includes("barras") &&

@@ -119,8 +119,9 @@ export default function Index({
     return (
       <>
         <Head title="Perfil de Empresa" />
-        <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
-          <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+        <div className="w-full max-w-screen-2xl mx-auto px-6 py-10 text-black">
+          <div className="bg-white rounded-xl shadow-sm p-8">
+
             <header className="flex justify-between items-center border-b pb-3 mb-8">
               <h1 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h1>
               <div className="flex gap-3">
@@ -230,8 +231,9 @@ export default function Index({
   return (
     <>
       <Head title={`Perfil - ${usuario.nombre_completo}`} />
-      <div className="font-display bg-[#f5f7f8] min-h-screen flex justify-center py-10 text-black">
-        <div className="bg-white rounded-xl shadow-sm w-full max-w-6xl p-8">
+      <div className="w-full max-w-screen-2xl mx-auto px-6 py-10 text-black">
+        <div className="bg-white rounded-xl shadow-sm p-8">
+
           <header className="flex justify-between items-center border-b pb-3 mb-8">
             <h1 className="text-2xl font-bold text-[#034991]">Mi Perfil</h1>
             <div className="flex gap-3">

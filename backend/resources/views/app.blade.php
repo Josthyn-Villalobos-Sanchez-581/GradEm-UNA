@@ -10,8 +10,6 @@
       {{-- ✅ CSRF para Axios y formularios --}}
       <meta name="csrf-token" content="{{ csrf_token() }}">
 
-
-
       {{-- Inline script para aplicar dark mode del sistema lo antes posible --}}
       <script>
           (function() {
@@ -25,18 +23,22 @@
           })();
       </script>
 
-      {{-- Inline style para color de fondo según tema (coincide con tu app.css) --}}
+      {{-- Inline style para color de fondo según tema --}}
       <style>
           html { background-color: oklch(1 0 0); }
           html.dark { background-color: oklch(0.145 0 0); }
       </style>
 
+      {{-- ✅ Título del sistema --}}
       <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-      <link rel="icon" href="/favicon.ico" sizes="any">
-      <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-      <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+      {{-- ✅ FAVICON PERSONALIZADO --}}
+      <link rel="icon" type="image/png" href="/favicon.png">
 
+      {{-- (Opcional) soporte Apple --}}
+      <link rel="apple-touch-icon" href="/favicon.png">
+
+      {{-- Fuentes --}}
       <link rel="preconnect" href="https://fonts.bunny.net">
       <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
@@ -48,7 +50,7 @@
       @inertiaHead
   </head>
   <body class="font-sans antialiased">
-      {{-- ✅ Inertia app point (en el body, no en el head) --}}
+      {{-- ✅ Inertia app point --}}
       @inertia
   </body>
 </html>

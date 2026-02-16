@@ -198,6 +198,8 @@ const Registro: React.FC = () => {
 
     const [correoError, setCorreoError] = useState<string | undefined>(undefined);
 
+    const [isPending, setIsPending] = useState(false);
+
     const nameRegex = useMemo(() => {
         // Intentamos usar Unicode property escapes; si no son soportadas, usamos fallback
         try {
@@ -468,12 +470,22 @@ const Registro: React.FC = () => {
     };
 
     const handleEnviarCodigo = async () => {
+        // 1. Bloqueo inmediato para evitar spam
+        if (isPending) return;
+
+        setIsPending(true);
         try {
             await axios.post("/registro/enviar-codigo", { correo });
             setCodigoEnviado(true);
             await modal.alerta({ titulo: "Éxito", mensaje: "Código enviado al correo" });
         } catch (error: any) {
-            await modal.alerta({ titulo: "Error", mensaje: error.response?.data?.message || "Error al enviar el código" });
+            await modal.alerta({ 
+                titulo: "Error", 
+                mensaje: error.response?.data?.message || "Error al enviar el código" 
+            });
+        } finally {
+            // 2. Se libera el estado tras terminar la acción
+            setIsPending(false);
         }
     };
 
@@ -722,9 +734,10 @@ const Registro: React.FC = () => {
                                             variant="destructive"
                                             size="default"
                                             onClick={handleEnviarCodigo}
-                                            disabled={!correoValido || !correo.trim()}
+                                            // Añadimos isPending aquí
+                                            disabled={isPending || !correoValido || !correo.trim()} 
                                         >
-                                            Enviar código
+                                            {isPending ? "Enviando..." : "Enviar código"}
                                         </Button>
                                     )}
                                 </div>
