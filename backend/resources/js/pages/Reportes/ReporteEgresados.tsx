@@ -426,7 +426,7 @@ export default function ReporteEgresados({
     <>
       <Head title="Reportes de Egresados" />
 
-      <div className="min-h-screen bg-gray-100 py-10 text-black">
+      <div className="min-h-screen py-10 text-black">
         <div className="w-full px-6 space-y-6 text-black">
 
 
