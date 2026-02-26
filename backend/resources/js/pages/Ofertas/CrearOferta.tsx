@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { Button } from "@/components/ui/button";
-import OfertaDetalle from "@/components/ofertas/OfertaDetalle";
 import { route } from "ziggy-js";
+import { useModal } from "@/hooks/useModal";
+import ModalOferta from "@/components/modal/ModalOferta";
 import {
     ChevronDown,
     Briefcase,
@@ -69,6 +70,9 @@ export default function CrearOferta({
         estado_id: "",
     });
 
+    const modal = useModal();
+    const [mostrarPreviewModal, setMostrarPreviewModal] = useState(false);
+
     /* =========================
         ESTILOS REFINADOS (COLORES UNA)
     ========================= */
@@ -124,8 +128,23 @@ export default function CrearOferta({
             if (!form.id_carrera) e.id_carrera = "Seleccione una carrera";
         }
         if (paso === "publicacion") {
-            if (!form.fecha_limite) e.fecha_limite = "Campo obligatorio";
-            if (!form.estado_id) e.estado_id = "Seleccione un estado";
+            if (!form.fecha_limite) {
+                e.fecha_limite = "Campo obligatorio";
+            } else {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+
+                const fechaSeleccionada = new Date(form.fecha_limite);
+                fechaSeleccionada.setHours(0, 0, 0, 0);
+
+                if (fechaSeleccionada < hoy) {
+                    e.fecha_limite = "La fecha límite no puede ser anterior a hoy";
+                }
+            }
+
+            if (!form.estado_id) {
+                e.estado_id = "Seleccione un estado";
+            }
         }
         setErrores(e);
         return Object.keys(e).length === 0;
@@ -136,6 +155,7 @@ export default function CrearOferta({
 
     const submit = () => {
         if (!validarPaso()) return;
+
         router.post(route("empresa.ofertas.guardar"), {
             ...form,
             id_area_laboral: Number(form.id_area_laboral),
@@ -146,15 +166,50 @@ export default function CrearOferta({
             id_canton: Number(form.id_canton),
             estado_id: Number(form.estado_id),
             requisitos: form.requisitos,
+        }, {
+            onSuccess: async () => {
+                await modal.alerta({
+                    titulo: "Oferta creada",
+                    mensaje: "La oferta laboral se creó correctamente.",
+                });
+
+                router.visit(route("empresa.ofertas.index"));
+            },
+
+            onError: async () => {
+                await modal.alerta({
+                    titulo: "Error",
+                    mensaje: "Ocurrió un error al crear la oferta. Intente nuevamente.",
+                });
+            }
         });
     };
 
     return (
         <>
-            <Head title="Crear oferta laboral" />
+            <Head title="Crear Oferta" />
+            {/* HEADER PRINCIPAL */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+                        Crear Ofertas
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">
+                        En este apartado podra generar ofertas para que los estudiantes puedan postularse a ellas. Asegúrese de completar toda la información requerida para maximizar las posibilidades de encontrar al candidato ideal.
+                    </p>
+                </div>
 
-            <div className="max-w-6xl mx-auto py-8 px-4">
-                <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[700px]">
+                <div className="flex items-center gap-3">
+                    <Button asChild variant="secondary">
+                        <Link href={route("empresa.ofertas.index")}>
+                            Volver
+                        </Link>
+                    </Button>
+                </div>
+            </header>
+
+            <div className="max-w-8xl mx-auto py-8 px-4 ">
+                <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[450px] md:min-h-[550px]">
 
                     {/* SIDEBAR */}
                     <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8">
@@ -181,8 +236,8 @@ export default function CrearOferta({
                                         key={p}
                                         onClick={() => setPaso(p)}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                                ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
+                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                             }`}
                                     >
                                         <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
@@ -200,8 +255,8 @@ export default function CrearOferta({
                     </aside>
 
                     {/* FORMULARIO */}
-                    <section className="col-span-12 md:col-span-9 p-8 md:p-12 flex flex-col">
-                        <div className="flex-grow space-y-8">
+                    <section className="col-span-12 md:col-span-9 p-6 md:p-8 flex flex-col">
+                        <div className="flex-grow space-y-6">
 
                             {paso === "general" && (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
@@ -392,7 +447,14 @@ export default function CrearOferta({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className={labelClass}>Fecha límite <span className="text-[#CD1719]">*</span></label>
-                                            <input type="date" name="fecha_limite" className={baseInput} value={form.fecha_limite} onChange={handleChange} />
+                                            <input
+                                                type="date"
+                                                name="fecha_limite"
+                                                className={baseInput}
+                                                value={form.fecha_limite}
+                                                onChange={handleChange}
+                                                min={new Date().toISOString().split("T")[0]}
+                                            />
                                             {errores.fecha_limite && <p className="text-xs text-[#CD1719] mt-1.5">{errores.fecha_limite}</p>}
                                         </div>
                                         <div>
@@ -411,48 +473,70 @@ export default function CrearOferta({
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="w-full border-dashed border-2 py-6 hover:bg-gray-50 transition-colors"
-                                            onClick={() => setVerPreview(!verPreview)}
+                                            className="w-full border-dashed border-2 py-6"
+                                            onClick={() => setMostrarPreviewModal(true)}
                                         >
-                                            {verPreview ? "Ocultar vista previa del diseño" : "Ver vista previa del diseño"}
+                                            Ver vista previa del diseño
                                         </Button>
+                                        {mostrarPreviewModal && (
+                                            <ModalOferta
+                                                tipo="preview"
+                                                oferta={{
+                                                    titulo: form.titulo || "Título de la oferta",
+                                                    categoria: form.categoria,
+                                                    descripcion: form.descripcion || "Sin descripción",
+                                                    horario: form.horario,
+                                                    tipo_oferta: form.tipo_oferta,
+                                                    requisitos: form.requisitos,
 
-                                        {verPreview && (
-                                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
-                                                <div className="flex flex-col items-center text-gray-400 mb-4">
-                                                    <ChevronDown className="w-5 h-5 animate-bounce" />
-                                                    <span className="text-[10px] uppercase font-bold tracking-widest">Vista Previa</span>
-                                                </div>
+                                                    area_laboral: areasLaborales.find(
+                                                        a => a.id === Number(form.id_area_laboral)
+                                                    ),
 
-                                                {/* CONTENEDOR CORREGIDO: w-full y overflow-hidden son clave */}
-                                                <div className="w-full overflow-x-hidden rounded-2xl border-2 border-gray-100 bg-gray-50 p-1 md:p-4">
-                                                    <div className="max-w-full">
-                                                        <OfertaDetalle
-                                                            modo="preview"
-                                                            oferta={{
-                                                                titulo: form.titulo || "Título de la oferta",
-                                                                categoria: form.categoria,
-                                                                descripcion: form.descripcion || "Sin descripción",
-                                                                horario: form.horario,
-                                                                tipo_oferta: form.tipo_oferta,
-                                                                requisitos: form.requisitos,
-                                                                empresa: {
-                                                                    nombre: empresa?.nombre,
-                                                                    logo_url: empresa?.usuario?.foto_perfil?.url,
-                                                                },
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                    modalidad: modalidades.find(
+                                                        m => m.id === Number(form.id_modalidad)
+                                                    ),
+
+                                                    carrera: carreras.find(
+                                                        c => c.id === Number(form.id_carrera)
+                                                    ),
+
+                                                    pais: paises.find(
+                                                        p => p.id === Number(form.id_pais)
+                                                    ),
+
+                                                    provincia: provincias.find(
+                                                        p => p.id === Number(form.id_provincia)
+                                                    ),
+
+                                                    canton: cantones.find(
+                                                        c => c.id === Number(form.id_canton)
+                                                    ),
+
+                                                    fecha_limite: form.fecha_limite,
+
+                                                    estado: form.estado_id === "1"
+                                                        ? { id: 1, nombre: "Publicada" }
+                                                        : form.estado_id === "2"
+                                                            ? { id: 2, nombre: "Borrador" }
+                                                            : null,
+
+                                                    empresa: {
+                                                        nombre: empresa?.nombre,
+                                                        logo_url: empresa?.usuario?.foto_perfil?.url,
+                                                    },
+                                                }}
+                                                onClose={() => setMostrarPreviewModal(false)}
+                                            />
                                         )}
+
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         {/* BOTONES DE NAVEGACIÓN */}
-                        <div className="flex justify-between items-center pt-10 mt-8 border-t border-gray-100">
+                        <div className="flex justify-between items-center pt-10 mt-pt-6 mt-6 border-t border-gray-100">
                             {paso !== "general" ? (
                                 <Button variant="ghost" onClick={anterior} className="text-gray-600">
                                     <ChevronLeft className="w-4 h-4 mr-2" /> Anterior

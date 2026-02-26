@@ -201,12 +201,12 @@ const OfertasIndex: React.FC<Props> = ({
             >
                 {/* CARD PRINCIPAL CONTENEDOR */}
                     {/* ENCABEZADO SUPERIOR */}
-                    <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-3">
+                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
-                            <h1 className="text-2xl font-bold text-[#034991]">
+                            <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
                                 Ofertas laborales y prácticas
                             </h1>
-                            <p className="text-gray-600 text-sm mt-1">
+                            <p className="text-slate-500 text-sm mt-1">
                                 Explora oportunidades de empleo y prácticas profesionales según tu
                                 perfil e intereses.
                             </p>
