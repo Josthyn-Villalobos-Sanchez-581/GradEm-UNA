@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -15,15 +16,20 @@ class FotoPerfil extends Model
         'fecha_subida'
     ];
 
-    // Relación con Usuario
+    protected $appends = ['url'];
+
+    protected $hidden = ['ruta_imagen'];
+
     public function usuario()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
-    // Accesor para obtener la URL completa de la imagen
-/*public function getRutaImagenAttribute($valor)
-{
-    return $valor ? asset(ltrim($valor, '/')) : null;
+
+    public function getUrlAttribute(): string
+    {
+        return $this->ruta_imagen
+            ? asset($this->ruta_imagen)
+            : asset('images/avatar-default.png');
+    }
 }
-*/
-}
+
