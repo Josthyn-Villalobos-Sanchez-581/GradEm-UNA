@@ -209,7 +209,7 @@ class OfertaController extends Controller
             'id_canton'        => 'required|integer',
             'id_modalidad'     => 'required|integer',
             'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date',
+            'fecha_limite'     => 'required|date|after_or_equal:today',
             'estado_id'        => 'required|integer',
         ]);
 
@@ -537,7 +537,7 @@ class OfertaController extends Controller
             'id_canton'        => 'required|integer',
             'id_modalidad'     => 'required|integer',
             'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date',
+            'fecha_limite'     => 'required|date|after_or_equal:today',
             'estado_id'        => 'required|integer',
         ]);
 

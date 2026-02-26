@@ -47,9 +47,9 @@ export default function OfertaCard({ oferta, href }: Props) {
     const fotoEmpresa = oferta.empresa?.usuario?.fotoPerfil?.url || FotoXDefecto;
 
     const etiquetaTipo = esPractica ? "Práctica Profesional" : "Oferta Laboral";
-    
+
     // Configuración de Estilos Diferenciados
-    const config = esPractica 
+    const config = esPractica
         ? {
             bgBadge: "bg-emerald-50 text-emerald-700 border-emerald-200",
             icon: <GraduationCap className="w-3.5 h-3.5" />,
@@ -73,6 +73,7 @@ export default function OfertaCard({ oferta, href }: Props) {
         <Link
             href={href ?? `/ofertas/${oferta.id_oferta}`}
             className={`group relative block bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl ${config.shadowHover} hover:-translate-y-2 transition-all duration-500 overflow-hidden`}
+        
         >
             {/* Barra superior de acento (Identificador de tipo) */}
             <div className={`absolute top-0 left-0 w-full h-1.5 ${config.accent} opacity-90`} />
@@ -84,7 +85,7 @@ export default function OfertaCard({ oferta, href }: Props) {
                         {config.icon}
                         {etiquetaTipo}
                     </span>
-                    
+
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-gray-50 px-3 py-1 rounded-lg">
                         {new Date(oferta.fecha_publicacion).toLocaleDateString("es-CR", { day: '2-digit', month: 'short' })}
                     </span>
@@ -149,9 +150,14 @@ export default function OfertaCard({ oferta, href }: Props) {
                         <span className="hidden sm:inline opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-500">
                             VER DETALLE
                         </span>
-                        <div className={`p-3 rounded-xl ${config.buttonBg} group-hover:bg-[#CD1719] text-white shadow-lg transition-all duration-300 transform group-hover:rotate-[360deg]`}>
+                        <div
+                            className={`flex items-center justify-center w-12 h-12 rounded-full ${config.buttonBg} 
+    group-hover:bg-[#CD1719] text-white shadow-lg 
+    transition-all duration-300 transform group-hover:rotate-[360deg]`}
+                        >
                             <ArrowRight className="w-5 h-5" />
                         </div>
+
                     </div>
                 </div>
             </div>

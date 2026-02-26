@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Head, router } from "@inertiajs/react"; 
+import { Head, router } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import OfertaDetalle from "@/components/ofertas/OfertaDetalle";
@@ -34,7 +34,6 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
   yaPostulado = false,
 }) => {
   const modal = useModal();
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -42,6 +41,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
     Array.isArray(userPermisos) && userPermisos.includes(id);
 
   const onPostularClick = async () => {
+
     if (!tienePermiso(6)) {
       modal.alerta({
         titulo: "Acceso restringido",
@@ -58,10 +58,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
       return;
     }
 
-    setMostrarFormulario(true);
-    setTimeout(() => {
-      document.getElementById("form-postulacion")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    setVistaActual("postulacion");
   };
 
   const enviarPostulacion = async () => {
@@ -88,40 +85,61 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
     );
   };
 
+  const [vistaActual, setVistaActual] = useState<"detalle" | "postulacion">("detalle");
+
   return (
     <>
       <Head title={`${oferta.titulo} | Detalle`} />
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 text-[#000000]">
-        {/* HEADER DE NAVEGACIÓN */}
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <Button
-            variant="ghost"
-            onClick={() => window.history.back()}
-            className="group text-slate-500 hover:text-[#034991] font-bold transition-all p-0"
-          >
-            <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform" />
-            Volver al listado
-          </Button>
-        </div>
+        <Head title={`${oferta.titulo} | Detalle`} />
+        {/* HEADER PRINCIPAL */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+              {oferta.titulo}
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Detalles completos de la oferta laboral o práctica profesional.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (vistaActual === "postulacion") {
+                  setVistaActual("detalle");
+                } else {
+                  window.history.back();
+                }
+              }}
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              {vistaActual === "postulacion" ? "Volver al detalle" : "Volver al listado"}
+            </Button>
+          </div>
+        </header>
 
         {/* DETALLE DE LA OFERTA */}
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
-            <OfertaDetalle
-              oferta={oferta}
-              modo="publica"
-              onPostular={onPostularClick}
-              deshabilitarPostulacion={yaPostulado}
-            />
+        {vistaActual === "detalle" && (
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+              <OfertaDetalle
+                oferta={oferta}
+                modo="publica"
+                onPostular={onPostularClick}
+                deshabilitarPostulacion={yaPostulado}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* FORMULARIO DE POSTULACIÓN */}
-        {mostrarFormulario && !yaPostulado && (
-          <div id="form-postulacion" className="max-w-4xl mx-auto px-6 mt-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
+        {vistaActual === "postulacion" && (
+          <div id="form-postulacion" className="max-w-6xl mx-auto px-6 mt-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
             <div className="bg-white rounded-[2.5rem] border border-blue-100 shadow-2xl shadow-blue-900/5 overflow-hidden">
-              
+
               {/* Encabezado del Formulario */}
               <div className="bg-[#034991] p-8 text-white">
                 <div className="flex items-center gap-4">
@@ -174,7 +192,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
                       {mensaje.length} / 1000 caracteres
                     </span>
                   </div>
-                  
+
                   <textarea
                     value={mensaje}
                     onChange={(e) => setMensaje(e.target.value)}
@@ -186,15 +204,15 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
 
                 {/* Footer del Formulario */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-slate-100">
-                   <p className="text-[10px] text-slate-400 font-medium max-w-[300px] text-center sm:text-left">
+                  <p className="text-[10px] text-slate-400 font-medium max-w-[300px] text-center sm:text-left">
                     Al hacer clic en enviar, confirmas que la información en tu perfil está actualizada.
                   </p>
-                  
+
                   <div className="flex gap-3 w-full sm:w-auto">
                     <Button
                       variant="ghost"
                       className="flex-1 sm:flex-none rounded-xl font-bold text-slate-500 px-8 h-12"
-                      onClick={() => setMostrarFormulario(false)}
+                      onClick={() => setVistaActual("detalle")}
                     >
                       Descartar
                     </Button>

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { Button } from "@/components/ui/button";
-import OfertaDetalle from "@/components/ofertas/OfertaDetalle";
 import { route } from "ziggy-js";
+import { useModal } from "@/hooks/useModal";
+import ModalOferta from "@/components/modal/ModalOferta";
 import {
     Briefcase,
     FileText,
@@ -91,7 +92,6 @@ export default function EditarOferta({
 
     const [paso, setPaso] = useState<Paso>("general");
     const [errores, setErrores] = useState<Record<string, string>>({});
-    const [verPreview, setVerPreview] = useState(false);
 
     // LÓGICA DE ESTADO INICIAL (MANTENIDA DE EDITAR)
     const [form, setForm] = useState({
@@ -122,6 +122,9 @@ export default function EditarOferta({
         nuevoRequisito: "",
         estado_id: String(oferta.estado_id),
     });
+
+    const modal = useModal();
+    const [mostrarPreviewModal, setMostrarPreviewModal] = useState(false);
 
     /* =========================
         ESTILOS REFINADOS (COLORES UNA) - IGUAL QUE CREAR
@@ -189,9 +192,25 @@ export default function EditarOferta({
         }
 
         if (paso === "publicacion") {
-            if (!form.fecha_limite) e.fecha_limite = "Campo obligatorio";
-            if (!form.estado_id) e.estado_id = "Seleccione un estado";
+            if (!form.fecha_limite) {
+                e.fecha_limite = "Campo obligatorio";
+            } else {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+
+                const fechaSeleccionada = new Date(form.fecha_limite);
+                fechaSeleccionada.setHours(0, 0, 0, 0);
+
+                if (fechaSeleccionada < hoy) {
+                    e.fecha_limite = "La fecha límite no puede ser anterior a hoy";
+                }
+            }
+
+            if (!form.estado_id) {
+                e.estado_id = "Seleccione un estado";
+            }
         }
+
 
         setErrores(e);
         return Object.keys(e).length === 0;
@@ -210,21 +229,47 @@ export default function EditarOferta({
         setPaso(pasos[pasos.indexOf(paso) - 1]);
     };
 
-    const submit = () => {
+    const submit = async () => {
         if (!validarPaso()) return;
 
-        // LÓGICA DE UPDATE (PUT)
-        router.put(route("empresa.ofertas.actualizar", oferta.id_oferta), {
-            ...form,
-            id_area_laboral: Number(form.id_area_laboral),
-            id_modalidad: Number(form.id_modalidad),
-            id_carrera: Number(form.id_carrera),
-            id_pais: Number(form.id_pais),
-            id_provincia: Number(form.id_provincia),
-            id_canton: Number(form.id_canton),
-            estado_id: Number(form.estado_id),
-            requisitos: form.requisitos,
+        const confirmar = await modal.confirmacion({
+            titulo: "Confirmar actualización",
+            mensaje: "¿Está seguro que desea actualizar esta oferta?",
         });
+
+        if (!confirmar) return;
+
+        router.put(
+            route("empresa.ofertas.actualizar", oferta.id_oferta),
+            {
+                ...form,
+                id_area_laboral: Number(form.id_area_laboral),
+                id_modalidad: Number(form.id_modalidad),
+                id_carrera: Number(form.id_carrera),
+                id_pais: Number(form.id_pais),
+                id_provincia: Number(form.id_provincia),
+                id_canton: Number(form.id_canton),
+                estado_id: Number(form.estado_id),
+                requisitos: form.requisitos,
+            },
+            {
+                onSuccess: async () => {
+                    await modal.alerta({
+                        titulo: "Oferta actualizada",
+                        mensaje: "La oferta se actualizó correctamente.",
+                    });
+
+                    router.visit(route("empresa.ofertas.index"));
+                },
+
+                onError: async () => {
+                    await modal.alerta({
+                        titulo: "Error",
+                        mensaje: "No se pudo actualizar la oferta. Verifique los datos.",
+                    });
+                },
+            }
+        );
     };
 
     /* =========================
@@ -233,10 +278,29 @@ export default function EditarOferta({
 
     return (
         <>
-            <Head title="Editar oferta laboral" />
+            <Head title="Crear Oferta" />
+                        {/* HEADER PRINCIPAL */}
+                        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+                                    Editar Ofertas
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-1">
+                                    En este apartado podra editar la oferta laboral, revise cada sección para asegurarse de que toda la información esté correcta antes de publicar.
+                                </p>
+                            </div>
+            
+                            <div className="flex items-center gap-3">
+                                <Button asChild variant="secondary">
+                                    <Link href={route("empresa.ofertas.index")}>
+                                        Volver
+                                    </Link>
+                                </Button>
+                            </div>
+                        </header>
 
-            <div className="max-w-6xl mx-auto py-8 px-4">
-                <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[700px]">
+            <div className="max-w-8xl mx-auto py-8 px-4 ">
+                <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[450px] md:min-h-[550px]">
 
                     {/* SIDEBAR */}
                     <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8">
@@ -264,13 +328,13 @@ export default function EditarOferta({
                                         onClick={() => {
                                             // Opcional: Permitir saltar pasos solo si valida, o libremente en edición.
                                             // Aquí lo dejo libre como en el sidebar original, pero validando al hacer click.
-                                            if(p === paso) return;
+                                            if (p === paso) return;
                                             // if (validarPaso()) setPaso(p); // Descomentar si se quiere validar antes de cambiar
                                             setPaso(p);
                                         }}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                                ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
+                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                             }`}
                                     >
                                         <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
@@ -480,7 +544,14 @@ export default function EditarOferta({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className={labelClass}>Fecha límite <span className="text-[#CD1719]">*</span></label>
-                                            <input type="date" name="fecha_limite" className={baseInput} value={form.fecha_limite} onChange={handleChange} />
+                                            <input
+                                                type="date"
+                                                name="fecha_limite"
+                                                className={baseInput}
+                                                value={form.fecha_limite}
+                                                onChange={handleChange}
+                                                min={new Date().toISOString().split("T")[0]}
+                                            />
                                             {errores.fecha_limite && <p className="text-xs text-[#CD1719] mt-1.5">{errores.fecha_limite}</p>}
                                         </div>
                                         <div>
@@ -494,43 +565,67 @@ export default function EditarOferta({
                                         </div>
                                     </div>
 
+                                    {/* ... dentro de paso === "publicacion" */}
                                     <div className="pt-4">
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="w-full border-dashed border-2 py-6 hover:bg-gray-50 transition-colors"
-                                            onClick={() => setVerPreview(!verPreview)}
+                                            className="w-full border-dashed border-2 py-6"
+                                            onClick={() => setMostrarPreviewModal(true)}
                                         >
-                                            {verPreview ? "Ocultar vista previa del diseño" : "Ver vista previa del diseño"}
+                                            Ver vista previa del diseño
                                         </Button>
+                                        {mostrarPreviewModal && (
+                                            <ModalOferta
+                                                tipo="preview"
+                                                oferta={{
+                                                    titulo: form.titulo || "Título de la oferta",
+                                                    categoria: form.categoria,
+                                                    descripcion: form.descripcion || "Sin descripción",
+                                                    horario: form.horario,
+                                                    tipo_oferta: form.tipo_oferta,
+                                                    requisitos: form.requisitos,
 
-                                        {verPreview && (
-                                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
-                                                <div className="flex flex-col items-center text-gray-400 mb-4">
-                                                    <ChevronDown className="w-5 h-5 animate-bounce" />
-                                                    <span className="text-[10px] uppercase font-bold tracking-widest">Vista Previa</span>
-                                                </div>
+                                                    area_laboral: areasLaborales.find(
+                                                        a => a.id === Number(form.id_area_laboral)
+                                                    ),
 
-                                                <div className="w-full overflow-x-hidden rounded-2xl border-2 border-gray-100 bg-gray-50 p-1 md:p-4">
-                                                    <div className="max-w-full">
-                                                        <OfertaDetalle
-                                                            modo="preview"
-                                                            oferta={{
-                                                                titulo: form.titulo || "Título de la oferta",
-                                                                categoria: form.categoria,
-                                                                descripcion: form.descripcion || "Sin descripción",
-                                                                horario: form.horario,
-                                                                tipo_oferta: form.tipo_oferta,
-                                                                requisitos: form.requisitos,
-                                                                empresa: {
-                                                                    nombre: empresa?.nombre,
-                                                                    logo_url: empresa?.usuario?.foto_perfil?.url,
-                                                                },
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                    modalidad: modalidades.find(
+                                                        m => m.id === Number(form.id_modalidad)
+                                                    ),
+
+                                                    carrera: carreras.find(
+                                                        c => c.id === Number(form.id_carrera)
+                                                    ),
+
+                                                    pais: paises.find(
+                                                        p => p.id === Number(form.id_pais)
+                                                    ),
+
+                                                    provincia: provincias.find(
+                                                        p => p.id === Number(form.id_provincia)
+                                                    ),
+
+                                                    canton: cantones.find(
+                                                        c => c.id === Number(form.id_canton)
+                                                    ),
+
+                                                    fecha_limite: form.fecha_limite,
+
+                                                    estado: form.estado_id === "1"
+                                                        ? { id: 1, nombre: "Publicada" }
+                                                        : form.estado_id === "2"
+                                                            ? { id: 2, nombre: "Borrador" }
+                                                            : null,
+
+                                                    empresa: {
+                                                        nombre: empresa?.nombre,
+                                                        logo_url: empresa?.usuario?.foto_perfil?.url,
+                                                    },
+                                                }}
+                                                onClose={() => setMostrarPreviewModal(false)}
+                                            />
+
                                         )}
                                     </div>
                                 </div>
