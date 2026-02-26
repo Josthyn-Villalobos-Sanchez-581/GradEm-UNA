@@ -25,6 +25,7 @@ interface FotoPerfil {
     url: string | null;
 }
 
+
 interface Usuario {
     foto_perfil?: FotoPerfil | null;
 }
