@@ -148,9 +148,11 @@ export default function GraficoBarrasAnual({ filas }: Props) {
   const necesitaScroll = datos.length > 7;
 
   return (
-    <section className="bg-white shadow-xl rounded-2xl p-6">
+    <section className="bg-white shadow-xl rounded-2xl p-6 h-[560px] flex flex-col">
       {/* HEADER */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <header className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+
+        {/* BLOQUE IZQUIERDO */}
         <div>
           <h2 className="text-xl font-semibold text-[#034991]">
             Egresados por año
@@ -158,7 +160,7 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           <p className="text-sm text-gray-600">
             Distribución anual de egresados
           </p>
-          
+
           {sinAnioTotal > 0 && (
             <p className="text-xs text-gray-500 mt-1">
               {sinAnioTotal} egresado(s) sin año de graduación
@@ -179,9 +181,9 @@ export default function GraficoBarrasAnual({ filas }: Props) {
                   localStorage.setItem("graficoAnualColor", key);
                 }}
                 className={`
-                  w-6 h-6 rounded-full border transition
-                  ${paletaActiva === key ? "ring-2 ring-gray-400 scale-110" : ""}
-                `}
+            w-6 h-6 rounded-full border transition
+            ${paletaActiva === key ? "ring-2 ring-gray-400 scale-110" : ""}
+          `}
                 style={{ backgroundColor: PALETAS[key][0] }}
                 title={key}
               />
@@ -189,18 +191,20 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           </div>
         </div>
 
-        {/* ORIENTACIÓN */}
+        {/* BOTÓN DERECHA */}
         <button
           onClick={() => setHorizontal((v) => !v)}
           className="
-            px-4 py-2 rounded-full border
-            text-sm font-medium
-            bg-gray-100 hover:bg-gray-200
-            transition
-          "
+      px-4 py-2 rounded-full border
+      text-sm font-medium
+      bg-gray-100 hover:bg-gray-200
+      transition
+      self-start md:self-auto
+    "
         >
           {horizontal ? "Vista vertical" : "Vista horizontal"}
         </button>
+
       </header>
 
       {/* GRÁFICO */}

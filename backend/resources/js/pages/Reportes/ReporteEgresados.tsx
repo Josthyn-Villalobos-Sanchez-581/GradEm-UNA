@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
 import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
 
+import KpiResumen from "@/components/reportes/KPIEgresados";
 import TablaEgresados from "@/components/reportes/TablaEgresados";
 import GraficoBarrasCarrera from "@/components/reportes/GraficoBarrasCarrera";
 import GraficoPie from "@/components/reportes/GraficoPie";
@@ -210,9 +211,23 @@ export default function ReporteEgresados({
     obtenerParametrosBackend,
   } = useParametrosReporte();
 
-  const [tipoReporte, setTipoReporte] = useState<string | null>(null);//estados para seleccion del tipo de reporte
-  const [reportesSeleccionados, setReportesSeleccionados] = useState<string[]>([]);
+  const [tipoReporte, setTipoReporte] = useState<string | null>("multiple");//estados para seleccion del tipo de reporte
+  const [reportesSeleccionados, setReportesSeleccionados] = useState<string[]>(REPORTES_DISPONIBLES);
   const [panelAbierto, setPanelAbierto] = useState(false);
+  const hoverTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+  const abrirPanel = () => {
+    if (hoverTimeout.current) {
+      clearTimeout(hoverTimeout.current);
+    }
+    setPanelAbierto(true);
+  };
+
+  const cerrarPanel = () => {
+    hoverTimeout.current = setTimeout(() => {
+      setPanelAbierto(false);
+    }, 250); // ⬅ 250ms de gracia para mover el mouse
+  };
 
 
   const [resultados, setResultados] = useState<any[]>([]);
@@ -240,6 +255,13 @@ export default function ReporteEgresados({
       setTipoReporte(seleccionados[0]);
     } else {
       setTipoReporte("multiple"); // ✔️ NO "todos"
+    }
+    //Limpieza del dashboard cuando no hay nada seleccionado
+    if (seleccionados.length === 0) {
+      setResultados([]);
+      setGraficoAnual([]);
+      setGraficoEmpleo(null);
+      setGraficoCarrera([]);
     }
   };
 
@@ -419,6 +441,12 @@ export default function ReporteEgresados({
     ]
     : [];
 
+  useEffect(() => {
+    // Solo al montar
+    fetchReportes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // -------------------------------------------------------
   // RENDER
   // -------------------------------------------------------
@@ -439,7 +467,11 @@ export default function ReporteEgresados({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 w-full lg:w-auto">
 
               {/* Selector tipo */}
-              <div className="relative">
+              <div
+                className="relative"
+                onMouseEnter={abrirPanel}
+                onMouseLeave={cerrarPanel}
+              >
                 <div
                   onClick={() => setPanelAbierto(!panelAbierto)}
                   className="
@@ -592,7 +624,7 @@ export default function ReporteEgresados({
                   ${filtersCollapsed ? "w-16" : "w-80"}
                 `}
               >
-                {/* BOTÓN AQUÍ 👇 */}
+
                 <button
                   onClick={toggleFilters}
                   className="
@@ -655,6 +687,40 @@ export default function ReporteEgresados({
                 <p className="text-center text-gray-600">Cargando...</p>
               )}
 
+              {/* ================= KPI ================= */}
+              {reportesSeleccionados.length > 0 && hayResultados && (
+                <KpiResumen
+                  resultados={resultados}
+                  graficoEmpleo={graficoEmpleo}
+                  graficoAnual={graficoAnual}
+                  graficoCarrera={graficoCarrera}
+                />
+              )}
+
+              {/* ======================= */}
+              {/* GRÁFICOS DASHBOARD     */}
+              {/* ======================= */}
+
+              {/* 1️⃣ Gráfico anual arriba (full width) */}
+              {reportesSeleccionados.includes("barras") &&
+                graficoAnual.length > 0 && (
+                  <GraficoBarras filas={graficoAnual} />
+                )}
+
+              {/* 2️⃣ Carrera + Pie abajo */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+                {reportesSeleccionados.includes("carrera") &&
+                  graficoCarrera.length > 0 && (
+                    <GraficoBarrasCarrera filas={graficoCarrera} />
+                  )}
+
+                {reportesSeleccionados.includes("pie") &&
+                  graficoEmpleo && (
+                    <GraficoPie datos={datosPie} />
+                  )}
+              </div>
+
               {reportesSeleccionados.includes("tabla") &&
                 resultados.length > 0 && (
                   <section className="flex-1 transition-all duration-500">
@@ -667,20 +733,6 @@ export default function ReporteEgresados({
                   </section>
                 )}
 
-              {reportesSeleccionados.includes("carrera") &&
-                graficoCarrera.length > 0 && (
-                  <GraficoBarrasCarrera filas={graficoCarrera} />
-                )}
-
-              {reportesSeleccionados.includes("barras") &&
-                graficoAnual.length > 0 && (
-                  <GraficoBarras filas={graficoAnual} />
-                )}
-
-              {reportesSeleccionados.includes("pie") &&
-                graficoEmpleo && (
-                  <GraficoPie datos={datosPie} />
-                )}
             </main>
           </div>
         </div>
