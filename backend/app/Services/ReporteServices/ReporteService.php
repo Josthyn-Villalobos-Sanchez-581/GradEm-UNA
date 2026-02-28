@@ -365,6 +365,7 @@ class ReporteService
     public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [], array $visual = [])
     {
         $tabla = [];
+        $carrera = [];
         $pie = null;
         $barras = [];
 
@@ -391,6 +392,26 @@ class ReporteService
                 $p['canton'] ?? null
             );
         }
+
+        if (in_array('carrera', $reportes)) {
+            $carrera = $this->obtenerGraficoPorCarrera(
+                $p['universidad'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null,
+                $p['estado_estudios'] ?? null,
+                $p['nivel_academico'] ?? null,
+                $p['estado_empleo'] ?? null,
+                $p['tiempo_empleo'] ?? null,
+                $p['area_laboral'] ?? null,
+                $p['salario'] ?? null,
+                $p['tipo_empleo'] ?? null,
+                $p['pais'] ?? null,
+                $p['provincia'] ?? null,
+                $p['canton'] ?? null
+            );
+        }
+
 
         if (in_array('barras', $reportes)) {
             $barras = $this->obtenerGraficoAnual(
@@ -436,6 +457,7 @@ class ReporteService
             'tabla'    => $tabla,
             'pie'      => $pie,
             'barras'   => $barras,
+            'carrera'  => $carrera,
             'filtros'  => $filtrosLegibles,
             'visual'   => $visual,
             'fecha'    => now()->format('d/m/Y H:i'),
