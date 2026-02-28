@@ -20,6 +20,7 @@ class Curso extends Model
         'fecha_limite_inscripcion',
         'duracion',
         'nombreInstructor',
+        'cupos',
         'estado_id',
     ];
 
