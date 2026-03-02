@@ -30,7 +30,7 @@ export default function Dashboard() {
   const acciones = [
     permisos.includes(2) && { title: "GENERAR CV", desc: "Diseña tu currículum profesional con sello UNA.", href: "/curriculum/generar", icon: FileText, color: "text-[#034991]", bg: "bg-blue-50", borderColor: "hover:border-blue-200" },
     permisos.includes(5) && { title: "OFERTAS EMPLEO", desc: "Vinculación laboral directa para graduados.", href: "/ofertas", icon: Briefcase, color: "text-[#CD1719]", bg: "bg-red-50", borderColor: "hover:border-red-200" },
-    permisos.includes(8) && { title: "FORMACIÓN", desc: "Cursos de actualización y educación continua.", href: "/cursos", icon: BookOpen, color: "text-emerald-700", bg: "bg-emerald-50", borderColor: "hover:border-emerald-200" },
+    (permisos.includes(8) || permisos.includes(9)) && { title: "FORMACIÓN", desc: "Cursos de actualización y educación continua.", href: "/cursos", icon: BookOpen, color: "text-emerald-700", bg: "bg-emerald-50", borderColor: "hover:border-emerald-200" },
     permisos.includes(10) && { title: "EVENTOS UNA", desc: "Encuentros, congresos y vida estudiantil.", href: "/eventos", icon: Calendar, color: "text-amber-700", bg: "bg-amber-50", borderColor: "hover:border-amber-200" },
     permisos.includes(12) && { title: "USUARIOS", desc: "Administración de accesos institucionales.", href: "/usuarios/perfiles", icon: Users, color: "text-indigo-700", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" },
     permisos.includes(14) && { title: "REPORTES", desc: "Estadísticas de empleabilidad y seguimiento.", href: "/reportes-egresados", icon: BarChart3, color: "text-slate-700", bg: "bg-slate-100", borderColor: "hover:border-slate-300" },

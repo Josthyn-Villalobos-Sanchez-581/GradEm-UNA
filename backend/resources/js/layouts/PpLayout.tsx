@@ -173,7 +173,7 @@ export default function PpLayout({
       icon: BookOpen,
       subMenu: [
         { title: "Gestión", route: "/cursos", permisoId: 8 },
-        { title: "Inscripción", route: "/inscripcion-cursos", permisoId: 9 },
+        { title: "Inscripción", route: "/cursos", permisoId: 9 },
       ],
     },
     {
