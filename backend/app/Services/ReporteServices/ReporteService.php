@@ -187,6 +187,51 @@ class ReporteService
         }
     }
 
+    /**
+     * Obtener gráfico de egresados por carrera
+     * Devuelve array de { id_carrera, carrera, total_egresados }
+     */
+    public function obtenerGraficoPorCarrera(
+        ?int $universidad,
+        ?int $fechaInicio,
+        ?int $fechaFin,
+        ?string $genero,
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?string $estadoEmpleo,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
+    ) {
+        try {
+            $raw = $this->repo->obtenerGraficoPorCarreraRaw(
+                $universidad,
+                $fechaInicio,
+                $fechaFin,
+                $genero,
+                $estadoEstudios,
+                $nivelAcademico,
+                $estadoEmpleo,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+                $pais,
+                $provincia,
+                $canton
+            );
+
+            return json_decode(json_encode($raw), true);
+        } catch (Throwable $e) {
+            throw $e;
+        }
+    }
+
+
     /* ============================================================
        ===============    CATÁLOGOS DESDE BD     ==================
        ============================================================ */
@@ -317,9 +362,10 @@ class ReporteService
         ];
     }
 
-    public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [])
+    public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [], array $visual = [])
     {
         $tabla = [];
+        $carrera = [];
         $pie = null;
         $barras = [];
 
@@ -346,6 +392,26 @@ class ReporteService
                 $p['canton'] ?? null
             );
         }
+
+        if (in_array('carrera', $reportes)) {
+            $carrera = $this->obtenerGraficoPorCarrera(
+                $p['universidad'] ?? null,
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['genero'] ?? null,
+                $p['estado_estudios'] ?? null,
+                $p['nivel_academico'] ?? null,
+                $p['estado_empleo'] ?? null,
+                $p['tiempo_empleo'] ?? null,
+                $p['area_laboral'] ?? null,
+                $p['salario'] ?? null,
+                $p['tipo_empleo'] ?? null,
+                $p['pais'] ?? null,
+                $p['provincia'] ?? null,
+                $p['canton'] ?? null
+            );
+        }
+
 
         if (in_array('barras', $reportes)) {
             $barras = $this->obtenerGraficoAnual(
@@ -391,7 +457,9 @@ class ReporteService
             'tabla'    => $tabla,
             'pie'      => $pie,
             'barras'   => $barras,
+            'carrera'  => $carrera,
             'filtros'  => $filtrosLegibles,
+            'visual'   => $visual,
             'fecha'    => now()->format('d/m/Y H:i'),
         ])
             ->setPaper('a4', 'portrait')

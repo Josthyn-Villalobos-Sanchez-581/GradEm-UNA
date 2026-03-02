@@ -94,4 +94,38 @@ class PerfilController extends Controller
 
         return response()->json($data);
     }
+
+    /* ======================================================
+     * CAMBIO DE CONDICIÓN ACADÉMICA
+     * ====================================================== */
+
+    public function cambiarCondicionEstudianteAEgresado()
+    {
+        try {
+            $this->perfilService->cambiarEstudianteAEgresado();
+
+            return response()->json([
+                'mensaje' => 'Tu condición académica fue actualizada a Egresado.'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 403);
+        }
+    }
+
+    public function cambiarCondicionEgresadoAEstudiante()
+    {
+        try {
+            $this->perfilService->cambiarEgresadoAEstudiante();
+
+            return response()->json([
+                'mensaje' => 'Tu condición académica fue actualizada a Estudiante.'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 403);
+        }
+    }
 }

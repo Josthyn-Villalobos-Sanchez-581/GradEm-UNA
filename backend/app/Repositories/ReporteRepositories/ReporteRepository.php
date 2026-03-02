@@ -150,6 +150,54 @@ class ReporteRepository
         }
     }
 
+    /**
+     * Ejecuta sp_grafico_egresados_por_carrera
+     */
+    public function obtenerGraficoPorCarreraRaw(
+        ?int $universidad,
+        ?int $fechaInicio,
+        ?int $fechaFin,
+        ?string $genero,
+        ?string $estadoEstudios,
+        ?string $nivelAcademico,
+        ?string $estadoEmpleo,
+        ?int $tiempoEmpleo,
+        ?int $areaLaboral,
+        ?string $salario,
+        ?string $tipoEmpleo,
+        ?int $pais,
+        ?int $provincia,
+        ?int $canton
+    ) {
+        try {
+            $params = [
+                $universidad,
+                null, // 👈 p_carrera_id eliminado a propósito
+                $fechaInicio,
+                $fechaFin,
+                $genero,
+                $estadoEstudios,
+                $nivelAcademico,
+                $estadoEmpleo,
+                $tiempoEmpleo,
+                $areaLaboral,
+                $salario,
+                $tipoEmpleo,
+                $pais,
+                $provincia,
+                $canton
+            ];
+
+            return DB::select(
+                'CALL sp_grafico_egresados_por_carrera(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                $params
+            );
+        } catch (Throwable $e) {
+            throw $e;
+        }
+    }
+
+
 
     public function obtenerUniversidades()
     {

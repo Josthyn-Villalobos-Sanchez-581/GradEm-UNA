@@ -23,20 +23,26 @@ export default function TablaEgresados({ filas }: Props) {
   }
 
   return (
-    <div className="mt-8 overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-      <table className="w-full text-sm text-black">
+    <div className="mt-8 overflow-x-auto bg-white p-4 rounded-2xl">
+      <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden text-sm text-black">
         <thead className="bg-gray-100">
           <tr>
-            <th className="px-4 py-3 text-left font-semibold">#</th>
-            <th className="px-4 py-3 text-left font-semibold">Nombre</th>
-            <th className="px-4 py-3 text-left font-semibold">Género</th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300 first:rounded-tl-2xl">
+              #
+            </th>
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300">
+              Nombre
+            </th>
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300">
+              Género
+            </th>
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300">
               Nivel académico
             </th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300">
               Año graduación
             </th>
-            <th className="px-4 py-3 text-left font-semibold">
+            <th className="px-4 py-3 text-left font-semibold border border-gray-300 last:rounded-tr-2xl">
               Estado de empleo
             </th>
           </tr>
@@ -44,42 +50,47 @@ export default function TablaEgresados({ filas }: Props) {
 
         <tbody>
           {filas.map((fila, index) => (
-            <tr
-              key={index}
-              className={`
-                ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                hover:bg-blue-50 transition
-              `}
-            >
-              {/* Numeración */}
-              <td className="px-4 py-3 font-medium">
+            <tr key={index} className="hover:bg-gray-50 transition">
+              <td className="px-4 py-3 font-medium border border-gray-300">
                 {index + 1}
               </td>
 
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 border border-gray-300">
                 {fila.nombre_completo ?? "—"}
               </td>
-              <td className="px-4 py-3 capitalize">
+
+              <td className="px-4 py-3 border border-gray-300 capitalize">
                 {fila.genero ?? "—"}
               </td>
-              <td className="px-4 py-3">
+
+              <td className="px-4 py-3 border border-gray-300">
                 {fila.nivel_academico ?? "—"}
               </td>
-              <td className="px-4 py-3">
+
+              <td className="px-4 py-3 border border-gray-300">
                 {fila.anio_graduacion ?? "—"}
               </td>
-              <td className="px-4 py-3 capitalize">
+
+              <td className="px-4 py-3 border border-gray-300 capitalize">
                 {fila.estado_empleo ?? "—"}
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
 
-      {/* Pie de tabla */}
-      <div className="px-4 py-2 text-xs text-gray-600 bg-gray-50">
-        Total de resultados: <strong>{filas.length}</strong>
-      </div>
+        {/* 🔹 Pie integrado como fila */}
+        <tfoot>
+          <tr>
+            <td
+              colSpan={6}
+              className="px-4 py-2 text-xs text-gray-600 bg-gray-50 border border-gray-300 rounded-b-2xl"
+            >
+              Total de resultados:{" "}
+              <strong>{filas.length}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
