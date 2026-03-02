@@ -3,12 +3,13 @@ import { Head, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
+import { FileText, GraduationCap, Award, Paperclip } from "lucide-react";
 
 // 1. Interfaz de propiedades (se elimina actionText, ya no es necesario)
 interface DocumentUploadCardProps {
   title: string;
   description: string;
-  emoji: string;
+  icon: React.ReactNode;
   actionUrl: string; // Se mantiene la URL para la navegación
 }
 
@@ -16,7 +17,7 @@ interface DocumentUploadCardProps {
 const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({ 
     title, 
     description, 
-    emoji, 
+    icon, 
     actionUrl 
 }) => {
   return (
@@ -29,7 +30,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     >
       {/* 1. Ícono */}
       <div className="text-6xl text-[#CD1719] mb-4"> 
-        {emoji}
+        {icon}
       </div>
       
       {/* 2. Título */}
@@ -71,7 +72,7 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
           
           {/* Tarjeta Currículum Vitae (Se eliminó actionText) */}
           <DocumentUploadCard
-            emoji="📄"
+            icon={<FileText className="h-10 w-10 stroke-current text-[#CD1719]" />}
             title="Currículum Vitae"
             description="Haga clic para subir, actualizar o revisar su currículum vitae."
             actionUrl="/curriculum-cargado"
@@ -79,7 +80,7 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
 
           {/* Tarjeta Títulos Académicos (Se eliminó actionText) */}
           <DocumentUploadCard
-            emoji="🎓"
+            icon={<GraduationCap className="h-10 w-10 stroke-current text-[#CD1719]" />}
             title="Títulos"
             description="Haga clic para subir los archivos de sus títulos."
             actionUrl="/titulos-cargados"
@@ -87,7 +88,7 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
 
           {/* Tarjeta Certificados (Se eliminó actionText) */}
           <DocumentUploadCard
-            emoji="🏅"
+            icon={<Award className="h-10 w-10 stroke-current text-[#CD1719]" />}
             title="Certificados"
             description="Haga clic para subir sus certificados de cursos, seminarios y reconocimientos adicionales."
             actionUrl="/certificados-cargados"
@@ -95,7 +96,7 @@ export default function DocumentosIndex({}: DocumentosIndexProps) {
 
           {/* Tarjeta Otros Documentos (Se eliminó actionText) */}
           <DocumentUploadCard
-            emoji="📎"
+            icon={<Paperclip className="h-10 w-10 stroke-current text-[#CD1719]" />}
             title="Otros Documentos"
             description="Haga clic para cargar cualquier otro documento relevante no clasificado en otras secciones."
             actionUrl="/otros-cargados"

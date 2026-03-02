@@ -295,7 +295,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
 
         // Catálogos
-        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('reportes/universidades', [ReporteController::class, 'universidades']);
         Route::get('carreras', [ReporteController::class, 'carreras']);
         Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
         Route::get('paises', [ReporteController::class, 'paises']);

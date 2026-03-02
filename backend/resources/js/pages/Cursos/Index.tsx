@@ -5,6 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
+import { BookOpen, Play, Hourglass } from "lucide-react";
 
 /* =======================
    Tipos
@@ -1159,7 +1160,7 @@ export default function CursosIndex(props: Props) {
           {/* Total Cursos */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-red-100 text-red-600">
-              📚
+              <BookOpen className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Total de Cursos</p>
@@ -1174,7 +1175,7 @@ export default function CursosIndex(props: Props) {
           {/* Cursos Activos */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              ▶️
+              <Play className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Cursos Activos</p>
@@ -1189,7 +1190,7 @@ export default function CursosIndex(props: Props) {
           {/* Pendientes */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
-              ⏳
+              <Hourglass className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Pendientes a Publicar</p>
