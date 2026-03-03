@@ -32,6 +32,7 @@ use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\NotificacionCursoController;
 use App\Http\Controllers\CursoController;
+use App\Http\Controllers\InscripcionCursoController;
 
 
 // ==========================================
@@ -261,12 +262,16 @@ Route::middleware('auth')->group(function () {
     });
 
     // ==========================================
-    // 8 - Gestión de Cursos
+    // 8 - Gestión de Cursos / 9 - Inscripción (vista compartida)
     // ==========================================
-    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
 
+    // Vista de cursos: accesible tanto al que gestiona (8) como al que se inscribe (9)
+    Route::middleware(['auth'])->prefix('cursos')->group(function () {
         Route::get('/', [CursoController::class, 'index'])
             ->name('cursos.index');
+    });
+
+    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
 
         Route::post('/', [CursoController::class, 'store'])
             ->name('cursos.store');
@@ -297,6 +302,18 @@ Route::middleware('auth')->group(function () {
             '/notificaciones/cursos/cambio-inscripcion',
             [NotificacionCursoController::class, 'notificarCambioInscripcion']
         )->name('notificaciones.cursos.cambio-inscripcion');
+    });
+
+    // ==========================================
+    // 9 - Inscripción a Cursos (HU-29)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:9'])->prefix('cursos')->group(function () {
+
+        Route::post('/{idCurso}/inscribirse', [InscripcionCursoController::class, 'store'])
+            ->name('cursos.inscribirse');
+
+        Route::get('/{idCurso}/inscripcion-estado', [InscripcionCursoController::class, 'estado'])
+            ->name('cursos.inscripcion.estado');
     });
 
     // ==========================================
@@ -430,7 +447,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
 
         // Catálogos
-        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('reportes/universidades', [ReporteController::class, 'universidades']);
         Route::get('carreras', [ReporteController::class, 'carreras']);
         Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
         Route::get('paises', [ReporteController::class, 'paises']);

@@ -5,6 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
+import { BookOpen, Play, Hourglass } from "lucide-react";
 
 /* =======================
    Tipos
@@ -24,6 +25,7 @@ interface Curso {
   fecha_fin?: string;
   fecha_limite_inscripcion?: string;
   duracion?: string;
+  cupos?: number;
   estado_id: number;
 }
 
@@ -31,6 +33,8 @@ interface Props {
   cursos: Curso[];
   modalidades: { id_modalidad: number; nombre: string }[];
   userPermisos: number[];
+  misInscripciones: number[];
+  inscritosCount: Record<number, number>;
 }
 
 /* =======================
@@ -44,6 +48,13 @@ export default function CursosIndex(props: Props) {
 
   // Roles administrativos (alineado a PerfilesUsuarios)
   const puedeGestionar = [1, 2, 3, 4].includes(auth?.user?.id_rol);
+
+  // HU-29: inscripciones del usuario actual
+  const puedeInscribirse = (props.userPermisos ?? []).includes(9);
+  const [misInscripciones, setMisInscripciones] = useState<Set<number>>(
+    new Set(props.misInscripciones ?? [])
+  );
+  const [inscribiendose, setInscribiendose] = useState<Set<number>>(new Set());
 
   /* =======================
      Estados de filtros
@@ -183,6 +194,59 @@ export default function CursosIndex(props: Props) {
 
   const minGlobal = `${anioActual - 1}-01-01`;
   const maxGlobal = `${anioActual + 1}-12-31`;
+
+  // HU-29: Inscribirse a un curso
+  const inscribirse = async (curso: Curso) => {
+    const confirmado = await modal.confirmacion({
+      titulo: "Inscribirse al curso",
+      mensaje: (
+        <p>
+          ¿Deseas inscribirte al curso <strong>{curso.titulo}</strong>?
+          {curso.cupos != null && (
+            <><br /><span className="text-sm text-gray-500">
+              Cupos disponibles:{" "}
+              {Math.max(0, curso.cupos - (props.inscritosCount[curso.id_curso] ?? 0))}
+            </span></>
+          )}
+        </p>
+      ),
+      textoAceptar: "Inscribirme",
+      textoCancelar: "Cancelar",
+    });
+
+    if (!confirmado) return;
+
+    setInscribiendose((prev) => new Set(prev).add(curso.id_curso));
+
+    try {
+      await axios.post(route("cursos.inscribirse", { idCurso: curso.id_curso }));
+
+      setMisInscripciones((prev) => new Set(prev).add(curso.id_curso));
+
+      await modal.alerta({
+        titulo: "Inscripción exitosa",
+        mensaje: (
+          <p>
+            Te has inscrito correctamente al curso <strong>{curso.titulo}</strong>.
+            Recibirás un correo de confirmación con los detalles.
+          </p>
+        ),
+      });
+    } catch (error: any) {
+      await modal.alerta({
+        titulo: "No se pudo inscribir",
+        mensaje:
+          error.response?.data?.message ??
+          "Ocurrió un error al procesar la inscripción. Intente nuevamente.",
+      });
+    } finally {
+      setInscribiendose((prev) => {
+        const next = new Set(prev);
+        next.delete(curso.id_curso);
+        return next;
+      });
+    }
+  };
 
   const eliminarCurso = async (curso: Curso) => {
     let motivo = "";
@@ -1092,6 +1156,26 @@ export default function CursosIndex(props: Props) {
                             Eliminar
                           </Button>
                         )}
+
+                        {/* HU-29: Botón inscribirse para egresados/estudiantes */}
+                        {!puedeGestionar && puedeInscribirse && curso.estado_id === 1 && (
+                          misInscripciones.has(curso.id_curso) ? (
+                            <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                              ✓ Inscrito
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              disabled={inscribiendose.has(curso.id_curso)}
+                              onClick={() => inscribirse(curso)}
+                            >
+                              {inscribiendose.has(curso.id_curso)
+                                ? "Procesando..."
+                                : "Inscribirme"}
+                            </Button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1159,7 +1243,7 @@ export default function CursosIndex(props: Props) {
           {/* Total Cursos */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-red-100 text-red-600">
-              📚
+              <BookOpen className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Total de Cursos</p>
@@ -1174,7 +1258,7 @@ export default function CursosIndex(props: Props) {
           {/* Cursos Activos */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              ▶️
+              <Play className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Cursos Activos</p>
@@ -1189,7 +1273,7 @@ export default function CursosIndex(props: Props) {
           {/* Pendientes */}
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
-              ⏳
+              <Hourglass className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Pendientes a Publicar</p>

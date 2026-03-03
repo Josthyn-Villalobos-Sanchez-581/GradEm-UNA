@@ -222,10 +222,21 @@ class EstadisticasService
 
     public function generarPdfReportes(array $reportes, array $p, array $filtrosLegibles = [])
     {
+        $kpis = [];
         $ofertasMes = [];
         $postulacionesTipo = [];
         $topEmpresas = [];
         $topCarreras = [];
+
+        if (in_array('kpis', $reportes)) {
+            $kpis = $this->obtenerKpis(
+                $p['fecha_inicio'] ?? null,
+                $p['fecha_fin'] ?? null,
+                $p['tipo_oferta'] ?? null,
+                $p['carrera'] ?? null,
+                $p['empresa'] ?? null
+            );
+        }
 
         if (in_array('ofertas_mes', $reportes)) {
             $ofertasMes = $this->obtenerOfertasPorMes(
@@ -268,6 +279,7 @@ class EstadisticasService
 
         return Pdf::loadView('pdf.reportes-ofertas', [
             'reportes'             => $reportes,
+            'kpis'                 => $kpis,
             'ofertasMes'           => $ofertasMes,
             'postulacionesTipo'    => $postulacionesTipo,
             'topEmpresas'          => $topEmpresas,

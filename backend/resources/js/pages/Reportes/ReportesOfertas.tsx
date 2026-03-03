@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
 import PpLayout from "@/layouts/PpLayout";
@@ -75,7 +75,10 @@ export default function ReportesOfertas({
 
 const modal = useModal();
 
+const panelRef = useRef<HTMLDivElement>(null);
+const [panelAbierto, setPanelAbierto] = useState(false);
 const [reportesSeleccionados, setReportesSeleccionados] = useState<string[]>([
+  "kpis",
   "ofertas_mes",
   "postulaciones_tipo",
   "top_empresas",
@@ -153,7 +156,7 @@ const filtrosLegibles = Object.entries(filtros)
   };
 
   const descargarPdf = async () => {
-    if (!hayResultados) {
+    if (!hayResultados || reportesSeleccionados.length === 0) {
       modal.alerta({
         titulo: "Sin datos",
         mensaje: "No existen datos para generar el reporte en PDF.",
@@ -275,6 +278,23 @@ const filtrosLegibles = Object.entries(filtros)
     }
   };
 
+  /* make first load */
+  React.useEffect(() => {
+    // automatic load with default (all) filters
+    fetchReportes();
+  }, []);
+
+  /* cerrar panel cuando se clickea fuera */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setPanelAbierto(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   /* Render */
   return (
     <div className="reportes-ofertas-container">
@@ -286,7 +306,7 @@ const filtrosLegibles = Object.entries(filtros)
 
           {/* Títulos */}
           <div>
-            <h1 className="text-2xl font-bold text-[#D9232E]">
+            <h1 className="text-2xl font-bold text-[#034991]">
               Panel de Estadísticas de Empleos
             </h1>
             <p className="text-sm text-gray-600 mt-1 max-w-3xl">
@@ -294,17 +314,111 @@ const filtrosLegibles = Object.entries(filtros)
             </p>
           </div>
 
-          {/* Botón PDF */}
-          {hayResultados && (
-            <Button
-              variant="destructive"
-              disabled={loading || hayErrores}
-              onClick={descargarPdf}
-              className="h-[42px] w-full sm:w-auto"
-            >
-              Descargar PDF
-            </Button>
-          )}
+          {/* selector tipo ReporteEgresados + botón PDF */}
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={panelRef}>
+              <div
+                onClick={() => setPanelAbierto(!panelAbierto)}
+                className="flex items-center justify-between gap-2 px-4 py-2 rounded-full bg-white border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-black">
+                    Seleccionar reportes
+                  </span>
+                  {reportesSeleccionados.length > 0 && (
+                    <span className="text-xs bg-[#034991] text-white px-2 py-0.5 rounded-full">
+                      {reportesSeleccionados.length}
+                    </span>
+                  )}
+                </div>
+                <svg
+                  className={`w-4 h-4 text-gray-500 transition-transform ${
+                    panelAbierto ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+
+              <div
+                className={`absolute z-20 mt-2 w-56 bg-white rounded-xl shadow-xl border p-4 space-y-3 transition ${
+                  panelAbierto
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
+                }`}
+              >
+                {[
+                  { id: "todos", label: "Todos los reportes" },
+                  { id: "kpis", label: "KPIs" },
+                  { id: "ofertas_mes", label: "Ofertas por mes" },
+                  { id: "postulaciones_tipo", label: "Postulaciones por tipo" },
+                  { id: "top_empresas", label: "Top empresas" },
+                  { id: "top_carreras", label: "Top carreras" },
+                ].map((opcion) => (
+                  <label
+                    key={opcion.id}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        opcion.id === "todos"
+                          ? reportesSeleccionados.length === 5
+                          : reportesSeleccionados.includes(opcion.id)
+                      }
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setReportesSeleccionados((prev) => {
+                          if (opcion.id === "todos") {
+                            return checked
+                              ? [
+                                  "kpis",
+                                  "ofertas_mes",
+                                  "postulaciones_tipo",
+                                  "top_empresas",
+                                  "top_carreras",
+                                ]
+                              : [];
+                          }
+                          const exists = prev.includes(opcion.id);
+                          if (checked && !exists) return [...prev, opcion.id];
+                          if (!checked && exists)
+                            return prev.filter((r) => r !== opcion.id);
+                          return prev;
+                        });
+                      }}
+                      className="
+                                    h-4 w-4 rounded border-gray-300
+                                    text-[#034991] focus:ring-[#034991]
+                                  "
+                    />
+                    <span className="text-sm text-black">
+                      {opcion.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {hayResultados && (
+              <Button
+                variant="destructive"
+                disabled={loading || hayErrores || reportesSeleccionados.length === 0}
+                onClick={descargarPdf}
+                className="h-[42px] w-full sm:w-auto"
+              >
+                Descargar PDF
+              </Button>
+            )}
+          </div>
 
         </div>
       </div>
@@ -377,22 +491,34 @@ const filtrosLegibles = Object.entries(filtros)
         <main className="lg:col-span-3 space-y-6">
 
           {/* KPIs */}
-          {kpis && (
+          {reportesSeleccionados.includes("kpis") && kpis && (
             <div className="bg-white rounded-xl shadow p-6">
               <GraficoKpis datos={kpis} />
             </div>
           )}
 
           {/* Gráficos */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <GraficoOfertasMes data={graficoOfertasMes} />
-            <GraficoDonutPostulaciones datos={datosPostulaciones} />
-          </div>
-
-          {/* Rankings */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <TopEmpresas empresas={resultadosTopEmpresas} />
-            <CarrerasSolicitadas carreras={resultadosTopCarreras} />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+            {reportesSeleccionados.includes("ofertas_mes") && (
+              <div className="fade-in" >
+                <GraficoOfertasMes data={graficoOfertasMes} />
+              </div>
+            )}
+            {reportesSeleccionados.includes("postulaciones_tipo") && (
+              <div className="fade-in">
+                <GraficoDonutPostulaciones datos={datosPostulaciones} />
+              </div>
+            )}
+            {reportesSeleccionados.includes("top_empresas") && (
+              <div className="fade-in">
+                <TopEmpresas empresas={resultadosTopEmpresas} />
+              </div>
+            )}
+            {reportesSeleccionados.includes("top_carreras") && (
+              <div className="fade-in">
+                <CarrerasSolicitadas carreras={resultadosTopCarreras} />
+              </div>
+            )}
           </div>
 
         </main>

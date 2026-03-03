@@ -29,13 +29,30 @@ class CursoController extends Controller
                 ->toArray()
             : [];
 
+        // IDs de cursos en los que el usuario ya está inscrito
+        $misInscripciones = $usuario
+            ? DB::table('inscripciones_curso')
+                ->where('id_usuario', $usuario->id_usuario)
+                ->pluck('id_curso')
+                ->toArray()
+            : [];
+
+        // Cantidad de inscritos por curso (para mostrar cupos disponibles)
+        $inscritosCount = DB::table('inscripciones_curso')
+            ->select('id_curso', DB::raw('COUNT(*) as total'))
+            ->groupBy('id_curso')
+            ->pluck('total', 'id_curso')
+            ->toArray();
+
         return Inertia::render('Cursos/Index', [
             'cursos' => $this->service->obtenerCursosFiltrados(
                 $request,
                 $usuario
             ),
-            'modalidades' => $this->service->obtenerModalidades(),
-            'userPermisos' => $permisos,
+            'modalidades'      => $this->service->obtenerModalidades(),
+            'userPermisos'     => $permisos,
+            'misInscripciones' => $misInscripciones,
+            'inscritosCount'   => $inscritosCount,
             'filtros' => $request->only([
                 'modalidad',
                 'estado',
