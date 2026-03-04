@@ -166,6 +166,11 @@
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   color: #222222;
+
+  /* AÑADE ESTO: */
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Para que llene el alto del grid */
 }
 
 .card h3 {
@@ -185,6 +190,16 @@
 .card svg,
 .card text {
   color: #222222;
+}
+
+/* animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.35s ease-out;
 }
 
 /* ======================================================

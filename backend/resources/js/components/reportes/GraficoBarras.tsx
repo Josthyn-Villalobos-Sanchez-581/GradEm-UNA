@@ -118,23 +118,41 @@ export default function GraficoBarrasAnual({ filas }: Props) {
   /* =======================
      PREPARAR DATOS
   ======================= */
-  const datos = useMemo(() => {
-    const total = filas.reduce((s, f) => s + f.total_egresados, 0);
+  const { datos, sinAnioTotal } = useMemo(() => {
+    // Normalizar tipos
+    const normalizados = filas.map((f) => ({
+      anio: f.anio,
+      total_egresados: Number(f.total_egresados),
+    }));
 
-    return [...filas]
-      .sort((a, b) => Number(a.anio) - Number(b.anio))
-      .map((f) => ({
-        ...f,
-        porcentaje: total ? (f.total_egresados / total) * 100 : 0,
-      }));
+    // Separar los que no tienen año
+    const sinAnio = normalizados.find((f) => f.anio === "Sin año");
+    const sinAnioTotal = sinAnio ? sinAnio.total_egresados : 0;
+
+    // Solo los que sí tienen año numérico van al gráfico
+    const conAnio = normalizados
+      .filter((f) => f.anio !== "Sin año")
+      .sort((a, b) => Number(a.anio) - Number(b.anio));
+
+    const total = conAnio.reduce((s, f) => s + f.total_egresados, 0);
+
+    const datos = conAnio.map((f) => ({
+      ...f,
+      porcentaje: total ? (f.total_egresados / total) * 100 : 0,
+    }));
+
+    return { datos, sinAnioTotal };
   }, [filas]);
+
 
   const necesitaScroll = datos.length > 7;
 
   return (
-    <section className="bg-white shadow-xl rounded-2xl p-6">
+    <section className="bg-white shadow-xl rounded-2xl p-6 h-[560px] flex flex-col">
       {/* HEADER */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <header className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+
+        {/* BLOQUE IZQUIERDO */}
         <div>
           <h2 className="text-xl font-semibold text-[#034991]">
             Egresados por año
@@ -142,6 +160,12 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           <p className="text-sm text-gray-600">
             Distribución anual de egresados
           </p>
+
+          {sinAnioTotal > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              {sinAnioTotal} egresado(s) sin año de graduación
+            </p>
+          )}
 
           {/* SELECTOR DE COLOR */}
           <div className="flex items-center gap-2 mt-3">
@@ -157,9 +181,9 @@ export default function GraficoBarrasAnual({ filas }: Props) {
                   localStorage.setItem("graficoAnualColor", key);
                 }}
                 className={`
-                  w-6 h-6 rounded-full border transition
-                  ${paletaActiva === key ? "ring-2 ring-gray-400 scale-110" : ""}
-                `}
+            w-6 h-6 rounded-full border transition
+            ${paletaActiva === key ? "ring-2 ring-gray-400 scale-110" : ""}
+          `}
                 style={{ backgroundColor: PALETAS[key][0] }}
                 title={key}
               />
@@ -167,25 +191,26 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           </div>
         </div>
 
-        {/* ORIENTACIÓN */}
+        {/* BOTÓN DERECHA */}
         <button
           onClick={() => setHorizontal((v) => !v)}
           className="
-            px-4 py-2 rounded-full border
-            text-sm font-medium
-            bg-gray-100 hover:bg-gray-200
-            transition
-          "
+      px-4 py-2 rounded-full border
+      text-sm font-medium
+      bg-gray-100 hover:bg-gray-200
+      transition
+      self-start md:self-auto
+    "
         >
           {horizontal ? "Vista vertical" : "Vista horizontal"}
         </button>
+
       </header>
 
       {/* GRÁFICO */}
       <div
-        className={`w-full ${
-          necesitaScroll && horizontal ? "max-h-[420px] overflow-y-auto" : ""
-        }`}
+        className={`w-full ${necesitaScroll && horizontal ? "max-h-[420px] overflow-y-auto" : ""
+          }`}
       >
         <div className={horizontal ? "h-[480px]" : "h-[380px]"}>
           <ResponsiveContainer width="100%" height="100%">

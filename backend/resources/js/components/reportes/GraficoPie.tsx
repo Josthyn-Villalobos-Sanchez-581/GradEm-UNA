@@ -89,18 +89,18 @@ export default function GraficoPie({ datos }: Props) {
         fontWeight="bold"
       >
         {modoValor === "porcentaje"
-          ? `${(percent * 100).toFixed(0)}%`
+          ? `${(percent * 100).toFixed(1)}%`
           : value}
       </text>
     );
   };
 
   return (
-    <section className="bg-white shadow-xl rounded-2xl p-6 min-h-[420px]">
+    <section className="bg-white shadow-xl rounded-2xl p-6 h-[560px] flex flex-col">
       {/* =======================
           HEADER
       ======================= */}
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-4 min-h-[85px] flex justify-between items-start">
         <div>
           <h2 className="text-xl font-semibold text-[#1d4ed8]">
             Estado laboral de egresados
@@ -162,8 +162,8 @@ export default function GraficoPie({ datos }: Props) {
       {/* =======================
           GRÁFICO
       ======================= */}
-      <div className="flex flex-col items-center">
-        <div className="w-full h-[380px] relative">
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="w-full h-[250px] relative shrink-0">
           {/* TOTAL CENTRAL */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-sm text-gray-500">Total</span>
@@ -180,8 +180,8 @@ export default function GraficoPie({ datos }: Props) {
                 nameKey="nombre"
                 cx="50%"
                 cy="50%"
-                innerRadius={85}
-                outerRadius={145}
+                innerRadius={70}
+                outerRadius={115}
                 paddingAngle={3}
                 label={renderLabel}
                 labelLine={false}
@@ -198,18 +198,24 @@ export default function GraficoPie({ datos }: Props) {
               </Pie>
 
               <Tooltip
-                formatter={(value: number, name: string, props: any) => [
-                  modoValor === "porcentaje"
-                    ? `${props.payload.porcentaje.toFixed(1)}%`
-                    : value,
-                  name,
-                ]}
+                formatter={(value: number, name: string, props: any) => {
+                  const porcentaje = props.payload.porcentaje.toFixed(1);
+                  const numero = value;
+
+                  return [
+                    modoValor === "numero"
+                      ? `${porcentaje}%`
+                      : `${numero} egresados`,
+                    name,
+                  ];
+                }}
                 contentStyle={{
                   backgroundColor: "#ffffff",
                   borderRadius: "10px",
                   border: "1px solid #e5e7eb",
                 }}
               />
+
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -217,32 +223,33 @@ export default function GraficoPie({ datos }: Props) {
         {/* =======================
             LEYENDA INFERIOR
         ======================= */}
-        <div className="mt-6 w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {datosProcesados.map((item) => (
-            <div
-              key={item.nombre}
-              className="flex items-center gap-3 border rounded-lg px-4 py-3"
-            >
-              <span
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: item.color }}
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-800">
-                  {item.nombre}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {modoValor === "porcentaje"
-                    ? `${item.porcentaje.toFixed(1)}%${item.valor} egresados`
-                    : `${item.valor} egresados`}
-                </p>
+        {/* LEYENDA */}
+        <div className="mt-4 flex-1 overflow-y-auto pr-2">
+          <div className="grid grid-cols-2 gap-3">
+            {datosProcesados.map((item) => (
+              <div
+                key={item.nombre}
+                className="flex items-center gap-2 border rounded-md px-3 py-2 bg-white"
+              >
+                <span
+                  className="w-4 h-4 rounded-full shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-gray-600">
+                    {item.nombre}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {item.porcentaje.toFixed(1)}% · {item.valor} egresados
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      <p className="mt-6 text-center text-sm text-gray-600">
+      <p className="mt-3 text-center text-xs text-gray-600">
         Distribución del estado de empleo de los egresados
       </p>
     </section>
