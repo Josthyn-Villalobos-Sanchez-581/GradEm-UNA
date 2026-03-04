@@ -64,6 +64,7 @@ const Welcome = () => {
                 <div className="max-w-full mx-auto px-4 md:px-10 flex justify-between items-center h-20">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 md:gap-4 bg-white/5 p-2 rounded-2xl">
+                            <img src={unaLogo} className="h-8 md:h-12" alt="GradEm" />
                             <img src={grademLogo} className="h-8 md:h-12" alt="GradEm" />
                             <div className="h-8 w-[1px] bg-white/20 hidden xs:block"></div>
                             <img src={unaLogo} className="h-8 md:h-12 hidden xs:block" alt="UNA" />
@@ -77,14 +78,14 @@ const Welcome = () => {
 
                     <div className="flex items-center gap-2 md:gap-3">
                         <Button variant="ghost" onClick={() => router.get("/login")} className="text-white hover:bg-white/20 font-bold px-2 md:px-4">
-                            <LogIn className="w-5 h-5 md:w-4 md:h-4 md:mr-2" /> 
+                            <LogIn className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
                             <span className="hidden md:inline">Iniciar sesión</span>
                         </Button>
                         <Button onClick={() => router.get("/registro")} className="bg-[#034991] hover:bg-[#023a74] text-white px-4 md:px-6 rounded-full font-bold border border-white/20 text-sm">
-                            <UserPlus className="w-4 h-4 md:mr-2" /> 
+                            <UserPlus className="w-4 h-4 md:mr-2" />
                             <span className="hidden sm:inline">Registrarme</span>
                         </Button>
-                        
+
                         {/* Botón Hamburguesa para Mobile */}
                         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden text-white p-1">
                             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}

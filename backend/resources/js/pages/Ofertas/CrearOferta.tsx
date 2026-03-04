@@ -231,23 +231,38 @@ export default function CrearOferta({
                         <nav className="space-y-1">
                             {pasos.map((p) => {
                                 const active = paso === p;
+
                                 return (
                                     <button
                                         key={p}
                                         onClick={() => setPaso(p)}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                                ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                                : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
                                             }`}
                                     >
-                                        <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
+                                        <div
+                                            className={`mr-3 transition-colors ${active
+                                                    ? "text-[#034991]"
+                                                    : "text-gray-400 group-hover:text-[#034991]"
+                                                }`}
+                                        >
                                             {p === "general" && <Briefcase className="w-5 h-5" />}
                                             {p === "descripcion" && <FileText className="w-5 h-5" />}
                                             {p === "ubicacion" && <MapPin className="w-5 h-5" />}
                                             {p === "publicacion" && <Calendar className="w-5 h-5" />}
                                         </div>
-                                        <span className="capitalize">{p.replace('descripcion', 'descripción').replace('ubicacion', 'ubicación').replace('publicacion', 'publicación')}</span>
-                                        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#CD1719]"></div>}
+
+                                        <span className="capitalize">
+                                            {p
+                                                .replace("descripcion", "descripción")
+                                                .replace("ubicacion", "ubicación")
+                                                .replace("publicacion", "publicación")}
+                                        </span>
+
+                                        {active && (
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                                        )}
                                     </button>
                                 );
                             })}

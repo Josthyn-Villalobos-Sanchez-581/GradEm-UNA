@@ -73,7 +73,7 @@ export default function OfertaCard({ oferta, href }: Props) {
         <Link
             href={href ?? `/ofertas/${oferta.id_oferta}`}
             className={`group relative block bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl ${config.shadowHover} hover:-translate-y-2 transition-all duration-500 overflow-hidden`}
-        
+
         >
             {/* Barra superior de acento (Identificador de tipo) */}
             <div className={`absolute top-0 left-0 w-full h-1.5 ${config.accent} opacity-90`} />
@@ -94,14 +94,21 @@ export default function OfertaCard({ oferta, href }: Props) {
                 {/* CONTENIDO: Logo y Títulos */}
                 <div className="flex gap-5">
                     <div className="shrink-0 relative">
-                        {/* Efecto de brillo de fondo según el tipo */}
-                        <div className={`absolute inset-0 ${esPractica ? 'bg-emerald-500/5' : 'bg-blue-500/5'} rounded-2xl blur-sm group-hover:blur-md transition-all`} />
-                        <img
-                            src={fotoEmpresa}
-                            onError={(e) => (e.currentTarget.src = FotoXDefecto)}
-                            alt={oferta.empresa?.nombre}
-                            className="relative w-16 h-16 rounded-2xl object-contain border border-white bg-white shadow-sm transition-transform duration-500 group-hover:scale-110"
+                        {/* Halo suave de fondo */}
+                        <div
+                            className={`absolute inset-0 ${esPractica ? "bg-emerald-500/10" : "bg-blue-500/10"
+                                } rounded-full blur-md group-hover:blur-xl transition-all duration-500`}
                         />
+
+                        {/* Contenedor circular */}
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md bg-white transition-transform duration-500 group-hover:scale-110">
+                            <img
+                                src={fotoEmpresa}
+                                onError={(e) => (e.currentTarget.src = FotoXDefecto)}
+                                alt={oferta.empresa?.nombre}
+                                className="w-full h-full object-cover rounded-full"
+                            />
+                        </div>
                     </div>
 
                     <div className="flex-1 space-y-1">

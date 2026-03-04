@@ -233,6 +233,13 @@ Route::middleware('auth')->group(function () {
         // Otra HU: Postularse a una oferta
         Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
             ->name('ofertas.postular');
+
+        // Otra HU: Ver mis postulaciones (listado de ofertas a las que el usuario se ha postulado)
+        Route::get('/misPostulaciones', [PostulacionController::class, 'misPostulaciones'])
+            ->name('postulaciones.mias');
+
+        Route::patch('/postulaciones/{id}/cancelar', [PostulacionController::class, 'cancelar']
+        )->name('postulaciones.cancelar');
     });
 
     // ==========================================
@@ -257,7 +264,8 @@ Route::middleware('auth')->group(function () {
             ->name('postulaciones.cambiarEstado');
 
         Route::get(
-            '/empresa/ofertas/{oferta}/postulantes', [PostulacionController::class, 'postulantesPorOferta']
+            '/empresa/ofertas/{oferta}/postulantes',
+            [PostulacionController::class, 'postulantesPorOferta']
         )->name('empresa.ofertas.postulantes');
     });
 

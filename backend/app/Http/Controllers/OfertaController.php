@@ -47,10 +47,6 @@ class OfertaController extends Controller
             $consulta->where('id_canton', $request->id_canton);
         }
 
-        if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->id_modalidad);
-        }
-
         if ($request->filled('id_area_laboral')) {
             $consulta->where('id_area_laboral', $request->id_area_laboral);
         }
@@ -255,9 +251,23 @@ class OfertaController extends Controller
         $usuario = $request->user();
         $empresa = $usuario->empresa; // null si es admin/superadmin
 
+        $request->validate([
+            'id_modalidad' => 'nullable|integer|exists:modalidades,id_modalidad',
+            'estado'       => 'nullable|integer|in:1,2',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin'    => 'nullable|date',
+            'per_page'     => 'nullable|integer|min:5|max:100',
+        ]);
+
         // 🔒 Seguridad básica
         if (!$usuario) {
             abort(403, 'No autorizado.');
+        }
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            if ($request->fecha_inicio > $request->fecha_fin) {
+                abort(422, 'La fecha inicio no puede ser mayor que la fecha fin.');
+            }
         }
 
         /**
@@ -286,8 +296,13 @@ class OfertaController extends Controller
         }
 
         // 🎯 Modalidad
-        if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->id_modalidad);
+        if ($request->has('id_modalidad') && $request->id_modalidad !== null && $request->id_modalidad !== '') {
+            $consulta->where('id_modalidad', (int) $request->id_modalidad);
+        }
+
+        // 🟢 Estado
+        if ($request->filled('estado')) {
+            $consulta->where('estado_id', $request->estado);
         }
 
         // 📅 Fechas
@@ -345,12 +360,11 @@ class OfertaController extends Controller
 
         return Inertia::render('Ofertas/EmpresaOfertasIndex', [
             'ofertas'      => $ofertas,
-            'modalidades'  => Modalidad::orderBy('nombre')->get(),
             'filtros'      => $request->only([
                 'buscar',
-                'id_modalidad',
                 'fecha_inicio',
                 'fecha_fin',
+                'estado',
                 'per_page',
             ]),
             'userPermisos' => getUserPermisos(),
@@ -358,95 +372,95 @@ class OfertaController extends Controller
     }
 
     public function gestionar(Request $request, Oferta $oferta)
-{
-    $usuario = Auth::user();
-    $empresa = $usuario->empresa;
+    {
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
 
-    // 🔒 Seguridad
-    if (
-        (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
-        ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
-    ) {
-        abort(403, 'No autorizado.');
-    }
+        // 🔒 Seguridad
+        if (
+            (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
+            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+        ) {
+            abort(403, 'No autorizado.');
+        }
 
-    // 🔎 Cargar relaciones de la oferta
-    $oferta->load([
-        'empresa.usuario.fotoPerfil',
-        'modalidad',
-        'areaLaboral',
-        'carrera',
-        'pais',
-        'provincia',
-        'canton',
-    ]);
+        // 🔎 Cargar relaciones de la oferta
+        $oferta->load([
+            'empresa.usuario.fotoPerfil',
+            'modalidad',
+            'areaLaboral',
+            'carrera',
+            'pais',
+            'provincia',
+            'canton',
+        ]);
 
-    // 🔎 Filtro por estado
-    $estado = $request->estado;
+        // 🔎 Filtro por estado
+        $estado = $request->estado;
 
-    $consulta = Postulacion::with([
-        'usuario.fotoPerfil',
-        'usuario.curriculum'
-    ])
-        ->where('id_oferta', $oferta->id_oferta);
+        $consulta = Postulacion::with([
+            'usuario.fotoPerfil',
+            'usuario.curriculum'
+        ])
+            ->where('id_oferta', $oferta->id_oferta);
 
-    if ($estado) {
-        $consulta->where('estado_id', $estado);
-    }
+        if ($estado) {
+            $consulta->where('estado_id', $estado);
+        }
 
-    // 📄 Paginación SIN through
-    $postulaciones = $consulta
-        ->orderByDesc('fecha_postulacion')
-        ->paginate(10)
-        ->withQueryString();
+        // 📄 Paginación SIN through
+        $postulaciones = $consulta
+            ->orderByDesc('fecha_postulacion')
+            ->paginate(10)
+            ->withQueryString();
 
-    // 🔄 Transformar colección correctamente
-    $postulaciones->getCollection()->transform(function ($postulacion) {
+        // 🔄 Transformar colección correctamente
+        $postulaciones->getCollection()->transform(function ($postulacion) {
 
-        return [
-            'id_postulacion' => $postulacion->id_postulacion,
-            'mensaje' => $postulacion->mensaje,
-            'fecha_postulacion' => $postulacion->fecha_postulacion,
-            'estado_id' => $postulacion->estado_id,
+            return [
+                'id_postulacion' => $postulacion->id_postulacion,
+                'mensaje' => $postulacion->mensaje,
+                'fecha_postulacion' => $postulacion->fecha_postulacion,
+                'estado_id' => $postulacion->estado_id,
 
-            'usuario' => $postulacion->usuario ? [
-                'id_usuario' => $postulacion->usuario->id_usuario,
-                'nombre' => $postulacion->usuario->nombre_completo,
+                'usuario' => $postulacion->usuario ? [
+                    'id_usuario' => $postulacion->usuario->id_usuario,
+                    'nombre' => $postulacion->usuario->nombre_completo,
 
-                'fotoPerfil' => $postulacion->usuario->fotoPerfil
-                    ? [
-                        'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
-                    ]
-                    : null,
+                    'fotoPerfil' => $postulacion->usuario->fotoPerfil
+                        ? [
+                            'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
+                        ]
+                        : null,
 
-                'curriculum' => $postulacion->usuario->curriculum
-                    ? [
-                        'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
-                    ]
-                    : null,
-            ] : null,
-        ];
-    });
+                    'curriculum' => $postulacion->usuario->curriculum
+                        ? [
+                            'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
+                        ]
+                        : null,
+                ] : null,
+            ];
+        });
 
-    // 📊 Estadísticas optimizadas
-    $estadisticas = Postulacion::selectRaw("
+        // 📊 Estadísticas optimizadas
+        $estadisticas = Postulacion::selectRaw("
         COUNT(*) as total,
         SUM(estado_id = 1) as espera,
         SUM(estado_id = 2) as aceptado,
         SUM(estado_id = 3) as negado,
         SUM(estado_id = 4) as revision
     ")
-        ->where('id_oferta', $oferta->id_oferta)
-        ->first();
+            ->where('id_oferta', $oferta->id_oferta)
+            ->first();
 
-    return Inertia::render('Ofertas/GestionOferta', [
-        'oferta'        => $oferta,
-        'postulaciones' => $postulaciones,
-        'estadisticas'  => $estadisticas,
-        'filtroEstado'  => $estado,
-        'userPermisos'  => getUserPermisos(),
-    ]);
-}
+        return Inertia::render('Ofertas/GestionOferta', [
+            'oferta'        => $oferta,
+            'postulaciones' => $postulaciones,
+            'estadisticas'  => $estadisticas,
+            'filtroEstado'  => $estado,
+            'userPermisos'  => getUserPermisos(),
+        ]);
+    }
 
 
     /**

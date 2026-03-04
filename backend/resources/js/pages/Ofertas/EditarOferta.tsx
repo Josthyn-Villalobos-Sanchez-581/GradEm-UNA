@@ -25,6 +25,7 @@ interface FotoPerfil {
     url: string | null;
 }
 
+
 interface Usuario {
     foto_perfil?: FotoPerfil | null;
 }
@@ -279,25 +280,25 @@ export default function EditarOferta({
     return (
         <>
             <Head title="Crear Oferta" />
-                        {/* HEADER PRINCIPAL */}
-                        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
-                                    Editar Ofertas
-                                </h1>
-                                <p className="text-slate-500 text-sm mt-1">
-                                    En este apartado podra editar la oferta laboral, revise cada sección para asegurarse de que toda la información esté correcta antes de publicar.
-                                </p>
-                            </div>
-            
-                            <div className="flex items-center gap-3">
-                                <Button asChild variant="secondary">
-                                    <Link href={route("empresa.ofertas.index")}>
-                                        Volver
-                                    </Link>
-                                </Button>
-                            </div>
-                        </header>
+            {/* HEADER PRINCIPAL */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+                        Editar Ofertas
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">
+                        En este apartado podra editar la oferta laboral, revise cada sección para asegurarse de que toda la información esté correcta antes de publicar.
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Button asChild variant="secondary">
+                        <Link href={route("empresa.ofertas.index")}>
+                            Volver
+                        </Link>
+                    </Button>
+                </div>
+            </header>
 
             <div className="max-w-8xl mx-auto py-8 px-4 ">
                 <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[450px] md:min-h-[550px]">
@@ -322,29 +323,41 @@ export default function EditarOferta({
                         <nav className="space-y-1">
                             {pasos.map((p) => {
                                 const active = paso === p;
+
                                 return (
                                     <button
                                         key={p}
                                         onClick={() => {
-                                            // Opcional: Permitir saltar pasos solo si valida, o libremente en edición.
-                                            // Aquí lo dejo libre como en el sidebar original, pero validando al hacer click.
                                             if (p === paso) return;
-                                            // if (validarPaso()) setPaso(p); // Descomentar si se quiere validar antes de cambiar
                                             setPaso(p);
                                         }}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                                ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                                : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
                                             }`}
                                     >
-                                        <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
+                                        <div
+                                            className={`mr-3 transition-colors ${active
+                                                    ? "text-[#034991]"
+                                                    : "text-gray-400 group-hover:text-[#034991]"
+                                                }`}
+                                        >
                                             {p === "general" && <Briefcase className="w-5 h-5" />}
                                             {p === "descripcion" && <FileText className="w-5 h-5" />}
                                             {p === "ubicacion" && <MapPin className="w-5 h-5" />}
                                             {p === "publicacion" && <Calendar className="w-5 h-5" />}
                                         </div>
-                                        <span className="capitalize">{p.replace('descripcion', 'descripción').replace('ubicacion', 'ubicación').replace('publicacion', 'publicación')}</span>
-                                        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#CD1719]"></div>}
+
+                                        <span className="capitalize">
+                                            {p
+                                                .replace("descripcion", "descripción")
+                                                .replace("ubicacion", "ubicación")
+                                                .replace("publicacion", "publicación")}
+                                        </span>
+
+                                        {active && (
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                                        )}
                                     </button>
                                 );
                             })}

@@ -441,43 +441,77 @@ const OfertasIndex: React.FC<Props> = ({
                                 </div>
                             )}
 
-                            {/* PAGINACIÓN (usa links de Laravel) */}
-                            {ofertas.links.length > 0 && (
-                                <div className="flex justify-center mt-6 gap-2 flex-wrap">
-                                    {ofertas.links.map((link, idx) =>
-                                        link.url ? (
-                                            <Button
-                                                key={idx}
-                                                asChild
-                                                size="sm"
-                                                variant={
-                                                    link.active ? "default" : "outline"
-                                                }
-                                                className={`px-3 py-1 text-xs rounded-full ${link.active
-                                                    ? "bg-[#034991] text-white border-[#034991]"
-                                                    : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                                                    }`}
-                                            >
-                                                <Link
-                                                    href={link.url}
-                                                    preserveScroll
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            </Button>
-                                        ) : (
-                                            <span
-                                                key={idx}
-                                                className="px-3 py-1 text-xs rounded-full text-gray-400 border border-gray-200"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: link.label,
-                                                }}
-                                            />
-                                        )
-                                    )}
-                                </div>
-                            )}
+                            {/* PAGINACIÓN */}
+{ofertas.links.length > 0 && (
+    <div className="flex justify-center mt-6 space-x-2 pb-6">
+
+        {/* ANTERIOR */}
+        <Button
+            type="button"
+            variant="default"
+            size="sm"
+            disabled={!ofertas.links[0]?.url}
+            onClick={() => {
+                const url = ofertas.links[0]?.url;
+                if (!url) return;
+
+                Inertia.visit(url, {
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }}
+        >
+            Anterior
+        </Button>
+
+        {/* BOTONES NUMÉRICOS */}
+        {ofertas.links
+            .filter(
+                (link) =>
+                    link.label !== "&laquo; Previous" &&
+                    link.label !== "Next &raquo;"
+            )
+            .map((link, index) => (
+                <Button
+                    key={index}
+                    type="button"
+                    size="sm"
+                    variant={link.active ? "destructive" : "outline"}
+                    disabled={!link.url}
+                    onClick={() => {
+                        if (!link.url) return;
+
+                        Inertia.visit(link.url, {
+                            preserveScroll: true,
+                            preserveState: true,
+                        });
+                    }}
+                    dangerouslySetInnerHTML={{ __html: link.label }}
+                />
+            ))}
+
+        {/* SIGUIENTE */}
+        <Button
+            type="button"
+            variant="default"
+            size="sm"
+            disabled={!ofertas.links[ofertas.links.length - 1]?.url}
+            onClick={() => {
+                const url =
+                    ofertas.links[ofertas.links.length - 1]?.url;
+                if (!url) return;
+
+                Inertia.visit(url, {
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }}
+        >
+            Siguiente
+        </Button>
+
+    </div>
+)}
                         </section>
                     </div>
                 </div>
