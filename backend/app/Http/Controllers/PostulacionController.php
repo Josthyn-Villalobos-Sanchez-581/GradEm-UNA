@@ -53,7 +53,7 @@ class PostulacionController extends Controller
     public function cambiarEstado(Request $request, $id)
     {
         $request->validate([
-            'estado_id' => 'required|in:1,2,3,4'
+            'estado_id' => 'required|in:1,2,3,4,5'
         ]);
 
         $postulacion = Postulacion::with('oferta')->findOrFail($id);
@@ -80,18 +80,94 @@ class PostulacionController extends Controller
     // ===========================================================
     // LISTAR POSTULACIONES DEL USUARIO LOGUEADO
     // ===========================================================
-    public function misPostulaciones()
+    public function misPostulaciones(Request $request)
     {
         $usuario = Auth::user();
 
-        $postulaciones = Postulacion::with(['oferta'])
-            ->where('id_usuario', $usuario->id_usuario)
-            ->orderByDesc('fecha_postulacion')
-            ->paginate(10);
+        $query = Postulacion::with([
+            'oferta.empresa.usuario.fotoPerfil',
+            'oferta.pais',
+            'oferta.provincia',
+            'oferta.canton',
+            'oferta.modalidad',
+            'oferta.areaLaboral', // ✅ CORRECTO
+        ])
+            ->where('id_usuario', $usuario->id_usuario);
 
-        return Inertia::render('Postulaciones/MisPostulaciones', [
+        // 🔎 Buscar por título
+        if ($request->filled('buscar')) {
+            $query->whereHas('oferta', function ($q) use ($request) {
+                $q->where('titulo', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        // 🎯 Filtrar por estado
+        if ($request->filled('estado_id')) {
+            $query->where('estado_id', $request->estado_id);
+        }
+
+        $postulaciones = $query
+            ->orderByDesc('fecha_postulacion')
+            ->paginate(9)
+            ->withQueryString();
+
+        $postulaciones->getCollection()->transform(function ($postulacion) {
+
+            if (
+                $postulacion->oferta &&
+                $postulacion->oferta->empresa &&
+                $postulacion->oferta->empresa->usuario &&
+                $postulacion->oferta->empresa->usuario->fotoPerfil
+            ) {
+
+                $foto = $postulacion->oferta->empresa->usuario->fotoPerfil;
+
+                $url = is_array($foto)
+                    ? ($foto['url'] ?? null)
+                    : ($foto->ruta_imagen ? asset($foto->ruta_imagen) : null);
+
+                $postulacion->oferta->empresa->usuario->fotoPerfil = $url
+                    ? ['url' => $url]
+                    : null;
+            } else {
+
+                if (
+                    $postulacion->oferta &&
+                    $postulacion->oferta->empresa &&
+                    $postulacion->oferta->empresa->usuario
+                ) {
+                    $postulacion->oferta->empresa->usuario->fotoPerfil = null;
+                }
+            }
+
+            return $postulacion;
+        });
+
+        return Inertia::render('Ofertas/MisPostulaciones', [
             'postulaciones' => $postulaciones,
+            'filtros' => $request->only(['buscar', 'estado_id']),
             'userPermisos'  => getUserPermisos(),
         ]);
+    }
+
+    public function cancelar($id)
+    {
+        $usuario = Auth::user();
+
+        $postulacion = Postulacion::where('id_postulacion', $id)
+            ->where('id_usuario', $usuario->id_usuario)
+            ->firstOrFail();
+
+        if (!in_array($postulacion->estado_id, [1, 4])) {
+            return back()->withErrors([
+                'msg' => 'No puedes cancelar esta postulación.'
+            ]);
+        }
+
+        $postulacion->update([
+            'estado_id' => 5
+        ]);
+
+        return back()->with('success', 'Postulación cancelada.');
     }
 }
