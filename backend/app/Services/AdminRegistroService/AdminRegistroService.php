@@ -141,7 +141,10 @@ class AdminRegistroService
             $usuarioActual->id_usuario
         );
 
-        return response()->json(['status' => 'success']);
+      return response()->json([
+    'status' => 'success',
+    'message' => 'Usuario eliminado correctamente'
+]);
     }
 
     /* ================= FORM ================= */

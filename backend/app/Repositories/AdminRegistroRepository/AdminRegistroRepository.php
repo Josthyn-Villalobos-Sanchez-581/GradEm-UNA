@@ -29,7 +29,7 @@ public function obtenerUsuariosAdmin(?string $search)
     'usuarios.estado_id',
     'usuarios.fecha_registro',
     'roles.nombre_rol as rol',
-    'universidades.nombre as universidad',
+    'universidades.sigla as universidad',
     'carreras.nombre as carrera',
 ])
         ->orderByDesc('usuarios.fecha_registro');
