@@ -5,7 +5,6 @@ import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
 import {
     ArrowLeft,
-    Pencil,
     User,
     MessageSquare,
     ChevronRight,
@@ -15,16 +14,12 @@ import {
     ExternalLink,
     Search,
     ChevronUp,
-    ChevronDown,
     LayoutDashboard
 } from "lucide-react";
 import OfertaCard from "@/components/ofertas/OfertaCard";
 import OfertaDetalle from "@/components/ofertas/OfertaDetalle";
 import {
-    Tooltip,
-    TooltipContent,
     TooltipProvider,
-    TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 /* =========================
@@ -113,14 +108,6 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
         }
     };
 
-    const dataGrafico = useMemo(() => [
-        { name: 'Espera', value: estadisticas.espera, color: '#f97316' }, // Orange-500
-        { name: 'Revisión', value: estadisticas.revision ?? 0, color: '#3b82f6' }, // Blue-500
-        { name: 'Aceptados', value: estadisticas.aceptado, color: '#10b981' }, // Emerald-500
-        { name: 'Negados', value: estadisticas.negado, color: '#f43f5e' }, // Rose-500
-        { name: 'Cancelados', value: estadisticas.cancelado ?? 0, color: '#71717a' }, // Zinc-500
-    ].filter(item => item.value > 0), [estadisticas]); // Solo mostrar los que tienen candidatos
-
     return (
         <TooltipProvider>
             <Head title={`Gestión - ${oferta.titulo}`} />
@@ -131,10 +118,11 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="flex items-center gap-4">
                         <Button
-                            variant="ghost" size="icon" className="rounded-full bg-white shadow-sm hover:shadow-md transition-all"
+                            title="Volver a ofertas"
+                            variant="secondary" size="icon" className="h-10 w-10"
                             onClick={() => router.visit(route("empresa.ofertas.index"))}
                         >
-                            <ArrowLeft className="w-5 h-5 text-gray-600" />
+                            <ArrowLeft />
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Postulantes</h1>
@@ -150,17 +138,19 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
                         <div className="relative flex-1 md:w-80">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
+                                title="Buscador"
                                 type="text" placeholder="Buscar por nombre de candidato..."
-                                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all shadow-sm"
+                                className="text-gray-700 w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all shadow-sm"
                                 value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
                             />
                         </div>
                         <Button
-                            variant="outline" className="rounded-xl shadow-sm bg-white"
+                            title={mostrarInfo ? "Ocultar Información" : "Ver Estadísticas"}
+                            variant="outline" size="default" className="hidden md:inline-flex"
                             onClick={() => setMostrarInfo(!mostrarInfo)}
                         >
                             {mostrarInfo ? <ChevronUp className="w-4 h-4 mr-2" /> : <LayoutDashboard className="w-4 h-4 mr-2" />}
-                            {mostrarInfo ? "Ocultar Info" : "Ver Estadísticas"}
+                            {mostrarInfo ? "Ocultar Información" : "Ver Estadísticas"}
                         </Button>
                     </div>
                 </header>
@@ -169,17 +159,15 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
                 {mostrarInfo && (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
                         {/* Card de Oferta */}
+                        {/* Card de Oferta */}
                         <div className="lg:col-span-4 xl:col-span-3">
                             <div
                                 onClick={() => setVerDetalle(!verDetalle)}
                                 className="group cursor-pointer relative overflow-hidden rounded-2xl transition-all hover:ring-2 hover:ring-blue-500/50 shadow-sm"
                             >
                                 <OfertaCard oferta={oferta} />
-                                <div className="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="bg-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                                        <ExternalLink className="w-3 h-3" /> Ver detalles
-                                    </span>
-                                </div>
+
+                                <div className="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             </div>
                         </div>
 
@@ -287,33 +275,36 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
                                                     </div>
                                                     {p.mensaje && (
                                                         <button
+                                                            title="Ver mensaje"
                                                             onClick={() => setMensajeActivo(p.mensaje)}
-                                                            className="p-1.5 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                            className="p-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-[#034991] focus:ring-gray-400/40"
                                                         >
-                                                            <MessageSquare className="w-4 h-4" />
+                                                            <MessageSquare className="w-5 h-5" />
                                                         </button>
                                                     )}
                                                 </div>
 
                                                 <div className="mt-4 flex gap-2">
                                                     <Button
-                                                        size="sm" variant="secondary"
-                                                        className="flex-1 h-8 text-[11px] font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white transition-all"
+                                                        title="Ver perfil"
+                                                        size="sm" variant="ghost"
                                                         onClick={() => verPerfil(p)}
                                                     >
-                                                        Perfil <ChevronRight className="w-3 h-3 ml-1" />
+                                                        Ver Perfil <ChevronRight className="w-3 h-3 ml-1" />
                                                     </Button>
 
                                                     {p.estado_id === 4 && (
                                                         <div className="flex gap-1">
                                                             <Button
                                                                 size="icon" className="h-8 w-8 bg-emerald-500 hover:bg-emerald-600 shadow-sm"
+                                                                title="Aceptar postulación"
                                                                 onClick={() => cambiarEstado(p.id_postulacion, 2)}
                                                             >
                                                                 <CheckCircle2 className="w-4 h-4 text-white" />
                                                             </Button>
                                                             <Button
-                                                                size="icon" className="h-8 w-8 bg-rose-500 hover:bg-rose-600 shadow-sm"
+                                                                size="icon" className="h-8 w-8 bg-red-600 hover:bg-red-400 shadow-sm"
+                                                                title="Rechazar postulación"
                                                                 onClick={() => cambiarEstado(p.id_postulacion, 3)}
                                                             >
                                                                 <XCircle className="w-4 h-4 text-white" />
@@ -323,10 +314,11 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
 
                                                     {(p.estado_id === 2 || p.estado_id === 3) && (
                                                         <Button
-                                                            size="icon" variant="outline" className="h-8 w-8 border-slate-200 hover:bg-blue-50 hover:border-blue-200 group/btn"
+                                                            size="icon" variant="ghost" className="h-8 w-8"
+                                                            title="Revertir estado"
                                                             onClick={() => cambiarEstado(p.id_postulacion, 4)}
                                                         >
-                                                            <RotateCcw className="w-4 h-4 text-slate-400 group-hover/btn:text-blue-500" />
+                                                            <RotateCcw className="w-5 h-5 text-slate-400 group-hover/btn:text-blue-500" />
                                                         </Button>
                                                     )}
                                                 </div>

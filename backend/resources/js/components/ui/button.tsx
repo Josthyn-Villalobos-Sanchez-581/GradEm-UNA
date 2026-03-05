@@ -26,10 +26,12 @@ const buttonVariants = cva(
           "border border-gray-300 bg-transparent text-gray-800 hover:bg-gray-100 focus:ring-gray-400/40",
         // 👻 Transparente
         ghost:
-          "bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-400/40",
+          "bg-blue-50 hover:bg-blue-100 text-[#034991] focus:ring-gray-400/40",
         // 🔗 Link simple
         link:
           "text-[#034991] underline-offset-4 hover:underline focus:ring-[#034991]/40",
+        static:
+          "bg-transparent text-inherit shadow-none hover"
       },
       size: {
         sm: "h-8 px-4 text-sm",
