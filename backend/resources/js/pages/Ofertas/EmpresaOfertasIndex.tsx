@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, Link } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
 import { route } from "ziggy-js";
-import { Briefcase, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import ModalOferta from "@/components/modal/ModalOferta";
-import { Filter, Users, Building2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Filter, Users, Building2, ChevronLeft, ChevronRight, Plus, Briefcase, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { useEffect } from "react";
+
 
 
 /* =========================
@@ -219,9 +219,9 @@ export default function EmpresaOfertasIndex({
 
   const [ofertasLocal, setOfertasLocal] = useState(ofertas.data);
 
-useEffect(() => {
-  setOfertasLocal(ofertas.data);
-}, [ofertas.data]);
+  useEffect(() => {
+    setOfertasLocal(ofertas.data);
+  }, [ofertas.data]);
 
   /* =========================
       RENDER
@@ -246,22 +246,21 @@ useEffect(() => {
           <div className="flex items-center gap-3">
 
             <Button
-              type="button"
               variant="outline"
-              size="sm"
-              className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
               onClick={() => setMostrarFiltros((prev) => !prev)}
+
             >
+              <Filter className="size-4" />
               {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
             </Button>
 
-            <Button
-              className="rounded-full bg-[#034991] hover:bg-[#023870] text-white px-6 font-bold text-xs shadow-md transition-all"
-              onClick={() => router.visit(route("empresa.ofertas.crear"))}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Crear oferta
+            <Button asChild variant="default">
+              <Link href={route("empresa.ofertas.crear")}>
+                <Plus className="size-5" />
+                <span className="ml-2">Crear oferta</span>
+              </Link>
             </Button>
+
           </div>
         </header>
 
@@ -343,7 +342,7 @@ useEffect(() => {
 
                   {/* POR PÁGINA */}
                   <div className="flex flex-col">
-                    <label className="font-semibold mb-1">Mostrar</label>
+                    <label className="font-semibold mb-1">Ofertas por página</label>
                     <select
                       value={perPage}
                       onChange={(e) => setPerPage(Number(e.target.value))}
@@ -392,6 +391,7 @@ useEffect(() => {
                       <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Postulantes</th>
                       <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Estado</th>
                       <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Fecha creación</th>
+                      <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-center">Fecha límite</th>
                       <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] text-right">Gestión</th>
                     </tr>
                   </thead>
@@ -400,6 +400,7 @@ useEffect(() => {
                     {ofertasLocal.map((oferta) => (
                       <tr
                         key={oferta.id_oferta}
+                        title="Gestionar oferta"
                         onClick={() => router.visit(route("empresa.ofertas.gestion", oferta.id_oferta))}
                         className="group hover:bg-[#F4F7FA]/50 transition-all cursor-pointer"
                       >
@@ -452,6 +453,9 @@ useEffect(() => {
                           {new Date(oferta.fecha_publicacion).toLocaleDateString()}
                         </td>
 
+                        <td className="py-3 px-5 text-center text-xs font-bold text-red-600">
+                          {new Date(oferta.fecha_limite).toLocaleDateString()}
+                        </td>
 
                         {/* Botones de acción más compactos: de h-11 a h-9 */}
                         <td className="py-3 px-5 text-right" onClick={(e) => e.stopPropagation()}>
@@ -461,6 +465,7 @@ useEffect(() => {
                             <Button
                               variant="outline"
                               size="icon"
+                              title="Editar"
                               onClick={() => router.visit(route("empresa.ofertas.editar", oferta.id_oferta))}
                             >
                               <Pencil className="size-4" />
@@ -470,6 +475,7 @@ useEffect(() => {
                             <Button
                               variant="destructive"
                               size="icon"
+                              title="Eliminar"
                               onClick={() => eliminarOferta(oferta.id_oferta)}
                             >
                               <Trash2 className="size-4" />
@@ -479,9 +485,10 @@ useEffect(() => {
                             <Button
                               variant="default"
                               size="icon"
+                              title="Ver detalle"
                               onClick={() => setOfertaSeleccionada(oferta)}
                             >
-                              <ChevronRight className="size-5" />
+                              <Eye className="size-5" />
                             </Button>
 
                           </div>
