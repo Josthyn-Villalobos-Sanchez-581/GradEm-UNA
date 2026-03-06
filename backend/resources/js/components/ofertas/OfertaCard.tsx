@@ -160,7 +160,7 @@ export default function OfertaCard({ oferta, href }: Props) {
                         <div
                             className={`flex items-center justify-center w-12 h-12 rounded-full ${config.buttonBg} 
     group-hover:bg-[#CD1719] text-white shadow-lg 
-    transition-all duration-300 transform group-hover:rotate-[360deg]`}
+    transition-all duration-300`}
                         >
                             <ArrowRight className="w-5 h-5" />
                         </div>

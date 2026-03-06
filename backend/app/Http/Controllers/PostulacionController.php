@@ -106,6 +106,13 @@ class PostulacionController extends Controller
             $query->where('estado_id', $request->estado_id);
         }
 
+        // 🎯 Filtrar por tipo de oferta
+        if ($request->filled('tipo_oferta')) {
+            $query->whereHas('oferta', function ($q) use ($request) {
+                $q->where('tipo_oferta', $request->tipo_oferta);
+            });
+        }
+
         $postulaciones = $query
             ->orderByDesc('fecha_postulacion')
             ->paginate(9)
@@ -145,7 +152,7 @@ class PostulacionController extends Controller
 
         return Inertia::render('Ofertas/MisPostulaciones', [
             'postulaciones' => $postulaciones,
-            'filtros' => $request->only(['buscar', 'estado_id']),
+            'filtros' => $request->only(['buscar', 'estado_id', 'tipo_oferta']),
             'userPermisos'  => getUserPermisos(),
         ]);
     }

@@ -75,11 +75,14 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
       { mensaje },
       {
         onFinish: () => setEnviando(false),
+
         onSuccess: () => {
           modal.alerta({
             titulo: "¡Éxito!",
             mensaje: "Tu postulación ha sido enviada.",
           });
+
+          router.visit(`/ofertas/${oferta.id_oferta}`);
         },
       }
     );
@@ -121,6 +124,26 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
           </div>
         </header>
 
+        {/* Indicador de scroll */}
+        {vistaActual === "detalle" && (
+          <div className="flex flex-col items-center mb-6">
+            <span className="text-sm text-slate-500 uppercase tracking-widest mb-2">
+              Desliza hacia abajo
+            </span>
+            <div className="animate-bounce">
+              <svg
+                className="w-6 h-6 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        )}
+
         {/* DETALLE DE LA OFERTA */}
         {vistaActual === "detalle" && (
           <div className="max-w-6xl mx-auto px-6">
@@ -137,7 +160,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
 
         {/* FORMULARIO DE POSTULACIÓN */}
         {vistaActual === "postulacion" && (
-          <div id="form-postulacion" className="max-w-6xl mx-auto px-6 mt-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
+          <div id="form-postulacion" className="max-w-6xl mx-auto px-6 mt-2">
             <div className="bg-white rounded-[2.5rem] border border-blue-100 shadow-2xl shadow-blue-900/5 overflow-hidden">
 
               {/* Encabezado del Formulario */}
@@ -157,8 +180,8 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
 
               <div className="p-8 md:p-12 space-y-10">
                 {/* Panel Informativo Estilo Card */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                     <div className="flex gap-4">
                       <ShieldCheck className="w-6 h-6 text-[#034991] shrink-0" />
                       <div>
@@ -169,7 +192,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
+                  <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
                     <div className="flex gap-4">
                       <Info className="w-6 h-6 text-[#034991] shrink-0" />
                       <div>
@@ -198,7 +221,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
                     onChange={(e) => setMensaje(e.target.value)}
                     maxLength={1000}
                     placeholder="Escribe aquí un breve mensaje para la empresa..."
-                    className="w-full min-h-[180px] rounded-[1.5rem] border-2 border-slate-100 bg-slate-50 px-6 py-5 text-sm focus:outline-none focus:border-[#034991] focus:bg-white transition-all resize-none shadow-inner"
+                    className="w-full min-h-[130px] rounded-[1.5rem] border-2 border-slate-100 bg-slate-50 px-5 py-3 text-sm focus:outline-none focus:border-[#034991] focus:bg-white transition-all resize-none shadow-inner"
                   />
                 </div>
 
@@ -211,7 +234,6 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
                   <div className="flex gap-3 w-full sm:w-auto">
                     <Button
                       variant="ghost"
-                      className="flex-1 sm:flex-none rounded-xl font-bold text-slate-500 px-8 h-12"
                       onClick={() => setVistaActual("detalle")}
                     >
                       Descartar
@@ -219,8 +241,8 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
 
                     <Button
                       disabled={enviando}
+                      variant="default"
                       onClick={enviarPostulacion}
-                      className="flex-1 sm:flex-none rounded-xl bg-[#034991] hover:bg-black text-white px-10 h-12 font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-95"
                     >
                       {enviando ? "Procesando..." : "Enviar Postulación"}
                       {!enviando && <Send className="w-4 h-4 ml-2" />}

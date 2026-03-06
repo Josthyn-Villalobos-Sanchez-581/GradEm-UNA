@@ -29,7 +29,9 @@ class OfertaController extends Controller
             'canton',
             'modalidad',
             'areaLaboral',
-        ])->where('estado_id', 1);
+        ])
+            ->where('estado_id', 1)
+            ->whereDate('fecha_limite', '>=', now());
 
         if ($request->filled('tipo_oferta')) {
             $consulta->where('tipo_oferta', $request->tipo_oferta);
@@ -51,6 +53,10 @@ class OfertaController extends Controller
             $consulta->where('id_area_laboral', $request->id_area_laboral);
         }
 
+        if ($request->filled('id_modalidad')) {
+            $consulta->where('id_modalidad', $request->id_modalidad);
+        }
+
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
             $consulta->where(function ($q) use ($buscar) {
@@ -60,8 +66,30 @@ class OfertaController extends Controller
             });
         }
 
+        if ($request->filled('fecha_inicio')) {
+            $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
+        }
+
+        $ordenarPor = $request->get('ordenar_por');
+        $direccion  = $request->get('direccion');
+
+        $columnasPermitidas = ['fecha_publicacion', 'fecha_limite', 'titulo'];
+
+        if (!in_array($ordenarPor, $columnasPermitidas)) {
+            $ordenarPor = 'fecha_publicacion';
+        }
+
+        if (!in_array($direccion, ['asc', 'desc'])) {
+            $direccion = 'desc';
+        }
+
+        $consulta->orderBy($ordenarPor, $direccion);
+
         $ofertas = $consulta
-            ->orderByDesc('fecha_publicacion')
             ->paginate(9)
             ->withQueryString();
 
@@ -137,11 +165,9 @@ class OfertaController extends Controller
                 ? asset('storage/' . $foto->ruta_imagen)
                 : null;
 
-            $oferta->empresa->usuario->foto_perfil = $url
+            $oferta->empresa->usuario->fotoPerfil = $url
                 ? ['url' => $url]
                 : null;
-
-            unset($oferta->empresa->usuario->fotoPerfil);
         } else {
             $oferta->empresa->usuario->fotoPerfil = null;
         }
@@ -394,6 +420,22 @@ class OfertaController extends Controller
             'provincia',
             'canton',
         ]);
+
+        if (
+            $oferta->empresa &&
+            $oferta->empresa->usuario &&
+            $oferta->empresa->usuario->fotoPerfil
+        ) {
+            $foto = $oferta->empresa->usuario->fotoPerfil;
+
+            $oferta->empresa->usuario->fotoPerfil = [
+                'url' => asset(ltrim($foto->ruta_imagen, '/'))
+            ];
+        } else {
+            if ($oferta->empresa && $oferta->empresa->usuario) {
+                $oferta->empresa->usuario->fotoPerfil = null;
+            }
+        }
 
         // 🔎 Filtro por estado
         $estado = $request->estado;
