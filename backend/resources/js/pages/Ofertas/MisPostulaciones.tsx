@@ -48,6 +48,7 @@ interface Props {
     filtros: {
         buscar?: string;
         estado_id?: number;
+        tipo_oferta?: string;
     };
     userPermisos: number[];
 }
@@ -81,12 +82,17 @@ const MisPostulaciones: React.FC<Props> = ({
     const [mostrarFiltros, setMostrarFiltros] = useState(true);
     const modal = useModal();
 
+    const [tipoOferta, setTipoOferta] = useState<string>(
+        filtros.tipo_oferta ?? ""
+    );
+
     const aplicarFiltros = (e: React.FormEvent) => {
         e.preventDefault();
 
         router.get("/misPostulaciones", {
             buscar,
-            estado_id: estado
+            estado_id: estado,
+            tipo_oferta: tipoOferta
         }, {
             preserveState: true,
             preserveScroll: true,
@@ -96,6 +102,7 @@ const MisPostulaciones: React.FC<Props> = ({
     const limpiarFiltros = () => {
         setBuscar("");
         setEstado("");
+        setTipoOferta("");
         router.get("/misPostulaciones");
     };
 
@@ -160,8 +167,7 @@ const MisPostulaciones: React.FC<Props> = ({
                         <Button
                             type="button"
                             variant="outline"
-                            size="sm"
-                            className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                            size="default"
                             onClick={() => setMostrarFiltros((prev) => !prev)}
                         >
                             {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
@@ -216,6 +222,21 @@ const MisPostulaciones: React.FC<Props> = ({
                                         </select>
                                     </div>
 
+                                    {/* TIPO DE OFERTA */}
+                                    <div className="flex flex-col">
+                                        <label className="font-semibold mb-1">Tipo de oferta</label>
+
+                                        <select
+                                            value={tipoOferta}
+                                            onChange={(e) => setTipoOferta(e.target.value)}
+                                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
+                                        >
+                                            <option value="">Todos</option>
+                                            <option value="empleo">Oferta laboral</option>
+                                            <option value="practica">Práctica profesional</option>
+                                        </select>
+                                    </div>
+
                                     {/* BOTONES */}
                                     <div className="flex flex-col gap-2 pt-2">
                                         <Button
@@ -258,17 +279,38 @@ const MisPostulaciones: React.FC<Props> = ({
                                                 href={`/ofertas/${post.oferta.id_oferta}`}
                                             />
 
-                                            <div className="mt-3 flex items-center justify-between px-2">
+                                            <div className="mt-3 border-t border-gray-100 pt-3 flex items-center justify-between px-2">
 
-                                                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${estadoVisual.color}`}>
-                                                    {estadoVisual.texto}
-                                                </span>
+                                                {/* IZQUIERDA */}
+                                                <div className="flex items-center gap-3">
 
-                                                {(post.estado_id === 1 || post.estado_id === 4) && (
+                                                    {/* Estado */}
                                                     <Button
                                                         size="sm"
-                                                        variant="outline"
-                                                        className="text-xs text-red-600 border-red-300 hover:bg-red-50 rounded-full"
+                                                        variant="static"
+                                                        title="Estado de la postulación"
+                                                        className={`h-8 px-4 text-sm rounded-full font-semibold flex items-center justify-center ${estadoVisual.color}`}
+                                                    >
+                                                        {estadoVisual.texto}
+                                                    </Button>
+
+                                                    {/* Fecha de postulación */}
+                                                    <span
+                                                        
+                                                        title="Fecha de postulación"
+                                                        className="text-[14px] text-gray-400 font-medium"
+                                                    >
+                                                        Postulado: {new Date(post.fecha_postulacion).toLocaleDateString("es-CR")}
+                                                    </span>
+
+                                                </div>
+
+                                                {/* BOTÓN CANCELAR */}
+                                                {(post.estado_id === 1 || post.estado_id === 4) && (
+                                                    <Button
+                                                        title="Cancelar postulación"
+                                                        size="sm"
+                                                        variant="destructive"
                                                         onClick={() => cancelarPostulacion(post.id_postulacion)}
                                                     >
                                                         Cancelar
