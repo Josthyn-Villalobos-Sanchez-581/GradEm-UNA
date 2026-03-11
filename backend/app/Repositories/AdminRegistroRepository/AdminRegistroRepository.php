@@ -110,11 +110,20 @@ public function obtenerUsuariosAdmin(?string $search)
         }
     }
 
-    public function eliminarUsuario(int $id): void
-    {
-        DB::table('credenciales')->where('id_usuario', $id)->delete();
-        DB::table('usuarios')->where('id_usuario', $id)->delete();
-    }
+public function eliminarUsuario(int $id): void
+{
+    DB::transaction(function () use ($id) {
+
+        DB::table('credenciales')
+            ->where('id_usuario', $id)
+            ->delete();
+
+        DB::table('usuarios')
+            ->where('id_usuario', $id)
+            ->delete();
+
+    });
+}
 
     public function obtenerPermisos(int $rolId): array
     {
