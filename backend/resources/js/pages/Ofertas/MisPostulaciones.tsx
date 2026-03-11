@@ -261,70 +261,85 @@ const MisPostulaciones: React.FC<Props> = ({
                     )}
 
                     {/* LISTADO */}
-                    <section className="flex-1">
+<section className="flex-1 min-w-0">
 
-                        {postulaciones.data.length === 0 ? (
-                            <p className="text-center text-gray-500 italic mt-6">
-                                No tienes postulaciones registradas.
-                            </p>
-                        ) : (
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
-                                {postulaciones.data.map(post => {
-                                    const estadoVisual = estadoTexto(post.estado_id);
+    {postulaciones.data.length === 0 ? (
+        <p className="text-center text-gray-500 italic mt-6">
+            No tienes postulaciones registradas.
+        </p>
+    ) : (
 
-                                    return (
-                                        <div key={post.id_postulacion} className="flex flex-col">
-                                            <OfertaCard
-                                                oferta={post.oferta}
-                                                href={`/ofertas/${post.oferta.id_oferta}`}
-                                            />
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-4">
 
-                                            <div className="mt-3 border-t border-gray-100 pt-3 flex items-center justify-between px-2">
+            {postulaciones.data.map((post) => {
 
-                                                {/* IZQUIERDA */}
-                                                <div className="flex items-center gap-3">
+                const estadoVisual = estadoTexto(post.estado_id);
 
-                                                    {/* Estado */}
-                                                    <Button
-                                                        size="sm"
-                                                        variant="static"
-                                                        title="Estado de la postulación"
-                                                        className={`h-8 px-4 text-sm rounded-full font-semibold flex items-center justify-center ${estadoVisual.color}`}
-                                                    >
-                                                        {estadoVisual.texto}
-                                                    </Button>
+                return (
 
-                                                    {/* Fecha de postulación */}
-                                                    <span
-                                                        
-                                                        title="Fecha de postulación"
-                                                        className="text-[14px] text-gray-400 font-medium"
-                                                    >
-                                                        Postulado: {new Date(post.fecha_postulacion).toLocaleDateString("es-CR")}
-                                                    </span>
+                    <div
+                        key={post.id_postulacion}
+                        className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_10px_40px_rgb(0,0,0,0.03)] p-4 flex flex-col"
+                    >
 
-                                                </div>
+                        {/* CARD DE OFERTA */}
+                        <OfertaCard
+                            oferta={post.oferta}
+                            href={`/ofertas/${post.oferta.id_oferta}`}
+                        />
 
-                                                {/* BOTÓN CANCELAR */}
-                                                {(post.estado_id === 1 || post.estado_id === 4) && (
-                                                    <Button
-                                                        title="Cancelar postulación"
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => cancelarPostulacion(post.id_postulacion)}
-                                                    >
-                                                        Cancelar
-                                                    </Button>
-                                                )}
+                        {/* INFO POSTULACIÓN */}
+                        <div className="mt-4 border-t border-slate-100 pt-4 flex items-center justify-between">
 
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                            {/* IZQUIERDA */}
+                            <div className="flex items-center gap-3">
+
+                                {/* ESTADO */}
+                                <span
+                                    className={`px-3 py-1 text-xs font-semibold rounded-full ${estadoVisual.color}`}
+                                    title="Estado de la postulación"
+                                >
+                                    {estadoVisual.texto}
+                                </span>
+
+                                {/* FECHA */}
+                                <span
+                                    title="Fecha de postulación"
+                                    className="text-xs text-slate-400 font-medium"
+                                >
+                                    Postulado: {new Date(post.fecha_postulacion).toLocaleDateString("es-CR")}
+                                </span>
+
                             </div>
-                        )}
 
-                    </section>
+                            {/* CANCELAR */}
+                            {(post.estado_id === 1 || post.estado_id === 4) && (
+
+                                <Button
+                                    title="Cancelar postulación"
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => cancelarPostulacion(post.id_postulacion)}
+                                >
+                                    Cancelar
+                                </Button>
+
+                            )}
+
+                        </div>
+
+                    </div>
+
+                );
+
+            })}
+
+        </div>
+
+    )}
+
+</section>
+
                 </div>
 
                 {/* PAGINACIÓN */}

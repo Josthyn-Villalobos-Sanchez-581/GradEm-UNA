@@ -312,8 +312,10 @@ class OfertaController extends Controller
          * - Empresa → solo sus ofertas
          * - Admin/Superadmin → todas
          */
-        if ($empresa) {
-            $consulta->where('id_empresa', $empresa->id_empresa);
+        if (!$usuario->es_admin && !in_array(5, getUserPermisos())) {
+            if ($empresa) {
+                $consulta->where('id_empresa', $empresa->id_empresa);
+            }
         }
 
         // 🔍 Búsqueda
