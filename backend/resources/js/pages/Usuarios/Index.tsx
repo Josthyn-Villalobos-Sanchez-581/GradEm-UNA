@@ -179,7 +179,7 @@ export default function Index(props: IndexProps) {
           </div>
 
           {/* 📊 Tabla */}
-   
+
           <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
             <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
               <thead className="bg-gray-100">
@@ -203,9 +203,9 @@ export default function Index(props: IndexProps) {
                     </td>
                   </tr>
                 ) : (
-                  
+
                   usuarios.map((u, idx) => (
-                    
+
                     <tr
                       key={u.id_usuario}
                       className={`hover:bg-gray-50 ${idx === usuarios.length - 1 ? "last-row" : ""
@@ -218,7 +218,7 @@ export default function Index(props: IndexProps) {
                         >
                           {u.nombre_completo ?? "-"}
                         </td>
-                        
+
                       )}
                       {visibleCols.includes("correo") && (
                         <td className="px-4 py-2 border">{u.correo ?? "-"}</td>
@@ -245,95 +245,43 @@ export default function Index(props: IndexProps) {
                       )}
 
                       {visibleCols.includes("acciones") && (
-                        <td
-                          className={`px-4 py-2 border text-center ${idx === usuarios.length - 1 ? "rounded-br-2xl" : ""
-                            }`}
-                        >
+                        <td className={`px-4 py-2 border text-center ${idx === usuarios.length - 1 ? "rounded-br-2xl" : ""}`}>
                           <div className="flex justify-center gap-2">
-                            {/* Editar */}
-                            <Link href={route("admin.editar", { id: u.id_usuario })}>
-                            
-                              <Button variant="default" size="sm" className="font-semibold">
-                                Editar
-                              </Button>
-                            </Link>
 
-                            {/* Activar/Inactivar */}
-                            {puedeGestionar && (
-                              <Button
-                                size="sm"
-                                variant={u.estado_id === 1 ? "destructive" : "success"}
-                                className="font-semibold"
-                                onClick={async () => {
-                                  const confirmado = await confirmacion({
-                                    titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
-                                    mensaje: `¿Está seguro que desea ${u.estado_id === 1 ? "inactivar" : "activar"
-                                      } la cuenta de ${u.nombre_completo}?`,
-                                  });
-                                  if (!confirmado) return;
+                            {auth?.user?.id_usuario !== u.id_usuario && (
+                              <>
+                                {/* Activar/Inactivar */}
+                                {puedeGestionar && (
+                                  <Button
+                                    size="sm"
+                                    variant={u.estado_id === 1 ? "destructive" : "success"}
+                                  >
+                                    {u.estado_id === 1 ? "Inactivar" : "Activar"}
+                                  </Button>
+                                )}
 
-                                  try {
-                                    const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
-                                    alerta({
-                                      titulo: "Estado actualizado",
-                                      mensaje: res.data.message,
-                                    });
-                                    setUsuarios((prev) =>
-                                      prev.map((usr) =>
-                                        usr.id_usuario === u.id_usuario ? { ...usr, estado_id: res.data.nuevo_estado } : usr
-                                      )
-                                    );
-                                  } catch (err) {
-                                    console.error(err);
-                                    alerta({
-                                      titulo: "Error",
-                                      mensaje: "Ocurrió un error al cambiar el estado del usuario.",
-                                    });
-                                  }
-                                }}
-                              >
-                                {u.estado_id === 1 ? "Inactivar" : "Activar"}
-                              </Button>
+                                {/* Editar */}
+                                <Link href={route("admin.editar", { id: u.id_usuario })}>
+                                  <Button variant="default" size="sm">
+                                    Editar
+                                  </Button>
+                                </Link>
+
+
+
+                                {/* Eliminar */}
+                                {puedeGestionar && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                  >
+                                    Eliminar
+                                  </Button>
+                                )}
+
+                              </>
                             )}
 
-                            {/* Eliminar */}
-                            {puedeGestionar && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="font-semibold"
-                                onClick={async () => {
-                                  const ok = await confirmacion({
-                                    titulo: "Confirmar eliminación",
-                                    mensaje: `¿Seguro que deseas eliminar a ${u.nombre_completo}?`,
-                                    textoAceptar: "Sí, eliminar",
-                                    textoCancelar: "Cancelar",
-                                  });
-                                  if (!ok) return;
-
-                                  try {
-                                    const res = await axios.delete(route("admin.eliminar", { id: u.id_usuario }));
-                                    if (res.data.status === "success") {
-                                      alerta({ titulo: "Eliminado", mensaje: res.data.message });
-                                      setUsuarios((prev) => prev.filter((usr) => usr.id_usuario !== u.id_usuario));
-                                    } else {
-                                      alerta({ titulo: "Error", mensaje: res.data.message });
-                                    }
-                                  } catch (err: any) {
-                                    alerta({
-                                      titulo: "Error",
-                                      mensaje:
-                                        err.response?.data?.message ||
-                                        "Ocurrió un error inesperado al eliminar el usuario.",
-                                    });
-                                  }
-                                }}
-                              >
-                                Eliminar
-                              </Button>
-                            )}
-
-                            
                           </div>
                         </td>
                       )}

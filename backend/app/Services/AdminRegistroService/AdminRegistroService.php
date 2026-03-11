@@ -41,7 +41,12 @@ class AdminRegistroService
         if (!in_array($usuarioActual->id_rol, [1, 2])) {
             return response()->json(['message' => 'No tiene permisos'], 403);
         }
-
+        if ($usuarioActual->id_usuario == $id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No puedes desactivar tu propia cuenta'
+            ], 403);
+        }
         $usuario = $this->repository->obtenerUsuario($id);
         $nuevoEstado = $usuario->estado_id === 1 ? 0 : 1;
 
@@ -131,7 +136,12 @@ class AdminRegistroService
         if (!in_array($usuarioActual->id_rol, [1, 2])) {
             return response()->json(['status' => 'error'], 403);
         }
-
+        if ($usuarioActual->id_usuario == $id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No puedes eliminar tu propia cuenta'
+            ], 403);
+        }
         $this->repository->eliminarUsuario($id);
 
         $this->repository->registrarBitacora(
@@ -141,10 +151,10 @@ class AdminRegistroService
             $usuarioActual->id_usuario
         );
 
-      return response()->json([
-    'status' => 'success',
-    'message' => 'Usuario eliminado correctamente'
-]);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Usuario eliminado correctamente'
+        ]);
     }
 
     /* ================= FORM ================= */
@@ -169,8 +179,8 @@ class AdminRegistroService
             'contrasena' => $id
                 ? 'nullable|string|min:8|confirmed'
                 : 'required|string|min:8|confirmed',
-                'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
-                'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
+            'id_universidad' => 'nullable|integer|exists:universidades,id_universidad',
+            'id_carrera' => 'nullable|integer|exists:carreras,id_carrera',
         ]);
     }
 }
