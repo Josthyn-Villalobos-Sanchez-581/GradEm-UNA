@@ -113,8 +113,6 @@ export default function GraficoBarrasAnual({ filas }: Props) {
 
   const colores = PALETAS[paletaActiva];
 
-  if (!filas || filas.length === 0) return null;
-
   /* =======================
      PREPARAR DATOS
   ======================= */
@@ -143,6 +141,10 @@ export default function GraficoBarrasAnual({ filas }: Props) {
 
     return { datos, sinAnioTotal };
   }, [filas]);
+
+  if (!filas || filas.length === 0) return null;
+
+  
 
 
   const necesitaScroll = datos.length > 7;
@@ -213,7 +215,7 @@ export default function GraficoBarrasAnual({ filas }: Props) {
           }`}
       >
         <div className={horizontal ? "h-[480px]" : "h-[380px]"}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={300}>
             <BarChart
               data={datos}
               layout={horizontal ? "vertical" : "horizontal"}

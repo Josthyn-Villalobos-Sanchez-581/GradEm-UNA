@@ -313,7 +313,7 @@ export default function PerfilesUsuarios(props: Props) {
                           }`}
                       >
                         <div className="flex justify-center gap-2">
-                          <Link href={route("usuarios.ver", { id: u.id_usuario })}>
+                          <Link href={route("usuarios.ver", { id: u.id_usuario, origen: "perfiles" })}>
                             <Button
                               variant="default"
                               size="sm"

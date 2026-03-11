@@ -37,7 +37,18 @@ export default function GraficoPie({ datos }: Props) {
     return (localStorage.getItem("graficoPieModo") as any) || "porcentaje";
   });
 
-  const colores = PALETAS_PIE[paletaActiva];
+  const colores = PALETAS_PIE[paletaActiva] || PALETAS_PIE.institucional;
+
+  const datosProcesados = useMemo(() => {
+    if (!datos) return [];
+    return datos.map((d, index) => ({
+      ...d,
+      porcentaje: total ? (d.valor / total) * 100 : 0,
+      color: colores[index % colores.length],
+    }));
+  }, [datos, total, colores]);
+
+  const columnas = Math.min(datosProcesados.length, 3);
 
   if (!datos || datos.length === 0 || total === 0) {
     return (
@@ -52,13 +63,6 @@ export default function GraficoPie({ datos }: Props) {
   /* =======================
      DATOS CON PORCENTAJE
   ======================= */
-  const datosProcesados = useMemo(() => {
-    return datos.map((d, index) => ({
-      ...d,
-      porcentaje: (d.valor / total) * 100,
-      color: colores[index % colores.length],
-    }));
-  }, [datos, total, colores]);
 
   /* =======================
      LABEL INTERNO
@@ -100,9 +104,9 @@ export default function GraficoPie({ datos }: Props) {
       {/* =======================
           HEADER
       ======================= */}
-      <header className="mb-4 min-h-[85px] flex justify-between items-start">
+      <header className="mb-3 flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-semibold text-[#1d4ed8]">
+          <h2 className="text-lg font-semibold text-[#034991]">
             Estado laboral de egresados
           </h2>
           <p className="text-sm text-gray-600">
@@ -110,7 +114,7 @@ export default function GraficoPie({ datos }: Props) {
           </p>
 
           {/* SELECTOR DE PALETA */}
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex gap-2 mt-2">
             <span className="text-sm font-medium text-gray-700">
               Colores:
             </span>
@@ -130,7 +134,7 @@ export default function GraficoPie({ datos }: Props) {
                 {PALETAS_PIE[key].slice(0, 3).map((c, i) => (
                   <span
                     key={i}
-                    className="w-4 h-4 rounded-full border"
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: c }}
                   />
                 ))}
@@ -163,11 +167,11 @@ export default function GraficoPie({ datos }: Props) {
           GRÁFICO
       ======================= */}
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="w-full h-[250px] relative shrink-0">
+        <div className="relative h-[340px]">
           {/* TOTAL CENTRAL */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-sm text-gray-500">Total</span>
-            <span className="text-3xl font-bold text-gray-800">
+            <span className="text-xs text-gray-500">Total</span>
+            <span className="text-2xl font-bold">
               {total}
             </span>
           </div>
@@ -199,13 +203,15 @@ export default function GraficoPie({ datos }: Props) {
 
               <Tooltip
                 formatter={(value: number, name: string, props: any) => {
-                  const porcentaje = props.payload.porcentaje.toFixed(1);
+                  const porcentaje = props?.payload?.porcentaje
+                    ? props.payload.porcentaje.toFixed(1)
+                    : "0";
                   const numero = value;
 
                   return [
                     modoValor === "numero"
-                      ? `${porcentaje}%`
-                      : `${numero} egresados`,
+                      ? `${numero}egresados`
+                      : `${porcentaje}%`,
                     name,
                   ];
                 }}
@@ -224,34 +230,31 @@ export default function GraficoPie({ datos }: Props) {
             LEYENDA INFERIOR
         ======================= */}
         {/* LEYENDA */}
-        <div className="mt-4 flex-1 overflow-y-auto pr-2">
-          <div className="grid grid-cols-2 gap-3">
-            {datosProcesados.map((item) => (
-              <div
-                key={item.nombre}
-                className="flex items-center gap-2 border rounded-md px-3 py-2 bg-white"
-              >
-                <span
-                  className="w-4 h-4 rounded-full shrink-0"
-                  style={{ backgroundColor: item.color }}
-                />
-                <div className="min-w-0">
-                  <p className="text-[11px] text-gray-600">
-                    {item.nombre}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {item.porcentaje.toFixed(1)}% · {item.valor} egresados
-                  </p>
-                </div>
+        <div
+          className="mt-3 grid gap-2 overflow-hidden"
+          style={{ gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))` }}
+        >
+          {datosProcesados.map((item) => (
+            <div
+              key={item.nombre}
+              className="flex items-center gap-2 border rounded-md px-2 py-2 bg-gray-50 min-w-0"
+            >
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: item.color }}
+              />
+              <div className="text-xs min-w-0">
+                <p className="text-gray-700 truncate">
+                  {item.nombre}
+                </p>
+                <p className="text-gray-500">
+                  {item.porcentaje.toFixed(1)}% · {item.valor} egresados
+                </p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
-
-      <p className="mt-3 text-center text-xs text-gray-600">
-        Distribución del estado de empleo de los egresados
-      </p>
     </section>
   );
 }

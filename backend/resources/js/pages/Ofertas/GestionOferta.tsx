@@ -98,15 +98,17 @@ export default function GestionOferta({ oferta, postulaciones, estadisticas }: P
 
     const verPerfil = (p: Postulacion) => {
         if (!p.usuario) return;
-        if (p.estado_id === 1) {
-            router.put(route("postulaciones.cambiarEstado", p.id_postulacion), { estado_id: 4 }, {
-                preserveScroll: true,
-                onSuccess: () => router.visit(route("usuarios.ver", p.usuario!.id_usuario))
-            });
-        } else {
-            router.visit(route("usuarios.ver", p.usuario.id_usuario));
-        }
+
+        router.visit(
+            route("empresa.postulante.ver", {
+                id: p.usuario.id_usuario,
+                origen: "postulaciones",
+                ofertaId: oferta.id_oferta
+            })
+        );
     };
+
+
 
     return (
         <TooltipProvider>

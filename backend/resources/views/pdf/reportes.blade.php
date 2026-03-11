@@ -49,6 +49,10 @@
         @include('pdf.partials.tabla')
     @endif
 
+    @if(in_array('genero', $reportes))
+        @include('pdf.partials.grafico-genero')
+    @endif
+
     @if(in_array('carrera', $reportes))
         @include('pdf.partials.grafico_carrera')
     @endif
