@@ -269,6 +269,11 @@ Route::middleware('auth')->group(function () {
             '/empresa/ofertas/{oferta}/postulantes',
             [PostulacionController::class, 'postulantesPorOferta']
         )->name('empresa.ofertas.postulantes');
+
+        Route::get(
+            '/empresa/postulantes/{id}/perfil',
+            [UsuariosConsultaController::class, 'ver']
+        )->name('empresa.postulante.ver');
     });
 
     // ==========================================

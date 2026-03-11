@@ -190,7 +190,7 @@ export default function Index(props: RolesPermisosIndexProps) {
     <>
       <Head title="Roles y Permisos" />
       <div
-        className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]"
+        className="w-full px-8 py-6 space-y-6 text-[#000000]"
         style={{ fontFamily: "Open Sans, sans-serif" }}
       >
         {/* ========================================= */}

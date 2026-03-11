@@ -87,6 +87,23 @@ class UsuariosConsultaController extends Controller
             ->select('usuarios.*', 'areas_laborales.nombre as nombre_area_laboral')
             ->where('usuarios.id_usuario', $id)
             ->firstOrFail();
+        $origen = request()->get('origen');
+        $ofertaId = request()->get('ofertaId');
+
+        // Cambiar estado de postulación automáticamente
+        if ($ofertaId && $origen === 'postulaciones') {
+
+            $postulacion = \App\Models\Postulacion::where('id_usuario', $id)
+                ->where('id_oferta', $ofertaId)
+                ->where('estado_id', 1) // espera
+                ->first();
+
+            if ($postulacion) {
+                $postulacion->update([
+                    'estado_id' => 4 // en revisión
+                ]);
+            }
+        }
 
         $canton = $usuario->canton;
         $provincia = $canton?->provincia;
@@ -152,6 +169,8 @@ class UsuariosConsultaController extends Controller
             ],
             'plataformas' => $plataformas,
             'userPermisos' => getUserPermisos(),
+            'origen' => $origen,
+            'ofertaId' => $ofertaId,
         ]);
     }
 

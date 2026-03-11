@@ -7,7 +7,7 @@ import { useModal } from "@/hooks/useModal";
 import ModalOferta from "@/components/modal/ModalOferta";
 import { Filter, Users, Building2, ChevronLeft, ChevronRight, Plus, Briefcase, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { useEffect } from "react";
-
+import fotoXDefecto from "@/assets/FotoXDefecto.png";
 
 
 /* =========================
@@ -378,7 +378,6 @@ export default function EmpresaOfertasIndex({
             </aside>
           )}
 
-          {/* LISTADO TIPO TABLA PERO CON ESTILO DE TARJETAS */}
           {/* LISTADO TIPO TABLA COMPACTO */}
           <section className="flex-1 min-w-0">
             <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden">
@@ -410,12 +409,10 @@ export default function EmpresaOfertasIndex({
                             {/* Icono de edificio más pequeño: de w-16 a w-12 */}
                             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 group-hover:scale-105 transition-transform bg-white">
                               <img
-                                src={
-                                  oferta.empresa?.usuario?.foto_perfil?.url ??
-                                  "/images/FotoXDefecto.png"
-                                }
+                                src={oferta.empresa?.usuario?.foto_perfil?.url || fotoXDefecto}
                                 onError={(e) => {
-                                  e.currentTarget.src = "/images/FotoXDefecto.png";
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = fotoXDefecto;
                                 }}
                                 className="w-full h-full object-cover rounded-full"
                                 alt="Logo empresa"
