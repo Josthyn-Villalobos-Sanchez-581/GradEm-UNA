@@ -26,7 +26,6 @@ class CheckPermiso
             return redirect()->route('login');
                 }
 
-
         // 🔍 Consultar en roles_permisos si el rol tiene el permiso
         $tienePermiso = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
