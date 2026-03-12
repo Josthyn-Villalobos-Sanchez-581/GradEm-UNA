@@ -238,7 +238,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/misPostulaciones', [PostulacionController::class, 'misPostulaciones'])
             ->name('postulaciones.mias');
 
-        Route::patch('/postulaciones/{id}/cancelar', [PostulacionController::class, 'cancelar']
+        Route::patch(
+            '/postulaciones/{id}/cancelar',
+            [PostulacionController::class, 'cancelar']
         )->name('postulaciones.cancelar');
     });
 
@@ -267,6 +269,11 @@ Route::middleware('auth')->group(function () {
             '/empresa/ofertas/{oferta}/postulantes',
             [PostulacionController::class, 'postulantesPorOferta']
         )->name('empresa.ofertas.postulantes');
+
+        Route::get(
+            '/empresa/postulantes/{id}/perfil',
+            [UsuariosConsultaController::class, 'ver']
+        )->name('empresa.postulante.ver');
     });
 
     // ==========================================
@@ -448,7 +455,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/reportes/grafico-por-carrera', [ReporteController::class, 'graficoPorCarrera'])
             ->name('reportes.grafico-por-carrera');
 
-
+        Route::get('/reportes/grafico-genero', [ReporteController::class, 'graficoGenero'])
+            ->name('reportes.grafico-genero');
 
         Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
 

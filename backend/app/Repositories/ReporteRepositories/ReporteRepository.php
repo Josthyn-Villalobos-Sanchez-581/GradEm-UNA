@@ -197,6 +197,54 @@ class ReporteRepository
         }
     }
 
+    public function obtenerGraficoGeneroRaw(
+    ?int $universidad,
+    ?int $carrera,
+    ?int $fechaInicio,
+    ?int $fechaFin,
+    ?string $genero,
+    ?string $estadoEstudios,
+    ?string $nivelAcademico,
+    ?string $estadoEmpleo,
+    ?int $tiempoEmpleo,
+    ?int $areaLaboral,
+    ?string $salario,
+    ?string $tipoEmpleo,
+    ?int $pais,
+    ?int $provincia,
+    ?int $canton
+) {
+
+    try {
+
+        $params = [
+            $universidad,
+            $carrera,
+            $fechaInicio,
+            $fechaFin,
+            $genero,
+            $estadoEstudios,
+            $nivelAcademico,
+            $estadoEmpleo,
+            $tiempoEmpleo,
+            $areaLaboral,
+            $salario,
+            $tipoEmpleo,
+            $pais,
+            $provincia,
+            $canton
+        ];
+
+        return DB::select(
+            'CALL sp_grafico_genero_egresados(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            $params
+        );
+
+    } catch (Throwable $e) {
+        throw $e;
+    }
+}
+
 
 
     public function obtenerUniversidades()

@@ -208,7 +208,7 @@ const OfertasIndex: React.FC<Props> = ({
         <>
             <Head title="Ofertas laborales y prácticas" />
             <div
-                className="max-full w-full mx-auto px-6 py-6 text-[#000000]"
+                className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 text-[#000000]"
                 style={{ fontFamily: "Open Sans, sans-serif" }}
             >
                 {/* CARD PRINCIPAL CONTENEDOR */}
