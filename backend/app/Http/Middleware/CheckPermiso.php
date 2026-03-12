@@ -24,13 +24,15 @@ class CheckPermiso
         // 🚨 Usuario no autenticado
         if (!$usuario) {
             return redirect()->route('login');
-        }
+                }
+
 
         // 🔍 Consultar en roles_permisos si el rol tiene el permiso
         $tienePermiso = DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
             ->where('id_permiso', $permisoId)
             ->exists();
+
 
         if ($tienePermiso) {
             return $next($request);
