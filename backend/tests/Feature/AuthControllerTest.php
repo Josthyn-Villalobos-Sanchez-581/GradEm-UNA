@@ -11,7 +11,6 @@ use PHPUnit\Framework\Attributes\Test;
 class AuthControllerTest extends TestCase
 {
     use DatabaseTransactions;
-
     #[Test]
     public function login_exitoso_con_usuario_temporal()
     {
@@ -138,10 +137,10 @@ public function login_falla_con_usuario_inactivo()
         'password' => 'Password123!',
     ]);
 
-    $response->assertStatus(403)
-             ->assertJson([
-                 'message' => 'La cuenta se encuentra inactivada.'
-             ]);
+    $response->assertStatus(423)
+         ->assertJson([
+             'message' => 'La cuenta se encuentra inactiva. Comuniquese con el administrador.'
+         ]);
 }
 
 
@@ -192,12 +191,12 @@ public function login_falla_por_fecha_baneo()
         'estado_id'       => 1,
     ]);
 
-    $credencial = Credencial::create([
-        'id_usuario'       => $usuario->id_usuario,
-        'hash_contrasena'  => Hash::make('Password123!'),
-        'intentos_fallidos'=> 3,
-        'fecha_baneo'      => now()->subMinute(), // Baneo ya expiró
-    ]);
+  $credencial = Credencial::create([
+    'id_usuario'       => $usuario->id_usuario,
+    'hash_contrasena'  => Hash::make('Password123!'),
+    'intentos_fallidos'=> 3,
+    'fecha_ultimo_cambio' => now()->subMinutes(2), // baneo expirado
+]);
 
     $response = $this->post('/login', [
         'correo'   => 'baneopasado@example.com',

@@ -103,38 +103,31 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
     $file = UploadedFile::fake()->create('cv_froy.pdf', 200, 'application/pdf');
 
     $response = $this->actingAs($this->usuario)
-                     ->post(route('curriculum.upload'), [
+                     ->post(route('api.curriculum.upload'), [ // ← cambio aquí
                          'curriculum' => $file,
                      ]);
 
-    $response->assertRedirect();
-    $response->assertSessionHas('success', 'Currículum cargado con éxito');
+    $response->assertStatus(200)
+             ->assertJson([
+                 'ok' => true,
+                 'mensaje' => "Currículum '{$file->getClientOriginalName()}' cargado con éxito.",
+             ]);
 
-    // Obtener el último registro del usuario para verificar la ruta
     $curriculum = Curriculum::where('id_usuario', $this->usuario->id_usuario)->first();
-
     $this->assertNotNull($curriculum);
-
-    /** 
-     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
-     */
-    $disk = Storage::disk('public');
-    $disk->assertExists($curriculum->ruta_archivo_pdf);
-
+    Storage::disk('public')->assertExists($curriculum->ruta_archivo_pdf);
     $this->assertDatabaseHas('curriculum', [
         'id_usuario' => $this->usuario->id_usuario,
         'generado_sistema' => 0,
     ]);
 }
-
-
     #[Test]
     public function no_puede_subir_si_no_envia_archivo()
     {
         Storage::fake('public');
 
         $response = $this->actingAs($this->usuario)
-            ->post(route('curriculum.upload'), []); // sin archivo
+            ->post(route('api.curriculum.upload'), []); // sin archivo
 
         $response->assertStatus(302);
         $response->assertSessionHasErrors(['curriculum']);
@@ -148,7 +141,7 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
         $file = UploadedFile::fake()->create('imagen.jpg', 100, 'image/jpeg');
 
         $response = $this->actingAs($this->usuario)
-            ->post(route('curriculum.upload'), [
+            ->post(route('api.curriculum.upload'), [
                 'curriculum' => $file,
             ]);
 
@@ -156,16 +149,15 @@ public function puede_subir_un_pdf_y_guardarlo_correctamente()
         $response->assertSessionHasErrors(['curriculum']);
     }
 
-    #[Test]
+   #[Test]
 public function puede_eliminar_un_curriculum_existente()
 {
     Storage::fake('public');
 
-    // Creamos un archivo simulado en el disco fake
     $path = 'CurriculumCargado/test_cv.pdf';
+
     Storage::disk('public')->put($path, 'contenido falso');
 
-    // Creamos el registro en base de datos (fake)
     $curriculum = Curriculum::factory()->create([
         'id_usuario' => $this->usuario->id_usuario,
         'ruta_archivo_pdf' => $path,
@@ -173,16 +165,15 @@ public function puede_eliminar_un_curriculum_existente()
     ]);
 
     $response = $this->actingAs($this->usuario)
-        ->delete(route('curriculum.delete'));
+        ->delete(route('api.curriculum.delete'));
 
-    $response->assertRedirect();
-    $response->assertSessionHas('success', 'Currículum eliminado correctamente');
-
-    /** 
-     * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
-     */
-    $disk = Storage::disk('public');
-    $disk->assertMissing($path);
+    $response->assertStatus(200)
+             ->assertJson([
+                 'ok' => true,
+                 'mensaje' => 'Currículum eliminado correctamente.',
+             ]);
+     
+    Storage::disk('public')->assertMissing($path);
 
     $this->assertDatabaseMissing('curriculum', [
         'id_curriculum' => $curriculum->id_curriculum,

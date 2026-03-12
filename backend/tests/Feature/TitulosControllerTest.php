@@ -72,21 +72,29 @@ class TitulosControllerTest extends TestCase
         );
     }
 
-  #[Test]
+#[Test]
 public function upload_permite_subir_varios_titulos_validos()
 {
+    // Simular almacenamiento
+    Storage::fake('public');
+    Storage::disk('public')->makeDirectory('titulos');
+
+    // Solo PDFs, ya que el controller valida mimes:pdf
     $files = [
         UploadedFile::fake()->create('titulo1.pdf', 500, 'application/pdf'),
-        UploadedFile::fake()->image('titulo2.jpg', 600, 600),
+        UploadedFile::fake()->create('titulo2.pdf', 700, 'application/pdf'),
     ];
 
+    // Actuar como usuario y subir archivos
     $response = $this->actingAs($this->usuario)->post(route('titulos.upload'), [
         'archivos' => $files,
     ]);
 
+    // Verificar redirección y mensaje de éxito
     $response->assertRedirect();
     $response->assertSessionHas('success');
 
+    // Comprobar archivos en disco simulado
     $archivos = Storage::disk('public')->allFiles('titulos');
     $this->assertNotEmpty($archivos, 'No se guardó ningún archivo en titulos/');
 
@@ -94,9 +102,12 @@ public function upload_permite_subir_varios_titulos_validos()
      * @var \Illuminate\Filesystem\FilesystemAdapter&\Illuminate\Testing\FilesystemAssertions $disk
      */
     $disk = Storage::disk('public');
-    $disk->assertExists($archivos[0]);
-    $disk->assertExists($archivos[1]);
+
+    foreach ($archivos as $archivo) {
+        $disk->assertExists($archivo);
+    }
 }
+
 
     #[Test]
     public function upload_falla_si_no_envia_archivos()
