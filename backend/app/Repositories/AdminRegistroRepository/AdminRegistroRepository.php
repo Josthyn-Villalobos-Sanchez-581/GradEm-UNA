@@ -1,5 +1,9 @@
 <?php
+<<<<<<< HEAD
+//backend/app/Repositories/AdminRegistroRepository/AdminRegistroRepository.php
+=======
 
+>>>>>>> 78bfd36781ce80b669589ddb0ef8a9bc208a124a
 namespace App\Repositories\AdminRegistroRepository;
 
 use App\Models\Usuario;
