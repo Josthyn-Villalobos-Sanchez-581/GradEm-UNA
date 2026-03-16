@@ -18,6 +18,7 @@ class UsuarioFactory extends Factory
             'identificacion' => $this->faker->unique()->numerify('ID######'),
             'telefono' => $this->faker->numerify('6#######'),
             'id_rol' => 1,
+            'estado_estudios' => 'activo',   // 👈 AGREGAR
             'fecha_registro' => now(),
             'estado_id' => 1,
             'id_universidad' => 1,

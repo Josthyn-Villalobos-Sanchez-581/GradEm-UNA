@@ -63,7 +63,7 @@ public function destroy($id)
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PlataformaExternaRequest;
-use App\Services\PlataformaExternaService;
+use App\Services\PlataformaExternaService\PlataformaExternaService;
 use Illuminate\Support\Facades\Auth;
 
 class PlataformaExternaController extends Controller

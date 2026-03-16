@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+
 class CurriculumControllerTest extends TestCase
 {
     use DatabaseTransactions, WithoutMiddleware;

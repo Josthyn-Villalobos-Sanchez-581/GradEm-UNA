@@ -1,4 +1,98 @@
 <?php
+
+namespace Tests\Feature;
+
+use Tests\TestCase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use App\Models\Usuario;
+
+class AdminRegistroControllerTest extends TestCase
+{
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+        $this->withoutMiddleware();
+    }
+
+    public function test_puede_listar_usuarios()
+    {
+        $usuario = Usuario::factory()->create();
+
+        $response = $this->actingAs($usuario)
+            ->get('/usuarios');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_puede_crear_usuario()
+    {
+        $admin = Usuario::factory()->create();
+
+        $payload = [
+            'nombre_completo' => 'Usuario Test',
+            'correo' => 'test@example.com',
+            'identificacion' => '123456789',
+            'telefono' => '88888888',
+            'rol' => 'Administrador del Sistema',
+            'contrasena' => 'Password123!',
+            'contrasena_confirmation' => 'Password123!'
+        ];
+
+        $response = $this->actingAs($admin)
+            ->post('/usuarios', $payload);
+
+        $response->assertStatus(302);
+
+        $this->assertDatabaseHas('usuarios', [
+            'correo' => 'test@example.com'
+        ]);
+    }
+
+    public function test_puede_actualizar_usuario()
+    {
+        $admin = Usuario::factory()->create();
+        $usuario = Usuario::factory()->create();
+
+        $payload = [
+            'nombre_completo' => 'Usuario Actualizado',
+            'correo' => 'actualizado@example.com',
+            'identificacion' => $usuario->identificacion,
+            'telefono' => '77777777',
+            'rol' => 'Administrador del Sistema'
+        ];
+
+        $response = $this->actingAs($admin)
+            ->put("/usuarios/{$usuario->id_usuario}/actualizar", $payload);
+
+        $response->assertStatus(302);
+
+        $this->assertDatabaseHas('usuarios', [
+            'id_usuario' => $usuario->id_usuario,
+            'nombre_completo' => 'Usuario Actualizado'
+        ]);
+    }
+
+    public function test_puede_eliminar_usuario()
+    {
+        $admin = Usuario::factory()->create();
+        $usuario = Usuario::factory()->create();
+
+        $response = $this->actingAs($admin)
+            ->deleteJson("/usuarios/{$usuario->id_usuario}");
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseMissing('usuarios', [
+            'id_usuario' => $usuario->id_usuario
+        ]);
+    }
+}
+
+/*
 // backend/tests/Feature/AdminRegistroControllerTest.php
 
 namespace Tests\Feature;
@@ -160,3 +254,4 @@ public function un_usuario_subdireccion_no_puede_eliminar_un_usuario()
         $response->assertStatus(200);
     }
 }
+*/
