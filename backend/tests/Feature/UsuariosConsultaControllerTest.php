@@ -7,21 +7,42 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\Usuario;
 use App\Models\Rol;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\Test;
 
 class UsuariosConsultaControllerTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_index_muestra_usuarios_y_permisos()
+    protected $usuarioEstudiante;
+    protected $usuarioEgresado;
+
+    protected function setUp(): void
     {
+        parent::setUp();
         $this->withoutMiddleware();
 
-        $rol = Rol::factory()->create(['nombre_rol' => 'Estudiante/Egresado']);
-        $usuario = Usuario::factory()->create(['id_rol' => $rol->id_rol]);
-/** @var \App\Models\Usuario $usuario */
-        $this->be($usuario);
+        // Crear roles individualmente
+        $rolEstudiante = Rol::firstOrCreate(['nombre_rol' => 'Estudiante']);
+        $rolEgresado = Rol::firstOrCreate(['nombre_rol' => 'Egresado']);
+        Rol::firstOrCreate(['nombre_rol' => 'Empresa']);
+        Rol::firstOrCreate(['nombre_rol' => 'Administrador del Sistema']);
 
-        $response = $this->get('/usuarios/perfiles');
+        // Crear usuarios de prueba
+        $this->usuarioEstudiante = Usuario::factory()->create([
+            'id_rol' => $rolEstudiante->id_rol,
+        ]);
+
+        $this->usuarioEgresado = Usuario::factory()->create([
+            'id_rol' => $rolEgresado->id_rol,
+        ]);
+    }
+
+    #[Test]
+    public function index_muestra_usuarios_y_permisos()
+    {
+        $this->be($this->usuarioEstudiante);
+
+        $response = $this->get(route('usuarios.perfiles'));
 
         $response->assertStatus(200);
 
@@ -30,31 +51,30 @@ class UsuariosConsultaControllerTest extends TestCase
                  ->has('usuarios')
                  ->has('userPermisos')
                  ->where('usuarios', fn ($usuarios) =>
-                     collect($usuarios)->contains('id_usuario', $usuario->id_usuario)
+                     collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEstudiante->id_usuario)
                  )
         );
     }
 
-    public function test_index_filtra_por_rol_estudiante_egresado()
+    #[Test]
+    public function index_filtra_por_rol_estudiante_egresado()
     {
-        $this->withoutMiddleware();
+        $this->be($this->usuarioEstudiante);
 
-        $rolCorrecto = Rol::factory()->create(['nombre_rol' => 'Estudiante/Egresado']);
-        $rolIncorrecto = Rol::factory()->create(['nombre_rol' => 'Administrador']);
+        // Crear un usuario admin para probar que no se incluye
+        $rolAdmin = Rol::where('nombre_rol', 'Administrador del Sistema')->first();
+        $usuarioAdmin = Usuario::factory()->create(['id_rol' => $rolAdmin->id_rol]);
 
-        $usuario1 = Usuario::factory()->create(['id_rol' => $rolCorrecto->id_rol]);
-        Usuario::factory()->create(['id_rol' => $rolIncorrecto->id_rol]);
-/** @var \App\Models\Usuario $usuario1 */
-        $this->be($usuario1);
-
-        $response = $this->get('/usuarios/perfiles');
+        $response = $this->get(route('usuarios.perfiles'));
 
         $response->assertStatus(200);
 
         $response->assertInertia(fn (Assert $page) =>
             $page->component('Usuarios/PerfilesUsuarios')
-                 ->where('usuarios', fn ($usuarios) =>
-                     collect($usuarios)->contains('id_usuario', $usuario1->id_usuario)
+                 ->where('usuarios', fn ($usuarios) => 
+                     collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEstudiante->id_usuario)
+                     && collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEgresado->id_usuario)
+                     && !collect($usuarios)->pluck('id_usuario')->contains($usuarioAdmin->id_usuario)
                  )
         );
     }

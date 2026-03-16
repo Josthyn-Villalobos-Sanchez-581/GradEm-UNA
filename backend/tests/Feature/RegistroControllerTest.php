@@ -21,6 +21,10 @@ class RegistroControllerTest extends TestCase
 
         // Evitar middlewares
         $this->withoutMiddleware();
+ // Crear un rol necesario para el test
+    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Estudiante']);
+    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Egresado']);
+    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Empresa']);
 
         // Crear un usuario existente para pruebas de correo duplicado
         $this->usuarioExistente = Usuario::factory()->withCredencial()->create([
@@ -119,15 +123,28 @@ class RegistroControllerTest extends TestCase
             'otp_validado' => true
         ]);
 
-        $response = $this->post('/registro', [
-            'correo' => 'nuevo@correo.com',
-            'password' => 'Password123!',
-            'password_confirmation' => 'Password123!',
-            'nombre_completo' => 'Juan Perez',
-            'identificacion' => '12345678',
-            'tipoCuenta' => 'estudiante'
-        ]);
-
+       $response = $this->post('/registro', [
+    'correo' => 'nuevo@correo.com',
+    'password' => 'Password123!',
+    'password_confirmation' => 'Password123!',
+    'nombre_completo' => 'Juan Perez',
+    'identificacion' => '12345678',
+    'tipoCuenta' => 'estudiante',
+    'telefono' => null,
+    'fecha_nacimiento' => null,
+    'genero' => null,
+    'estado_empleo' => null,
+    'estado_estudios' => null,
+    'nivel_academico' => null,
+    'anio_graduacion' => null,
+    'tiempo_conseguir_empleo' => null,
+    'area_laboral_id' => null,
+    'id_canton' => null,
+    'salario_promedio' => null,
+    'tipo_empleo' => null,
+    'id_universidad' => null,
+    'id_carrera' => null,
+]);
         $response->assertStatus(200)
                  ->assertJson(['message' => 'Usuario registrado correctamente']);
 
