@@ -42,13 +42,12 @@ class FotoPerfilController extends Controller
     {
         // Validación se mantiene en el controlador
         $request->validate([
-            'foto' => 'required|image|mimes:jpg,jpeg,png|max:2048|dimensions:min_width=500,min_height=500',
+            'foto' => 'required|image|mimes:jpg,jpeg,png|max:5120',
         ], [
-            'foto.required'   => 'Debe seleccionar una imagen.',
-            'foto.image'      => 'El archivo debe ser una imagen.',
-            'foto.mimes'      => 'Solo se permiten imágenes JPG o PNG.',
-            'foto.max'        => 'La imagen no puede superar los 2MB.',
-            'foto.dimensions' => 'La imagen debe tener al menos 500x500 píxeles.',
+            'foto.required' => 'Debe seleccionar una imagen.',
+            'foto.image'    => 'El archivo debe ser una imagen.',
+            'foto.mimes'    => 'Solo se permiten imágenes JPG o PNG.',
+            'foto.max'      => 'La imagen no puede superar los 5MB.',
         ]);
 
         /** @var \App\Models\Usuario $usuario */

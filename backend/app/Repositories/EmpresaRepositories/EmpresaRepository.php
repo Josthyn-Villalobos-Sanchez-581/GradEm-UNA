@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Credencial;
 use App\Models\Rol;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class EmpresaRepository
 {
@@ -90,9 +91,24 @@ class EmpresaRepository
 
     public function enviarCodigo($correo, $codigo)
     {
-        \Mail::raw(
+        Mail::raw(
             "Tu código de verificación es: $codigo",
             fn($m) => $m->to($correo)->subject('Código de verificación')
         );
+    }
+
+    public function listarEmpresas()
+    {
+        return Empresa::with('usuario')
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function verEmpresa($id)
+    {
+        return Empresa::with([
+            'usuario',
+            'ofertas'
+        ])->where('id_empresa', $id)->firstOrFail();
     }
 }
