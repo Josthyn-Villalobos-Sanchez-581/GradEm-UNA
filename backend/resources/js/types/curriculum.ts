@@ -5,7 +5,7 @@ export type Funcion = {
 };
 
 export type Educacion = {
-  tipo: 'Título' | 'Certificación' | 'Curso' | 'Diplomado' | 'Técnico' | '';
+  tipo: 'Título' | 'Diplomado' | 'Bachillerato' | 'Bachillerato Universitario' | 'Licenciatura' | 'Maestría' | '';
   institucion: string;
   titulo: string;
   fecha_fin?: string;
