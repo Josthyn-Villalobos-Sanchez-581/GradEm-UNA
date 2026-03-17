@@ -73,7 +73,9 @@ function validarCampoSegunReglas(
   etiqueta: string,
   ctx?: unknown
 ): string | null {
-  const v = (typeof valor === 'string') ? valor. trim() : valor;
+  const v = (typeof valor === 'string')
+    ? valor.trim().normalize('NFC').replace(/[\u0300-\u036f]/g, '')
+    : valor;
 
   if (reglas.required && (v === undefined || v === null || v === '')) {
     return `Campo requerido: ${etiqueta}`;
@@ -121,7 +123,7 @@ const validacionesEducacion = {
     required: true, 
     validate: (value: unknown) => {
       if (! value || typeof value !== 'string') return 'Debe seleccionar un tipo de educación';
-      return ['Título', 'Certificación', 'Curso', 'Diplomado', 'Técnico']. includes(value) || 'Tipo de educación inválido';
+      return ['Título', 'Diplomado', 'Bachillerato', 'Bachillerato Universitario', 'Licenciatura', 'Maestría'].includes(value) || 'Tipo de educación inválido';
     }
   },
   institucion: { 
@@ -221,8 +223,8 @@ const validacionesFuncion = {
   descripcion: { 
     required:  false, 
     minLength: 10,  
-    maxLength: 150,  
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'\-–—%: ;°]+$/ 
+    maxLength: 500,
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'"\-–—%:;°!?¿¡+#*=_[\]{}@•]+$/
   }
 };
 
@@ -1401,7 +1403,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                             }}
                             aria-invalid={getAriaInvalid(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
                             aria-describedby={getDescribedBy(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
-                            maxLength={250}
+                            maxLength={500}
                           />
                         </div>
                         {errores[`experiencias.${i}.funciones.${fIdx}.descripcion`] && (
