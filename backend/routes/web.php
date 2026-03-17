@@ -131,13 +131,23 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
         Route::get('/curriculum/generar', function () {
-            $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+            $usuario = Auth::user()?->load('fotoPerfil');
+
+            if (!$usuario) {
+                return redirect()->route('login');
+            }
+
+            $permisos = DB::table('roles_permisos')
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray();
+
             return Inertia::render('Frt_FormularioGeneracionCurriculum', [
-                'userPermisos' => getUserPermisos(),
+                'userPermisos' => $permisos,
                 'usuario' => [
                     'id_usuario' => $usuario->id_usuario,
                     'nombre_completo' => $usuario->nombre_completo,
-                    'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
+                    'cedula' => $usuario->identificacion,
                     'correo' => $usuario->correo,
                     'telefono' => $usuario->telefono ?? '',
                     'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
@@ -373,7 +383,7 @@ Route::middleware('auth')->group(function () {
         // Rutas alternativas bajo prefijo /admin (si aplica)
         Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
         Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-      //  Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        //  Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
         Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
@@ -386,6 +396,12 @@ Route::middleware('auth')->group(function () {
         Route::middleware(['auth', 'permiso:12'])
             ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
             ->name('usuarios.ver');
+
+        Route::get('/empresas', [EmpresaController::class, 'listarEmpresas'])
+            ->name('empresas.index');
+
+        Route::get('/empresas/{id}', [EmpresaController::class, 'verEmpresa'])
+            ->name('empresas.ver');
     });
 
 
