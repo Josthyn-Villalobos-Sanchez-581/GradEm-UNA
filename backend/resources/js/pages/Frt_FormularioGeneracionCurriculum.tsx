@@ -73,7 +73,9 @@ function validarCampoSegunReglas(
   etiqueta: string,
   ctx?: unknown
 ): string | null {
-  const v = (typeof valor === 'string') ? valor. trim() : valor;
+  const v = (typeof valor === 'string')
+    ? valor.trim().normalize('NFC').replace(/[\u0300-\u036f]/g, '')
+    : valor;
 
   if (reglas.required && (v === undefined || v === null || v === '')) {
     return `Campo requerido: ${etiqueta}`;
@@ -121,7 +123,7 @@ const validacionesEducacion = {
     required: true, 
     validate: (value: unknown) => {
       if (! value || typeof value !== 'string') return 'Debe seleccionar un tipo de educación';
-      return ['Título', 'Certificación', 'Curso', 'Diplomado', 'Técnico']. includes(value) || 'Tipo de educación inválido';
+      return ['Título', 'Diplomado', 'Bachillerato', 'Bachillerato Universitario', 'Licenciatura', 'Maestría'].includes(value) || 'Tipo de educación inválido';
     }
   },
   institucion: { 
@@ -221,8 +223,8 @@ const validacionesFuncion = {
   descripcion: { 
     required:  false, 
     minLength: 10,  
-    maxLength: 150,  
-    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'\-–—%: ;°]+$/ 
+    maxLength: 500,
+    pattern: /^[A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s.,()&/'"\-–—%:;°!?¿¡+#*=_[\]{}@•]+$/
   }
 };
 
@@ -465,10 +467,10 @@ export default function Frt_FormularioGeneracionCurriculum() {
           const desc = (func.descripcion ?? '').trim();
           
           if (! desc) {
-            errs[`experiencias.${i}.funciones. ${fIdx}.descripcion`] = 'Completa la función o elimínala';
+            errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = 'Completa la función o elimínala';
           } else {
             const msgFunc = validarCampoSegunReglas(desc, validacionesFuncion. descripcion, 'Función');
-            if (msgFunc) errs[`experiencias.${i}.funciones.${fIdx}. descripcion`] = msgFunc;
+            if (msgFunc) errs[`experiencias.${i}.funciones.${fIdx}.descripcion`] = msgFunc;
           }
         });
       }
@@ -487,11 +489,11 @@ export default function Frt_FormularioGeneracionCurriculum() {
               errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = 'Completa el nombre o elimina esta referencia';
             } else {
               const msgNom = validarCampoSegunReglas(nom, validacionesReferencia.nombre, 'Nombre');
-              if (msgNom) errs[`experiencias.${i}.referencias. ${rIdx}.nombre`] = msgNom;
+              if (msgNom) errs[`experiencias.${i}.referencias.${rIdx}.nombre`] = msgNom;
             }
 
             if (!tel) {
-              errs[`experiencias.${i}.referencias.${rIdx}. contacto`] = 'Completa el teléfono o elimina esta referencia';
+              errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = 'Completa el teléfono o elimina esta referencia';
             } else {
               const msgTel = validarCampoSegunReglas(tel, validacionesReferencia.contacto, 'Teléfono');
               if (msgTel) errs[`experiencias.${i}.referencias.${rIdx}.contacto`] = msgTel;
@@ -585,7 +587,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
     // Validar datos personales
     if (pasoAValidar === 1 || pasoAValidar === 3) {
       let msg = validarCampoSegunReglas(
-        form.datosPersonales. nombreCompleto,
+        form.datosPersonales.nombreCompleto,
         validacionesDatosPersonales.nombreCompleto,
         'Nombre completo'
       );
@@ -604,7 +606,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
           validacionesDatosPersonales.telefono,
           'Teléfono'
         );
-        if (msg) e['datosPersonales. telefono'] = msg;
+        if (msg) e['datosPersonales.telefono'] = msg;
       }
     }
 
@@ -614,7 +616,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
   // ================== Manejo de Errores API Mejorado ==================
   const manejarErrorApi = async (error: unknown) => {
     const axiosError = error as {
-      response?:  {
+      response?: {
         status?: number;
         data?: {
           message?: string;
@@ -809,17 +811,17 @@ export default function Frt_FormularioGeneracionCurriculum() {
     'experiencias.periodo_fin': 'Fecha fin',
     'experiencias.funciones': 'Funciones',
     'experiencias.funciones.descripcion': 'Función',
-    'experiencias.referencias. nombre': 'Nombre',
-    'experiencias.referencias. contacto': 'Teléfono',
+    'experiencias.referencias.nombre': 'Nombre',
+    'experiencias.referencias.contacto': 'Teléfono',
     'experiencias.referencias.correo': 'Correo',
-    'experiencias.referencias. relacion': 'Relación',
+    'experiencias.referencias.relacion': 'Relación',
     'habilidades.descripcion': 'Descripción de habilidad',
     'idiomas.nombre': 'Nombre del idioma',
     'idiomas.nivel': 'Nivel',
   };
 
   function obtenerEtiquetaDeClave(clave: string): string {
-    const claveNormalizada = clave.replace(/\.\d+/g, '. ').replace(/\.$/, '');
+    const claveNormalizada = clave.replace(/\.\d+/g, '').replace(/\.$/, '');
     if (etiquetasCampo[claveNormalizada]) return etiquetasCampo[claveNormalizada];
     const partes = clave.split('.');
     const ultima = partes[partes.length - 1] ??  clave;
@@ -938,7 +940,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                 className="peer"
                 placeholder=" "
                 value={form.datosPersonales.nombreCompleto}
-                onChange={e => setCampo('datosPersonales. nombreCompleto', e.target. value)}
+                onChange={e => setCampo('datosPersonales.nombreCompleto', e.target. value)}
                 aria-invalid={getAriaInvalid('datosPersonales.nombreCompleto')}
                 aria-describedby={getDescribedBy('datosPersonales.nombreCompleto')}
                 maxLength={80}
@@ -1399,9 +1401,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                               nuevasFunciones[fIdx] = { descripcion: e.target.value };
                               setCampo(`experiencias.${i}.funciones`, nuevasFunciones);
                             }}
-                            aria-invalid={getAriaInvalid(`experiencias.${i}.funciones. ${fIdx}. descripcion`)}
-                            aria-describedby={getDescribedBy(`experiencias.${i}.funciones.${fIdx}. descripcion`)}
-                            maxLength={250}
+                            aria-invalid={getAriaInvalid(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
+                            aria-describedby={getDescribedBy(`experiencias.${i}.funciones.${fIdx}.descripcion`)}
+                            maxLength={500}
                           />
                         </div>
                         {errores[`experiencias.${i}.funciones.${fIdx}.descripcion`] && (
@@ -1537,9 +1539,9 @@ export default function Frt_FormularioGeneracionCurriculum() {
                                 aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.contacto`)}
                               />
                               <label htmlFor={`exp_${i}_ref_${rIdx}_contacto`}>Teléfono (8 dígitos)</label>
-                              {errores[`experiencias.${i}.referencias. ${rIdx}.contacto`] && (
+                              {errores[`experiencias.${i}.referencias.${rIdx}.contacto`] && (
                                 <p id={`experiencias_${i}_referencias_${rIdx}_contacto_err`} className="text-red-600 text-xs mt-1">
-                                  {errores[`experiencias.${i}.referencias.${rIdx}. contacto`]}
+                                  {errores[`experiencias.${i}.referencias.${rIdx}.contacto`]}
                                 </p>
                               )}
                             </div>
@@ -1558,7 +1560,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                                   nuevasReferencias[rIdx] = { ...nuevasReferencias[rIdx], correo: e. target.value };
                                   setCampo(`experiencias.${i}.referencias`, nuevasReferencias);
                                 }}
-                                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}. correo`)}
+                                aria-invalid={getAriaInvalid(`experiencias.${i}.referencias.${rIdx}.correo`)}
                                 aria-describedby={getDescribedBy(`experiencias.${i}.referencias.${rIdx}.correo`)}
                               />
                               <label htmlFor={`exp_${i}_ref_${rIdx}_correo`}>Correo (opcional)</label>

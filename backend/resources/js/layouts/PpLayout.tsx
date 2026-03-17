@@ -145,6 +145,7 @@ export default function PpLayout({
         { title: "Roles y Permisos", route: "/roles_permisos", permisoId: 12 },
         { title: "Gestión ADS", route: "/usuarios", permisoId: 12 },
         { title: "Ver Usuarios", route: "/usuarios/perfiles", permisoId: 12 },
+        { title: "Empresas", route: "/empresas", permisoId: 12 },
         { title: "Catálogos", route: "/catalogo", permisoId: 13 },
         { title: "Auditoría", route: "/auditoria", permisoId: 16 },
       ],
