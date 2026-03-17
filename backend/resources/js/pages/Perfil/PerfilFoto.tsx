@@ -234,7 +234,7 @@ return (
               <li>Fondo liso y buena iluminación.</li>
               <li>Rostro centrado, sin lentes oscuros ni gorras.</li>
               <li>Evite imágenes borrosas o recortadas en exceso.</li>
-              <li>Verifique que el archivo no exceda los 5MB antes de subir.</li>
+              <li>Verifique que el archivo no exceda los 5MB antes de subir. </li>
             </ul>
           </div>
         </div>
