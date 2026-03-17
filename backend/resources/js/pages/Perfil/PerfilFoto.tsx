@@ -5,7 +5,7 @@ import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import { Inertia } from "@inertiajs/inertia";
-import { Button } from "@/components/ui/button"; // para usar el botón definido como componente
+import { Button } from "@/components/ui/button"; 
 
 interface Props {
   userPermisos: number[];
