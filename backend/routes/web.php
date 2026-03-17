@@ -131,13 +131,23 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
         Route::get('/curriculum/generar', function () {
-            $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+            $usuario = Auth::user()?->load('fotoPerfil');
+
+            if (!$usuario) {
+                return redirect()->route('login');
+            }
+
+            $permisos = DB::table('roles_permisos')
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray();
+
             return Inertia::render('Frt_FormularioGeneracionCurriculum', [
-                'userPermisos' => getUserPermisos(),
+                'userPermisos' => $permisos,
                 'usuario' => [
                     'id_usuario' => $usuario->id_usuario,
                     'nombre_completo' => $usuario->nombre_completo,
-                    'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
+                    'cedula' => $usuario->identificacion,
                     'correo' => $usuario->correo,
                     'telefono' => $usuario->telefono ?? '',
                     'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
