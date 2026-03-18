@@ -407,7 +407,7 @@ export default function EmpresaOfertasIndex({
                         <td className="py-3 px-5">
                           <div className="flex items-center gap-4">
                             {/* Icono de edificio más pequeño: de w-16 a w-12 */}
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 group-hover:scale-105 transition-transform bg-white">
+                            <div className="w-12 h-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 group-hover:scale-105 transition-transform bg-white">
                               <img
                                 src={oferta.empresa?.usuario?.foto_perfil?.url || fotoXDefecto}
                                 onError={(e) => {
