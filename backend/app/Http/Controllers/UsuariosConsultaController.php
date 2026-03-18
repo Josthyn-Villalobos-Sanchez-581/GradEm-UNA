@@ -87,6 +87,23 @@ class UsuariosConsultaController extends Controller
             ->select('usuarios.*', 'areas_laborales.nombre as nombre_area_laboral')
             ->where('usuarios.id_usuario', $id)
             ->firstOrFail();
+        $origen = request()->get('origen');
+        $ofertaId = request()->get('ofertaId');
+
+        // Cambiar estado de postulación automáticamente
+        if ($ofertaId && $origen === 'postulaciones') {
+
+            $postulacion = \App\Models\Postulacion::where('id_usuario', $id)
+                ->where('id_oferta', $ofertaId)
+                ->where('estado_id', 1) // espera
+                ->first();
+
+            if ($postulacion) {
+                $postulacion->update([
+                    'estado_id' => 4 // en revisión
+                ]);
+            }
+        }
 
         $canton = $usuario->canton;
         $provincia = $canton?->provincia;
@@ -96,6 +113,18 @@ class UsuariosConsultaController extends Controller
         $rolAuth = strtolower($authUser->rol->nombre_rol ?? '');
         $rolUsuarioVer = strtolower($usuario->rol->nombre_rol ?? '');
         $estadoEstudios = strtolower($authUser->estado_estudios ?? '');
+
+        if (
+            !in_array($rolAuth, ['superusuario', 'administrador del sistema']) &&
+            !(
+                $rolAuth === 'empresa' &&
+                in_array($rolUsuarioVer, ['estudiante', 'egresado'])
+            ) &&
+            $authUser->id_usuario !== $usuario->id_usuario
+        ) {
+            abort(403, 'No autorizado para ver este perfil.');
+        }
+
 
         // Estados válidos para considerar estudiante/egresado
         $estadosEstudiosPermitidos = ['estudiante', 'egresado', 'activo', 'pausado', 'finalizado'];
@@ -140,6 +169,8 @@ class UsuariosConsultaController extends Controller
             ],
             'plataformas' => $plataformas,
             'userPermisos' => getUserPermisos(),
+            'origen' => $origen,
+            'ofertaId' => $ofertaId,
         ]);
     }
 

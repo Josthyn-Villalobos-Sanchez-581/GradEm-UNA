@@ -7,8 +7,12 @@ import IconoEdicion from "@/assets/IconoEdicion.png";
 import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
 import EnlacesExternos from "./EnlacesExternos";
-
-
+// Importación de iconos
+import { 
+  User, Mail, Phone, MapPin, Calendar, IdCard, 
+  Briefcase, GraduationCap, Globe, Building2, 
+  ChevronLeft, Edit, Trash2, FileText 
+} from "lucide-react";
 
 interface FotoPerfil { ruta_imagen: string }
 interface Usuario {
@@ -85,9 +89,12 @@ export default function Index({
   const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
   const universidadActual = universidades.find(u => u.id === usuario.id_universidad);
   const carreraActual = carreras.find(c => c.id === usuario.id_carrera);
-  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+  const fotoPerfilUrl =
+  usuario.fotoPerfil?.ruta_imagen ||
+  (usuario as any)?.foto_perfil?.url ||
+  (usuario as any)?.foto_url ||
+  FotoXDefecto;
 
-  // 🔹 Eliminar foto de perfil
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
       titulo: "Confirmar eliminación",
@@ -102,18 +109,27 @@ export default function Index({
     });
   };
 
-  // 🔹 Texto negro por defecto
   const renderValor = (valor: any) =>
-    valor ? <span className="text-black">{valor}</span> : <span className="text-gray-400 italic">N/A</span>;
+    valor ? <span className="text-black ml-1">{valor}</span> : <span className="text-gray-400 italic ml-1">N/A</span>;
+
+  // Componente interno para mantener iconos y texto alineados
+  const InfoItem = ({ icon: Icon, label, children }: { icon: any, label: string, children: React.ReactNode }) => (
+    <div className="flex items-center justify-center gap-2 text-center break-all">
+      <Icon className="w-4 h-4 text-[#034991] flex-shrink-0" />
+      <p className="leading-tight">
+        <span className="font-bold">{label}:</span> {children}
+      </p>
+    </div>
+  );
 
   // -------------------------------------------------------
   // VISTA EMPRESA
   // -------------------------------------------------------
   if (rolNombre.toLowerCase() === "empresa") {
     const secciones = [
-      { id: "empresa", label: "Información de la Empresa" },
-      { id: "responsable", label: "Usuario Responsable" },
-      { id: "enlaces", label: "Enlaces Externos" },
+      { id: "empresa", label: "Información de la Empresa", icon: Building2 },
+      { id: "responsable", label: "Usuario Responsable", icon: User },
+      { id: "enlaces", label: "Enlaces Externos", icon: Globe },
     ];
 
     return (
@@ -123,21 +139,18 @@ export default function Index({
           <div className="bg-white rounded-xl shadow-sm p-8">
 
             <header className="flex justify-between items-center border-b pb-3 mb-8">
-              <h1 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h1>
+              <h1 className="text-2xl font-bold text-[#034991] flex items-center gap-2">
+                <Building2 className="w-6 h-6" /> Perfil de Empresa
+              </h1>
               <div className="flex gap-3">
-                <Button asChild variant="secondary"><Link href="/dashboard">Volver</Link></Button>
-                <Button asChild variant="default"><Link href="/perfil/editar">Editar</Link></Button>
+                <Button asChild variant="secondary"><Link href="/dashboard" className="flex items-center gap-1"><ChevronLeft className="w-4 h-4"/> Volver</Link></Button>
+                <Button asChild variant="default"><Link href="/perfil/editar" className="flex items-center gap-1"><Edit className="w-4 h-4"/> Editar</Link></Button>
               </div>
             </header>
 
-            {/* Foto y acciones */}
             <div className="flex flex-col items-center mb-6">
               <div className="relative">
-                <img
-                  src={fotoPerfilUrl}
-                  className="rounded-full w-36 h-36 object-cover shadow-md mb-3"
-                />
-                {/* Botón de editar foto */}
+                <img src={fotoPerfilUrl} onError={(e) => (e.currentTarget.src = FotoXDefecto)} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
                 <Link
                   href="/perfil/foto"
                   title="Editar foto de perfil"
@@ -147,46 +160,44 @@ export default function Index({
                 </Link>
               </div>
 
-              {/* Botón eliminar foto */}
               {usuario.fotoPerfil && (
                 <button
                   onClick={eliminarFotoPerfil}
-                  className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition"
+                  className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition flex items-center gap-1"
                 >
-                  Borrar Foto de Perfil
+                  <Trash2 className="w-4 h-4" /> Borrar Foto de Perfil
                 </button>
               )}
 
               <p className="text-2xl font-bold mt-4 break-words break-all text-center">{rolNombre}: {empresa?.nombre}</p>
-              <p className="text-gray-700 break-words break-all text-center">
-                Usuario: {renderValor(usuario.nombre_completo)}
-              </p>
+              <div className="flex items-center gap-2 text-gray-700">
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span>Usuario: {renderValor(usuario.nombre_completo)}</span>
+              </div>
             </div>
 
-            {/* Tabs */}
             <div className="flex justify-center flex-wrap gap-3 border-b pb-4 mb-6">
               {secciones.map(tab => (
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? "outline" : "ghost"}
                   onClick={() => setActiveTab(tab.id)}
-                  className="font-semibold text-black"
+                  className="font-semibold text-black flex items-center gap-2"
                 >
-                  {tab.label}
+                  <tab.icon className="w-4 h-4" /> {tab.label}
                 </Button>
               ))}
             </div>
 
-            {/* Paneles */}
             {activeTab === "empresa" && (
               <section>
                 <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Información de la Empresa</h3>
-                <div className="grid sm:grid-cols-2 gap-4 text-black break-all text-center">
-                  <p><strong>Nombre de la empresa:</strong> {renderValor(empresa?.nombre)}</p>
-                  <p><strong>Correo:</strong> {renderValor(empresa?.correo)}</p>
-                  <p><strong>Teléfono:</strong> {renderValor(empresa?.telefono)}</p>
-                  <p><strong>Ubicación:</strong> {renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</p>
-                  <p><strong>Persona de contacto:</strong> {renderValor(empresa?.persona_contacto)}</p>
+                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                  <InfoItem icon={Building2} label="Nombre de la empresa">{renderValor(empresa?.nombre)}</InfoItem>
+                  <InfoItem icon={Mail} label="Correo">{renderValor(empresa?.correo)}</InfoItem>
+                  <InfoItem icon={Phone} label="Teléfono">{renderValor(empresa?.telefono)}</InfoItem>
+                  <InfoItem icon={MapPin} label="Ubicación">{renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</InfoItem>
+                  <InfoItem icon={User} label="Persona de contacto">{renderValor(empresa?.persona_contacto)}</InfoItem>
                 </div>
               </section>
             )}
@@ -194,16 +205,16 @@ export default function Index({
             {activeTab === "responsable" && (
               <section>
                 <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Usuario Responsable</h3>
-                <div className="grid sm:grid-cols-2 gap-4 text-black break-all text-center">
-                  <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
-                  <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
+                <div className="grid sm:grid-cols-2 gap-4 text-black">
+                  <InfoItem icon={User} label="Nombre completo">{renderValor(usuario.nombre_completo)}</InfoItem>
+                  <InfoItem icon={IdCard} label="Identificación">{renderValor(usuario.identificacion)}</InfoItem>
                 </div>
               </section>
             )}
 
             {activeTab === "enlaces" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Enlaces Externos</h3>
+                <h3 className="text-xl font-bold text-[#034991] mb-4 flex items-center justify-center gap-2"><Globe className="w-5 h-5"/> Enlaces Externos</h3>
                 <EnlacesExternos enlaces={plataformas} usuario={usuario} rolNombre={rolNombre} soloLectura={false} />
               </section>
             )}
@@ -216,16 +227,15 @@ export default function Index({
   // -------------------------------------------------------
   // VISTA ESTUDIANTE / EGRESADO / OTROS
   // -------------------------------------------------------
-  const mostrarEnlaces =
-    ["egresado", "estudiante", "empresa"].includes(rolNombre.toLowerCase());
+  const mostrarEnlaces = ["egresado", "estudiante", "empresa"].includes(rolNombre.toLowerCase());
 
   const tabs = [
-    { id: "datos", label: "Datos Personales" },
-    { id: "academicos", label: "Datos Académicos" },
+    { id: "datos", label: "Datos Personales", icon: User },
+    { id: "academicos", label: "Datos Académicos", icon: GraduationCap },
     ...(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante"
-      ? [{ id: "laborales", label: "Datos Laborales" }]
+      ? [{ id: "laborales", label: "Datos Laborales", icon: Briefcase }]
       : []),
-    ...(mostrarEnlaces ? [{ id: "enlaces", label: "Enlaces Externos" }] : []),
+    ...(mostrarEnlaces ? [{ id: "enlaces", label: "Enlaces Externos", icon: Globe }] : []),
   ];
 
   return (
@@ -235,21 +245,18 @@ export default function Index({
         <div className="bg-white rounded-xl shadow-sm p-8">
 
           <header className="flex justify-between items-center border-b pb-3 mb-8">
-            <h1 className="text-2xl font-bold text-[#034991]">Mi Perfil</h1>
+            <h1 className="text-2xl font-bold text-[#034991] flex items-center gap-2">
+              <User className="w-6 h-6"/> Mi Perfil
+            </h1>
             <div className="flex gap-3">
-              <Button asChild variant="secondary"><Link href="/dashboard">Volver</Link></Button>
-              <Button asChild variant="default"><Link href="/perfil/editar">Editar</Link></Button>
+              <Button asChild variant="secondary"><Link href="/dashboard" className="flex items-center gap-1"><ChevronLeft className="w-4 h-4"/> Volver</Link></Button>
+              <Button asChild variant="default"><Link href="/perfil/editar" className="flex items-center gap-1"><Edit className="w-4 h-4"/> Editar</Link></Button>
             </div>
           </header>
 
-          {/* Foto y acciones */}
           <div className="flex flex-col items-center mb-6">
             <div className="relative">
-              <img
-                src={fotoPerfilUrl}
-                className="rounded-full w-36 h-36 object-cover shadow-md mb-3"
-              />
-              {/* Botón de editar foto */}
+              <img src={fotoPerfilUrl} onError={(e) => (e.currentTarget.src = FotoXDefecto)} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
               <Link
                 href="/perfil/foto"
                 title="Editar foto de perfil"
@@ -259,100 +266,94 @@ export default function Index({
               </Link>
             </div>
 
-            {/* Botón eliminar foto */}
             {usuario.fotoPerfil && (
               <button
                 onClick={eliminarFotoPerfil}
-                className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition"
+                className="mt-4 font-heading text-[#034991] font-semibold hover:text-[#CD1719] transition flex items-center gap-1"
               >
-                Borrar Foto de Perfil
+                <Trash2 className="w-4 h-4" /> Borrar Foto de Perfil
               </button>
             )}
 
             <p className="text-2xl font-bold mt-4 break-words break-all text-center">{rolNombre}: {usuario.nombre_completo}</p>
-            <p className="text-gray-700 break-words break-all text-center">Carrera: {carreraActual?.nombre}</p>
-            <p className="text-gray-700 break-words break-all text-center">Universidad: {universidadActual?.nombre}</p>
+            <div className="flex flex-col items-center gap-1 text-gray-700 mt-2">
+               <span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-[#034991] flex-shrink-0"/> Carrera: {carreraActual?.nombre}</span>
+               <span className="flex items-center gap-2"><Building2 className="w-4 h-4 text-[#034991] flex-shrink-0"/> Universidad: {universidadActual?.nombre}</span>
+            </div>
 
-            {/* Nuevo botón Ver Currículum */}
             {["egresado", "estudiante"].includes(rolNombre?.toLowerCase() ?? "") && (
               <Button asChild variant="default" className="mt-3">
-                <Link href="/mi-curriculum/ver">Ver Currículum</Link>
+                <Link href="/mi-curriculum/ver" className="flex items-center gap-2"><FileText className="w-4 h-4"/> Ver Currículum</Link>
               </Button>
             )}
           </div>
 
-          {/* Tabs */}
           <div className="flex justify-center flex-wrap gap-3 border-b pb-4 mb-6">
             {tabs.map(tab => (
               <Button
                 key={tab.id}
                 variant={activeTab === tab.id ? "outline" : "ghost"}
                 onClick={() => setActiveTab(tab.id)}
-                className="font-semibold text-black"
+                className="font-semibold text-black flex items-center gap-2"
               >
-                {tab.label}
+                <tab.icon className="w-4 h-4" /> {tab.label}
               </Button>
             ))}
           </div>
 
-          {/* Contenido */}
           <div className="mt-6 space-y-10 text-black">
-            {/* DATOS PERSONALES */}
             {activeTab === "datos" && (
               <section>
                 <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Personales</h3>
-                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
-                  <p><strong>Nombre completo:</strong> {renderValor(usuario.nombre_completo)}</p>
-                  <p><strong>Identificación:</strong> {renderValor(usuario.identificacion)}</p>
-                  <p><strong>Correo:</strong> {renderValor(usuario.correo)}</p>
-                  <p><strong>Teléfono:</strong> {renderValor(usuario.telefono)}</p>
-                  <p><strong>Fecha de nacimiento:</strong> {renderValor(usuario.fecha_nacimiento)}</p>
-                  <p><strong>Género:</strong> {renderValor(usuario.genero)}</p>
-                  <p><strong>Ubicación:</strong> {renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <InfoItem icon={User} label="Nombre completo">{renderValor(usuario.nombre_completo)}</InfoItem>
+                  <InfoItem icon={IdCard} label="Identificación">{renderValor(usuario.identificacion)}</InfoItem>
+                  <InfoItem icon={Mail} label="Correo">{renderValor(usuario.correo)}</InfoItem>
+                  <InfoItem icon={Phone} label="Teléfono">{renderValor(usuario.telefono)}</InfoItem>
+                  <InfoItem icon={Calendar} label="Fecha de nacimiento">{renderValor(usuario.fecha_nacimiento)}</InfoItem>
+                  <InfoItem icon={User} label="Género">{renderValor(usuario.genero)}</InfoItem>
+                  <InfoItem icon={MapPin} label="Ubicación">{renderValor(paisActual ? `${paisActual.nombre}, ${provinciaActual?.nombre}, ${cantonActual?.nombre}` : "N/A")}</InfoItem>
                 </div>
               </section>
             )}
 
-            {/* DATOS ACADÉMICOS */}
             {activeTab === "academicos" && (
               <section>
                 <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Académicos</h3>
-                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
-                  <p><strong>Universidad:</strong> {renderValor(universidadActual?.nombre)}</p>
-                  <p><strong>Carrera:</strong> {renderValor(carreraActual?.nombre)}</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <InfoItem icon={Building2} label="Universidad">{renderValor(universidadActual?.nombre)}</InfoItem>
+                  <InfoItem icon={GraduationCap} label="Carrera">{renderValor(carreraActual?.nombre)}</InfoItem>
                   {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && (
                     <>
-                      <p><strong>Estado de estudios:</strong> {renderValor(usuario.estado_estudios)}</p>
-                      <p><strong>Nivel académico:</strong> {renderValor(usuario.nivel_academico)}</p>
-                      <p><strong>Año de graduación:</strong> {renderValor(usuario.anio_graduacion)}</p>
+                      <InfoItem icon={FileText} label="Estado de estudios">{renderValor(usuario.estado_estudios)}</InfoItem>
+                      <InfoItem icon={IdCard} label="Nivel académico">{renderValor(usuario.nivel_academico)}</InfoItem>
+                      <InfoItem icon={Calendar} label="Año de graduación">{renderValor(usuario.anio_graduacion)}</InfoItem>
                     </>
                   )}
                 </div>
               </section>
             )}
 
-            {/* DATOS LABORALES */}
             {(rolNombre.toLowerCase() === "egresado" || rolNombre.toLowerCase() === "estudiante") && activeTab === "laborales" && (
               <section>
                 <h3 className="text-xl font-bold text-[#034991] mb-4 text-center">Datos Laborales</h3>
-                <div className="grid sm:grid-cols-2 gap-4 break-all text-center">
-                  <p><strong>Estado de empleo:</strong> {renderValor(usuario.estado_empleo)}</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <InfoItem icon={Briefcase} label="Estado de empleo">{renderValor(usuario.estado_empleo)}</InfoItem>
                   {usuario.estado_empleo?.toLowerCase() === "empleado" && (
                     <>
-                      <p><strong>Tiempo para conseguir empleo:</strong> {renderValor(usuario.tiempo_conseguir_empleo)}</p>
-                      <p><strong>Área laboral:</strong> {renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</p>
-                      <p><strong>Salario promedio:</strong> {renderValor(usuario.salario_promedio)}</p>
-                      <p><strong>Tipo de empleo:</strong> {renderValor(usuario.tipo_empleo)}</p>
+                      <InfoItem icon={Calendar} label="Tiempo para conseguir empleo (meses)">{renderValor(usuario.tiempo_conseguir_empleo)}</InfoItem>
+                      <InfoItem icon={Building2} label="Área laboral">{renderValor(areaLaborales.find(a => a.id === usuario.area_laboral_id)?.nombre)}</InfoItem>
+                      <InfoItem icon={FileText} label="Salario promedio">{renderValor(usuario.salario_promedio)}</InfoItem>
+                      <InfoItem icon={Briefcase} label="Tipo de empleo">{renderValor(usuario.tipo_empleo)}</InfoItem>
                     </>
                   )}
                 </div>
               </section>
             )}
 
-            {/* ENLACES EXTERNOS */}
             {mostrarEnlaces && activeTab === "enlaces" && (
               <section>
-                <h3 className="text-xl font-bold text-[#034991] mb-4">Enlaces a Plataformas Externas</h3>
+                <h3 className="text-xl font-bold text-[#034991] mb-4 flex items-center justify-center gap-2"><Globe className="w-5 h-5"/> Enlaces a Plataformas Externas</h3>
                 <EnlacesExternos enlaces={plataformas} usuario={usuario} rolNombre={rolNombre} soloLectura={false} />
               </section>
             )}

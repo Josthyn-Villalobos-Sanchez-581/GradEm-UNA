@@ -167,8 +167,8 @@ const FormularioRegistroAdmin: React.FC = () => {
     identificacion: "",
     telefono: "",
     rol: "Administrador del Sistema" as Rol,
-    universidad: "",
-    carrera: "",
+    id_universidad: null as number | null,
+    id_carrera: null as number | null,
     contrasena: "",
     contrasena_confirmation: "",
   });
@@ -192,7 +192,7 @@ const FormularioRegistroAdmin: React.FC = () => {
         if (!mounted) return;
         setUniversidades(Array.isArray(data) ? data : []);
         if (Array.isArray(data) && data.length > 0) {
-          form.setData("universidad", data[0].nombre);
+          form.setData("id_universidad", data[0].id_universidad);
           await loadCarrerasForUni(data[0].id_universidad);
         }
       } catch (e) {
@@ -205,72 +205,80 @@ const FormularioRegistroAdmin: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
- const loadCarrerasForUni = async (id_universidad: number) => {
-  setLoadingCarreras(true);
-  try {
-    const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error("Error cargando carreras");
-    const data = await res.json();
-    const filtered = Array.isArray(data) ? data.filter((c: any) => allowedCarreras.includes(c.nombre)) : [];
-    setCarreras(filtered);
+  const loadCarrerasForUni = async (id_universidad: number) => {
+    setLoadingCarreras(true);
+    try {
+      const res = await fetch(`/universidades/${id_universidad}/carreras`, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("Error cargando carreras");
+      const data = await res.json();
+      const filtered = Array.isArray(data) ? data.filter((c: any) => allowedCarreras.includes(c.nombre)) : [];
+      setCarreras(filtered);
 
-    // ⚡ Setear el primer valor por defecto si no hay valor en el formulario
-    if (filtered.length > 0 && !form.data.carrera) {
-      form.setData("carrera", filtered[0].nombre);
-    } else {
-      form.setData("carrera", "");
+      // ⚡ Setear el primer valor por defecto si no hay valor en el formulario
+      if (filtered.length > 0 && !form.data.id_carrera) {
+        form.setData("id_carrera", filtered[0].id_carrera);
+      } else {
+        form.setData("id_carrera", null);
+      }
+    } catch (err) {
+      console.error(err);
+      setCarreras([]);
+      form.setData("id_carrera", null);
+    } finally {
+      setLoadingCarreras(false);
     }
-  } catch (err) {
-    console.error(err);
-    setCarreras([]);
-    form.setData("carrera", "");
-  } finally {
-    setLoadingCarreras(false);
-  }
-};
-
+  };
 
   const handleUniChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = Number(e.target.value);
-    const selected = universidades.find((u) => u.id_universidad === selectedId);
-    if (!selected) {
-      form.setData("universidad", e.target.value);
+
+    if (isNaN(selectedId)) {
+      form.setData("id_universidad", null);
+      form.setData("id_carrera", null);
       setCarreras([]);
-      form.setData("carrera", "");
       return;
     }
-    form.setData("universidad", selected.nombre);
+
+    form.setData("id_universidad", selectedId);
+    form.setData("id_carrera", null);
+
     await loadCarrerasForUni(selectedId);
   };
+
 
   const handleCarreraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === "") {
-      form.setData("carrera", "");
+      form.setData("id_carrera", null);
       return;
     }
     const selectedId = Number(val);
     const selected = carreras.find((c) => c.id_carrera === selectedId);
-    if (selected) form.setData("carrera", selected.nombre);
+    if (selected) form.setData("id_carrera", selected.id_carrera);
   };
 
   const renderUniversidadField = () => {
     if (loadingUnis) return <div>Cargando universidades...</div>;
+
     if (universidades.length === 0) {
       return (
         <input
           className="input"
-          value={form.data.universidad}
-          onChange={(e) => form.setData("universidad", e.target.value)}
-          placeholder="Ej: Universidad Nacional"
+          value={form.data.id_universidad ?? ""}
+          onChange={() => { }}
+          placeholder="No hay universidades"
+          disabled
         />
       );
     }
-    const found = universidades.find((u) => u.nombre === form.data.universidad);
-    const value = found ? String(found.id_universidad) : String(universidades[0].id_universidad);
 
     return (
-      <select className="select input" value={value} onChange={handleUniChange}>
+      <select
+        className="select input"
+        value={form.data.id_universidad ?? ""}
+        onChange={handleUniChange}
+      >
+        <option value="">Seleccione una universidad</option>
         {universidades.map((u) => (
           <option key={u.id_universidad} value={u.id_universidad}>
             {u.sigla ? `${u.sigla} — ${u.nombre}` : u.nombre}
@@ -279,40 +287,37 @@ const FormularioRegistroAdmin: React.FC = () => {
       </select>
     );
   };
-const renderCarreraField = () => {
-  if (loadingCarreras) return <div>Cargando carreras...</div>;
 
-  if (carreras.length === 0) {
+  const renderCarreraField = () => {
+    if (loadingCarreras) return <div>Cargando carreras...</div>;
+
+    if (carreras.length === 0) {
+      return (
+        <select className="select input" disabled>
+          <option value="">No hay carreras</option>
+        </select>
+      );
+    }
+
     return (
-      <input
-        className="input"
-        value={form.data.carrera}
-        onChange={(e) => form.setData("carrera", e.target.value)}
-        placeholder="Opcional"
-      />
+      <select
+        className="select input"
+        value={form.data.id_carrera ?? ""}
+        onChange={(e) => {
+          const id = Number(e.target.value);
+          form.setData("id_carrera", isNaN(id) ? null : id);
+        }}
+      >
+        <option value="">Seleccione una carrera</option>
+        {carreras.map((c) => (
+          <option key={c.id_carrera} value={c.id_carrera}>
+            {c.nombre}
+          </option>
+        ))}
+      </select>
     );
-  }
+  };
 
-  const selectedOptionValue = (() => {
-    const found = carreras.find((c) => c.nombre === form.data.carrera);
-    return found ? String(found.id_carrera) : "";
-  })();
-
-  return (
-    <select
-      className="select input"
-      value={selectedOptionValue}
-      onChange={handleCarreraChange}
-    >
-      
-      {carreras.map((c) => (
-        <option key={c.id_carrera} value={c.id_carrera}>
-          {c.nombre}
-        </option>
-      ))}
-    </select>
-  );
-};
 
 
   /* ========================= VALIDACIONES EN TIEMPO REAL ========================= */
@@ -339,7 +344,7 @@ const renderCarreraField = () => {
     form.setData("identificacion", value);
   };
 
-const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 8) value = value.slice(0, 8);
     form.setData("telefono", value);
@@ -392,45 +397,45 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const modal = useModalContext();
 
- const submit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!isFormValid()) return;
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isFormValid()) return;
 
-  // 1️⃣ Confirmación antes de enviar
-  const confirmado = await modal.confirmacion({
-    titulo: "Crear usuario",
-    mensaje: "¿Está seguro que desea crear este usuario?",
-    textoAceptar: "Sí, crear",
-    textoCancelar: "Cancelar",
-  });
+    // 1️⃣ Confirmación antes de enviar
+    const confirmado = await modal.confirmacion({
+      titulo: "Crear usuario",
+      mensaje: "¿Está seguro que desea crear este usuario?",
+      textoAceptar: "Sí, crear",
+      textoCancelar: "Cancelar",
+    });
 
-  if (!confirmado) return;
+    if (!confirmado) return;
 
-  // 2️⃣ Enviar al backend
-  form.post(route("usuarios.store"), {
-    preserveScroll: true,
-    onSuccess: async () => {
-      // 3️⃣ Mostrar modal de éxito
-      await modal.alerta({
-        titulo: "Registro exitoso",
-        mensaje: "El usuario se creó correctamente.",
-        textoAceptar: "Aceptar",
-      });
+    // 2️⃣ Enviar al backend
+    form.post(route("usuarios.store"), {
+      preserveScroll: true,
+      onSuccess: async () => {
+        // 3️⃣ Mostrar modal de éxito
+        await modal.alerta({
+          titulo: "Registro exitoso",
+          mensaje: "El usuario se creó correctamente.",
+          textoAceptar: "Aceptar",
+        });
 
-      // 4️⃣ Resetear formulario
-      form.reset(
-        "nombre_completo",
-        "correo",
-        "identificacion",
-        "telefono",
-        "universidad",
-        "carrera",
-        "contrasena",
-        "contrasena_confirmation"
-      );
-    },
-  });
-};
+        // 4️⃣ Resetear formulario
+        form.reset(
+          "nombre_completo",
+          "correo",
+          "identificacion",
+          "telefono",
+          "id_universidad",
+          "id_carrera",
+          "contrasena",
+          "contrasena_confirmation"
+        );
+      },
+    });
+  };
 
   const nombreError = !String(form.data.nombre_completo || "").trim() ? "Requerido" : "";
   const correoError =

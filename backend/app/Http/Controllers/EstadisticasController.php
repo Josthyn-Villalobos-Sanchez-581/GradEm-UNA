@@ -162,7 +162,7 @@ class EstadisticasController extends Controller
         try {
             $data = $request->validate([
                 'reportes'        => 'required|array|min:1',
-                'reportes.*'      => 'in:ofertas_mes,postulaciones_tipo,top_empresas,top_carreras',
+                'reportes.*'      => 'in:kpis,ofertas_mes,postulaciones_tipo,top_empresas,top_carreras',
                 'parametros'      => 'required|array',
                 'filtrosLegibles' => 'nullable|array',
             ]);

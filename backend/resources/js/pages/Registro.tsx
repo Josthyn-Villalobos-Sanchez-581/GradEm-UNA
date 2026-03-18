@@ -244,16 +244,24 @@ const Registro: React.FC = () => {
 
 
     useEffect(() => {
-        fetch("/universidades")
-            .then((res) => res.json())
-            .then((data) => setUniversidades(data));
+        axios
+            .get("/universidades")
+            .then((res) => setUniversidades(res.data))
+            .catch((error) => {
+                console.error("Error obteniendo universidades:", error);
+                setUniversidades([]);
+            });
     }, []);
 
     useEffect(() => {
         if (universidad) {
-            fetch(`/universidades/${universidad}/carreras`)
-                .then((res) => res.json())
-                .then((data) => setCarreras(data));
+            axios
+                .get(`/universidades/${universidad}/carreras`)
+                .then((res) => setCarreras(res.data))
+                .catch((error) => {
+                    console.error("Error obteniendo carreras:", error);
+                    setCarreras([]);
+                });
         } else {
             setCarreras([]);
         }

@@ -29,7 +29,9 @@ class OfertaController extends Controller
             'canton',
             'modalidad',
             'areaLaboral',
-        ])->where('estado_id', 1);
+        ])
+            ->where('estado_id', 1)
+            ->whereDate('fecha_limite', '>=', now());
 
         if ($request->filled('tipo_oferta')) {
             $consulta->where('tipo_oferta', $request->tipo_oferta);
@@ -47,12 +49,12 @@ class OfertaController extends Controller
             $consulta->where('id_canton', $request->id_canton);
         }
 
-        if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->id_modalidad);
-        }
-
         if ($request->filled('id_area_laboral')) {
             $consulta->where('id_area_laboral', $request->id_area_laboral);
+        }
+
+        if ($request->filled('id_modalidad')) {
+            $consulta->where('id_modalidad', $request->id_modalidad);
         }
 
         if ($request->filled('buscar')) {
@@ -64,8 +66,30 @@ class OfertaController extends Controller
             });
         }
 
+        if ($request->filled('fecha_inicio')) {
+            $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
+        }
+
+        $ordenarPor = $request->get('ordenar_por');
+        $direccion  = $request->get('direccion');
+
+        $columnasPermitidas = ['fecha_publicacion', 'fecha_limite', 'titulo'];
+
+        if (!in_array($ordenarPor, $columnasPermitidas)) {
+            $ordenarPor = 'fecha_publicacion';
+        }
+
+        if (!in_array($direccion, ['asc', 'desc'])) {
+            $direccion = 'desc';
+        }
+
+        $consulta->orderBy($ordenarPor, $direccion);
+
         $ofertas = $consulta
-            ->orderByDesc('fecha_publicacion')
             ->paginate(9)
             ->withQueryString();
 
@@ -141,11 +165,9 @@ class OfertaController extends Controller
                 ? asset('storage/' . $foto->ruta_imagen)
                 : null;
 
-            $oferta->empresa->usuario->foto_perfil = $url
+            $oferta->empresa->usuario->fotoPerfil = $url
                 ? ['url' => $url]
                 : null;
-
-            unset($oferta->empresa->usuario->fotoPerfil);
         } else {
             $oferta->empresa->usuario->fotoPerfil = null;
         }
@@ -209,7 +231,7 @@ class OfertaController extends Controller
             'id_canton'        => 'required|integer',
             'id_modalidad'     => 'required|integer',
             'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date',
+            'fecha_limite'     => 'required|date|after_or_equal:today',
             'estado_id'        => 'required|integer',
         ]);
 
@@ -255,9 +277,23 @@ class OfertaController extends Controller
         $usuario = $request->user();
         $empresa = $usuario->empresa; // null si es admin/superadmin
 
+        $request->validate([
+            'id_modalidad' => 'nullable|integer|exists:modalidades,id_modalidad',
+            'estado'       => 'nullable|integer|in:1,2',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin'    => 'nullable|date',
+            'per_page'     => 'nullable|integer|min:5|max:100',
+        ]);
+
         // 🔒 Seguridad básica
         if (!$usuario) {
             abort(403, 'No autorizado.');
+        }
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            if ($request->fecha_inicio > $request->fecha_fin) {
+                abort(422, 'La fecha inicio no puede ser mayor que la fecha fin.');
+            }
         }
 
         /**
@@ -265,17 +301,19 @@ class OfertaController extends Controller
          * ⚠️ OJO: cargamos TODA la cadena necesaria para el frontend
          */
         $consulta = Oferta::with([
-            'empresa.usuario.fotoPerfil', // 🔥 CLAVE
+            'empresa.usuario.fotoPerfil',
             'modalidad',
-        ])->where('estado_id', '!=', 3); // ❌ No desactivadas
+        ])
+            ->withCount('postulaciones') // 👈 AQUÍ VA
+            ->where('estado_id', '!=', 3);
 
         /**
          * 🔐 Visibilidad
          * - Empresa → solo sus ofertas
          * - Admin/Superadmin → todas
          */
-        if ($empresa) {
-            $consulta->where('id_empresa', $empresa->id_empresa);
+        if ($usuario->empresa) {
+            $consulta->where('id_empresa', $usuario->empresa->id_empresa);
         }
 
         // 🔍 Búsqueda
@@ -284,8 +322,13 @@ class OfertaController extends Controller
         }
 
         // 🎯 Modalidad
-        if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->id_modalidad);
+        if ($request->has('id_modalidad') && $request->id_modalidad !== null && $request->id_modalidad !== '') {
+            $consulta->where('id_modalidad', (int) $request->id_modalidad);
+        }
+
+        // 🟢 Estado
+        if ($request->filled('estado')) {
+            $consulta->where('estado_id', $request->estado);
         }
 
         // 📅 Fechas
@@ -343,17 +386,124 @@ class OfertaController extends Controller
 
         return Inertia::render('Ofertas/EmpresaOfertasIndex', [
             'ofertas'      => $ofertas,
-            'modalidades'  => Modalidad::orderBy('nombre')->get(),
             'filtros'      => $request->only([
                 'buscar',
-                'id_modalidad',
                 'fecha_inicio',
                 'fecha_fin',
+                'estado',
                 'per_page',
             ]),
             'userPermisos' => getUserPermisos(),
         ]);
     }
+
+    public function gestionar(Request $request, Oferta $oferta)
+    {
+        $usuario = Auth::user();
+        $empresa = $usuario->empresa;
+
+        // 🔒 Seguridad
+        if (
+            (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
+            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+        ) {
+            abort(403, 'No autorizado.');
+        }
+
+        // 🔎 Cargar relaciones de la oferta
+        $oferta->load([
+            'empresa.usuario.fotoPerfil',
+            'modalidad',
+            'areaLaboral',
+            'carrera',
+            'pais',
+            'provincia',
+            'canton',
+        ]);
+
+        if (
+            $oferta->empresa &&
+            $oferta->empresa->usuario &&
+            $oferta->empresa->usuario->fotoPerfil
+        ) {
+            $foto = $oferta->empresa->usuario->fotoPerfil;
+
+            $oferta->empresa->usuario->fotoPerfil = [
+                'url' => asset(ltrim($foto->ruta_imagen, '/'))
+            ];
+        } else {
+            if ($oferta->empresa && $oferta->empresa->usuario) {
+                $oferta->empresa->usuario->fotoPerfil = null;
+            }
+        }
+
+        // 🔎 Filtro por estado
+        $estado = $request->estado;
+
+        $consulta = Postulacion::with([
+            'usuario.fotoPerfil',
+            'usuario.curriculum'
+        ])
+            ->where('id_oferta', $oferta->id_oferta);
+
+        if ($estado) {
+            $consulta->where('estado_id', $estado);
+        }
+
+        // 📄 Paginación SIN through
+        $postulaciones = $consulta
+            ->orderByDesc('fecha_postulacion')
+            ->paginate(10)
+            ->withQueryString();
+
+        // 🔄 Transformar colección correctamente
+        $postulaciones->getCollection()->transform(function ($postulacion) {
+
+            return [
+                'id_postulacion' => $postulacion->id_postulacion,
+                'mensaje' => $postulacion->mensaje,
+                'fecha_postulacion' => $postulacion->fecha_postulacion,
+                'estado_id' => $postulacion->estado_id,
+
+                'usuario' => $postulacion->usuario ? [
+                    'id_usuario' => $postulacion->usuario->id_usuario,
+                    'nombre' => $postulacion->usuario->nombre_completo,
+
+                    'fotoPerfil' => $postulacion->usuario->fotoPerfil
+                        ? [
+                            'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
+                        ]
+                        : null,
+
+                    'curriculum' => $postulacion->usuario->curriculum
+                        ? [
+                            'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
+                        ]
+                        : null,
+                ] : null,
+            ];
+        });
+
+        // 📊 Estadísticas optimizadas
+        $estadisticas = Postulacion::selectRaw("
+        COUNT(*) as total,
+        SUM(estado_id = 1) as espera,
+        SUM(estado_id = 2) as aceptado,
+        SUM(estado_id = 3) as negado,
+        SUM(estado_id = 4) as revision
+    ")
+            ->where('id_oferta', $oferta->id_oferta)
+            ->first();
+
+        return Inertia::render('Ofertas/GestionOferta', [
+            'oferta'        => $oferta,
+            'postulaciones' => $postulaciones,
+            'estadisticas'  => $estadisticas,
+            'filtroEstado'  => $estado,
+            'userPermisos'  => getUserPermisos(),
+        ]);
+    }
+
 
     /**
      * Formulario editar oferta
@@ -443,7 +593,7 @@ class OfertaController extends Controller
             'id_canton'        => 'required|integer',
             'id_modalidad'     => 'required|integer',
             'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date',
+            'fecha_limite'     => 'required|date|after_or_equal:today',
             'estado_id'        => 'required|integer',
         ]);
 

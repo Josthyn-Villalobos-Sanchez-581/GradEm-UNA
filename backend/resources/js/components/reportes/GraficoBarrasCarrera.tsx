@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -21,7 +21,7 @@ interface Props {
 }
 
 /* =======================
-   PALETAS PREDEFINIDAS
+   PALETAS
 ======================= */
 const PALETAS: Record<string, string[]> = {
   azul: ["#034991", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd"],
@@ -31,7 +31,7 @@ const PALETAS: Record<string, string[]> = {
 };
 
 /* =======================
-   UTILIDADES DE COLOR
+   UTILIDADES COLOR
 ======================= */
 const hexToRgb = (hex: string) => {
   const clean = hex.replace("#", "");
@@ -44,9 +44,7 @@ const hexToRgb = (hex: string) => {
 };
 
 const rgbToHex = (r: number, g: number, b: number) =>
-  `#${[r, g, b]
-    .map((x) => x.toString(16).padStart(2, "0"))
-    .join("")}`;
+  `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
 
 const interpolarColor = (c1: string, c2: string, ratio: number) => {
   const a = hexToRgb(c1);
@@ -79,7 +77,7 @@ const obtenerColorPorIndice = (
 };
 
 /* =======================
-   TOOLTIP PREMIUM
+   TOOLTIP
 ======================= */
 const TooltipPremium = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -88,9 +86,7 @@ const TooltipPremium = ({ active, payload }: any) => {
 
   return (
     <div className="bg-white rounded-xl shadow-xl border px-4 py-2 text-sm">
-      <p className="font-semibold text-[#034991] text-base">
-        {carrera}
-      </p>
+      <p className="font-semibold text-[#034991] text-base">{carrera}</p>
       <p className="text-gray-800">
         Egresados: <span className="font-bold">{total_egresados}</span>
       </p>
@@ -103,6 +99,16 @@ const TooltipPremium = ({ active, payload }: any) => {
 
 export default function GraficoBarrasCarrera({ filas }: Props) {
   const [horizontal, setHorizontal] = useState(false);
+  const [esMovil, setEsMovil] = useState(false);
+
+  useEffect(() => {
+    const manejarResize = () => {
+      setEsMovil(window.innerWidth < 768);
+    };
+    manejarResize();
+    window.addEventListener("resize", manejarResize);
+    return () => window.removeEventListener("resize", manejarResize);
+  }, []);
 
   const [paletaActiva, setPaletaActiva] = useState(() => {
     return localStorage.getItem("graficoCarreraColor") || "azul";
@@ -126,21 +132,20 @@ export default function GraficoBarrasCarrera({ filas }: Props) {
       }));
   }, [filas]);
 
-  const necesitaScroll = datos.length > 6;
-
   return (
-    <section className="bg-white shadow-xl rounded-2xl p-6">
+    <section className="bg-white shadow-xl rounded-2xl p-6 flex flex-col h-[520px] md:h-[560px]">
+
       {/* HEADER */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <header className="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[#034991]">
+          <h2 className="text-lg md:text-xl font-semibold text-[#034991]">
             Egresados por carrera
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs md:text-sm text-gray-600">
             Distribución total por carrera académica
           </p>
 
-          {/* SELECTOR DE COLOR */}
+          {/* SELECTOR DE COLOR RECUPERADO */}
           <div className="flex items-center gap-2 mt-3">
             <span className="text-sm font-medium text-gray-700">
               Color del gráfico:
@@ -155,7 +160,11 @@ export default function GraficoBarrasCarrera({ filas }: Props) {
                 }}
                 className={`
                   w-6 h-6 rounded-full border transition
-                  ${paletaActiva === key ? "ring-2 ring-gray-400 scale-110" : ""}
+                  ${
+                    paletaActiva === key
+                      ? "ring-2 ring-gray-400 scale-110"
+                      : ""
+                  }
                 `}
                 style={{ backgroundColor: PALETAS[key][0] }}
                 title={key}
@@ -164,93 +173,82 @@ export default function GraficoBarrasCarrera({ filas }: Props) {
           </div>
         </div>
 
-        {/* ORIENTACIÓN */}
         <button
           onClick={() => setHorizontal((v) => !v)}
-          className="
-            px-4 py-2 rounded-full border
-            text-sm font-medium
-            bg-gray-100 hover:bg-gray-200
-            transition
-          "
+          className="px-4 py-2 rounded-full border text-sm bg-gray-100 hover:bg-gray-200 transition"
         >
           {horizontal ? "Vista vertical" : "Vista horizontal"}
         </button>
       </header>
 
       {/* GRÁFICO */}
-      <div
-        className={`w-full ${
-          necesitaScroll && horizontal ? "max-h-[420px] overflow-y-auto" : ""
-        }`}
-      >
-        <div className={horizontal ? "h-[480px]" : "h-[380px]"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={datos}
-              layout={horizontal ? "vertical" : "horizontal"}
-              margin={{ top: 20, right: 30, left: 30, bottom: 70 }}
+      <div className="flex-1">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+          <BarChart
+            data={datos}
+            layout={horizontal ? "vertical" : "horizontal"}
+            margin={
+              horizontal
+                ? { top: 20, right: 80, left: 10, bottom: 20 }
+                : { top: 20, right: 20, left: 20, bottom: esMovil ? 90 : 70 }
+            }
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+            {horizontal ? (
+              <>
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  domain={[0, "dataMax + 15"]}
+                  tick={{ fontSize: esMovil ? 11 : 13 }}
+                />
+                <YAxis
+                  dataKey="carrera"
+                  type="category"
+                  width={esMovil ? 110 : 140}
+                  tick={{ fontSize: esMovil ? 10 : 13 }}
+                />
+              </>
+            ) : (
+              <>
+                <XAxis
+                  dataKey="carrera"
+                  angle={esMovil ? -35 : -20}
+                  textAnchor="end"
+                  interval={0}
+                  height={esMovil ? 100 : 70}
+                  tick={{ fontSize: esMovil ? 10 : 13 }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: esMovil ? 11 : 13 }}
+                />
+              </>
+            )}
+
+            <Tooltip content={<TooltipPremium />} />
+
+            <Bar
+              dataKey="total_egresados"
+              radius={[12, 12, 12, 12]}
+              animationDuration={800}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e5e7eb"
-                horizontal={!horizontal}
-                vertical={horizontal}
+              <LabelList
+                dataKey="total_egresados"
+                position={horizontal ? "right" : "top"}
+                className="fill-gray-800 font-medium"
               />
 
-              {horizontal ? (
-                <>
-                  <XAxis
-                    type="number"
-                    allowDecimals={false}
-                    tick={{ fontSize: 13, fill: "#1f2937" }}
-                  />
-                  <YAxis
-                    dataKey="carrera"
-                    type="category"
-                    width={160}
-                    tick={{ fontSize: 13, fill: "#1f2937" }}
-                  />
-                </>
-              ) : (
-                <>
-                  <XAxis
-                    dataKey="carrera"
-                    angle={-20}
-                    textAnchor="end"
-                    interval={0}
-                    tick={{ fontSize: 13, fill: "#1f2937" }}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 13, fill: "#1f2937" }}
-                  />
-                </>
-              )}
-
-              <Tooltip content={<TooltipPremium />} />
-
-              <Bar
-                dataKey="total_egresados"
-                radius={[12, 12, 12, 12]}
-                animationDuration={900}
-              >
-                <LabelList
-                  dataKey="total_egresados"
-                  position={horizontal ? "right" : "top"}
-                  className="text-sm fill-gray-800 font-medium"
+              {datos.map((_, i) => (
+                <Cell
+                  key={i}
+                  fill={obtenerColorPorIndice(colores, i, datos.length)}
                 />
-
-                {datos.map((_, i) => (
-                  <Cell
-                    key={i}
-                    fill={obtenerColorPorIndice(colores, i, datos.length)}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </section>
   );

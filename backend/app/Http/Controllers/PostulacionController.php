@@ -17,104 +17,189 @@ class PostulacionController extends Controller
     {
         $usuario = Auth::user();
 
-        // Validación
+        $cv = \App\Models\Curriculum::where('id_usuario', $usuario->id_usuario)->first();
+
+        if (
+            !$cv ||
+            (
+                !$cv->generado_sistema &&
+                !$cv->ruta_archivo_pdf
+            )
+        ) {
+            return back()->withErrors([
+                'mensaje' => 'Debes crear o adjuntar tu currículum antes de postularte.'
+            ]);
+        }
+
         $request->validate([
             'mensaje' => 'nullable|string|max:1000',
         ]);
 
-        // Verificar que la oferta exista
         $oferta = Oferta::findOrFail($id_oferta);
 
-        // Evitar postulación duplicada
-        $existe = Postulacion::where('id_usuario', $usuario->id_usuario)
+        $postulacion = Postulacion::where('id_usuario', $usuario->id_usuario)
             ->where('id_oferta', $id_oferta)
             ->first();
 
-        if ($existe) {
-            return back()->withErrors(['msg' => 'Ya te has postulado a esta oferta.']);
+        if ($postulacion) {
+
+            if ($postulacion->estado_id == 5) {
+                // 🔁 REACTIVAR
+                $postulacion->update([
+                    'estado_id' => 1,
+                    'mensaje' => $request->mensaje,
+                    'fecha_postulacion' => now(),
+                ]);
+            } else {
+                return back()->withErrors([
+                    'msg' => 'Ya tienes una postulación activa para esta oferta.'
+                ]);
+            }
+        } else {
+
+            Postulacion::create([
+                'id_usuario'        => $usuario->id_usuario,
+                'id_oferta'         => $id_oferta,
+                'mensaje'           => $request->mensaje,
+                'fecha_postulacion' => now(),
+                'estado_id'         => 1,
+            ]);
         }
 
-        // Crear postulación
-        Postulacion::create([
-            'id_usuario'       => $usuario->id_usuario,
-            'id_oferta'        => $id_oferta,
-            'mensaje'          => $request->mensaje,
-            'fecha_postulacion' => now(),
-            'estado_id'        => 1, // estado "activo" o "pendiente"
-        ]);
-
-        return redirect()->route('ofertas.mostrar', $id_oferta)
+        return redirect()
+            ->route('ofertas.mostrar', $id_oferta)
             ->with('success', 'Postulación enviada correctamente.');
     }
 
-
-
-    // ===========================================================
-    // LISTAR POSTULACIONES RECIBIDAS (permiso 7)
-    // Empresas y admin revisan postulaciones
-    // ===========================================================
-    public function index()
-    {
-        $postulaciones = Postulacion::with(['usuario', 'oferta'])
-            ->orderBy('fecha_postulacion', 'desc')
-            ->paginate(15);
-
-        return Inertia::render('Postulaciones/PostulacionesIndex', [
-            'postulaciones' => $postulaciones,
-            'userPermisos'   => getUserPermisos(),
-        ]);
-    }
-
-
-    // ===========================================================
-    // VER DETALLE DE UNA POSTULACIÓN (permiso 7)
-    // ===========================================================
-    public function mostrar($id)
-    {
-        $postulacion = Postulacion::with(['usuario', 'oferta'])
-            ->findOrFail($id);
-
-        return Inertia::render('Postulaciones/PostulacionDetalle', [
-            'postulacion' => $postulacion,
-            'userPermisos' => getUserPermisos(),
-        ]);
-    }
-
-
     // ===========================================================
     // CAMBIAR ESTADO DE POSTULACIÓN (permiso 7)
-    // ejemplo: aceptado, rechazado, en revisión, etc.
+    // 1 Espera | 2 Aceptado | 3 Negado
     // ===========================================================
-    public function actualizarEstado(Request $request, $id)
+    public function cambiarEstado(Request $request, $id)
     {
         $request->validate([
-            'estado_id' => 'required|integer'
+            'estado_id' => 'required|in:1,2,3,4,5'
         ]);
 
-        $postulacion = Postulacion::findOrFail($id);
-        $postulacion->estado_id = $request->estado_id;
-        $postulacion->save();
+        $postulacion = Postulacion::with('oferta')->findOrFail($id);
 
-        return back()->with('success', 'Estado actualizado correctamente.');
+        $usuario = Auth::user();
+
+        if (
+            $usuario->empresa &&
+            $postulacion->oferta->id_empresa !== $usuario->empresa->id_empresa &&
+            !$usuario->es_admin &&
+            !in_array(5, getUserPermisos())
+        ) {
+            abort(403, 'No autorizado.');
+        }
+
+        $postulacion->update([
+            'estado_id' => $request->estado_id
+        ]);
+
+        return back(); // 👈 IMPORTANTE
     }
 
 
     // ===========================================================
     // LISTAR POSTULACIONES DEL USUARIO LOGUEADO
-    // (estudiante ve sus postulaciones)
     // ===========================================================
-    public function misPostulaciones()
+    public function misPostulaciones(Request $request)
     {
         $usuario = Auth::user();
 
-        $postulaciones = Postulacion::with(['oferta'])
-            ->where('id_usuario', $usuario->id_usuario)
-            ->orderBy('fecha_postulacion', 'desc')
-            ->paginate(10);
+        $query = Postulacion::with([
+            'oferta.empresa.usuario.fotoPerfil',
+            'oferta.pais',
+            'oferta.provincia',
+            'oferta.canton',
+            'oferta.modalidad',
+            'oferta.areaLaboral', // ✅ CORRECTO
+        ])
+            ->where('id_usuario', $usuario->id_usuario);
 
-        return Inertia::render('Postulaciones/MisPostulaciones', [
+        // 🔎 Buscar por título
+        if ($request->filled('buscar')) {
+            $query->whereHas('oferta', function ($q) use ($request) {
+                $q->where('titulo', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        // 🎯 Filtrar por estado
+        if ($request->filled('estado_id')) {
+            $query->where('estado_id', $request->estado_id);
+        }
+
+        // 🎯 Filtrar por tipo de oferta
+        if ($request->filled('tipo_oferta')) {
+            $query->whereHas('oferta', function ($q) use ($request) {
+                $q->where('tipo_oferta', $request->tipo_oferta);
+            });
+        }
+
+        $postulaciones = $query
+            ->orderByDesc('fecha_postulacion')
+            ->paginate(9)
+            ->withQueryString();
+
+        $postulaciones->getCollection()->transform(function ($postulacion) {
+
+            if (
+                $postulacion->oferta &&
+                $postulacion->oferta->empresa &&
+                $postulacion->oferta->empresa->usuario &&
+                $postulacion->oferta->empresa->usuario->fotoPerfil
+            ) {
+
+                $foto = $postulacion->oferta->empresa->usuario->fotoPerfil;
+
+                $url = is_array($foto)
+                    ? ($foto['url'] ?? null)
+                    : ($foto->ruta_imagen ? asset($foto->ruta_imagen) : null);
+
+                $postulacion->oferta->empresa->usuario->fotoPerfil = $url
+                    ? ['url' => $url]
+                    : null;
+            } else {
+
+                if (
+                    $postulacion->oferta &&
+                    $postulacion->oferta->empresa &&
+                    $postulacion->oferta->empresa->usuario
+                ) {
+                    $postulacion->oferta->empresa->usuario->fotoPerfil = null;
+                }
+            }
+
+            return $postulacion;
+        });
+
+        return Inertia::render('Ofertas/MisPostulaciones', [
             'postulaciones' => $postulaciones,
-            'userPermisos' => getUserPermisos(),
+            'filtros' => $request->only(['buscar', 'estado_id', 'tipo_oferta']),
+            'userPermisos'  => getUserPermisos(),
         ]);
+    }
+
+    public function cancelar($id)
+    {
+        $usuario = Auth::user();
+
+        $postulacion = Postulacion::where('id_postulacion', $id)
+            ->where('id_usuario', $usuario->id_usuario)
+            ->firstOrFail();
+
+        if (!in_array($postulacion->estado_id, [1, 4])) {
+            return back()->withErrors([
+                'msg' => 'No puedes cancelar esta postulación.'
+            ]);
+        }
+
+        $postulacion->update([
+            'estado_id' => 5
+        ]);
+
+        return back()->with('success', 'Postulación cancelada.');
     }
 }

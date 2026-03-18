@@ -4,6 +4,8 @@ import { router } from "@inertiajs/react";
 import unaLogo from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
 import { Button } from "@/components/ui/button";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+
 
 const Login: React.FC = () => {
   const [correo, setCorreo] = useState<string>("");
@@ -15,6 +17,9 @@ const Login: React.FC = () => {
 
   const correoInputRef = useRef<HTMLInputElement>(null);
   const contrasenaInputRef = useRef<HTMLInputElement>(null);
+
+  const [mostrarPassword, setMostrarPassword] = useState<boolean>(false);
+
 
   useEffect(() => {
     axios.get("/sanctum/csrf-cookie").catch(() => console.warn("No se pudo generar la cookie CSRF"));
@@ -190,10 +195,21 @@ const Login: React.FC = () => {
         </h1>
 
         <div style={formGroupStyle}>
-          <div style={inputWrapperStyle}>
+          <div style={{ ...inputWrapperStyle, position: "relative" }}>
             <label htmlFor="correo" style={labelStyle}>
               Correo electrónico
             </label>
+
+            <Mail
+              size={18}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "42px",
+                color: "#034991",
+              }}
+            />
+
             <input
               id="correo"
               type="email"
@@ -207,19 +223,34 @@ const Login: React.FC = () => {
                 }
               }}
               ref={correoInputRef}
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                paddingLeft: "40px",
+              }}
             />
           </div>
         </div>
 
+
         <div style={formGroupStyle}>
-          <div style={inputWrapperStyle}>
+          <div style={{ ...inputWrapperStyle, position: "relative" }}>
             <label htmlFor="contrasena" style={labelStyle}>
               Contraseña
             </label>
+
+            <Lock
+              size={18}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "42px",
+                color: "#034991",
+              }}
+            />
+
             <input
               id="contrasena"
-              type="password"
+              type={mostrarPassword ? "text" : "password"}
               placeholder="Ingrese su contraseña"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
@@ -230,10 +261,34 @@ const Login: React.FC = () => {
                 }
               }}
               ref={contrasenaInputRef}
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                paddingLeft: "40px",
+                paddingRight: "40px",
+              }}
             />
+
+            <button
+              type="button"
+              onClick={() => setMostrarPassword(!mostrarPassword)}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "42px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              {mostrarPassword ? (
+                <EyeOff size={18} color="#034991" />
+              ) : (
+                <Eye size={18} color="#034991" />
+              )}
+            </button>
           </div>
         </div>
+
 
         {error && <p style={{ color: "red", fontSize: "14px", marginBottom: "15px" }}>{error}</p>}
 

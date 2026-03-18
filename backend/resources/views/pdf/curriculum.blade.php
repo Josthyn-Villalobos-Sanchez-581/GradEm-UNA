@@ -31,6 +31,10 @@
 <meta charset="UTF-8">
 <title>Currículum</title>
 <style>
+  @page {
+    margin: 20mm 18mm;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -38,35 +42,34 @@
   }
   
   body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "DejaVu Serif", "Times New Roman", serif;
     font-size: 11pt;
-    line-height: 1.5;
+    line-height: 1.55;
     color: #000000;
-    padding: 30px 40px;
+    padding: 2mm 1mm;
     background-color: #ffffff;
   }
   
   /* ===== ENCABEZADO - ATS OPTIMIZADO ===== */
   .header {
     text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #000000;
+    margin-bottom: 14px;
+    padding-bottom: 4px;
   }
   
   .nombre {
-    font-size: 20pt;
+    font-size: 18pt;
     font-weight: bold;
     color: #000000;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+    text-transform: none;
+    letter-spacing: 0;
   }
   
   .contacto {
     font-size: 10pt;
     color: #333333;
-    line-height: 1.6;
+    line-height: 1.5;
   }
   
   .contacto-linea {
@@ -85,34 +88,33 @@
   
   /* ===== SECCIONES - ENCABEZADOS ATS ===== */
   .seccion {
-    margin-bottom: 18px;
-    page-break-inside: avoid;
+    margin-bottom: 10px;
+    page-break-inside: auto;
   }
   
   .seccion-titulo {
-    font-size: 13pt;
+    font-size: 12pt;
     font-weight: bold;
     color: #000000;
-    text-transform: uppercase;
-    border-bottom: 2px solid #000000;
-    padding-bottom: 4px;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
+    text-transform: none;
+    padding-bottom: 0;
+    margin-bottom: 6px;
+    letter-spacing: 0;
   }
   
   /* ===== RESUMEN PROFESIONAL ===== */
   .resumen {
-    font-size: 10pt;
+    font-size: 10.5pt;
     color: #333333;
     text-align: justify;
-    line-height: 1.6;
-    margin-bottom: 15px;
+    line-height: 1.55;
+    margin-bottom: 6px;
   }
   
   /* ===== ITEMS DE CONTENIDO ===== */
   .item {
-    margin-bottom: 12px;
-    page-break-inside: avoid;
+    margin-bottom: 7px;
+    page-break-inside: auto;
   }
   
   .item-titulo {
@@ -128,34 +130,34 @@
   }
   
   .item-fecha {
-    font-size: 9pt;
+    font-size: 9.2pt;
     color: #666666;
   }
   
   .item-descripcion {
-    font-size: 10pt;
+    font-size: 9.7pt;
     color: #333333;
     margin-top: 4px;
   }
   
   /* ===== LISTAS ===== */
   ul {
-    margin: 6px 0 6px 20px;
+    margin: 4px 0 3px 18px;
     padding: 0;
   }
   
   li {
     font-size: 10pt;
     color: #333333;
-    margin-bottom: 3px;
-    line-height: 1.4;
+    margin-bottom: 1px;
+    line-height: 1.45;
   }
   
   /* ===== HABILIDADES (Texto plano para ATS) ===== */
   .habilidades-texto {
     font-size: 10pt;
     color: #000000;
-    line-height: 1.8;
+    line-height: 1.6;
   }
   
   .habilidad-item {
@@ -163,7 +165,7 @@
   }
   
   .habilidad-item:after {
-    content: " • ";
+    content: ", ";
     color: #666666;
   }
   
@@ -173,17 +175,16 @@
   
   /* ===== REFERENCIAS ===== */
   .referencias {
-    margin-top: 8px;
-    padding-left: 15px;
-    border-left: 3px solid #cccccc;
+    margin-top: 5px;
+    padding-left: 0;
     font-size: 9pt;
   }
   
   .referencia-titulo {
     font-weight: bold;
-    font-size: 9pt;
+    font-size: 9.4pt;
     color: #000000;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   
   .referencia-item {
@@ -193,9 +194,9 @@
   
   /* ===== ETIQUETAS (Opcional - menos decorativo) ===== */
   .etiqueta {
-    font-size: 9pt;
+    font-size: 8.8pt;
     color: #666666;
-    text-transform: uppercase;
+    text-transform: none;
     font-weight: bold;
     margin-right: 6px;
   }
@@ -345,14 +346,22 @@
             $periodo = "Hasta {$periodoFin}";
         }
         
-        // Funciones como array
+        // Funciones: aceptar array (nuevo) o string separado por ';' (compatibilidad)
         $funcionesArray = [];
-        if (!empty($ex['funciones']) && is_array($ex['funciones'])) {
+        if (!empty($ex['funciones'])) {
+          if (is_array($ex['funciones'])) {
             foreach ($ex['funciones'] as $func) {
-                $desc = trim($func['descripcion'] ?? '');
-                if ($desc) {
-                    $funcionesArray[] = $desc;
-                }
+              $desc = trim($func['descripcion'] ?? '');
+              if ($desc) {
+                $funcionesArray[] = $desc;
+              }
+            }
+          } elseif (is_string($ex['funciones'])) {
+            $funcionesArray = collect(explode(';', $ex['funciones']))
+              ->map(fn($f) => trim($f))
+              ->filter()
+              ->values()
+              ->all();
             }
         }
         

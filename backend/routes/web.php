@@ -32,6 +32,7 @@ use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\NotificacionCursoController;
 use App\Http\Controllers\CursoController;
+use App\Http\Controllers\InscripcionCursoController;
 
 
 // ==========================================
@@ -130,13 +131,23 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('permiso:2')->group(function () {
         Route::get('/curriculum/generar', function () {
-            $usuario = \App\Models\Usuario::with('fotoPerfil')->find(\Illuminate\Support\Facades\Auth::id());
+            $usuario = Auth::user()?->load('fotoPerfil');
+
+            if (!$usuario) {
+                return redirect()->route('login');
+            }
+
+            $permisos = DB::table('roles_permisos')
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray();
+
             return Inertia::render('Frt_FormularioGeneracionCurriculum', [
-                'userPermisos' => getUserPermisos(),
+                'userPermisos' => $permisos,
                 'usuario' => [
                     'id_usuario' => $usuario->id_usuario,
                     'nombre_completo' => $usuario->nombre_completo,
-                    'cedula' => $usuario->identificacion,  // ✅ AGREGADO: usar el campo identificacion
+                    'cedula' => $usuario->identificacion,
                     'correo' => $usuario->correo,
                     'telefono' => $usuario->telefono ?? '',
                     'fotoPerfil' => $usuario->fotoPerfil ? $usuario->fotoPerfil->toArray() : null,
@@ -210,6 +221,9 @@ Route::middleware('auth')->group(function () {
 
         Route::delete('/ofertas/{oferta}', [OfertaController::class, 'eliminar'])
             ->name('empresa.ofertas.eliminar');
+
+        Route::get('/ofertas/{oferta}/gestion', [OfertaController::class, 'gestionar'])
+            ->name('empresa.ofertas.gestion');
     });
 
     // ==========================================
@@ -229,6 +243,15 @@ Route::middleware('auth')->group(function () {
         // Otra HU: Postularse a una oferta
         Route::post('/ofertas/{oferta}/postular', [PostulacionController::class, 'postular'])
             ->name('ofertas.postular');
+
+        // Otra HU: Ver mis postulaciones (listado de ofertas a las que el usuario se ha postulado)
+        Route::get('/misPostulaciones', [PostulacionController::class, 'misPostulaciones'])
+            ->name('postulaciones.mias');
+
+        Route::patch(
+            '/postulaciones/{id}/cancelar',
+            [PostulacionController::class, 'cancelar']
+        )->name('postulaciones.cancelar');
     });
 
     // ==========================================
@@ -244,16 +267,36 @@ Route::middleware('auth')->group(function () {
             ->name('postulaciones.mostrar');
 
         Route::put('/empresa/ofertas/{oferta}/estado', [OfertaController::class, 'cambiarEstado'])
-        ->name('empresa.ofertas.cambiarEstado');
+            ->name('empresa.ofertas.cambiarEstado');
+
+        Route::get('/empresa/ofertas/{oferta}/gestion', [OfertaController::class, 'gestionar'])
+            ->name('empresa.ofertas.gestion');
+
+        Route::put('/postulaciones/{postulacion}/estado', [PostulacionController::class, 'cambiarEstado'])
+            ->name('postulaciones.cambiarEstado');
+
+        Route::get(
+            '/empresa/ofertas/{oferta}/postulantes',
+            [PostulacionController::class, 'postulantesPorOferta']
+        )->name('empresa.ofertas.postulantes');
+
+        Route::get(
+            '/empresa/postulantes/{id}/perfil',
+            [UsuariosConsultaController::class, 'ver']
+        )->name('empresa.postulante.ver');
     });
 
     // ==========================================
-    // 8 - Gestión de Cursos
+    // 8 - Gestión de Cursos / 9 - Inscripción (vista compartida)
     // ==========================================
-    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
 
+    // Vista de cursos: accesible tanto al que gestiona (8) como al que se inscribe (9)
+    Route::middleware(['auth'])->prefix('cursos')->group(function () {
         Route::get('/', [CursoController::class, 'index'])
             ->name('cursos.index');
+    });
+
+    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
 
         Route::post('/', [CursoController::class, 'store'])
             ->name('cursos.store');
@@ -284,6 +327,18 @@ Route::middleware('auth')->group(function () {
             '/notificaciones/cursos/cambio-inscripcion',
             [NotificacionCursoController::class, 'notificarCambioInscripcion']
         )->name('notificaciones.cursos.cambio-inscripcion');
+    });
+
+    // ==========================================
+    // 9 - Inscripción a Cursos (HU-29)
+    // ==========================================
+    Route::middleware(['auth', 'permiso:9'])->prefix('cursos')->group(function () {
+
+        Route::post('/{idCurso}/inscribirse', [InscripcionCursoController::class, 'store'])
+            ->name('cursos.inscribirse');
+
+        Route::get('/{idCurso}/inscripcion-estado', [InscripcionCursoController::class, 'estado'])
+            ->name('cursos.inscripcion.estado');
     });
 
     // ==========================================
@@ -328,7 +383,7 @@ Route::middleware('auth')->group(function () {
         // Rutas alternativas bajo prefijo /admin (si aplica)
         Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
         Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-        Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        //  Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
         Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
@@ -339,8 +394,14 @@ Route::middleware('auth')->group(function () {
 
         //HU21 mostrar perfil estudiante a empresa o administrador 
         Route::middleware(['auth', 'permiso:12'])
-        ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
-        ->name('usuarios.ver');
+            ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
+            ->name('usuarios.ver');
+
+        Route::get('/empresas', [EmpresaController::class, 'listarEmpresas'])
+            ->name('empresas.index');
+
+        Route::get('/empresas/{id}', [EmpresaController::class, 'verEmpresa'])
+            ->name('empresas.ver');
     });
 
 
@@ -410,14 +471,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/reportes/grafico-por-carrera', [ReporteController::class, 'graficoPorCarrera'])
             ->name('reportes.grafico-por-carrera');
 
-            
+        Route::get('/reportes/grafico-genero', [ReporteController::class, 'graficoGenero'])
+            ->name('reportes.grafico-genero');
 
         Route::get('/reportes/catalogos', [ReporteController::class, 'catalogos']);
 
         Route::post('/reportes/descargar-pdf', [ReporteController::class, 'descargarPdf']);
 
         // Catálogos
-        Route::get('universidades', [ReporteController::class, 'universidades']);
+        Route::get('reportes/universidades', [ReporteController::class, 'universidades']);
         Route::get('carreras', [ReporteController::class, 'carreras']);
         Route::get('areas-laborales', [ReporteController::class, 'areasLaborales']);
         Route::get('paises', [ReporteController::class, 'paises']);

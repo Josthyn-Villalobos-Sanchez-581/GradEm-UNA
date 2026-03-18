@@ -41,6 +41,11 @@
     <p>No se aplicaron filtros.</p>
 @endif
 
+{{-- KPIs se muestran si están presentes y el usuario los seleccionó --}}
+@if(!empty($kpis) && in_array('kpis', $reportes))
+    @include('pdf.partials.kpis')
+@endif
+
 @if(!empty($ofertasMes))
     @include('pdf.partials.ofertas_mes')
 @endif

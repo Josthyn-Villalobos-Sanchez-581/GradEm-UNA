@@ -125,4 +125,8 @@ class Oferta extends Model
         return $this->estado_id === 0;
     }
 
+    public function postulaciones()
+    {
+        return $this->hasMany(Postulacion::class, 'id_oferta');
+    }
 }
