@@ -26,12 +26,16 @@ interface PropsDetalle {
   oferta: OfertaDetalleTipo;
   userPermisos: number[];
   yaPostulado?: boolean;
+  estadoPostulacion?: number;
+  tieneCV: boolean;
 }
 
 const OfertaDetallePagina: React.FC<PropsDetalle> = ({
   oferta,
   userPermisos,
   yaPostulado = false,
+  estadoPostulacion,
+  tieneCV,
 }) => {
   const modal = useModal();
   const [mensaje, setMensaje] = useState("");
@@ -50,7 +54,15 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
       return;
     }
 
-    if (yaPostulado) {
+    if (!tieneCV) {
+      modal.alerta({
+        titulo: "Currículum requerido",
+        mensaje: "Debes registrar o adjuntar tu currículum antes de postularte.",
+      });
+      return;
+    }
+
+    if (yaPostulado && estadoPostulacion !== 5) {
       modal.alerta({
         titulo: "Ya postulado",
         mensaje: "Usted ya se postuló a esta oferta.",
@@ -152,7 +164,7 @@ const OfertaDetallePagina: React.FC<PropsDetalle> = ({
                 oferta={oferta}
                 modo="publica"
                 onPostular={onPostularClick}
-                deshabilitarPostulacion={yaPostulado}
+                deshabilitarPostulacion={yaPostulado && estadoPostulacion !== 5}
               />
             </div>
           </div>
