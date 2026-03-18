@@ -78,7 +78,7 @@ const Welcome = () => {
                     </div>
 
                     <div className="flex items-center gap-2 md:gap-3">
-                        <Button variant="ghost" onClick={() => router.get("/login")} className="text-white hover:bg-white/20 font-bold px-2 md:px-4">
+                        <Button variant="outline" onClick={() => router.get("/login")} className="text-white hover:bg-white/20 px-2 md:px-4">
                             <LogIn className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
                             <span className="hidden md:inline">Iniciar sesión</span>
                         </Button>

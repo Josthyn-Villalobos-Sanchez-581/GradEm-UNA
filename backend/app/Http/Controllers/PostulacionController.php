@@ -17,29 +17,54 @@ class PostulacionController extends Controller
     {
         $usuario = Auth::user();
 
+        $cv = \App\Models\Curriculum::where('id_usuario', $usuario->id_usuario)->first();
+
+        if (
+            !$cv ||
+            (
+                !$cv->generado_sistema &&
+                !$cv->ruta_archivo_pdf
+            )
+        ) {
+            return back()->withErrors([
+                'mensaje' => 'Debes crear o adjuntar tu currículum antes de postularte.'
+            ]);
+        }
+
         $request->validate([
             'mensaje' => 'nullable|string|max:1000',
         ]);
 
         $oferta = Oferta::findOrFail($id_oferta);
 
-        $existe = Postulacion::where('id_usuario', $usuario->id_usuario)
+        $postulacion = Postulacion::where('id_usuario', $usuario->id_usuario)
             ->where('id_oferta', $id_oferta)
-            ->exists();
+            ->first();
 
-        if ($existe) {
-            return back()->withErrors([
-                'msg' => 'Ya te has postulado a esta oferta.'
+        if ($postulacion) {
+
+            if ($postulacion->estado_id == 5) {
+                // 🔁 REACTIVAR
+                $postulacion->update([
+                    'estado_id' => 1,
+                    'mensaje' => $request->mensaje,
+                    'fecha_postulacion' => now(),
+                ]);
+            } else {
+                return back()->withErrors([
+                    'msg' => 'Ya tienes una postulación activa para esta oferta.'
+                ]);
+            }
+        } else {
+
+            Postulacion::create([
+                'id_usuario'        => $usuario->id_usuario,
+                'id_oferta'         => $id_oferta,
+                'mensaje'           => $request->mensaje,
+                'fecha_postulacion' => now(),
+                'estado_id'         => 1,
             ]);
         }
-
-        Postulacion::create([
-            'id_usuario'        => $usuario->id_usuario,
-            'id_oferta'         => $id_oferta,
-            'mensaje'           => $request->mensaje,
-            'fecha_postulacion' => now(),
-            'estado_id'         => 1, // 1 = Espera
-        ]);
 
         return redirect()
             ->route('ofertas.mostrar', $id_oferta)

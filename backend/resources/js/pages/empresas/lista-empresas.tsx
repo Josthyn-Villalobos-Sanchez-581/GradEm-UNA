@@ -239,7 +239,7 @@ export default function ListaEmpresas({ empresas, filtros }: Props) {
                                                 <td className="py-3 px-5">
                                                     <div className="flex items-center gap-4">
 
-                                                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 group-hover:scale-105 transition-transform bg-white">
+                                                        <div className="w-12 h-12 shrink-0 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 group-hover:scale-105 transition-transform bg-white">
                                                             <img
                                                                 src={empresa.usuario?.foto_perfil?.url || fotoXDefecto}
                                                                 onError={(e) => {
@@ -251,8 +251,8 @@ export default function ListaEmpresas({ empresas, filtros }: Props) {
                                                             />
                                                         </div>
 
-                                                        <div className="flex flex-col">
-                                                            <span className="font-extrabold text-[#034991] text-base uppercase leading-tight">
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="font-extrabold text-[#034991] text-base uppercase leading-tight truncate">
                                                                 {empresa.nombre}
                                                             </span>
 
