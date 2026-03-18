@@ -261,84 +261,116 @@ const MisPostulaciones: React.FC<Props> = ({
                     )}
 
                     {/* LISTADO */}
-<section className="flex-1 min-w-0">
+                    <section className="flex-1 min-w-0">
 
-    {postulaciones.data.length === 0 ? (
-        <p className="text-center text-gray-500 italic mt-6">
-            No tienes postulaciones registradas.
-        </p>
-    ) : (
+                        {postulaciones.data.length === 0 ? (
+                            <p className="text-center text-gray-500 italic mt-6">
+                                No tienes postulaciones registradas.
+                            </p>
+                        ) : (
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-4">
+                            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-4">
 
-            {postulaciones.data.map((post) => {
+                                {postulaciones.data.map((post) => {
 
-                const estadoVisual = estadoTexto(post.estado_id);
+                                    const estadoVisual = estadoTexto(post.estado_id);
 
-                return (
+                                    return (
 
-                    <div
-                        key={post.id_postulacion}
-                        className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_10px_40px_rgb(0,0,0,0.03)] p-4 flex flex-col"
-                    >
+                                        <div
+                                            key={post.id_postulacion}
+                                            className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_10px_40px_rgb(0,0,0,0.03)] p-4 flex flex-col"
+                                        >
 
-                        {/* CARD DE OFERTA */}
-                        <OfertaCard
-                            oferta={post.oferta}
-                            href={`/ofertas/${post.oferta.id_oferta}`}
-                        />
+                                            {/* CARD DE OFERTA */}
+                                            <OfertaCard
+                                                oferta={post.oferta}
+                                                href={`/ofertas/${post.oferta.id_oferta}`}
+                                            />
 
-                        {/* INFO POSTULACIÓN */}
-                        <div className="mt-4 border-t border-slate-100 pt-4 flex items-center justify-between">
+                                            {/* INFO POSTULACIÓN */}
+                                            <div className="mt-4 border-t border-slate-100 pt-4 flex items-center justify-between">
 
-                            {/* IZQUIERDA */}
-                            <div className="flex items-center gap-3">
+                                                {/* IZQUIERDA */}
+                                                <div className="flex items-center gap-3">
 
-                                {/* ESTADO */}
-                                <span
-                                    className={`px-3 py-1 text-xs font-semibold rounded-full ${estadoVisual.color}`}
-                                    title="Estado de la postulación"
-                                >
-                                    {estadoVisual.texto}
-                                </span>
+                                                    {/* ESTADO */}
+                                                    <span
+                                                        className={`px-3 py-1 text-xs font-semibold rounded-full ${estadoVisual.color}`}
+                                                        title="Estado de la postulación"
+                                                    >
+                                                        {estadoVisual.texto}
+                                                    </span>
 
-                                {/* FECHA */}
-                                <span
-                                    title="Fecha de postulación"
-                                    className="text-xs text-slate-400 font-medium"
-                                >
-                                    Postulado: {new Date(post.fecha_postulacion).toLocaleDateString("es-CR")}
-                                </span>
+                                                    {/* FECHA */}
+                                                    <span
+                                                        title="Fecha de postulación"
+                                                        className="text-xs text-slate-400 font-medium"
+                                                    >
+                                                        Postulado: {new Date(post.fecha_postulacion).toLocaleDateString("es-CR")}
+                                                    </span>
+
+                                                </div>
+
+                                                {/* ACCIONES */}
+                                                {(post.estado_id === 1 || post.estado_id === 4) && (
+
+                                                    <Button
+                                                        title="Cancelar postulación"
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        onClick={() => cancelarPostulacion(post.id_postulacion)}
+                                                    >
+                                                        Cancelar
+                                                    </Button>
+
+                                                )}
+
+                                                {post.estado_id === 5 && (
+
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            router.post(
+                                                                `/ofertas/${post.oferta.id_oferta}/postular`,
+                                                                { mensaje: "" },
+                                                                {
+                                                                    preserveScroll: true,
+                                                                    onSuccess: () => {
+                                                                        modal.alerta({
+                                                                            titulo: "Postulación reactivada",
+                                                                            mensaje: "Te has postulado nuevamente correctamente.",
+                                                                        });
+                                                                    },
+                                                                    onError: () => {
+                                                                        modal.alerta({
+                                                                            titulo: "Error",
+                                                                            mensaje: "No se pudo reactivar la postulación.",
+                                                                        });
+                                                                    }
+                                                                }
+                                                            );
+                                                        }}
+                                                    >
+                                                        Volver a postularse
+                                                    </Button>
+
+                                                )}
+
+                                            </div>
+
+                                        </div>
+
+                                    );
+
+                                })}
 
                             </div>
 
-                            {/* CANCELAR */}
-                            {(post.estado_id === 1 || post.estado_id === 4) && (
+                        )}
 
-                                <Button
-                                    title="Cancelar postulación"
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => cancelarPostulacion(post.id_postulacion)}
-                                >
-                                    Cancelar
-                                </Button>
-
-                            )}
-
-                        </div>
-
-                    </div>
-
-                );
-
-            })}
-
-        </div>
-
-    )}
-
-</section>
+                    </section>
 
                 </div>
 
