@@ -134,7 +134,7 @@ class PerfilService
             'nombre_completo' => 'required|string|max:100',
             'correo' => 'required|email|max:100|unique:usuarios,correo,' . $usuario->id_usuario . ',id_usuario',
             'identificacion' => 'required|string|max:50|unique:usuarios,identificacion,' . $usuario->id_usuario . ',id_usuario',
-            'telefono' => 'nullable|string|max:20',
+            'telefono' => ['nullable', 'regex:/^[68][0-9]{7}$/'],
             'fecha_nacimiento' => 'nullable|date',
             'genero' => 'nullable|string|max:10',
             'estado_empleo' => 'nullable|string|max:20',
