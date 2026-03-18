@@ -104,7 +104,7 @@ export default function GraficoPie({ datos }: Props) {
       {/* =======================
           HEADER
       ======================= */}
-      <header className="mb-3 flex justify-between items-start">
+      <header className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[#034991]">
             Estado laboral de egresados

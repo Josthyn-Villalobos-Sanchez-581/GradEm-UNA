@@ -8,6 +8,7 @@ use App\Repositories\AdminRegistroRepository\AdminRegistroRepository;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 
 class AdminRegistroServiceTest extends TestCase
 {
@@ -24,7 +25,7 @@ class AdminRegistroServiceTest extends TestCase
         $this->service = new AdminRegistroService($this->repository);
     }
 
-    /** @test */
+   #[Test]
     public function un_admin_puede_cambiar_estado_de_usuario()
 {
     $admin = Usuario::factory()->create([
@@ -54,7 +55,7 @@ class AdminRegistroServiceTest extends TestCase
     $this->assertEquals(200, $response->status());
 }
 
-    /** @test */
+    #[Test]
     public function no_puede_desactivar_su_propia_cuenta()
     {
         $admin = Usuario::factory()->create([
@@ -66,7 +67,7 @@ class AdminRegistroServiceTest extends TestCase
         $this->assertEquals(403, $response->status());
     }
 
-    /** @test */
+    #[Test]
     public function no_puede_cambiar_estado_si_no_tiene_permiso()
     {
         $usuario = Usuario::factory()->create([
@@ -78,7 +79,7 @@ class AdminRegistroServiceTest extends TestCase
         $this->assertEquals(403, $response->status());
     }
 
-    /** @test */
+    #[Test]
     public function puede_eliminar_usuario()
 {
     $admin = Usuario::factory()->create([
@@ -99,7 +100,7 @@ class AdminRegistroServiceTest extends TestCase
     $this->assertEquals('success', $response->getData()->status);
 }
 
-    /** @test */
+    #[Test]
     public function no_puede_eliminar_su_propia_cuenta()
     {
         $admin = Usuario::factory()->create([

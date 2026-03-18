@@ -6,7 +6,7 @@ use Tests\TestCase;
 use App\Models\Usuario;
 use App\Repositories\UsuarioRepositories\UsuarioRepository;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-
+use PHPUnit\Framework\Attributes\Test; 
 class UsuarioRepositoryTest extends TestCase
 {
     use DatabaseTransactions;
@@ -19,7 +19,7 @@ class UsuarioRepositoryTest extends TestCase
         $this->repository = new UsuarioRepository();
     }
 
-    /** @test */
+   #[Test]
    public function puede_obtener_todos_los_usuarios()
 {
     $inicial = Usuario::count();
@@ -31,7 +31,7 @@ class UsuarioRepositoryTest extends TestCase
     $this->assertCount($inicial + 3, $usuarios);
 }
 
-    /** @test */
+    #[Test]
     public function puede_crear_un_usuario()
     {
         $datos = Usuario::factory()->make()->toArray();
@@ -43,7 +43,7 @@ class UsuarioRepositoryTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function puede_actualizar_un_usuario()
     {
         $usuario = Usuario::factory()->create();
@@ -58,7 +58,7 @@ class UsuarioRepositoryTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function puede_eliminar_un_usuario()
     {
         $usuario = Usuario::factory()->create();
@@ -70,7 +70,7 @@ class UsuarioRepositoryTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function puede_obtener_usuario_con_relaciones()
     {
         $usuario = Usuario::factory()->create();

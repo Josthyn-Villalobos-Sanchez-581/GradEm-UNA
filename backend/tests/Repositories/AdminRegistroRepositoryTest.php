@@ -1,7 +1,5 @@
 <?php
-
-namespace Tests\Repositories;
-
+namespace App\Repositories\AdminRegistroRepository;
 use Tests\TestCase;
 use App\Models\Usuario;
 use App\Models\Rol;

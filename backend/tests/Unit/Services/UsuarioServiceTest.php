@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Usuario;
 use App\Services\UsuarioServices\UsuarioService;
 use App\Repositories\UsuarioRepositories\UsuarioRepository;
-
+use PHPUnit\Framework\Attributes\Test; 
 class UsuarioServiceTest extends TestCase
 {
     protected $repository;
@@ -22,7 +22,7 @@ class UsuarioServiceTest extends TestCase
         $this->service = new UsuarioService($this->repository);
     }
 
-    /** @test */
+   #[Test]
     public function puede_obtener_todos_los_usuarios()
     {
         $usuariosFake = collect([
@@ -41,7 +41,7 @@ class UsuarioServiceTest extends TestCase
         $this->assertCount(3, $usuarios);
     }
 
-    /** @test */
+    #[Test]
     public function puede_registrar_un_usuario()
     {
         $request = new Request([
@@ -61,7 +61,7 @@ class UsuarioServiceTest extends TestCase
         $this->assertInstanceOf(Usuario::class, $usuario);
     }
 
-    /** @test */
+    #[Test]
     public function puede_actualizar_un_usuario()
     {
         $usuario = new Usuario();
@@ -81,7 +81,7 @@ class UsuarioServiceTest extends TestCase
         $this->assertInstanceOf(Usuario::class, $resultado);
     }
 
-    /** @test */
+    #[Test]
     public function puede_eliminar_un_usuario()
     {
         $usuario = new Usuario();

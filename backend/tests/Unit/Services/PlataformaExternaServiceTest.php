@@ -3,8 +3,7 @@
 use App\Services\PlataformaExternaService\PlataformaExternaService;
 
 use Tests\TestCase;
-use Mockery\MockInterface;
-use Mockery;
+//use Mockery;
 use App\Repositories\PlataformaExternaRepository\PlataformaExternaRepository;
 use App\Models\Usuario;
 use App\Models\Rol;
