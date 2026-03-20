@@ -118,4 +118,20 @@ class EmpresaService
             'exists' => $this->empresaRepository->identificacionExiste($request->identificacion)
         ]);
     }
+
+    /**
+     * Obtener listado de empresas
+     */
+    public function listarEmpresas()
+    {
+        return $this->empresaRepository->listarEmpresas();
+    }
+
+    /**
+     * Obtener perfil de empresa
+     */
+    public function verEmpresa($id)
+    {
+        return $this->empresaRepository->verEmpresa($id);
+    }
 }

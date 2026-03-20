@@ -383,7 +383,7 @@ Route::middleware('auth')->group(function () {
         // Rutas alternativas bajo prefijo /admin (si aplica)
         Route::get('/admin/usuarios/crear', [AdminRegistroController::class, 'create'])->name('admin.crear');
         Route::post('/admin/usuarios', [AdminRegistroController::class, 'store'])->name('admin.store');
-      //  Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
+        //  Route::get('/admin/usuarios/{id}/edit', [AdminRegistroController::class, 'edit'])->name('admin.editar');
         Route::put('/admin/usuarios/{id}/actualizar', [AdminRegistroController::class, 'actualizar'])->name('admin.actualizar');
         Route::delete('/admin/usuarios/{id}', [AdminRegistroController::class, 'destroy'])->name('admin.eliminar');
 
@@ -396,6 +396,12 @@ Route::middleware('auth')->group(function () {
         Route::middleware(['auth', 'permiso:12'])
             ->get('/usuarios/{id}/ver', [UsuariosConsultaController::class, 'ver'])
             ->name('usuarios.ver');
+
+        Route::get('/empresas', [EmpresaController::class, 'listarEmpresas'])
+            ->name('empresas.index');
+
+        Route::get('/empresas/{id}', [EmpresaController::class, 'verEmpresa'])
+            ->name('empresas.ver');
     });
 
 

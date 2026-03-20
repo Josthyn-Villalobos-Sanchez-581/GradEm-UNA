@@ -85,7 +85,7 @@ interface Props {
   ofertaId?: number;
 }
 
-export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId }: Props){
+export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId }: Props) {
   const [activeTab, setActiveTab] = useState<string>("");
   const [mostrarCV, setMostrarCV] = useState(false);
   const [cargandoAdjuntos, setCargandoAdjuntos] = useState(false);
@@ -94,14 +94,18 @@ export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId 
   const modal = useModal();
 
   const volver = () => {
-  if (origen === "postulaciones" && ofertaId) {
-    router.visit(route("empresa.ofertas.gestion", ofertaId));
-  } else {
-    router.visit(route("usuarios.perfiles"));
-  }
-};
+    if (origen === "postulaciones" && ofertaId) {
+      router.visit(route("empresa.ofertas.gestion", ofertaId));
+    } else {
+      router.visit(route("usuarios.perfiles"));
+    }
+  };
 
-  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+  const fotoPerfilUrl =
+    usuario.fotoPerfil?.ruta_imagen ||
+    (usuario as any)?.foto_perfil?.url ||
+    (usuario as any)?.foto_url ||
+    FotoXDefecto;
 
   const renderValor = (valor: any) =>
     valor ? (
@@ -197,7 +201,12 @@ export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId 
           {/* Encabezado visual */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-32 h-32 rounded-full overflow-hidden shadow-md mb-3">
-              <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+              <img
+                src={fotoPerfilUrl}
+                alt="Foto de perfil"
+                className="h-full w-full object-cover"
+                onError={(e) => (e.currentTarget.src = FotoXDefecto)}
+              />
             </div>
             <p className="text-2xl font-bold">{usuario.empresa?.nombre}</p>
           </div>
@@ -316,7 +325,12 @@ export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId 
         {/* Imagen y nombre */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-32 h-32 rounded-full overflow-hidden shadow-md mb-3">
-            <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+            <img
+              src={fotoPerfilUrl}
+              alt="Foto de perfil"
+              className="h-full w-full object-cover"
+              onError={(e) => (e.currentTarget.src = FotoXDefecto)}
+            />
           </div>
           <p className="text-3xl font-bold text-black">{usuario.nombre_completo}</p>
           <p className="text-lg text-[#6c757d]">{usuario.carrera?.nombre || "N/A"}</p>

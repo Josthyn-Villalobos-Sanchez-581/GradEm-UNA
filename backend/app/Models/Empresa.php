@@ -43,4 +43,8 @@ class Empresa extends Model
         return $this->belongsTo(Canton::class, 'id_canton');
     }
 
+    public function ofertas()
+    {
+        return $this->hasMany(Oferta::class, 'id_empresa', 'id_empresa');
+    }
 }
