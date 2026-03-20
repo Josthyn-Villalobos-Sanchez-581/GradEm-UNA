@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Head, Link, router, usePage } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
@@ -33,7 +33,6 @@ interface Props {
   cursos: Curso[];
   modalidades: { id_modalidad: number; nombre: string }[];
   userPermisos: number[];
-  misInscripciones: number[];
   inscritosCount: Record<number, number>;
 }
 
@@ -49,13 +48,6 @@ export default function CursosIndex(props: Props) {
   // Roles administrativos (alineado a PerfilesUsuarios)
   const puedeGestionar = [1, 2, 3, 4].includes(auth?.user?.id_rol);
 
-  // HU-29: inscripciones del usuario actual
-  const puedeInscribirse = (props.userPermisos ?? []).includes(9);
-  const [misInscripciones, setMisInscripciones] = useState<Set<number>>(
-    new Set(props.misInscripciones ?? [])
-  );
-  const [inscribiendose, setInscribiendose] = useState<Set<number>>(new Set());
-
   /* =======================
      Estados de filtros
   ======================= */
@@ -64,6 +56,7 @@ export default function CursosIndex(props: Props) {
   const [filtroModalidad, setFiltroModalidad] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroInstructor, setFiltroInstructor] = useState("");
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
   const [paginaActual, setPaginaActual] = useState(1);
 
   const itemsPorPagina = 10;
@@ -147,6 +140,14 @@ export default function CursosIndex(props: Props) {
     }
   };
 
+  const limpiarFiltros = () => {
+    setBusqueda("");
+    setFiltroModalidad("todos");
+    setFiltroEstado("todos");
+    setFiltroInstructor("");
+    setPaginaActual(1);
+  };
+
   /* =======================
     KPIs (Frontend)
   ======================= */
@@ -194,59 +195,6 @@ export default function CursosIndex(props: Props) {
 
   const minGlobal = `${anioActual - 1}-01-01`;
   const maxGlobal = `${anioActual + 1}-12-31`;
-
-  // HU-29: Inscribirse a un curso
-  const inscribirse = async (curso: Curso) => {
-    const confirmado = await modal.confirmacion({
-      titulo: "Inscribirse al curso",
-      mensaje: (
-        <p>
-          ¿Deseas inscribirte al curso <strong>{curso.titulo}</strong>?
-          {curso.cupos != null && (
-            <><br /><span className="text-sm text-gray-500">
-              Cupos disponibles:{" "}
-              {Math.max(0, curso.cupos - (props.inscritosCount[curso.id_curso] ?? 0))}
-            </span></>
-          )}
-        </p>
-      ),
-      textoAceptar: "Inscribirme",
-      textoCancelar: "Cancelar",
-    });
-
-    if (!confirmado) return;
-
-    setInscribiendose((prev) => new Set(prev).add(curso.id_curso));
-
-    try {
-      await axios.post(route("cursos.inscribirse", { idCurso: curso.id_curso }));
-
-      setMisInscripciones((prev) => new Set(prev).add(curso.id_curso));
-
-      await modal.alerta({
-        titulo: "Inscripción exitosa",
-        mensaje: (
-          <p>
-            Te has inscrito correctamente al curso <strong>{curso.titulo}</strong>.
-            Recibirás un correo de confirmación con los detalles.
-          </p>
-        ),
-      });
-    } catch (error: any) {
-      await modal.alerta({
-        titulo: "No se pudo inscribir",
-        mensaje:
-          error.response?.data?.message ??
-          "Ocurrió un error al procesar la inscripción. Intente nuevamente.",
-      });
-    } finally {
-      setInscribiendose((prev) => {
-        const next = new Set(prev);
-        next.delete(curso.id_curso);
-        return next;
-      });
-    }
-  };
 
   const eliminarCurso = async (curso: Curso) => {
     let motivo = "";
@@ -968,161 +916,227 @@ export default function CursosIndex(props: Props) {
   return (
     <>
       <Head title="Gestión de Cursos" />
-
-      {/* 1. Un solo contenedor principal para todo el contenido */}
-      <div className="w-full p-6 text-gray-900">
-
-        {/* 2. Cabecera (Título y Botón) */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
-            Gestión de Cursos
-          </h2>
-          {puedeGestionar && (
-            <Button variant="destructive" size="default" onClick={registrarCurso}>
-              Registrar Curso
-            </Button>
-          )}
-        </div>
-
-        {/* 3. Filtros (Alineados con el resto) */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-          <input
-            type="text"
-            placeholder="Buscar por título o descripción..."
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(textoFiltroValido(e.target.value, 100));
-              setPaginaActual(1);
-            }}
-            className="border border-gray-400 rounded-lg px-4 py-2 w-full md:w-1/3"
-          />
-
-          <div className="flex flex-wrap gap-3">
-            <select
-              value={filtroModalidad}
-              onChange={(e) => {
-                setFiltroModalidad(e.target.value);
-                setPaginaActual(1);
-              }}
-              className="border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="todos">Todas las modalidades</option>
-              {(props.modalidades ?? []).map((m) => (
-                <option key={m.id_modalidad} value={m.id_modalidad}>
-                  {m.nombre}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filtroEstado}
-              onChange={(e) => {
-                setFiltroEstado(e.target.value);
-                setPaginaActual(1);
-              }}
-              className="border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="todos">Todos los estados</option>
-              <option value="publicado">Publicado</option>
-              <option value="borrador">Borrador</option>
-            </select>
-
-            {puedeGestionar && (
-              <input
-                type="text"
-                placeholder="Filtrar por instructor"
-                value={filtroInstructor}
-                onChange={(e) => {
-                  setFiltroInstructor(textoFiltroValido(e.target.value, 100));
-                  setPaginaActual(1);
-                }}
-                className="border border-gray-300 rounded-lg px-3 py-2"
-              />
-            )}
+      <div
+        className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 text-[#000000]"
+        style={{ fontFamily: "Open Sans, sans-serif" }}
+      >
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-[#034991] tracking-tight">
+              Gestión de Cursos
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              {puedeGestionar
+                ? "Administra, publica y da seguimiento a los cursos disponibles."
+                : "Explora cursos publicados y realiza tu inscripción de forma rápida."}
+            </p>
           </div>
-        </div>
 
-        {/* 4. Tabla */}
-        <div className="w-full overflow-x-auto bg-white p-6 rounded-2xl shadow border border-black">
-          <table className="min-w-full border-separate border-spacing-[0px] rounded-2xl overflow-hidden">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left text-gray-500 border border-gray-300 first:rounded-tl-2xl">
-                  Título
-                </th>
-                <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
-                  Modalidad
-                </th>
-                <th className="px-4 py-2 text-left text-gray-500 border border-gray-300">
-                  Instructor
-                </th>
-                <th className="px-4 py-2 text-center text-gray-500 border border-gray-300">
-                  Estado
-                </th>
-                <th className="px-4 py-2 text-center text-gray-500 border border-gray-300 last:rounded-tr-2xl min-w-[170px]">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
+          <div className="flex flex-col items-end gap-2 text-sm text-gray-500">
+            <span>
+              Resultados encontrados:{" "}
+              <span className="font-semibold text-[#034991]">
+                {cursosFiltrados.length}
+              </span>
+            </span>
 
-            <tbody>
-              {cursosPaginados.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="text-center py-4 text-gray-500 italic border border-gray-300 rounded-b-2xl"
-                  >
-                    No se encontraron cursos.
-                  </td>
-                </tr>
-              ) : (
-                cursosPaginados.map((curso, idx) => (
-                  <tr
-                    key={curso.id_curso}
-                    className={`hover:bg-gray-50 ${
-                      curso.estado_id !== 1 ? "bg-yellow-50" : ""
-                    }`}
-                  >
-                    <td
-                      className={`px-4 py-2 border border-gray-300 ${
-                        idx === cursosPaginados.length - 1 ? "rounded-bl-2xl" : ""
-                      }`}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                onClick={() => setMostrarFiltros((prev) => !prev)}
+              >
+                {mostrarFiltros ? "Ocultar filtros" : "Mostrar filtros"}
+              </Button>
+
+              {puedeGestionar && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={registrarCurso}
+                >
+                  Registrar Curso
+                </Button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          {mostrarFiltros && (
+            <aside className="w-full lg:w-72 flex-shrink-0">
+              <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-3">
+                <h2 className="text-lg font-semibold text-[#034991] border-b pb-2">
+                  Filtros de búsqueda
+                </h2>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setPaginaActual(1);
+                  }}
+                  className="space-y-3 text-sm"
+                >
+                  <div className="flex flex-col">
+                    <label className="font-semibold mb-1">Buscar</label>
+                    <input
+                      type="text"
+                      placeholder="Título o descripción"
+                      value={busqueda}
+                      onChange={(e) => {
+                        setBusqueda(textoFiltroValido(e.target.value, 100));
+                        setPaginaActual(1);
+                      }}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="font-semibold mb-1">Modalidad</label>
+                    <select
+                      value={filtroModalidad}
+                      onChange={(e) => {
+                        setFiltroModalidad(e.target.value);
+                        setPaginaActual(1);
+                      }}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
                     >
-                      <button
-                        onClick={() => verDetalleCurso(curso)}
-                        className="text-black underline hover:text-gray-800"
-                      >
-                        {curso.titulo}
-                      </button>
-                    </td>
+                      <option value="todos">Todas</option>
+                      {(props.modalidades ?? []).map((m) => (
+                        <option key={m.id_modalidad} value={m.id_modalidad}>
+                          {m.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <td className="px-4 py-2 border border-gray-300">
-                      {displayValue(curso.modalidad?.nombre)}
-                    </td>
-
-                    <td className="px-4 py-2 border border-gray-300">
-                      {displayValue(curso.nombreInstructor)}
-                    </td>
-
-                    <td className="px-4 py-2 border border-gray-300 text-center">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          curso.estado_id === 1
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-200 text-yellow-800"
-                        }`}
-                      >
-                        {curso.estado_id === 1 ? "Publicado" : "Borrador"}
-                      </span>
-                    </td>
-
-                    <td
-                      className={`px-4 py-2 text-center border border-gray-300 ${
-                        idx === cursosPaginados.length - 1 ? "rounded-br-2xl" : ""
-                      }`}
+                  <div className="flex flex-col">
+                    <label className="font-semibold mb-1">Estado</label>
+                    <select
+                      value={filtroEstado}
+                      onChange={(e) => {
+                        setFiltroEstado(e.target.value);
+                        setPaginaActual(1);
+                      }}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
                     >
-                      <div className="flex justify-center gap-2">
-                        {puedeGestionar && curso.estado_id !== 1 && (
+                      <option value="todos">Todos</option>
+                      <option value="publicado">Publicado</option>
+                      <option value="borrador">Borrador</option>
+                    </select>
+                  </div>
+
+                  {puedeGestionar && (
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1">Instructor</label>
+                      <input
+                        type="text"
+                        placeholder="Nombre del instructor"
+                        value={filtroInstructor}
+                        onChange={(e) => {
+                          setFiltroInstructor(textoFiltroValido(e.target.value, 100));
+                          setPaginaActual(1);
+                        }}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      type="submit"
+                      variant="default"
+                      className="w-full bg-[#034991] hover:bg-[#023165] text-white font-semibold rounded-full"
+                    >
+                      Aplicar filtros
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] font-semibold rounded-full"
+                      onClick={limpiarFiltros}
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </aside>
+          )}
+
+          <section className="flex-1">
+            {cursosPaginados.length === 0 ? (
+              <div className="text-center text-gray-500 italic mt-6 bg-white border border-gray-200 rounded-2xl py-10 px-4">
+                No se encontraron cursos con los filtros seleccionados.
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-1">
+                {cursosPaginados.map((curso) => {
+                  const estadoPublicado = curso.estado_id === 1;
+                  const cuposDisponibles = Math.max(
+                    0,
+                    (curso.cupos ?? 0) - (props.inscritosCount[curso.id_curso] ?? 0)
+                  );
+
+                  return (
+                    <article
+                      key={curso.id_curso}
+                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <button
+                          onClick={() => verDetalleCurso(curso)}
+                          className="text-left text-base font-semibold text-[#034991] hover:underline"
+                        >
+                          {curso.titulo}
+                        </button>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                            estadoPublicado
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {estadoPublicado ? "Publicado" : "Borrador"}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-600 mb-4 min-h-[44px] line-clamp-2">
+                        {displayValue(curso.descripcion)}
+                      </p>
+
+                      <div className="space-y-2 text-sm mb-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Modalidad</span>
+                          <span className="font-medium text-gray-800 text-right">
+                            {displayValue(curso.modalidad?.nombre)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Instructor</span>
+                          <span className="font-medium text-gray-800 text-right">
+                            {displayValue(curso.nombreInstructor)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Fecha inicio</span>
+                          <span className="font-medium text-gray-800 text-right">
+                            {displayValue(curso.fecha_inicio)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Cupos</span>
+                          <span className="font-medium text-gray-800 text-right">
+                            {curso.cupos != null ? cuposDisponibles : "Sin límite"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {puedeGestionar && !estadoPublicado && (
                           <Button
                             size="sm"
                             disabled={cursoIncompleto(curso)}
@@ -1157,135 +1171,112 @@ export default function CursosIndex(props: Props) {
                           </Button>
                         )}
 
-                        {/* HU-29: Botón inscribirse para egresados/estudiantes */}
-                        {!puedeGestionar && puedeInscribirse && curso.estado_id === 1 && (
-                          misInscripciones.has(curso.id_curso) ? (
-                            <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
-                              ✓ Inscrito
-                            </span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              disabled={inscribiendose.has(curso.id_curso)}
-                              onClick={() => inscribirse(curso)}
-                            >
-                              {inscribiendose.has(curso.id_curso)
-                                ? "Procesando..."
-                                : "Inscribirme"}
-                            </Button>
-                          )
-                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="text-sm text-gray-500 mt-6 text-center">
+              Mostrando <span className="font-medium">{cursosPaginados.length}</span> de{" "}
+              <span className="font-medium">{cursosFiltrados.length}</span> cursos
+              {totalPaginas > 0 && (
+                <>
+                  {" "}· Página <span className="font-medium">{paginaActual}</span> de{" "}
+                  <span className="font-medium">{totalPaginas}</span>
+                </>
               )}
-            </tbody>
-          </table>
+            </div>
+
+            {totalPaginas > 1 && (
+              <div className="flex justify-center mt-4 space-x-2 pb-2">
+                <Button
+                  size="sm"
+                  disabled={paginaActual === 1}
+                  onClick={() => cambiarPagina(paginaActual - 1)}
+                >
+                  Anterior
+                </Button>
+
+                {Array.from({ length: totalPaginas }, (_, i) => (
+                  <Button
+                    key={i + 1}
+                    size="sm"
+                    variant={paginaActual === i + 1 ? "destructive" : "outline"}
+                    onClick={() => cambiarPagina(i + 1)}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+
+                <Button
+                  size="sm"
+                  disabled={paginaActual === totalPaginas}
+                  onClick={() => cambiarPagina(paginaActual + 1)}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
 
-        {/* 🔹 Paginación */}
-        <div className="text-sm text-gray-500 mt-6 text-center">
-          Mostrando{" "}
-          <span className="font-medium">
-            {cursosPaginados.length}
-          </span>{" "}
-          de{" "}
-          <span className="font-medium">
-            {cursosFiltrados.length}
-          </span>{" "}
-          cursos registrados · Página{" "}
-          <span className="font-medium">
-            {paginaActual}
-          </span>{" "}
-          de{" "}
-          <span className="font-medium">
-            {totalPaginas}
-          </span>
-        </div>
-        {totalPaginas > 1 && (
-          <div className="flex justify-center mt-4 space-x-2">
-            <Button
-              size="sm"
-              disabled={paginaActual === 1}
-              onClick={() => cambiarPagina(paginaActual - 1)}
-            >
-              Anterior
-            </Button>
+        {puedeGestionar && (
+          <>
+            {/* =======================
+              KPIs
+            ======================= */}
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {Array.from({ length: totalPaginas }, (_, i) => (
-              <Button
-                key={i + 1}
-                size="sm"
-                variant={paginaActual === i + 1 ? "destructive" : "outline"}
-                onClick={() => cambiarPagina(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
+              {/* Total Cursos */}
+              <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                <div className="h-12 w-12 flex items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Total de Cursos</p>
+                  {loadingKpis ? (
+                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <p className="text-2xl font-bold">{kpiTotalCursos}</p>
+                  )}
+                </div>
+              </div>
 
-            <Button
-              size="sm"
-              disabled={paginaActual === totalPaginas}
-              onClick={() => cambiarPagina(paginaActual + 1)}
-            >
-              Siguiente
-            </Button>
-          </div>
+              {/* Cursos Activos */}
+              <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                <div className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                  <Play className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Cursos Activos</p>
+                  {loadingKpis ? (
+                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <p className="text-2xl font-bold">{kpiCursosActivos}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Pendientes */}
+              <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                  <Hourglass className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Pendientes a Publicar</p>
+                  {loadingKpis ? (
+                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <p className="text-2xl font-bold">{kpiPendientes}</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </>
         )}
-
-        {/* =======================
-          KPIs
-        ======================= */}
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* Total Cursos */}
-          <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
-            <div className="h-12 w-12 flex items-center justify-center rounded-full bg-red-100 text-red-600">
-              <BookOpen className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total de Cursos</p>
-              {loadingKpis ? (
-                <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold">{kpiTotalCursos}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Cursos Activos */}
-          <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
-            <div className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <Play className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Cursos Activos</p>
-              {loadingKpis ? (
-                <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold">{kpiCursosActivos}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Pendientes */}
-          <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
-            <div className="h-12 w-12 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
-              <Hourglass className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pendientes a Publicar</p>
-              {loadingKpis ? (
-                <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold">{kpiPendientes}</p>
-              )}
-            </div>
-          </div>
-
-        </div>
       </div> {/* Fin del max-w-7xl */}
     </>
   );
