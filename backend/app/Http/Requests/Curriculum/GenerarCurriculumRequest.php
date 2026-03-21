@@ -30,7 +30,7 @@ class GenerarCurriculumRequest extends FormRequest
 
             // EDUCACIONES - actualizado
             'educaciones' => 'array',
-            'educaciones.*.tipo'         => 'required_with:educaciones.*.titulo|string|in:Título,Certificación,Curso,Diplomado,Técnico',
+            'educaciones.*.tipo'         => 'required_with:educaciones.*.titulo|string|in:Título,Diplomado,Bachillerato,Bachillerato Universitario,Licenciatura,Maestría',
             'educaciones.*.institucion'  => 'required_with:educaciones.*.titulo|string|min:3|max:150',
             'educaciones.*.titulo'       => 'required_with:educaciones.*.institucion|string|min:3|max:150',
             'educaciones.*.fecha_fin'    => 'required_with:educaciones.*.titulo|date',
@@ -42,7 +42,7 @@ class GenerarCurriculumRequest extends FormRequest
             'experiencias.*.periodo_inicio'         => 'required_with:experiencias.*.puesto|date',
             'experiencias.*.trabajando_actualmente' => 'nullable|boolean',
             'experiencias.*.periodo_fin'            => 'nullable|date',
-            'experiencias.*.funciones'              => 'nullable|string|max:2000',
+            'experiencias.*.funciones'              => 'nullable|string|max:6000',
 
             // REFERENCIAS dentro de experiencias - NUEVO
             'experiencias.*.referencias'            => 'array',
@@ -50,6 +50,19 @@ class GenerarCurriculumRequest extends FormRequest
             'experiencias.*.referencias.*.contacto' => ['required_with:experiencias.*.referencias.*.nombre','regex:/^[0-9]{8}$/'],
             'experiencias.*.referencias.*.correo'   => 'nullable|email|max:255',
             'experiencias.*.referencias.*.relacion' => 'required_with:experiencias.*.referencias.*.nombre|string|max:50',
+
+            // CERTIFICACIONES
+            'certificaciones' => 'array',
+            'certificaciones.*.nombre' => 'nullable|string|min:3|max:150',
+            'certificaciones.*.institucion' => 'nullable|string|min:3|max:150',
+            'certificaciones.*.fecha_obtencion' => 'nullable|date',
+
+            // HABILIDADES NUEVAS (separadas)
+            'habilidadesTecnicas' => 'array',
+            'habilidadesTecnicas.*.descripcion' => 'required_with:habilidadesTecnicas|string|min:2|max:60',
+
+            'habilidadesBlandas' => 'array',
+            'habilidadesBlandas.*.descripcion' => 'required_with:habilidadesBlandas|string|min:2|max:60',
 
             // HABILIDADES
             'habilidades' => 'array',
@@ -75,7 +88,7 @@ class GenerarCurriculumRequest extends FormRequest
             'datosPersonales.telefono.regex' => 'El teléfono debe tener exactamente 8 dígitos.',
 
             'educaciones.*.tipo.required_with' => 'El tipo de educación es obligatorio.',
-            'educaciones.*.tipo.in' => 'El tipo de educación debe ser: Título, Certificación, Curso, Diplomado o Técnico.',
+            'educaciones.*.tipo.in' => 'El tipo de educación debe ser: Título, Diplomado, Bachillerato, Bachillerato Universitario, Licenciatura o Maestría.',
             'educaciones.*.institucion.required_with' => 'La institución es obligatoria.',
             'educaciones.*.titulo.required_with' => 'El título es obligatorio.',
             'educaciones.*.fecha_fin.required_with' => 'La fecha de finalización es obligatoria.',
@@ -90,6 +103,15 @@ class GenerarCurriculumRequest extends FormRequest
             'experiencias.*.referencias.*.contacto.regex' => 'El teléfono debe tener exactamente 8 dígitos.',
             'experiencias.*.referencias.*.correo.email' => 'El correo de la referencia debe ser válido.',
             'experiencias.*.referencias.*.relacion.required_with' => 'La relación con la referencia es obligatoria.',
+
+            'certificaciones.*.nombre.min' => 'El nombre de la certificación debe tener al menos 3 caracteres.',
+            'certificaciones.*.nombre.max' => 'El nombre de la certificación no puede exceder 150 caracteres.',
+            'certificaciones.*.institucion.min' => 'La institución de la certificación debe tener al menos 3 caracteres.',
+            'certificaciones.*.institucion.max' => 'La institución de la certificación no puede exceder 150 caracteres.',
+            'certificaciones.*.fecha_obtencion.date' => 'La fecha de obtención de la certificación es inválida.',
+
+            'habilidadesTecnicas.*.descripcion.required_with' => 'La descripción de la habilidad técnica es obligatoria.',
+            'habilidadesBlandas.*.descripcion.required_with' => 'La descripción de la competencia es obligatoria.',
 
             'habilidades.*.descripcion.required_with' => 'La descripción de la habilidad es obligatoria.',
             

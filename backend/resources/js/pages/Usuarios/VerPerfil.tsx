@@ -1,12 +1,13 @@
 // backend/resources/js/pages/Usuarios/VerPerfil.tsx
 
 import React, { useState, useEffect } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
 import PpLayout from "@/layouts/PpLayout";
 import FotoXDefecto from "@/assets/FotoXDefecto.png";
 import EnlacesExternos from "@/pages/Perfil/EnlacesExternos";
+import { route } from "ziggy-js";
 
 interface FotoPerfil {
   ruta_imagen: string;
@@ -80,9 +81,11 @@ interface Props {
   usuario: Usuario;
   plataformas: Plataforma[];
   userPermisos: number[];
+  origen?: string;
+  ofertaId?: number;
 }
 
-export default function VerPerfil({ usuario, plataformas = [] }: Props) {
+export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId }: Props) {
   const [activeTab, setActiveTab] = useState<string>("");
   const [mostrarCV, setMostrarCV] = useState(false);
   const [cargandoAdjuntos, setCargandoAdjuntos] = useState(false);
@@ -90,7 +93,19 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
   const [docSeleccionado, setDocSeleccionado] = useState<DocumentoAdjunto | null>(null);
   const modal = useModal();
 
-  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+  const volver = () => {
+    if (origen === "postulaciones" && ofertaId) {
+      router.visit(route("empresa.ofertas.gestion", ofertaId));
+    } else {
+      router.visit(route("usuarios.perfiles"));
+    }
+  };
+
+  const fotoPerfilUrl =
+    usuario.fotoPerfil?.ruta_imagen ||
+    (usuario as any)?.foto_perfil?.url ||
+    (usuario as any)?.foto_url ||
+    FotoXDefecto;
 
   const renderValor = (valor: any) =>
     valor ? (
@@ -111,16 +126,16 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
 
   const cargarAdjuntos = async () => {
     if (!usuario.id_usuario || !usuario.tiene_adjuntos) return;
-    
+
     try {
       setCargandoAdjuntos(true);
       const response = await fetch(`/usuarios/${usuario.id_usuario}/adjuntos`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al cargar los adjuntos');
       }
-      
+
       const data = await response.json();
       if (Array.isArray(data)) {
         setAdjuntos(data);
@@ -178,15 +193,20 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
           {/* Encabezado */}
           <div className="flex justify-between items-center border-b pb-3 mb-6">
             <h2 className="text-2xl font-bold text-[#034991]">Perfil de Empresa</h2>
-            <Button asChild variant="secondary">
-              <Link href="/usuarios/perfiles">Volver</Link>
+            <Button variant="secondary" onClick={volver}>
+              Volver
             </Button>
           </div>
 
           {/* Encabezado visual */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-32 h-32 rounded-full overflow-hidden shadow-md mb-3">
-              <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+              <img
+                src={fotoPerfilUrl}
+                alt="Foto de perfil"
+                className="h-full w-full object-cover"
+                onError={(e) => (e.currentTarget.src = FotoXDefecto)}
+              />
             </div>
             <p className="text-2xl font-bold">{usuario.empresa?.nombre}</p>
           </div>
@@ -297,15 +317,20 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
         {/* Encabezado */}
         <div className="flex justify-between items-center border-b pb-3 mb-6">
           <h2 className="text-2xl font-bold text-[#034991]">Gestión de Perfil</h2>
-          <Button asChild variant="secondary">
-            <Link href="/usuarios/perfiles">Volver</Link>
+          <Button variant="secondary" onClick={volver}>
+            Volver
           </Button>
         </div>
 
         {/* Imagen y nombre */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-32 h-32 rounded-full overflow-hidden shadow-md mb-3">
-            <img src={fotoPerfilUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+            <img
+              src={fotoPerfilUrl}
+              alt="Foto de perfil"
+              className="h-full w-full object-cover"
+              onError={(e) => (e.currentTarget.src = FotoXDefecto)}
+            />
           </div>
           <p className="text-3xl font-bold text-black">{usuario.nombre_completo}</p>
           <p className="text-lg text-[#6c757d]">{usuario.carrera?.nombre || "N/A"}</p>
@@ -419,7 +444,7 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                       const docsFiltrados = adjuntos.filter(
                         doc => doc.tipo?.toLowerCase() === tipo
                       );
-                      
+
                       if (docsFiltrados.length === 0) return null;
 
                       return (
@@ -440,11 +465,10 @@ export default function VerPerfil({ usuario, plataformas = [] }: Props) {
                                 onClick={() => setDocSeleccionado(
                                   docSeleccionado?.id_documento === doc.id_documento ? null : doc
                                 )}
-                                className={`text-left p-4 rounded-lg transition-all ${
-                                  docSeleccionado?.id_documento === doc.id_documento
-                                    ? "bg-blue-50 border-blue-500 shadow-md"
-                                    : "bg-gray-50 hover:bg-gray-100 border-gray-200"
-                                } border-2`}
+                                className={`text-left p-4 rounded-lg transition-all ${docSeleccionado?.id_documento === doc.id_documento
+                                  ? "bg-blue-50 border-blue-500 shadow-md"
+                                  : "bg-gray-50 hover:bg-gray-100 border-gray-200"
+                                  } border-2`}
                               >
                                 <div className="flex items-start space-x-3">
                                   <div className="flex-1 min-w-0">

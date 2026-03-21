@@ -38,7 +38,7 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'tipoCuenta' => ['required', 'string'],
             'numeroIdentificacion' => ['required', 'string', 'max:255'],
-            'telefono' => ['nullable', 'string', 'max:255'],
+            'telefono' => ['nullable', 'regex:/^[68][0-9]{7}$/'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'fechaNacimiento' => ['nullable', 'date'],
             'genero' => ['nullable', 'string'],

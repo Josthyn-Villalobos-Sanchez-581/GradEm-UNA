@@ -183,7 +183,7 @@ export default function GraficoBarrasCarrera({ filas }: Props) {
 
       {/* GRÁFICO */}
       <div className="flex-1">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <BarChart
             data={datos}
             layout={horizontal ? "vertical" : "horizontal"}

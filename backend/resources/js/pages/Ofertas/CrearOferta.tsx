@@ -119,13 +119,13 @@ export default function CrearOferta({
         }
         if (paso === "descripcion") {
             if (!form.descripcion) e.descripcion = "Campo obligatorio";
-            if (!form.horario) e.horario = "Campo obligatorio";
+            //if (!form.horario) e.horario = "Campo obligatorio";
         }
         if (paso === "ubicacion") {
-            if (!form.id_pais) e.id_pais = "Seleccione un país";
-            if (!form.id_provincia) e.id_provincia = "Seleccione una provincia";
-            if (!form.id_canton) e.id_canton = "Seleccione un cantón";
-            if (!form.id_carrera) e.id_carrera = "Seleccione una carrera";
+            //if (!form.id_pais) e.id_pais = "Seleccione un país";
+            //if (!form.id_provincia) e.id_provincia = "Seleccione una provincia";
+            //if (!form.id_canton) e.id_canton = "Seleccione un cantón";
+            //if (!form.id_carrera) e.id_carrera = "Seleccione una carrera";
         }
         if (paso === "publicacion") {
             if (!form.fecha_limite) {
@@ -231,23 +231,38 @@ export default function CrearOferta({
                         <nav className="space-y-1">
                             {pasos.map((p) => {
                                 const active = paso === p;
+
                                 return (
                                     <button
                                         key={p}
                                         onClick={() => setPaso(p)}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                                ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                                : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
                                             }`}
                                     >
-                                        <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
+                                        <div
+                                            className={`mr-3 transition-colors ${active
+                                                    ? "text-[#034991]"
+                                                    : "text-gray-400 group-hover:text-[#034991]"
+                                                }`}
+                                        >
                                             {p === "general" && <Briefcase className="w-5 h-5" />}
                                             {p === "descripcion" && <FileText className="w-5 h-5" />}
                                             {p === "ubicacion" && <MapPin className="w-5 h-5" />}
                                             {p === "publicacion" && <Calendar className="w-5 h-5" />}
                                         </div>
-                                        <span className="capitalize">{p.replace('descripcion', 'descripción').replace('ubicacion', 'ubicación').replace('publicacion', 'publicación')}</span>
-                                        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#CD1719]"></div>}
+
+                                        <span className="capitalize">
+                                            {p
+                                                .replace("descripcion", "descripción")
+                                                .replace("ubicacion", "ubicación")
+                                                .replace("publicacion", "publicación")}
+                                        </span>
+
+                                        {active && (
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                                        )}
                                     </button>
                                 );
                             })}
@@ -384,7 +399,7 @@ export default function CrearOferta({
                                     </div>
 
                                     <div>
-                                        <label className={labelClass}>Horario <span className="text-[#CD1719]">*</span></label>
+                                        <label className={labelClass}>Horario</label>
                                         <input
                                             name="horario"
                                             placeholder="Ej: Lunes a Viernes, 8:00 AM - 5:00 PM"
@@ -402,7 +417,7 @@ export default function CrearOferta({
                                     <h2 className={sectionTitle}>Ubicación y Carrera</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className={labelClass}>País <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>País</label>
                                             <select name="id_pais" className={baseInput} value={form.id_pais} onChange={handleChange}>
                                                 <option value="">Seleccione un país</option>
                                                 {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -410,7 +425,7 @@ export default function CrearOferta({
                                             {errores.id_pais && <p className="text-xs text-[#CD1719] mt-1.5">{errores.id_pais}</p>}
                                         </div>
                                         <div>
-                                            <label className={labelClass}>Provincia <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>Provincia</label>
                                             <select name="id_provincia" className={baseInput} value={form.id_provincia} onChange={handleChange}>
                                                 <option value="">Seleccione una provincia</option>
                                                 {provincias.filter(p => p.id_pais === Number(form.id_pais)).map(p => (
@@ -420,7 +435,7 @@ export default function CrearOferta({
                                             {errores.id_provincia && <p className="text-xs text-[#CD1719] mt-1.5">{errores.id_provincia}</p>}
                                         </div>
                                         <div>
-                                            <label className={labelClass}>Cantón <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>Cantón</label>
                                             <select name="id_canton" className={baseInput} value={form.id_canton} onChange={handleChange}>
                                                 <option value="">Seleccione un cantón</option>
                                                 {cantones.filter(c => c.id_provincia === Number(form.id_provincia)).map(c => (

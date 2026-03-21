@@ -494,7 +494,7 @@ export default function CatalogoIndex({
   return (
     <>
       <Head title="Gestión de Catálogos" />
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6 text-[#000000]">
+      <div className="w-full max-w-[1600px] mx-auto px-8 py-6 space-y-6 text-[#000000]" style={{ fontFamily: "Open Sans, sans-serif" }}>
         {/* ========================================= */}
         {/* SELECCIÓN DE SECCIONES */}
         {/* ========================================= */}

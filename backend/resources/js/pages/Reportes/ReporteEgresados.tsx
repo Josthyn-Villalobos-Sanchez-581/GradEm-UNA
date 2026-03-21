@@ -11,6 +11,7 @@ import GraficoBarrasCarrera from "@/components/reportes/GraficoBarrasCarrera";
 import GraficoPie from "@/components/reportes/GraficoPie";
 import GraficoBarras from "@/components/reportes/GraficoBarras";
 import ReportesFiltros from "@/components/reportes/ReportesFiltros";
+import GraficoGenero from "@/components/reportes/GraficoGenero";
 
 import { useParametrosReporte } from "@/hooks/useParametrosReporte";
 
@@ -26,6 +27,13 @@ interface GraficoEmpleo {
 interface GraficoAnualRow {
   anio: string | number;
   total_egresados: number;
+}
+
+interface GraficoGenero {
+  total_egresados: number;
+  hombres: number;
+  mujeres: number;
+  no_especificado: number;
 }
 
 interface Catalogo {
@@ -116,6 +124,23 @@ const filtrosPorReporte: Record<string, string[]> = {
     "provinciaId",
     "cantonId",
   ],
+
+  genero: [
+    "universidadId",
+    "carreraId",
+    "fechaInicio",
+    "fechaFin",
+    "estadoEstudios",
+    "nivelAcademico",
+    "estadoEmpleo",
+    "tiempoEmpleo",
+    "areaLaboralId",
+    "salario",
+    "tipoEmpleo",
+    "paisId",
+    "provinciaId",
+    "cantonId",
+  ],
 };
 
 const etiquetasFiltros: Record<string, string> = {
@@ -160,7 +185,7 @@ export default function ReporteEgresados({
   const modal = useModal();
   const [hayErrores, setHayErrores] = useState(false);
   const [catalogos] = useState(catalogosIniciales);
-  const REPORTES_DISPONIBLES = ["tabla", "pie", "barras", "carrera"];
+  const REPORTES_DISPONIBLES = ["tabla", "pie", "barras", "carrera", "genero"];
   const [cooldownPdf, setCooldownPdf] = useState(false);
   const [filtrosVisibles, setFiltrosVisibles] = useState(true);
   const [filtersCollapsed, setFiltersCollapsed] = useState(() => {
@@ -234,16 +259,21 @@ export default function ReporteEgresados({
   const [graficoCarrera, setGraficoCarrera] = useState<any[]>([]);
   const [graficoEmpleo, setGraficoEmpleo] = useState<GraficoEmpleo | null>(null);
   const [graficoAnual, setGraficoAnual] = useState<GraficoAnualRow[]>([]);
+  const [graficoGenero, setGraficoGenero] = useState<GraficoGenero | null>(null);
   const [loading, setLoading] = useState(false);
 
   const hayResultados =
     resultados.length > 0 ||
     graficoAnual.length > 0 ||
+    graficoCarrera.length > 0 ||
     (graficoEmpleo &&
       graficoEmpleo.empleados +
       graficoEmpleo.desempleados +
-      graficoEmpleo.no_especificado >
-      0);
+      graficoEmpleo.no_especificado > 0) ||
+    (graficoGenero &&
+      graficoGenero.hombres +
+      graficoGenero.mujeres +
+      graficoGenero.no_especificado > 0);
 
   //Helper para sincronizar con tipoReporte
   const actualizarTipoReporte = (seleccionados: string[]) => {
@@ -302,6 +332,7 @@ export default function ReporteEgresados({
   // GENERAR REPORTE
   // -------------------------------------------------------
   const fetchReportes = async () => {
+
     if (!tipoReporte) {
       modal.alerta({
         titulo: "Reporte no seleccionado",
@@ -326,6 +357,7 @@ export default function ReporteEgresados({
       let pie: GraficoEmpleo | null = null;
       let barras: GraficoAnualRow[] = [];
       let carrera: any[] = [];
+      let genero: GraficoGenero | null = null;
 
       if (reportesSeleccionados.includes("tabla")) {
         const r = await axios.get("/reportes/egresados", { params });
@@ -338,8 +370,6 @@ export default function ReporteEgresados({
         setGraficoCarrera(carrera);
       }
 
-
-
       if (reportesSeleccionados.includes("pie")) {
         const r = await axios.get("/reportes/grafico-empleo", { params });
         pie = r.data?.data ?? null;
@@ -350,10 +380,17 @@ export default function ReporteEgresados({
         barras = r.data?.data ?? [];
       }
 
+      if (reportesSeleccionados.includes("genero")) {
+        const r = await axios.get("/reportes/grafico-genero", { params });
+        genero = r.data?.data ?? null;
+      }
+
+
 
       setResultados(tabla);
       setGraficoEmpleo(pie);
       setGraficoAnual(barras);
+      setGraficoGenero(genero);
 
       const hayDatos =
         tabla.length > 0 ||
@@ -374,6 +411,8 @@ export default function ReporteEgresados({
       setLoading(false);
     }
   };
+
+
 
   const descargarPdf = async () => {
     if (reportesSeleccionados.length === 0 || cooldownPdf) return;
@@ -440,6 +479,54 @@ export default function ReporteEgresados({
       { nombre: "No especificado", valor: graficoEmpleo.no_especificado },
     ]
     : [];
+
+  const datosGenero = graficoGenero
+    ? [
+      { nombre: "Hombres", valor: graficoGenero.hombres },
+      { nombre: "Mujeres", valor: graficoGenero.mujeres },
+      { nombre: "No especificado", valor: graficoGenero.no_especificado },
+    ]
+    : [];
+
+  const generoTieneDatos =
+    graficoGenero &&
+    (graficoGenero.hombres +
+      graficoGenero.mujeres +
+      graficoGenero.no_especificado) > 0;
+
+  const graficos = [];
+
+  if (reportesSeleccionados.includes("barras") && graficoAnual?.length > 0) {
+    graficos.push(<GraficoBarras key="barras" filas={graficoAnual} />);
+  }
+
+  if (reportesSeleccionados.includes("genero") && generoTieneDatos) {
+    graficos.push(
+      <GraficoGenero
+        key="genero"
+        datos={datosGenero}
+        total={graficoGenero.total_egresados}
+      />
+    );
+  }
+
+  if (reportesSeleccionados.includes("pie") && graficoEmpleo) {
+    graficos.push(
+      <GraficoPie
+        key="empleo"
+        datos={datosPie}
+      />
+    );
+  }
+
+  if (reportesSeleccionados.includes("carrera") && graficoCarrera?.length > 0) {
+    graficos.push(
+      <GraficoBarrasCarrera
+        key="carrera"
+        filas={graficoCarrera}
+      />
+    );
+  }
 
   useEffect(() => {
     // Solo al montar
@@ -524,11 +611,12 @@ export default function ReporteEgresados({
                             `}
                 >
                   {[
-                    { id: "todos", label: "Todos los reportes" },
-                    { id: "tabla", label: "Tabla de egresados" },
-                    { id: "carrera", label: "Gráfico por carrera" },
-                    { id: "barras", label: "Gráfico barras" },
-                    { id: "pie", label: "Gráfico pie" },
+                    { id: "todos", label: "Todos" },
+                    { id: "tabla", label: "Tabla" },
+                    { id: "carrera", label: "Por carrera" },
+                    { id: "barras", label: "Por año" },
+                    { id: "pie", label: "Empleabilidad" },
+                    { id: "genero", label: "Por género" },
                   ].map((opcion) => (
                     <label
                       key={opcion.id}
@@ -574,7 +662,7 @@ export default function ReporteEgresados({
               <div className="flex gap-3 w-full sm:w-auto">
                 <Button
                   onClick={fetchReportes}
-                  disabled={!tipoReporte || hayErrores || loading}
+                  disabled={reportesSeleccionados.length === 0 || hayErrores || loading}
                   className="w-full sm:w-auto h-[42px] flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -701,25 +789,18 @@ export default function ReporteEgresados({
               {/* GRÁFICOS DASHBOARD     */}
               {/* ======================= */}
 
-              {/* 1️⃣ Gráfico anual arriba (full width) */}
-              {reportesSeleccionados.includes("barras") &&
-                graficoAnual.length > 0 && (
-                  <GraficoBarras filas={graficoAnual} />
-                )}
+              {graficos.length > 0 && (
+                <section
+                  className={`grid gap-6 ${graficos.length === 1
+                    ? "grid-cols-1"
+                    : "grid-cols-1 xl:grid-cols-2"
+                    }`}
+                >
 
-              {/* 2️⃣ Carrera + Pie abajo */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {graficos}
 
-                {reportesSeleccionados.includes("carrera") &&
-                  graficoCarrera.length > 0 && (
-                    <GraficoBarrasCarrera filas={graficoCarrera} />
-                  )}
-
-                {reportesSeleccionados.includes("pie") &&
-                  graficoEmpleo && (
-                    <GraficoPie datos={datosPie} />
-                  )}
-              </div>
+                </section>
+              )}
 
               {reportesSeleccionados.includes("tabla") &&
                 resultados.length > 0 && (
@@ -735,8 +816,8 @@ export default function ReporteEgresados({
 
             </main>
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
     </>
   );
 }

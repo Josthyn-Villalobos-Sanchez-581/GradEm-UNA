@@ -241,12 +241,74 @@ class ReporteController extends Controller
         }
     }
 
+    /**
+ * GET /api/reportes/grafico-genero
+ */
+public function graficoGenero(Request $request)
+{
+    $maxAno = date('Y') + 100;
+
+    $data = $request->validate([
+        'universidad'     => 'nullable|integer',
+        'carrera'         => 'nullable|integer',
+        'fecha_inicio'    => "nullable|integer|min:2007|max:$maxAno",
+        'fecha_fin'       => "nullable|integer|min:2007|max:$maxAno",
+
+        'genero'          => 'nullable|string',
+        'estado_estudios' => 'nullable|string',
+        'nivel_academico' => 'nullable|string',
+
+        'estado_empleo'   => 'nullable|string',
+        'tiempo_empleo'   => 'nullable|integer',
+        'area_laboral'    => 'nullable|integer',
+        'salario'         => 'nullable|string',
+        'tipo_empleo'     => 'nullable|string',
+
+        'pais'            => 'nullable|integer',
+        'provincia'       => 'nullable|integer',
+        'canton'          => 'nullable|integer',
+    ]);
+
+    try {
+
+        $result = $this->service->obtenerGraficoGenero(
+            $data['universidad'] ?? null,
+            $data['carrera'] ?? null,
+            $data['fecha_inicio'] ?? null,
+            $data['fecha_fin'] ?? null,
+            $data['genero'] ?? null,
+            $data['estado_estudios'] ?? null,
+            $data['nivel_academico'] ?? null,
+            $data['estado_empleo'] ?? null,
+            $data['tiempo_empleo'] ?? null,
+            $data['area_laboral'] ?? null,
+            $data['salario'] ?? null,
+            $data['tipo_empleo'] ?? null,
+            $data['pais'] ?? null,
+            $data['provincia'] ?? null,
+            $data['canton'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ]);
+
+    } catch (Exception $e) {
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 
     public function descargarPdf(Request $request)
     {
         $data = $request->validate([
             'reportes'         => 'required|array|min:1',
-            'reportes.*'       => 'in:tabla,pie,barras,carrera',
+            'reportes.*' => 'in:tabla,pie,barras,carrera,genero',
             'parametros'       => 'required|array',
             'filtrosLegibles'  => 'nullable|array',
             'visual'          => 'nullable|array',

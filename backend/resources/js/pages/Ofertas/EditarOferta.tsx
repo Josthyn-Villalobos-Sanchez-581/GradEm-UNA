@@ -25,6 +25,7 @@ interface FotoPerfil {
     url: string | null;
 }
 
+
 interface Usuario {
     foto_perfil?: FotoPerfil | null;
 }
@@ -181,14 +182,14 @@ export default function EditarOferta({
 
         if (paso === "descripcion") {
             if (!form.descripcion) e.descripcion = "Campo obligatorio";
-            if (!form.horario) e.horario = "Campo obligatorio";
+            //if (!form.horario) e.horario = "Campo obligatorio";
         }
 
         if (paso === "ubicacion") {
-            if (!form.id_pais) e.id_pais = "Seleccione un país";
-            if (!form.id_provincia) e.id_provincia = "Seleccione una provincia";
-            if (!form.id_canton) e.id_canton = "Seleccione un cantón";
-            if (!form.id_carrera) e.id_carrera = "Seleccione una carrera";
+            //if (!form.id_pais) e.id_pais = "Seleccione un país";
+            //if (!form.id_provincia) e.id_provincia = "Seleccione una provincia";
+            //if (!form.id_canton) e.id_canton = "Seleccione un cantón";
+            //if (!form.id_carrera) e.id_carrera = "Seleccione una carrera";
         }
 
         if (paso === "publicacion") {
@@ -279,25 +280,25 @@ export default function EditarOferta({
     return (
         <>
             <Head title="Crear Oferta" />
-                        {/* HEADER PRINCIPAL */}
-                        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
-                                    Editar Ofertas
-                                </h1>
-                                <p className="text-slate-500 text-sm mt-1">
-                                    En este apartado podra editar la oferta laboral, revise cada sección para asegurarse de que toda la información esté correcta antes de publicar.
-                                </p>
-                            </div>
-            
-                            <div className="flex items-center gap-3">
-                                <Button asChild variant="secondary">
-                                    <Link href={route("empresa.ofertas.index")}>
-                                        Volver
-                                    </Link>
-                                </Button>
-                            </div>
-                        </header>
+            {/* HEADER PRINCIPAL */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
+                        Editar Ofertas
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">
+                        En este apartado podra editar la oferta laboral, revise cada sección para asegurarse de que toda la información esté correcta antes de publicar.
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Button asChild variant="secondary">
+                        <Link href={route("empresa.ofertas.index")}>
+                            Volver
+                        </Link>
+                    </Button>
+                </div>
+            </header>
 
             <div className="max-w-8xl mx-auto py-8 px-4 ">
                 <div className="grid grid-cols-12 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[450px] md:min-h-[550px]">
@@ -322,29 +323,41 @@ export default function EditarOferta({
                         <nav className="space-y-1">
                             {pasos.map((p) => {
                                 const active = paso === p;
+
                                 return (
                                     <button
                                         key={p}
                                         onClick={() => {
-                                            // Opcional: Permitir saltar pasos solo si valida, o libremente en edición.
-                                            // Aquí lo dejo libre como en el sidebar original, pero validando al hacer click.
                                             if (p === paso) return;
-                                            // if (validarPaso()) setPaso(p); // Descomentar si se quiere validar antes de cambiar
                                             setPaso(p);
                                         }}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                            ? "bg-red-50 text-[#CD1719] shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                                ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                                : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
                                             }`}
                                     >
-                                        <div className={`mr-3 transition-colors ${active ? "text-[#CD1719]" : "text-gray-400 group-hover:text-gray-600"}`}>
+                                        <div
+                                            className={`mr-3 transition-colors ${active
+                                                    ? "text-[#034991]"
+                                                    : "text-gray-400 group-hover:text-[#034991]"
+                                                }`}
+                                        >
                                             {p === "general" && <Briefcase className="w-5 h-5" />}
                                             {p === "descripcion" && <FileText className="w-5 h-5" />}
                                             {p === "ubicacion" && <MapPin className="w-5 h-5" />}
                                             {p === "publicacion" && <Calendar className="w-5 h-5" />}
                                         </div>
-                                        <span className="capitalize">{p.replace('descripcion', 'descripción').replace('ubicacion', 'ubicación').replace('publicacion', 'publicación')}</span>
-                                        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#CD1719]"></div>}
+
+                                        <span className="capitalize">
+                                            {p
+                                                .replace("descripcion", "descripción")
+                                                .replace("ubicacion", "ubicación")
+                                                .replace("publicacion", "publicación")}
+                                        </span>
+
+                                        {active && (
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                                        )}
                                     </button>
                                 );
                             })}
@@ -481,7 +494,7 @@ export default function EditarOferta({
                                     </div>
 
                                     <div>
-                                        <label className={labelClass}>Horario <span className="text-[#CD1719]">*</span></label>
+                                        <label className={labelClass}>Horario</label>
                                         <input
                                             name="horario"
                                             placeholder="Ej: Lunes a Viernes, 8:00 AM - 5:00 PM"
@@ -499,7 +512,7 @@ export default function EditarOferta({
                                     <h2 className={sectionTitle}>Ubicación y Carrera</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className={labelClass}>País <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>País</label>
                                             <select name="id_pais" className={baseInput} value={form.id_pais} onChange={handleChange}>
                                                 <option value="">Seleccione un país</option>
                                                 {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -507,7 +520,7 @@ export default function EditarOferta({
                                             {errores.id_pais && <p className="text-xs text-[#CD1719] mt-1.5">{errores.id_pais}</p>}
                                         </div>
                                         <div>
-                                            <label className={labelClass}>Provincia <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>Provincia</label>
                                             <select name="id_provincia" className={baseInput} value={form.id_provincia} onChange={handleChange}>
                                                 <option value="">Seleccione una provincia</option>
                                                 {provincias.filter(p => p.id_pais === Number(form.id_pais)).map(p => (
@@ -517,7 +530,7 @@ export default function EditarOferta({
                                             {errores.id_provincia && <p className="text-xs text-[#CD1719] mt-1.5">{errores.id_provincia}</p>}
                                         </div>
                                         <div>
-                                            <label className={labelClass}>Cantón <span className="text-[#CD1719]">*</span></label>
+                                            <label className={labelClass}>Cantón</label>
                                             <select name="id_canton" className={baseInput} value={form.id_canton} onChange={handleChange}>
                                                 <option value="">Seleccione un cantón</option>
                                                 {cantones.filter(c => c.id_provincia === Number(form.id_provincia)).map(c => (

@@ -89,7 +89,11 @@ export default function Index({
   const paisActual = provinciaActual ? paises.find(pa => pa.id === provinciaActual.id_pais) : null;
   const universidadActual = universidades.find(u => u.id === usuario.id_universidad);
   const carreraActual = carreras.find(c => c.id === usuario.id_carrera);
-  const fotoPerfilUrl = usuario.fotoPerfil?.ruta_imagen || FotoXDefecto;
+  const fotoPerfilUrl =
+  usuario.fotoPerfil?.ruta_imagen ||
+  (usuario as any)?.foto_perfil?.url ||
+  (usuario as any)?.foto_url ||
+  FotoXDefecto;
 
   const eliminarFotoPerfil = async () => {
     const confirm = await modal.confirmacion({
@@ -146,7 +150,7 @@ export default function Index({
 
             <div className="flex flex-col items-center mb-6">
               <div className="relative">
-                <img src={fotoPerfilUrl} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
+                <img src={fotoPerfilUrl} onError={(e) => (e.currentTarget.src = FotoXDefecto)} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
                 <Link
                   href="/perfil/foto"
                   title="Editar foto de perfil"
@@ -252,7 +256,7 @@ export default function Index({
 
           <div className="flex flex-col items-center mb-6">
             <div className="relative">
-              <img src={fotoPerfilUrl} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
+              <img src={fotoPerfilUrl} onError={(e) => (e.currentTarget.src = FotoXDefecto)} className="rounded-full w-36 h-36 object-cover shadow-md mb-3" />
               <Link
                 href="/perfil/foto"
                 title="Editar foto de perfil"

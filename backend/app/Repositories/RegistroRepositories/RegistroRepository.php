@@ -31,7 +31,7 @@ class RegistroRepository
             'password' => 'required|confirmed|min:8',
             'nombre_completo' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u',
             'identificacion' => 'required|string|min:8|max:12|regex:/^[A-Za-z0-9]+$/',
-            'telefono' => 'nullable|numeric|digits_between:8,15',
+            'telefono' => ['nullable', 'regex:/^[68][0-9]{7}$/'],
             'fecha_nacimiento' => 'nullable|date|before:today',
             'genero' => 'nullable|string|max:20|in:masculino,femenino,otro',
             'estado_empleo' => 'nullable|string|max:50|in:empleado,desempleado',
