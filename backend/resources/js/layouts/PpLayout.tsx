@@ -50,6 +50,7 @@ export default function PpLayout({
     localStorage.getItem("sidebarCollapsed") === "true"
   );
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [loadingRuta, setLoadingRuta] = useState<string | null>(null);
 
   // Nuevo modal institucional
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -58,7 +59,13 @@ export default function PpLayout({
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
   const showTooltip = (text: string, e: React.MouseEvent) => {
-    setTooltip({ text, x: e.clientX + 12, y: e.clientY + 12 });
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+
+    setTooltip({
+      text,
+      x: rect.right + 8,
+      y: rect.top + rect.height / 2,
+    });
   };
 
   const moveTooltip = (e: React.MouseEvent) => {
@@ -134,8 +141,8 @@ export default function PpLayout({
       icon: Settings,
       subMenu: [
         { title: "Roles y Permisos", route: "/roles_permisos", permisoId: 12 },
-        { title: "Gestión ADS", route: "/usuarios", permisoId: 12 },
-        { title: "Ver Usuarios", route: "/usuarios/perfiles", permisoId: 12 },
+        { title: "Administradores", route: "/usuarios", permisoId: 12 },
+        { title: "Usuarios", route: "/usuarios/perfiles", permisoId: 12 },
         { title: "Empresas", route: "/empresas", permisoId: 12 },
         { title: "Catálogos", route: "/catalogo", permisoId: 13 },
         { title: "Auditoría", route: "/auditoria", permisoId: 16 },
@@ -145,34 +152,34 @@ export default function PpLayout({
       title: "Currículum",
       icon: FileText,
       subMenu: [
-        { title: "Generar CV", route: "/curriculum/generar", permisoId: 2 },
-        { title: "Carga de Documentos", route: "/documentos", permisoId: 3 },
         { title: "Mi Currículum", route: "/mi-curriculum/ver", permisoId: 4 },
+        { title: "Generar Currículum", route: "/curriculum/generar", permisoId: 2 },
+        { title: "Carga de Documentos", route: "/documentos", permisoId: 3 },
       ],
     },
     {
       title: "Ofertas",
       icon: Briefcase,
       subMenu: [
-        { title: "Publicar Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
+        { title: "Crear Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
+        { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
         { title: "Postularme", route: "/ofertas", permisoId: 6 },
         { title: "Mis postulaciones", route: "/misPostulaciones", permisoId: 6 },
-        { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
       ],
     },
     {
       title: "Cursos",
       icon: BookOpen,
       subMenu: [
-        { title: "Gestión", route: "/cursos", permisoId: 8 },
-        { title: "Inscripción", route: "/cursos/inscripcion", permisoId: 9 },
+        { title: "Gestión de Cursos", route: "/cursos", permisoId: 8 },
+        { title: "Inscribirme", route: "/cursos/inscripcion", permisoId: 9 },
       ],
     },
     {
       title: "Eventos",
       icon: Calendar,
       subMenu: [
-        { title: "Gestión", route: "/eventos", permisoId: 10 },
+        { title: "Gestión de Eventos", route: "/eventos", permisoId: 10 },
         { title: "Confirmar Asistencia", route: "/confirmar-asistencia", permisoId: 11 },
       ],
     },
@@ -181,7 +188,7 @@ export default function PpLayout({
       icon: BarChart3,
       subMenu: [
         { title: "Egresados", route: "/reportes-egresados", permisoId: 14 },
-        { title: "Ofertas/Postulaciones", route: "/reportes-ofertas", permisoId: 15 },
+        { title: "Ofertas y Postulaciones", route: "/reportes-ofertas", permisoId: 15 },
       ],
     },
   ];
@@ -195,6 +202,16 @@ export default function PpLayout({
       return userPermisos.includes(m.permisoId!) ? m : null;
     })
     .filter(Boolean) as MenuItem[];
+
+    useEffect(() => {
+      const menuActivo = filteredMenu.find((item) =>
+        item.subMenu?.some((s) => currentUrl.startsWith(s.route!))
+      );
+
+      if (menuActivo) {
+        setOpenMenu(menuActivo.title);
+      }
+    }, [currentUrl]);
 
   const isPerfilActive = currentUrl.startsWith("/perfil");
 
@@ -242,16 +259,24 @@ export default function PpLayout({
       <header
         className="
           fixed top-0 left-0 w-full h-20 
-          bg-gradient-to-r from-[#CD1719] via-[#B01517] to-[#7A0F13]
+          bg-gradient-to-r 
+          from-[#5C0A0D] 
+          via-[#8E1215] 
+          to-[#CD1719]
           shadow-md z-50 px-5 flex items-center justify-between
+          border-b border-black/20 backdrop-blur-[2px]
         "
       >
+
+        {/* Overlay real */}
+        <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
+
         <button className="text-white md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
           <Menu size={30} />
         </button>
 
         <div className="flex items-center gap-3 ml-1">
-          <Link href="https://www.una.ac.cr">
+          <Link href="https://www.una.ac.cr/" target="_blank" className="flex items-center gap-3">
             <img src={logoUnaUrl} className="h-14 translate-x-[-6px]" />
           </Link>
           <img src={logoGradEmUrl} className="h-14" />
@@ -274,8 +299,14 @@ export default function PpLayout({
       <aside
         className={`
     fixed top-20 left-0 h-[calc(100vh-5rem)]
-    bg-gradient-to-b from-[#CD1719] via-[#B01517] to-[#7A0F13]
-    text-white border-r border-red-900 shadow-xl
+    bg-gradient-to-b 
+    from-[#4A0709] 
+    via-[#8E1215] 
+    to-[#CD1719]
+    text-white border-r border-red-900
+    shadow-[4px_0_25px_rgba(0,0,0,0.35)]
+    backdrop-blur-[2px]
+    bg-opacity-95
     transition-all duration-300 z-40 flex flex-col justify-between
     ${sidebarCollapsed ? "w-18" : "w-48"}
     ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -299,21 +330,22 @@ export default function PpLayout({
 
 
         {/* MENÚ */}
-        <nav className="flex-1 overflow-y-visible px-3 py-4 flex flex-col gap-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 px-3 py-4 flex flex-col gap-1">
           {filteredMenu.map((item, index) => {
             const Icon = item.icon ?? LayoutDashboard;
+
+            const isSubActive = item.subMenu?.some((s) =>
+              currentUrl.startsWith(s.route!)
+            );
+
             const isActive =
-              (item.route && currentUrl.startsWith(item.route)) ||
-              item.subMenu?.some((s) => currentUrl.startsWith(s.route!));
+              (item.route && currentUrl.startsWith(item.route)) || isSubActive;
+
+            const isOpen = openMenu === item.title;
 
             return (
-              <div
-                key={item.title}
-                className="relative group"
-                onMouseEnter={(e) => sidebarCollapsed && showTooltip(item.title, e)}
-                onMouseMove={moveTooltip}
-                onMouseLeave={hideTooltip}
-              >
+              <div key={item.title} className="relative group">
+                {/* BOTÓN PRINCIPAL */}
                 <button
                   onClick={() => {
                     if (sidebarCollapsed && item.subMenu) {
@@ -321,65 +353,103 @@ export default function PpLayout({
                       setOpenMenu(item.title);
                       return;
                     }
-                    item.subMenu
-                      ? setOpenMenu(openMenu === item.title ? null : item.title)
-                      : item.route && (window.location.href = item.route);
+
+                    if (item.subMenu) {
+                      setOpenMenu(isOpen ? null : item.title);
+                    } else if (item.route) {
+                      setOpenMenu(null); // 🔴 cerrar todo al navegar
+                      router.visit(item.route);
+                    }
                   }}
                   className={`
-                    flex items-center justify-between px-3 py-2 rounded-lg 
-                    transition-all text-[15px] font-medium
-                    ${isActive
-                      ? "bg-white/15 border-l-4 border-[#034991]"
-                      : "hover:bg-white/10"
+            flex items-center justify-between px-3 py-2 rounded-lg 
+            transition-all text-[15px] font-medium
+
+            ${isActive
+                      ? `
+                          bg-gradient-to-r from-[#CD1719] to-[#8E1215]
+                          border-l-4 border-white
+                          shadow-lg shadow-black/40
+                          ring-1 ring-white/30
+                        `
+                      : isOpen
+                        ? "bg-white/10"
+                        : "hover:bg-white/10"
                     }
-                  `}
+          `}
                 >
                   <span className="flex items-center gap-3">
                     <Icon
                       size={20}
-                      className="transition-transform duration-200 group-hover:scale-110"
+                      className={`
+                transition-all duration-200
+                ${isActive
+                          ? "text-white scale-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]"
+                          : "text-white/70 group-hover:text-white"
+                        }
+              `}
                     />
-                    {/* Texto animado SOLO para el menú principal */}
                     {renderAnimatedLabel(item.title, index)}
                   </span>
+
                   {item.subMenu && !sidebarCollapsed && (
                     <ChevronDown
                       size={16}
-                      className={`
-                        transition-transform 
-                        ${openMenu === item.title ? "rotate-180" : ""}
-                      `}
+                      className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
                     />
                   )}
                 </button>
 
-                {/* SUBMENÚ (sin animación letra por letra) */}
+                {/* SUBMENÚ */}
                 {!sidebarCollapsed && item.subMenu && (
                   <div
                     className={`
-                      overflow-hidden ml-6 border-l border-white/10 
-                      transition-all duration-300
-                      ${openMenu === item.title
-                        ? "max-h-72 opacity-100 pl-3 py-1"
+              overflow-hidden ml-4 
+              border-l-2 border-white/30 
+              bg-gradient-to-b from-black/20 to-transparent
+              transition-all duration-300 ease-in-out
+              ${isOpen
+                        ? "max-h-72 opacity-100 pl-4 py-2"
                         : "max-h-0 opacity-0 pl-0 py-0"
                       }
-                    `}
+            `}
                   >
-                    {item.subMenu.map((sub) => (
-                      <Link
-                        key={sub.title}
-                        href={sub.route!}
-                        className={`
-                          block text-sm px-3 py-1 rounded transition-all duration-200 hover:translate-x-1
-                          ${currentUrl.startsWith(sub.route!)
-                            ? "bg-white/10 text-white"
-                            : "text-gray-100 hover:bg-white/5"
-                          }
-                        `}
-                      >
-                        {sub.title}
-                      </Link>
-                    ))}
+                    {item.subMenu.map((sub) => {
+                      const isSubItemActive = currentUrl.startsWith(sub.route!);
+
+                      return (
+                        <Link
+                          key={sub.title}
+                          href={sub.route!}
+                          onClick={() => setOpenMenu(item.title)} // 🔴 mantiene abierto correcto
+                          className={`
+                    relative flex items-center text-sm px-3 py-2 rounded-md
+                    transition-all duration-200 ease-in-out hover:translate-x-1
+
+                    ${isSubItemActive
+                              ? `
+                        bg-gradient-to-r from-[#CD1719]/80 to-[#8E1215]/80
+                        text-white font-semibold
+                        shadow-inner shadow-black/40
+                      `
+                              : "text-gray-200 hover:bg-white/10"
+                            }
+                  `}
+                        >
+                          {/* Indicador lateral */}
+                          {isSubItemActive && (
+                            <span className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-white rounded-full shadow-lg"></span>
+                          )}
+
+                          <span>{sub.title}</span>
+
+                          {/* Punto indicador */}
+                          {isSubItemActive && (
+                            <span className="ml-auto w-2 h-2 bg-white rounded-full"></span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -397,7 +467,7 @@ export default function PpLayout({
             onMouseLeave={hideTooltip}
           >
             <button
-              onClick={() => (window.location.href = "/perfil")}
+              onClick={() => router.visit("/perfil")}
               className={`
                 flex items-center gap-2 px-3 py-2 rounded-lg 
                 transition-all text-[15px]
@@ -454,9 +524,9 @@ export default function PpLayout({
       {tooltip && (
         <div
           className="
-            fixed z-[9999] px-2 py-1 text-xs text-white 
-            bg-black/90 backdrop-blur-sm rounded-md shadow-lg 
-            pointer-events-none
+            fixed z-[9999] px-3 py-1.5 text-xs text-white 
+            bg-black/80 backdrop-blur-md rounded-md shadow-xl 
+            pointer-events-none transition-opacity duration-200
           "
           style={{ top: tooltip.y, left: tooltip.x }}
         >
@@ -499,7 +569,7 @@ export default function PpLayout({
             </nav>
           )}
 
-          <div className="bg-white shadow-lg rounded-xl p-6 overflow-x-hidden">
+          <div className="bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] rounded-2xl p-6 overflow-x-hidden">
             {children}
           </div>
 
