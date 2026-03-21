@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { router } from "@inertiajs/react";
+import { useForm, router } from "@inertiajs/react";
 import unaLogo from "../assets/logoUNA.png";
 import grademLogo from "../assets/GradEm.png";
 import { Button } from "@/components/ui/button";
@@ -8,21 +7,31 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 
 const Login: React.FC = () => {
-  const [correo, setCorreo] = useState<string>("");
-  const [contrasena, setContrasena] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [mostrarOpcionForzar, setMostrarOpcionForzar] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
+  const [redirect, setRedirect] = useState<string | null>(null);
 
   const correoInputRef = useRef<HTMLInputElement>(null);
   const contrasenaInputRef = useRef<HTMLInputElement>(null);
 
   const [mostrarPassword, setMostrarPassword] = useState<boolean>(false);
 
+  const { data, setData, post, processing, errors } = useForm({
+    correo: '',
+    password: '',
+    force: false,
+    redirect: '',
+  });
 
+  // Lee el parámetro redirect de la URL
   useEffect(() => {
-    axios.get("/sanctum/csrf-cookie").catch(() => console.warn("No se pudo generar la cookie CSRF"));
+    const params = new URLSearchParams(window.location.search);
+    const redirectParam = params.get('redirect');
+    if (redirectParam) {
+      setRedirect(redirectParam);
+      setData('redirect', redirectParam);
+    }
   }, []);
 
   useEffect(() => {
@@ -51,55 +60,65 @@ const Login: React.FC = () => {
 
   const estaEnCooldown = cooldownSeconds !== null && cooldownSeconds > 0;
 
-  const intentarLogin = async (forzar = false) => {
-    if (estaEnCooldown) {
-      setError(`Debe esperar ${cooldownSeconds}s antes de volver a intentar iniciar sesión.`);
-      return;
-    }
-
+  const intentarLogin = (forzar: boolean = false) => {
     setError("");
     setMostrarOpcionForzar(false);
-    setIsSubmitting(true);
 
-    try {
-      await axios.get("/sanctum/csrf-cookie");
+    router.post('/login',
+      {
+        ...data,
+        force: forzar
+      },
+      {
 
-      const res = await axios.post("/login", { correo, password: contrasena, force: forzar });
-      if (res.data.redirect) {
-        window.location.href = res.data.redirect;
-      }
-    } catch (err: any) {
-      const respuesta = err.response;
-      const userFriendlyMessage = err.userFriendlyMessage ?? respuesta?.data?.message;
+        preserveScroll: true,
 
-      if (respuesta?.status === 423 && respuesta?.data?.requiresForce) {
-        setError(userFriendlyMessage || "La cuenta ya tiene una sesión activa.");
-        setMostrarOpcionForzar(true);
-      } else if (respuesta?.status === 423 && respuesta?.data?.code === "too_many_attempts") {
-        const retryAfterRaw = Number(respuesta?.data?.retryAfter);
-        const segundos = Number.isFinite(retryAfterRaw) && retryAfterRaw > 0 ? Math.floor(retryAfterRaw) : 60;
-        setCooldownSeconds(segundos);
-        setError(
-          userFriendlyMessage ||
-          `Cuenta bloqueada por intentos fallidos. Puede intentar de nuevo en ${segundos}s.`
-        );
-      } else if (respuesta?.status === 419) {
-        setError(
-          userFriendlyMessage ||
-          "La sesión fue invalidada. Posiblemente otra persona inició sesión con esta cuenta. Recargue la página e intente de nuevo."
-        );
-      } else {
-        const errores = respuesta?.data?.errors;
-        if (errores) {
-          const primerError = (Object.values(errores)[0] as string[])[0];
-          setError(primerError);
-        } else {
-          setError(respuesta?.data?.message || "Error al iniciar sesión.");
+        onError: (backendErrors) => {
+
+          setError("");
+          setMostrarOpcionForzar(false);
+          setCooldownSeconds(null);
+
+          if (backendErrors.force_required) {
+            setError(backendErrors.force_required);
+            setMostrarOpcionForzar(true);
+          }
+          else if (backendErrors.lockout) {
+            setError(backendErrors.lockout);
+            const retryAfter = Number(backendErrors.retry_after) || 60;
+            setCooldownSeconds(retryAfter);
+          }
+          else {
+            if (backendErrors.correo) {
+              setError(backendErrors.correo);
+            }
+            else if (backendErrors.password) {
+              setError(backendErrors.password);
+            }
+            else if (backendErrors.message) {
+              setError(backendErrors.message);
+            }
+            else {
+              setError("Error al iniciar sesión. Verifique sus credenciales.");
+            }
+          }
+
+        },
+
+        onSuccess: () => {
+
+          setData((prev) => ({
+            ...prev,
+            password: ''
+          }));
+
+          setError("");
+          setMostrarOpcionForzar(false);
+          setCooldownSeconds(null);
         }
+
       }
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const containerStyle: React.CSSProperties = {
@@ -214,8 +233,8 @@ const Login: React.FC = () => {
               id="correo"
               type="email"
               placeholder="Ingrese su correo"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
+              value={data.correo}
+              onChange={(e) => setData('correo', e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -252,8 +271,8 @@ const Login: React.FC = () => {
               id="contrasena"
               type={mostrarPassword ? "text" : "password"}
               placeholder="Ingrese su contraseña"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
+              value={data.password}
+              onChange={(e) => setData('password', e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -292,13 +311,16 @@ const Login: React.FC = () => {
 
         {error && <p style={{ color: "red", fontSize: "14px", marginBottom: "15px" }}>{error}</p>}
 
+        {errors.correo && <p style={{ color: "red", fontSize: "14px", marginBottom: "15px" }}>{errors.correo}</p>}
+        {errors.password && <p style={{ color: "red", fontSize: "14px", marginBottom: "15px" }}>{errors.password}</p>}
+
         <Button
           type="button"
           variant="destructive"
           size="default"
           className="w-full max-w-[358px] h-14 mb-5"
           onClick={() => intentarLogin()}
-          disabled={isSubmitting || estaEnCooldown}
+          disabled={processing || estaEnCooldown}
         >
           Iniciar sesión
         </Button>
@@ -310,7 +332,7 @@ const Login: React.FC = () => {
             size="default"
             className="w-full max-w-[358px] h-14 mb-5"
             onClick={() => intentarLogin(true)}
-            disabled={isSubmitting || estaEnCooldown}
+            disabled={processing || estaEnCooldown}
           >
             Cerrar otras sesiones e ingresar
           </Button>
@@ -330,7 +352,7 @@ const Login: React.FC = () => {
               asChild
               variant="link"
               size="default"
-              disabled={isSubmitting || estaEnCooldown}
+              disabled={processing || estaEnCooldown}
             >
               <span onClick={() => router.get("/recuperar")} style={{ cursor: "pointer" }}>
                 ¿Olvidó su contraseña?
@@ -340,7 +362,7 @@ const Login: React.FC = () => {
               asChild
               variant="link"
               size="default"
-              disabled={isSubmitting || estaEnCooldown}
+              disabled={processing || estaEnCooldown}
             >
               <span onClick={() => router.get("/registro")} style={{ cursor: "pointer" }}>
                 Crear cuenta

@@ -123,7 +123,7 @@ const Welcome = () => {
                             <strong className="text-[#034991]"> Universidad Nacional</strong>.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center lg:justify-start">
-                            <Button onClick={() => router.get("/login")} className="bg-[#CD1719] hover:bg-[#A71315] text-white px-8 md:px-10 py-6 md:py-7 text-lg md:text-xl rounded-[1.2rem] md:rounded-[1.5rem] shadow-xl font-bold">
+                            <Button onClick={() => router.get("/login") /* generic login */} className="bg-[#CD1719] hover:bg-[#A71315] text-white px-8 md:px-10 py-6 md:py-7 text-lg md:text-xl rounded-[1.2rem] md:rounded-[1.5rem] shadow-xl font-bold">
                                 Comenzar ahora
                             </Button>
                             <Button variant="outline" className="border-[#A7A7A9] text-[#000000] px-8 md:px-10 py-6 md:py-7 text-lg md:text-xl rounded-[1.2rem] md:rounded-[1.5rem] hover:bg-[#F6F6F6] transition-all border-2 font-bold">
@@ -165,8 +165,11 @@ const Welcome = () => {
                             </div>
                             <h3 className="text-2xl md:text-3xl font-bold mb-4">Bolsa de Empleo Exclusiva</h3>
                             <p className="text-white/80 text-base md:text-lg mb-6 max-w-md">Conectamos tu talento con las empresas más prestigiosas del país. Vacantes exclusivas para la comunidad UNA.</p>
-                            <Button onClick={() => router.get("/login")} className="rounded-full bg-white text-[#034991] hover:bg-[#F6F6F6] font-bold px-8">
-                                Explorar empleos
+                            <Button
+                                onClick={() => router.visit('/login?redirect=/ofertas')}
+                                className="rounded-full bg-white text-[#034991] hover:bg-[#F6F6F6] font-bold px-8"
+                            >
+                                Postularme
                             </Button>
                         </div>
 

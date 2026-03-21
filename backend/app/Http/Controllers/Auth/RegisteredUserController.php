@@ -80,6 +80,11 @@ class RegisteredUserController extends Controller
         // Autenticar al usuario y redirigir
         Auth::login($usuario);
 
+        // Redirección después de registro
+        if ($request->filled('redirect')) {
+            return redirect()->to($request->redirect);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 }
