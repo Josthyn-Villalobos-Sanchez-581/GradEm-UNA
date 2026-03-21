@@ -17,34 +17,40 @@ class PostulacionController extends Controller
     {
         $usuario = Auth::user();
 
-        $cv = \App\Models\Curriculum::where('id_usuario', $usuario->id_usuario)->first();
+        if (!$usuario || $usuario->es_admin) {
+            abort(403, 'No autorizado.');
+        }
 
-        if (
-            !$cv ||
-            (
-                !$cv->generado_sistema &&
-                !$cv->ruta_archivo_pdf
-            )
-        ) {
+        $tieneCvValido = \App\Models\Curriculum::where('id_usuario', $usuario->id_usuario)
+            ->where(function ($query) {
+                $query->where('generado_sistema', true)
+                    ->orWhereNotNull('ruta_archivo_pdf');
+            })
+            ->exists();
+
+        if (!$tieneCvValido) {
             return back()->withErrors([
                 'mensaje' => 'Debes crear o adjuntar tu currículum antes de postularte.'
             ]);
         }
 
+        // 🧾 Validación de request
         $request->validate([
             'mensaje' => 'nullable|string|max:1000',
         ]);
 
+        // 🔎 Validar existencia de oferta
         $oferta = Oferta::findOrFail($id_oferta);
 
+        // 🔎 Buscar postulación existente
         $postulacion = Postulacion::where('id_usuario', $usuario->id_usuario)
             ->where('id_oferta', $id_oferta)
             ->first();
 
         if ($postulacion) {
 
+            // 🔁 Reactivar si estaba cancelada
             if ($postulacion->estado_id == 5) {
-                // 🔁 REACTIVAR
                 $postulacion->update([
                     'estado_id' => 1,
                     'mensaje' => $request->mensaje,
@@ -57,6 +63,7 @@ class PostulacionController extends Controller
             }
         } else {
 
+            // 🆕 Crear nueva postulación
             Postulacion::create([
                 'id_usuario'        => $usuario->id_usuario,
                 'id_oferta'         => $id_oferta,
