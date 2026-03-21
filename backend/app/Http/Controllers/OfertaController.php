@@ -111,7 +111,10 @@ class OfertaController extends Controller
                     ? ['url' => $url]
                     : null;
             } else {
-                $oferta->empresa->usuario->fotoPerfil = null;
+                // si la empresa o el usuario no existen, evitamos acceder para prevenir el error
+                if ($oferta->empresa && $oferta->empresa->usuario) {
+                    $oferta->empresa->usuario->fotoPerfil = null;
+                }
             }
 
             return $oferta;
@@ -169,7 +172,9 @@ class OfertaController extends Controller
                 ? ['url' => $url]
                 : null;
         } else {
-            $oferta->empresa->usuario->fotoPerfil = null;
+            if ($oferta->empresa && $oferta->empresa->usuario) {
+                $oferta->empresa->usuario->fotoPerfil = null;
+            }
         }
 
 

@@ -577,7 +577,7 @@ const Registro: React.FC = () => {
                 });
             } catch (mErr) {
                 // Si el modal falla inesperadamente, logueamos y continuamos con redirección
-                // eslint-disable-next-line no-console
+                 
                 console.error('Modal alerta falló tras registro:', mErr);
             }
 
@@ -587,7 +587,7 @@ const Registro: React.FC = () => {
                 router.get("/login");
             } catch (navErr) {
                 // Fallback robusto: navegación completa
-                // eslint-disable-next-line no-console
+                 
                 console.error('Inertia navigation failed, falling back to full redirect', navErr);
                 window.location.href = '/login';
             }
@@ -617,7 +617,7 @@ const Registro: React.FC = () => {
                 // Laravel devolvió errores de validación. Aseguramos un objeto por defecto.
                 const serverErrors = error.response.data.errors || {};
                 // Log completo para debugging (Network ya lo muestra, pero útil aquí)
-                // eslint-disable-next-line no-console
+                 
                 console.warn('Registro: errores del servidor 422', error.response.data);
                 setErrors(serverErrors);
                 // Mostrar el primer error en modal para feedback inmediato

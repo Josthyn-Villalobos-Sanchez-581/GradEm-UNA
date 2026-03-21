@@ -2,6 +2,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import axios from "axios";
+import { router } from "@inertiajs/react";
 import SystemInfoModal from "@/components/SystemInfoModal";
 import { useModal } from "@/hooks/useModal";
 import {
@@ -111,24 +112,15 @@ export default function PpLayout({
 
     if (!confirmar) return;
 
-    try {
-      const csrf = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-
-      const r = await axios.post(
-        "/logout",
-        {},
-        { headers: { "X-CSRF-TOKEN": csrf || "" }, withCredentials: true }
-      );
-
-      if (r.data.redirect) window.location.href = r.data.redirect;
-    } catch (err) {
-      modal.alerta({
-        titulo: "Error",
-        mensaje: "No se pudo cerrar la sesión. Intente de nuevo.",
-      });
-    }
+    router.post("/logout", {}, {
+      onSuccess: () => router.visit("/login"),
+      onError: () => {
+        modal.alerta({
+          titulo: "Error",
+          mensaje: "No se pudo cerrar la sesión. Intente de nuevo.",
+        });
+      },
+    });
   };
 
   // Abrir modal institucional
