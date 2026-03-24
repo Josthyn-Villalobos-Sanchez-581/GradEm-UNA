@@ -203,15 +203,15 @@ export default function PpLayout({
     })
     .filter(Boolean) as MenuItem[];
 
-    useEffect(() => {
-      const menuActivo = filteredMenu.find((item) =>
-        item.subMenu?.some((s) => currentUrl.startsWith(s.route!))
-      );
+  useEffect(() => {
+    const menuActivo = filteredMenu.find((item) =>
+      item.subMenu?.some((s) => currentUrl.startsWith(s.route!))
+    );
 
-      if (menuActivo) {
-        setOpenMenu(menuActivo.title);
-      }
-    }, [currentUrl]);
+    if (menuActivo) {
+      setOpenMenu(menuActivo.title);
+    }
+  }, [currentUrl]);
 
   const isPerfilActive = currentUrl.startsWith("/perfil");
 
@@ -332,11 +332,22 @@ export default function PpLayout({
         {/* MENÚ */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 px-3 py-4 flex flex-col gap-1">
           {filteredMenu.map((item, index) => {
+
+            let rutaActiva: string | null = null;
+
+            if (item.subMenu) {
+              const rutasOrdenadas = item.subMenu
+                .map(s => s.route!)
+                .sort((a, b) => b.length - a.length); // mayor longitud primero
+
+              rutaActiva = rutasOrdenadas.find(r =>
+                currentUrl === r || currentUrl.startsWith(r + "/")
+              ) || null;
+            }
+
             const Icon = item.icon ?? LayoutDashboard;
 
-            const isSubActive = item.subMenu?.some((s) =>
-              currentUrl.startsWith(s.route!)
-            );
+            const isSubActive = !!rutaActiva;
 
             const isActive =
               (item.route && currentUrl.startsWith(item.route)) || isSubActive;
@@ -415,7 +426,7 @@ export default function PpLayout({
             `}
                   >
                     {item.subMenu.map((sub) => {
-                      const isSubItemActive = currentUrl.startsWith(sub.route!);
+                      const isSubItemActive = sub.route === rutaActiva;
 
                       return (
                         <Link
