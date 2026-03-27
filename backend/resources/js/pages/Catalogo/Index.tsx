@@ -5,6 +5,7 @@ import { PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 
 interface Item {
@@ -92,6 +93,8 @@ export default function CatalogoIndex({
   // ========================= TABLA =========================
   const TablaCatalogo = ({
     titulo,
+    tituloSingular,
+    articulo,
     nombreCampo,
     endpoint,
     data,
@@ -99,6 +102,8 @@ export default function CatalogoIndex({
     relacionesSelect = [] as { name: string; label: string; options: Item[] }[],
   }: {
     titulo: string;
+    tituloSingular: string;
+    articulo: "el" | "la";
     nombreCampo: string;
     endpoint: string;
     data: Item[];
@@ -144,7 +149,7 @@ export default function CatalogoIndex({
       if (!formValues[nombreCampo]?.trim()) {
         modal.alerta({
           titulo: "Error",
-          mensaje: `Debe ingresar un nombre válido para ${titulo.toLowerCase()}.`,
+          mensaje: `Debe ingresar un nombre válido para ${tituloSingular.toLowerCase()}.`,
         });
         return;
       }
@@ -163,8 +168,8 @@ export default function CatalogoIndex({
       const ok = await modal.confirmacion({
         titulo: editingItem ? "Actualizar registro" : "Agregar nuevo registro",
         mensaje: editingItem
-          ? `¿Desea actualizar este ${titulo.toLowerCase()}?`
-          : `¿Desea agregar un nuevo ${titulo.toLowerCase()}?`,
+          ? `¿Desea actualizar este ${tituloSingular.toLowerCase()}?`
+          : `¿Desea agregar un nuevo ${tituloSingular.toLowerCase()}?`,
       });
       if (!ok) return;
 
@@ -220,6 +225,8 @@ export default function CatalogoIndex({
       });
     };
 
+    const getArticulo = () => (articulo === "el" ? "del" : "de la");
+
     // ========================= RENDER TABLA =========================
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4">
@@ -242,14 +249,12 @@ export default function CatalogoIndex({
               <div>
                 <label className="block text-gray-700 font-medium mb-1">
                   {editingItem
-                    ? `Editar ${titulo.slice(0, -1)}`
-                    : `Agregar nuevo ${titulo.slice(0, -1)}`}
+                    ? `Editar ${tituloSingular}`
+                    : `Agregar nuevo ${tituloSingular}`}
                 </label>
                 <input
                   type="text"
-                  placeholder={`Nombre del ${titulo
-                    .toLowerCase()
-                    .slice(0, -1)}`}
+                  placeholder={`Nombre ${getArticulo()} ${tituloSingular.toLowerCase()}`}
                   value={formValues[nombreCampo] || ""}
                   onChange={(e) => handleChange(nombreCampo, e.target.value)}
                   className="border border-gray-300 px-4 py-2 rounded-lg w-72 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
@@ -313,23 +318,31 @@ export default function CatalogoIndex({
 
             {/* Buscador */}
             <div className="flex justify-between items-center flex-wrap gap-4">
-              <input
-                type="text"
-                placeholder={`🔍 Buscar ${titulo.toLowerCase()}...`}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="border border-gray-300 px-4 py-2 rounded-lg w-64 shadow-sm focus:ring-2 focus:ring-[#034991]"
-              />
+
+              {/* Input con ícono */}
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+
+                <input
+                  type="text"
+                  placeholder={`Buscar ${titulo.toLowerCase()}...`}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-10 border border-gray-300 px-4 py-2 rounded-lg w-64 shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
+                />
+              </div>
+
+              {/* Select de paginación */}
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setPage(1);
                 }}
-                className="border border-gray-300 px-3 py-2 rounded-lg shadow-sm"
+                className="border border-gray-300 px-3 py-2 rounded-lg shadow-sm focus:ring-2 focus:ring-[#034991] focus:outline-none"
               >
                 {[5, 10, 20, 50].map((n) => (
                   <option key={n} value={n}>
@@ -571,14 +584,19 @@ export default function CatalogoIndex({
         {sections.includes("paises") && (
           <TablaCatalogo
             titulo="Países"
+            tituloSingular="País"
+            articulo="el"
             nombreCampo="nombre"
             endpoint="paises"
             data={paises}
           />
         )}
+
         {sections.includes("provincias") && (
           <TablaCatalogo
             titulo="Provincias"
+            tituloSingular="Provincia"
+            articulo="la"
             nombreCampo="nombre"
             endpoint="provincias"
             data={provincias}
@@ -587,9 +605,12 @@ export default function CatalogoIndex({
             ]}
           />
         )}
+
         {sections.includes("cantones") && (
           <TablaCatalogo
             titulo="Cantones"
+            tituloSingular="Cantón"
+            articulo="el"
             nombreCampo="nombre"
             endpoint="cantones"
             data={cantones}
@@ -598,18 +619,24 @@ export default function CatalogoIndex({
             ]}
           />
         )}
+
         {sections.includes("universidades") && (
           <TablaCatalogo
             titulo="Universidades"
+            tituloSingular="Universidad"
+            articulo="la"
             nombreCampo="nombre"
             endpoint="universidades"
             data={universidades}
             camposAdicionales={[{ name: "sigla", label: "Sigla" }]}
           />
         )}
+
         {sections.includes("carreras") && (
           <TablaCatalogo
             titulo="Carreras"
+            tituloSingular="Carrera"
+            articulo="la"
             nombreCampo="nombre"
             endpoint="carreras"
             data={carreras}
@@ -618,33 +645,45 @@ export default function CatalogoIndex({
             ]}
           />
         )}
+
         {sections.includes("estados") && (
           <TablaCatalogo
             titulo="Estados"
+            tituloSingular="Estado"
+            articulo="el"
             nombreCampo="nombre_estado"
             endpoint="estados"
             data={estados}
           />
         )}
+
         {sections.includes("modalidades") && (
           <TablaCatalogo
             titulo="Modalidades"
+            tituloSingular="Modalidad"
+            articulo="la"
             nombreCampo="nombre"
             endpoint="modalidades"
             data={modalidades}
           />
         )}
+
         {sections.includes("idiomas") && (
           <TablaCatalogo
             titulo="Idiomas"
+            tituloSingular="Idioma"
+            articulo="el"
             nombreCampo="nombre"
             endpoint="idiomas"
             data={idiomas}
           />
         )}
+
         {sections.includes("areas_laborales") && (
           <TablaCatalogo
             titulo="Áreas Laborales"
+            tituloSingular="Área Laboral"
+            articulo="el"
             nombreCampo="nombre"
             endpoint="areas_laborales"
             data={areas_laborales}
