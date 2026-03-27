@@ -308,6 +308,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
             ->name('cursos.publicar');
 
+        Route::get('/{idCurso}/inscritos', [CursoController::class, 'inscritos'])
+            ->name('cursos.inscritos');
+
         // Correo masivo manual a inscritos
         Route::post(
             '/notificaciones/cursos/correo-masivo',

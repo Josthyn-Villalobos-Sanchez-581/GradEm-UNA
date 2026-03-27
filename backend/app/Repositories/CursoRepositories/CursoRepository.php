@@ -103,8 +103,19 @@ class CursoRepository
     {
         return DB::table('inscripciones_curso')
             ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_curso.id_usuario')
+            ->leftJoin('universidades', 'universidades.id_universidad', '=', 'usuarios.id_universidad')
+            ->leftJoin('carreras', 'carreras.id_carrera', '=', 'usuarios.id_carrera')
             ->where('inscripciones_curso.id_curso', $idCurso)
-            ->select('usuarios.correo')
+            ->select(
+                'usuarios.id_usuario',
+                'usuarios.nombre_completo',
+                'usuarios.correo',
+                'usuarios.identificacion',
+                'usuarios.telefono',
+                'universidades.nombre as universidad',
+                'carreras.nombre as carrera'
+            )
+            ->orderBy('usuarios.nombre_completo')
             ->get();
     }
 
