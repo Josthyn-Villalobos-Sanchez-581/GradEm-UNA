@@ -32,6 +32,7 @@ use App\Http\Controllers\ReportesOfertasController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\NotificacionCursoController;
 use App\Http\Controllers\CursoController;
+use App\Http\Controllers\CursoInscripcionController;
 use App\Http\Controllers\InscripcionCursoController;
 
 
@@ -290,13 +291,10 @@ Route::middleware('auth')->group(function () {
     // 8 - Gestión de Cursos / 9 - Inscripción (vista compartida)
     // ==========================================
 
-    // Vista de cursos: accesible tanto al que gestiona (8) como al que se inscribe (9)
-    Route::middleware(['auth'])->prefix('cursos')->group(function () {
+    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
+
         Route::get('/', [CursoController::class, 'index'])
             ->name('cursos.index');
-    });
-
-    Route::middleware(['auth', 'permiso:8'])->prefix('cursos')->group(function () {
 
         Route::post('/', [CursoController::class, 'store'])
             ->name('cursos.store');
@@ -309,6 +307,9 @@ Route::middleware('auth')->group(function () {
 
         Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
             ->name('cursos.publicar');
+
+        Route::get('/{idCurso}/inscritos', [CursoController::class, 'inscritos'])
+            ->name('cursos.inscritos');
 
         // Correo masivo manual a inscritos
         Route::post(
@@ -333,6 +334,9 @@ Route::middleware('auth')->group(function () {
     // 9 - Inscripción a Cursos (HU-29)
     // ==========================================
     Route::middleware(['auth', 'permiso:9'])->prefix('cursos')->group(function () {
+
+        Route::get('/inscripcion', [CursoInscripcionController::class, 'index'])
+            ->name('cursos.inscripcion.index');
 
         Route::post('/{idCurso}/inscribirse', [InscripcionCursoController::class, 'store'])
             ->name('cursos.inscribirse');

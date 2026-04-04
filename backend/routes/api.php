@@ -13,7 +13,7 @@ Route::prefix('auth')->group(function () {
     // Ruta para registrar un nuevo usuario
     Route::post('registrar', [AuthController::class, 'registrar']);
     // Ruta para iniciar sesión
-    Route::post('login',     [AuthController::class, 'iniciarSesion']);
+    Route::post('login',     [AuthController::class, 'login']);
 });
 
 // Rutas RESTful para el recurso 'usuarios'

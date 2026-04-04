@@ -1635,7 +1635,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   }}
                   className="text-sm"
                 >
-                  + Agregar Certificación
+                  Agregar
                 </Button>
               </div>
 
@@ -1855,7 +1855,7 @@ export default function Frt_FormularioGeneracionCurriculum() {
                   }}
                   className="text-sm"
                 >
-                  + Agregar Idioma
+                  Agregar
                 </Button>
               </div>
 
@@ -1935,11 +1935,11 @@ export default function Frt_FormularioGeneracionCurriculum() {
             </Button>
           ) : (
             <Button
-              variant="destructive"
+              variant="default"
               onClick={generar}
               disabled={botonGenerarDeshabilitado}
               title={! formularioCompleto ? "Completa las habilidades e idiomas agregados." : undefined}
-              className="bg-[#CD1719] hover:bg-[#A01315]"
+              className="bg-[#034991] hover:bg-[#023970]"
             >
               {cargando ? "Generando..." : "Generar y Descargar"}
             </Button>

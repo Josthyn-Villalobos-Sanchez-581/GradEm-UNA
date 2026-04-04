@@ -63,6 +63,33 @@ class CursoController extends Controller
         ]);
     }
 
+    public function inscritos(int $idCurso)
+    {
+        $curso = $this->service->obtenerCursoPorId($idCurso);
+
+        if (!$curso) {
+            abort(404, 'Curso no encontrado');
+        }
+
+        $usuario = Auth::user();
+
+        $permisos = $usuario
+            ? DB::table('roles_permisos')
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray()
+            : [];
+
+        $inscritos = $this->service->obtenerInscritosCurso($idCurso);
+
+        return Inertia::render('Cursos/GestionInscritos', [
+            'curso' => $curso->load('modalidad'),
+            'inscritos' => $inscritos,
+            'inscritosCount' => $inscritos->count(),
+            'userPermisos' => $permisos,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $anioAnterior = now()->subYear()->year;

@@ -4,9 +4,9 @@ namespace App\Services;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Spatie\Browsershot\Browsershot;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log; // NUEVO
 use App\Models\Usuario;
 
@@ -61,16 +61,40 @@ class ServicioPlantillaCurriculum
             'datos' => $payload
         ])->render();
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
+        try {
+            // Motor principal: Chromium para que el PDF se vea como la vista previa web.
+            $contenidoPdf = Browsershot::html($html)
+                ->format('A4')
+                ->margins(10, 10, 10, 10)
+                ->showBackground()
+                ->waitUntilNetworkIdle()
+                ->setOption('printBackground', true)
+                ->setOption('preferCSSPageSize', true)
+                ->setNodeBinary('node')
+                ->setNpmBinary('npm')
+                ->setNodeModulePath(base_path('node_modules'))
+                ->noSandbox()
+                ->pdf();
 
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+            Log::info('[CV] PDF generado con Chromium/Browsershot');
+        } catch (\Throwable $e) {
+            // Fallback para no romper generación en entornos sin Chromium.
+            Log::warning('[CV] Browsershot falló, usando Dompdf como respaldo', [
+                'error' => $e->getMessage(),
+            ]);
 
-        $contenidoPdf = $dompdf->output();
+            $options = new Options();
+            $options->set('isRemoteEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $contenidoPdf = $dompdf->output();
+        }
+
         $nombreArchivo = 'curriculum_' . ($payload['usuarioId'] ?? 'anon') . '_' . time() . '.pdf';
         $rutaArchivo = 'curriculums/' . $nombreArchivo;
 

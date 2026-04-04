@@ -37,6 +37,14 @@ class CursoService
     }
 
     /**
+     * Obtener inscritos por curso
+     */
+    public function obtenerInscritosCurso(int $idCurso)
+    {
+        return $this->cursoRepository->obtenerInscritosCurso($idCurso);
+    }
+
+    /**
      * Obtener modalidades
      */
     public function obtenerModalidades()
