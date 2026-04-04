@@ -38,7 +38,7 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'tipoCuenta' => ['required', 'string'],
             'numeroIdentificacion' => ['required', 'string', 'max:255'],
-            'telefono' => ['nullable', 'string', 'max:255'],
+            'telefono' => ['nullable', 'regex:/^[68][0-9]{7}$/'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'fechaNacimiento' => ['nullable', 'date'],
             'genero' => ['nullable', 'string'],
@@ -79,6 +79,11 @@ class RegisteredUserController extends Controller
         
         // Autenticar al usuario y redirigir
         Auth::login($usuario);
+
+        // Redirección después de registro
+        if ($request->filled('redirect')) {
+            return redirect()->to($request->redirect);
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

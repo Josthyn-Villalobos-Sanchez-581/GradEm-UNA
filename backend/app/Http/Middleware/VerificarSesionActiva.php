@@ -48,10 +48,11 @@ class VerificarSesionActiva
             }
 
             /** @var \App\Models\Usuario $usuario */
-            $usuario->forceFill([
-                'sesion_activa' => true,
-                'ultima_actividad' => now(),
-            ])->saveQuietly();
+            if (!$usuario->ultima_actividad || $usuario->ultima_actividad->diffInSeconds(now()) > 30) {
+                $usuario->forceFill([
+                    'ultima_actividad' => now(),
+                ])->saveQuietly();
+            }
         }
 
         return $next($request);

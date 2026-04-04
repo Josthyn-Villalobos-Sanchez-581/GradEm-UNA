@@ -288,14 +288,29 @@ class AuthService
 
     private function loginCorrecto(Usuario $usuario, Credencial $credencial, array $estadoIds, bool $force)
     {
-        $sessionLifetime = (int)config('session.lifetime', 120);
-        $ultima = $usuario->ultima_actividad
-            ? Carbon::parse($usuario->ultima_actividad)
-            : null;
+        $sessionLifetime = (int) config('session.lifetime', 120);
 
-        $sessionFresh = $usuario->sesion_activa
-            && $ultima instanceof Carbon
-            && $ultima->greaterThan(now()->subMinutes($sessionLifetime));
+        $sessionFresh = false;
+
+        if ($usuario->sesion_activa && $credencial->session_token) {
+
+            $ultima = $usuario->ultima_actividad
+                ? Carbon::parse($usuario->ultima_actividad)
+                : null;
+
+            if (
+                $ultima instanceof Carbon &&
+                $ultima->greaterThan(now()->subMinutes($sessionLifetime))
+            ) {
+                $sessionFresh = true;
+            }
+        }
+
+        // limpiar sesión zombie
+        if ($usuario->sesion_activa && !$credencial->session_token) {
+            $usuario->sesion_activa = false;
+            $this->repository->guardarUsuario($usuario);
+        }
 
         if ($sessionFresh && !$force) {
             return response()->json([
@@ -308,27 +323,27 @@ class AuthService
             $this->invalidateStoredSession($usuario, $credencial);
         }
 
-        // Crear token
         $token = bin2hex(random_bytes(32));
 
-        // Reset credencial
         $credencial->intentos_fallidos = 0;
         $credencial->session_token = $token;
         $credencial->fecha_ultimo_login = now();
+
         $this->repository->guardarCredencial($credencial);
         $this->repository->limpiarIntentosCorreo($usuario->correo);
 
-
-        // Activar usuario
         $usuario->estado_id = $estadoIds['activo'] ?? $usuario->estado_id;
         $usuario->sesion_activa = true;
         $usuario->ultima_actividad = now();
+
         $this->repository->guardarUsuario($usuario);
 
-        Auth::login($usuario);
+        // 🔑 ORDEN CORRECTO
+        session()->regenerate();
+
+        Auth::guard('web')->login($usuario);
 
         session()->put('session_token', $token);
-        session()->regenerate();
 
         return response()->json([
             'redirect' => route('dashboard')

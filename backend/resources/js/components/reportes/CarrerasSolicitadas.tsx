@@ -7,7 +7,25 @@ interface Props {
 export default function CarrerasSolicitadas({ carreras }: Props) {
   return (
     <div className="bg-white rounded-xl shadow p-6 min-h-[420px] h-full flex flex-col">
-      <h3 className="font-semibold mb-4 text-black">Carreras más solicitadas</h3>
+      <h3 className="font-semibold mb-4 text-black flex items-center gap-2">
+        Carreras más solicitadas
+        <span
+          className="
+            inline-flex items-center justify-center
+            w-4 h-4
+            rounded-full
+            border border-gray-400
+            text-[10px] font-bold
+            text-gray-600
+            cursor-help
+            hover:bg-gray-100
+            transition
+          "
+          title="Para esta tabla deben ingresarse en los filtros la fecha inicio y fecha fin para que se muestren las vacantes y tendencia en ese lapso de tiempo."
+        >
+          !
+        </span>
+      </h3>
 
       <div className="flex-1 w-full overflow-hidden">
         {!carreras || carreras.length === 0 ? (

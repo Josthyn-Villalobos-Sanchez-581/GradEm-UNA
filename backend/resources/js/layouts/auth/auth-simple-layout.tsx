@@ -1,7 +1,7 @@
+import React, { useEffect, type PropsWithChildren } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/react';
-import { type PropsWithChildren } from 'react';
 
 interface AuthLayoutProps {
     name?: string;
@@ -10,6 +10,14 @@ interface AuthLayoutProps {
 }
 
 export default function AuthSimpleLayout({ children, title, description }: PropsWithChildren<AuthLayoutProps>) {
+    // ensure axios sends cookies even on auth pages (login/register)
+    React.useEffect(() => {
+        import('axios').then(({ default: axios }) => {
+            axios.defaults.withCredentials = true;
+            axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        });
+    }, []);
+
     return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
             <div className="w-full max-w-sm">
