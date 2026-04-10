@@ -40,23 +40,23 @@ export default function GraficoPie({ datos }: Props) {
   });
 
   const formatter: TooltipProps<number, string>["formatter"] = (
-  value,
-  name,
-  props
-) => {
-  const numero = value ?? 0;
-
-  const porcentaje = props?.payload?.porcentaje
-    ? props.payload.porcentaje.toFixed(1)
-    : "0";
-
-  return [
-    modoValor === "numero"
-      ? `${numero} egresados`
-      : `${porcentaje}%`,
+    value,
     name,
-  ];
-};
+    props
+  ) => {
+    const numero = value ?? 0;
+
+    const porcentaje = props?.payload?.porcentaje
+      ? props.payload.porcentaje.toFixed(1)
+      : "0";
+
+    return [
+      modoValor === "numero"
+        ? `${numero} egresados`
+        : `${porcentaje}%`,
+      name,
+    ];
+  };
 
   const colores = PALETAS_PIE[paletaActiva] || PALETAS_PIE.institucional;
 
@@ -136,9 +136,6 @@ export default function GraficoPie({ datos }: Props) {
 
           {/* SELECTOR DE PALETA */}
           <div className="flex gap-2 mt-2">
-            <span className="text-sm font-medium text-gray-700">
-              Colores:
-            </span>
 
             {Object.keys(PALETAS_PIE).map((key) => (
               <button
@@ -172,14 +169,11 @@ export default function GraficoPie({ datos }: Props) {
             localStorage.setItem("graficoPieModo", nuevo);
           }}
           className="
-            px-3 py-2 sm:px-4
+            px-4 py-2 
             rounded-full border
-            text-xs sm:text-sm
-            font-medium
+            text-sm font-medium
             bg-gray-100 hover:bg-gray-200
             transition
-            whitespace-nowrap
-            self-start sm:self-auto
           "
         >
           {modoValor === "porcentaje"
