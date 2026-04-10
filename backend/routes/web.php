@@ -34,6 +34,8 @@ use App\Http\Controllers\NotificacionCursoController;
 use App\Http\Controllers\CursoController;
 use App\Http\Controllers\CursoInscripcionController;
 use App\Http\Controllers\InscripcionCursoController;
+use App\Http\Controllers\BitacoraCambioController;
+
 use App\Http\Controllers\EventoController;
 
 // ==========================================
@@ -308,6 +310,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/{idCurso}/publicar', [CursoController::class, 'publicar'])
             ->name('cursos.publicar');
 
+        Route::get('/{idCurso}/inscritos', [CursoController::class, 'inscritos'])
+            ->name('cursos.inscritos');
+
         // Correo masivo manual a inscritos
         Route::post(
             '/notificaciones/cursos/correo-masivo',
@@ -527,6 +532,16 @@ Route::middleware('auth')->group(function () {
             ->name('reportes-ofertas.descargar-pdf');
     });
 
+    Route::middleware(['auth', 'permiso:16'])
+        ->prefix('auditoria')
+        ->group(function () {
+
+            Route::get('/bitacora', [BitacoraCambioController::class, 'index'])
+                ->name('auditoria.bitacora.index');
+
+            Route::get('/bitacora/pdf', [BitacoraCambioController::class, 'descargarPdf'])
+                ->name('auditoria.bitacora.pdf');
+        });
 
     // ==========================================
     // 🚧 Pendientes (cuando estén desarrollados)
@@ -538,7 +553,6 @@ Route::middleware('auth')->group(function () {
     // 13 - Gestión de Catálogos
     // 14 - Reportes de Egresados
     // 15 - Reportes de Ofertas y Postulaciones
-    // 16 - Gestión de Auditoría/Bitácora
     // 17 - Integraciones externas
 });
 

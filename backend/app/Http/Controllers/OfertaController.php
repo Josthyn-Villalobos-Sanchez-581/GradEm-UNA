@@ -13,6 +13,7 @@ use App\Models\Carrera;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Models\Curriculum;
 
 class OfertaController extends Controller
 {
@@ -177,10 +178,21 @@ class OfertaController extends Controller
             }
         }
 
+        $tieneCvValido = false;
+
+        if ($usuario) {
+            $tieneCvValido = Curriculum::where('id_usuario', $usuario->id_usuario)
+                ->where(function ($query) {
+                    $query->where('generado_sistema', true)
+                        ->orWhereNotNull('ruta_archivo_pdf');
+                })
+                ->exists();
+        }
 
         return Inertia::render('Ofertas/OfertaDetallePagina', [
             'oferta'       => $oferta,
             'yaPostulado'  => $yaPostulado,
+            'tieneCV'      => $tieneCvValido,
             'userPermisos' => getUserPermisos(),
         ]);
     }

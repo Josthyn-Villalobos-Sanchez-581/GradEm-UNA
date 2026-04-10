@@ -192,7 +192,6 @@ export default function Dashboard() {
 Dashboard.layout = (page: any) => (
   <PpLayout 
     userPermisos={page.props.userPermisos}
-    breadcrumbs={[{ title: "Panel Principal", href: "/dashboard" }]}
   >
     {page}
   </PpLayout>

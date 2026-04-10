@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Head, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap } from "lucide-react";
+import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap, Filter, FilterX } from "lucide-react";
 
 /* =======================
    Tipos
@@ -235,6 +235,10 @@ export default function CursosIndex(props: Props) {
     setDetalleCurso(curso);
     // Mantiene la lista en background y abre el overlay modal
     setView("list");
+  };
+
+  const verInscritos = (curso: Curso) => {
+    router.visit(route("cursos.inscritos", { idCurso: curso.id_curso }));
   };
 
   const cerrarDetalleCurso = () => {
@@ -469,41 +473,69 @@ export default function CursosIndex(props: Props) {
       <Head title="Gestión de Cursos" />
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-[#034991]">
-                  {view === "list" ? "Gestión de Cursos" : 
-                  formMode === 'create' ? 'Registrar Curso' : 'Editar Curso'}
-                </h1>
-                <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-                  {view === "list" 
-                    ? "Administra los cursos, publica, edita y consulta información rápidamente."
-                    : formMode === 'create'
-                      ? "Crea un nuevo curso completando los campos del formulario."
-                      : `Actualiza la información y fechas del curso: ${formCurso.titulo || ''}`}
-                </p>
-              </div>
-              {view === "list" && puedeGestionar && (
-                <Button onClick={() => abrirFormularioCurso("create")}>
-                  <Plus className="w-4 h-4 mr-2" /> Registrar curso
-                </Button>
-              )}
-              {view === "form" && (
-                  <Button 
-                      asChild 
-                      variant="secondary" 
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
-                  >
-                      <button onClick={cerrarFormularioCurso}>
-                          <ArrowLeft className="w-4 h-4 mr-2" /> Volver
-                      </button>
-                  </Button>
-              )}
-            </div>
+        {/* ENCABEZADO: Título y Acciones */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-[#034991]">
+              {view === "list" ? "Gestión de Cursos" : 
+              formMode === 'create' ? 'Registrar Curso' : 'Editar Curso'}
+            </h1>
+            <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+              {view === "list" 
+                ? "Administra los cursos, publica, edita y consulta información rápidamente."
+                : formMode === 'create'
+                  ? "Crea un nuevo curso completando los campos del formulario."
+                  : `Actualiza la información y fechas del curso: ${formCurso.titulo || ''}`}
+            </p>
+          </div>
 
-            {view === "list" && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <aside className="lg:col-span-3">
+          {/* Contenedor de acciones a la derecha */}
+            <div className="flex items-center gap-3">
+              {view === "list" && puedeGestionar && (
+                <>
+                  {/* Botón de Filtros - Ajustado a h-10 y rounded-full */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] h-10 px-5 text-md font-semibold transition-all"
+                    onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                  >
+                    {mostrarFiltros ? (
+                      <><FilterX className="w-4 h-4 mr-2" /> Ocultar filtros</>
+                    ) : (
+                      <><Filter className="w-4 h-4 mr-2" /> Mostrar filtros</>
+                    )}
+                  </Button>
+
+                  {/* Botón Registrar - Ajustado a h-10 y rounded-full */}
+                  <Button 
+                    onClick={() => abrirFormularioCurso("create")}
+                    className="bg-[#034991] hover:bg-[#023165] text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Registrar curso
+                  </Button>
+                </>
+              )}
+
+            {view === "form" && (
+              <Button 
+                variant="secondary" 
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
+                onClick={cerrarFormularioCurso}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* VISTA DE LISTADO CON GRID DINÁMICO */}
+        {view === "list" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* ASIDE: Solo se renderiza si mostrarFiltros es true */}
+            {mostrarFiltros && (
+              <aside className="lg:col-span-3 transition-all duration-300">
                 <div className="sticky top-6">
                   <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-3">
                     <h2 className="text-lg font-semibold text-[#034991] border-b pb-2">
@@ -533,7 +565,7 @@ export default function CursosIndex(props: Props) {
                             setFiltroModalidad(e.target.value);
                             setPaginaActual(1);
                           }}
-                          className="bg-white text-black placeholder-gray-500 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="bg-white text-black border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="todos">Todas las modalidades</option>
                           {(props.modalidades ?? []).map((m) => (
@@ -552,7 +584,7 @@ export default function CursosIndex(props: Props) {
                             setFiltroEstado(e.target.value);
                             setPaginaActual(1);
                           }}
-                          className="bg-white text-black placeholder-gray-500 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="bg-white text-black border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="todos">Todos</option>
                           <option value="publicado">Publicado</option>
@@ -578,7 +610,6 @@ export default function CursosIndex(props: Props) {
 
                       <div className="flex flex-col gap-2 pt-2">
                         <Button
-                          variant="default"
                           className="w-full bg-[#034991] hover:bg-[#023165] text-white font-semibold rounded-full py-2"
                           onClick={() => {}}
                         >
@@ -603,111 +634,141 @@ export default function CursosIndex(props: Props) {
                   </div>
                 </div>
               </aside>
+            )}
 
-              <main className="lg:col-span-9 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                    <div className="rounded-xl bg-blue-100 p-2 text-blue-600"><BookOpen className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Total cursos</p>
-                      <p className="text-2xl font-bold text-slate-900">{kpiTotalCursos}</p>
-                    </div>
+            {/* MAIN: Expansión dinámica de col-span-9 a col-span-12 */}
+            <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
+              
+              {/* KPIs dinámicos */}
+              <div className={`grid grid-cols-1 md:grid-cols-3 gap-3`}>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                  <div className="rounded-xl bg-blue-100 p-2 text-blue-600"><BookOpen className="w-4 h-4" /></div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Total cursos</p>
+                    <p className="text-2xl font-bold text-slate-900">{kpiTotalCursos}</p>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                    <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600"><Play className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Cursos activos</p>
-                      <p className="text-2xl font-bold text-slate-900">{kpiCursosActivos}</p>
-                    </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                  <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600"><Play className="w-4 h-4" /></div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Cursos activos</p>
+                    <p className="text-2xl font-bold text-slate-900">{kpiCursosActivos}</p>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                    <div className="rounded-xl bg-amber-100 p-2 text-amber-700"><Hourglass className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Pendientes</p>
-                      <p className="text-2xl font-bold text-slate-900">{kpiPendientes}</p>
-                    </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                  <div className="rounded-xl bg-amber-100 p-2 text-amber-700"><Hourglass className="w-4 h-4" /></div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-slate-500">Pendientes</p>
+                    <p className="text-2xl font-bold text-slate-900">{kpiPendientes}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumen de Filtros */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Filtros activos</p>
+                    <p className="text-sm font-semibold text-slate-700">Resumen rápido</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{cursosFiltrados.length} cursos</span>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      {filtroModalidad !== 'todos' ? `Modalidad: ${props.modalidades.find(m=>String(m.id_modalidad)===filtroModalidad)?.nombre ?? 'Todas'}` : 'Modalidad: Todas'}
+                    </span>
+                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                      {filtroEstado === 'publicado' ? 'Publicado' : filtroEstado === 'borrador' ? 'Borrador' : 'Todos'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-2xl p-4">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Filtros activos</p>
-                      <p className="text-sm font-semibold text-slate-700">Resumen rápido</p>
+                <div className="space-y-3">
+                  {cursosPaginados.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+                      No se encontraron cursos con los filtros seleccionados.
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{cursosFiltrados.length} cursos</span>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{filtroModalidad !== 'todos' ? `Modalidad: ${props.modalidades.find(m=>String(m.id_modalidad)===filtroModalidad)?.nombre ?? 'Todas'}` : 'Modalidad: Todas'}</span>
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">{filtroEstado === 'publicado' ? 'Publicado' : filtroEstado === 'borrador' ? 'Borrador' : 'Todos'}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {cursosPaginados.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-                        No se encontraron cursos con los filtros seleccionados.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {cursosPaginados.map((curso) => (
-                          <div key={curso.id_curso} className="border rounded-2xl p-4 shadow-sm hover:shadow-md transition bg-white">
+                  ) : (
+                    /* GRID DE TARJETAS: md:grid-cols-2 por defecto, md:grid-cols-3 si no hay filtros */
+                    <div className={`grid grid-cols-1 ${mostrarFiltros ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"} gap-3`}>
+                      {cursosPaginados.map((curso) => (
+                        <div key={curso.id_curso} className="border rounded-2xl p-4 shadow-sm hover:shadow-md transition bg-white flex flex-col justify-between">
+                          <div>
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <p className="text-lg font-semibold text-slate-900">{curso.titulo}</p>
-                                <p className="text-sm text-slate-500 mt-1">{displayValue(curso.descripcion)}</p>
+                                <p
+                                  className="text-lg font-semibold text-slate-900 line-clamp-1 cursor-pointer hover:text-blue-600"
+                                  onClick={() => verInscritos(curso)}
+                                  title="Ver inscritos"
+                                >
+                                  {curso.titulo}
+                                </p>
+                                <p className="text-sm text-slate-500 mt-1 line-clamp-2">{displayValue(curso.descripcion)}</p>
                               </div>
-                              <span className={`text-xs font-semibold px-2 py-1 rounded ${curso.estado_id === 1 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${curso.estado_id === 1 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
                                 {curso.estado_id === 1 ? "Publicado" : "Borrador"}
                               </span>
                             </div>
 
-                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Modalidad:</span> {displayValue(curso.modalidad?.nombre)}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Instructor:</span> {displayValue(curso.nombreInstructor)}</div>
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Mod:</span> {displayValue(curso.modalidad?.nombre)}</div>
+                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inst:</span> {displayValue(curso.nombreInstructor)}</div>
                               <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inicio:</span> {curso.fecha_inicio ?? "NA"}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Límite inscrip:</span> {curso.fecha_limite_inscripcion ?? "NA"}</div>
-                            </div>
-
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => abrirDetalleCurso(curso)}>
-                                <Eye className="w-3 h-3 mr-1" /> Ver detalle
-                              </Button>
-                              {puedeGestionar && curso.estado_id !== 1 && (
-                                <Button variant="outline" size="sm" onClick={() => publicarCurso(curso)}>
-                                  Publicar
-                                </Button>
-                              )}
-                              {puedeGestionar && (
-                                <Button variant="outline" size="sm" onClick={() => editarCurso(curso)}>
-                                  <Edit3 className="w-3 h-3 mr-1" /> Editar
-                                </Button>
-                              )}
-                              {puedeGestionar && (
-                                <Button variant="destructive" size="sm" onClick={() => eliminarCurso(curso)}>
-                                  <Trash2 className="w-3 h-3 mr-1" /> Eliminar
-                                </Button>
-                              )}
+                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Límite:</span> {curso.fecha_limite_inscripcion ?? "NA"}</div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between text-slate-500 text-sm">
-                  <div>Mostrando {cursosPaginados.length} de {cursosFiltrados.length} cursos</div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</Button>
-                    <div className="flex items-center gap-1">
-                      Página {paginaActual} / {totalPaginas || 1}
+                          <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
+                            {/* Botón Inscritos: Solo visible si el curso está publicado (estado_id === 1) */}
+                              {curso.estado_id === 1 && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 text-xs text-[#034991] hover:bg-blue-50" 
+                                  onClick={() => verInscritos(curso)}
+                                >
+                                  <User className="w-3 h-3 mr-1" /> Inscritos
+                                </Button>
+                              )}
+                            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => abrirDetalleCurso(curso)}>
+                              <Eye className="w-3 h-3 mr-1" /> Detalle
+                            </Button>
+                            {puedeGestionar && curso.estado_id !== 1 && (
+                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => publicarCurso(curso)}>
+                                Publicar
+                              </Button>
+                            )}
+                            {puedeGestionar && (
+                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => editarCurso(curso)}>
+                                <Edit3 className="w-3 h-3 mr-1" /> Editar
+                              </Button>
+                            )}
+                            {puedeGestionar && (
+                              <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={() => eliminarCurso(curso)}>
+                                <Trash2 className="w-3 h-3 mr-1" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <Button size="sm" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas || totalPaginas === 0}>Siguiente</Button>
-                  </div>
+                  )}
                 </div>
-              </main>
-            </div>
-          )}
+              </div>
+
+              {/* Paginación */}
+              <div className="flex items-center justify-between text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div>Mostrando {cursosPaginados.length} de {cursosFiltrados.length} cursos</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</Button>
+                  <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
+                    {paginaActual} / {totalPaginas || 1}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas || totalPaginas === 0}>Siguiente</Button>
+                </div>
+              </div>
+            </main>
+          </div>
+        )}
       </div>
 
       {view === "form" && (
