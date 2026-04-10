@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-
+import { Trash2 } from "lucide-react"; 
 //backend/resources/js/components/modal/ModalBase.tsx
 type TipoModal = "alerta" | "confirmacion" | "personalizado";
 
@@ -97,14 +97,16 @@ export default function ModalBase({
               {textoCancelar}
             </Button>
           )}
-          <Button
-            variant="default" //botón principal institucional
-            onClick={onAceptar}
-            ref={btnAceptarRef}
-            size="default"
-          >
-            {textoAceptar}
-          </Button>
+         {textoAceptar !== "" && (
+  <Button
+    variant="default"
+    onClick={onAceptar}
+    ref={btnAceptarRef}
+    size="default"
+  >
+    {textoAceptar}
+  </Button>
+)}
         </footer>
       </div>
     </div>

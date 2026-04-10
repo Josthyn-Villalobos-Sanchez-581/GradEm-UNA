@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\CursoCanceladoMail;
 use App\Mail\CursoActualizadoMail;
 use App\Models\Curso;
-
+use Barryvdh\DomPDF\Facade\Pdf; 
 class CursoService
 {
     protected $cursoRepository;
@@ -250,4 +250,65 @@ class CursoService
             throw $e;
         }
     }
+
+// Método para generar PDF de inscritos o asistencias
+    public function generarPdfCurso(int $idCurso, string $tipo)
+{
+    $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
+
+    if (!$curso) {
+        throw new \Exception('Curso no encontrado.');
+    }
+
+    $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
+
+    if ($tipo === 'participantes') {
+        $pdf = Pdf::loadView('pdf.curso-inscritos', [
+            'curso' => $curso,
+            'inscritos' => $inscritos,
+        ]);
+
+        return $pdf->download('Participantes_'.$curso->titulo.'.pdf');
+    }
+
+    if ($tipo === 'asistencia') {
+        $pdf = Pdf::loadView('pdf.curso-asistencia', [
+            'curso' => $curso,
+            'inscritos' => $inscritos,
+        ]);
+
+        return $pdf->download('Asistencia_'.$curso->titulo.'.pdf');
+    }
+
+    throw new \Exception('Tipo de PDF inválido.');
+}
+
+public function eliminarInscripcionCurso(int $idCurso, int $idUsuario): void
+{
+    DB::beginTransaction();
+
+    try {
+        $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
+
+        if (!$curso) {
+            throw new \Exception('Curso no encontrado.');
+        }
+
+        $eliminado = $this->cursoRepository->eliminarInscripcionCurso(
+            $idCurso,
+            $idUsuario
+        );
+
+        if (!$eliminado) {
+            throw new \Exception('La inscripción no existe.');
+        }
+
+        DB::commit();
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        throw $e;
+    }
+}
+
 }

@@ -1,11 +1,14 @@
+// backend/resources/js/pages/Cursos/GestionInscritos.tsx
 import React, { useMemo, useState } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { route } from "ziggy-js";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {GraduationCap} from "lucide-react";
-
+import axios from "axios";
+import { useModal } from "@/hooks/useModal";
+import { Download, Loader2 } from "lucide-react";
 interface Curso {
   id_curso: number;
   titulo: string;
@@ -40,7 +43,9 @@ interface Props {
 
 export default function GestionInscritos({ curso, inscritos }: Props) {
   const [busqueda, setBusqueda] = useState("");
-
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+const modal = useModal();
+const [eliminandoId, setEliminandoId] = useState<number | null>(null); 
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
 
@@ -86,6 +91,158 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
     return trimmed.length ? trimmed : "NA";
   };
 
+const descargarPdf = async (tipo: string) => {
+  if (descargandoPdf) return;
+
+  setDescargandoPdf(true);
+
+  modal.alerta({
+    titulo: "Generando PDF",
+    textoAceptar: "",
+    contenido: (
+      <div className="flex flex-col items-center gap-4 py-4">
+        <Loader2 className="w-10 h-10 animate-spin text-[#034991]" />
+        <p className="text-sm text-slate-600">
+          Estamos preparando tu archivo PDF...
+        </p>
+      </div>
+    ),
+  });
+
+  try {
+    const res = await axios.get(
+      route("cursos.pdf", {
+        idCurso: curso.id_curso,
+        tipo,
+      }),
+      {
+        responseType: "blob",
+      }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+      tipo === "participantes"
+        ? `Participantes_${curso.titulo}.pdf`
+        : `Asistencia_${curso.titulo}.pdf`;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    modal.alerta({
+      titulo: "Descarga completada",
+      mensaje: "El PDF se descargó correctamente.",
+    });
+
+  } catch {
+    modal.alerta({
+      titulo: "Error",
+      mensaje: "Ocurrió un problema al descargar el PDF.",
+    });
+  } finally {
+    setDescargandoPdf(false);
+  }
+};
+
+const confirmarEliminarInscrito = async (inscrito: Inscrito) => {
+  const confirmado = await modal.confirmacion({
+    titulo: "Eliminar inscripción",
+    mensaje: `¿Deseas eliminar a ${inscrito.nombre_completo} del curso?`,
+    textoAceptar: "Sí, eliminar",
+    textoCancelar: "Cancelar",
+  });
+
+  if (!confirmado) return;
+
+  eliminarInscrito(inscrito.id_usuario);
+};
+
+const eliminarInscrito = async (idUsuario: number) => {
+  try {
+    setEliminandoId(idUsuario);
+
+    await axios.delete(
+      route("cursos.inscritos.eliminar", {
+        idCurso: curso.id_curso,
+        idUsuario,
+      })
+    );
+
+    modal.alerta({
+      titulo: "Éxito",
+      mensaje: "Participante eliminado correctamente.",
+    });
+
+    router.reload({
+      only: ["inscritos"],
+    });
+
+  } catch {
+    modal.alerta({
+      titulo: "Error",
+      mensaje: "No se pudo eliminar al participante.",
+    });
+  } finally {
+    setEliminandoId(null);
+  }
+};
+const abrirModalPdf = () => {
+  modal.alerta({
+    titulo: "Descargar lista de participantes",
+    textoAceptar: "Cerrar",
+    contenido: (
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600">
+          Selecciona el tipo de PDF que deseas descargar.
+        </p>
+
+        <div className="flex flex-col gap-3">
+     <Button
+  className="w-full bg-[#034991] hover:bg-[#02386f]"
+  onClick={() => descargarPdf("participantes")}
+  disabled={descargandoPdf}
+>
+  {descargandoPdf ? (
+    <>
+      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      Generando PDF...
+    </>
+  ) : (
+    "Descargar Lista de Participantes"
+  )}
+</Button>
+
+      <Button
+  variant="outline"
+  className="w-full"
+  onClick={() => descargarPdf("asistencia")}
+  disabled={descargandoPdf}
+>
+  {descargandoPdf ? (
+    <>
+      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      Generando PDF...
+    </>
+  ) : (
+    "Descargar Hoja de Asistencia"
+  )}
+</Button>
+        </div>
+      </div>
+    ),
+  });
+};
+
   return (
     <>
       <Head title={`Inscritos - ${curso.titulo}`} />
@@ -109,16 +266,29 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
             </div>
           </div>
 
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={busqueda}
-              onChange={manejarCambioBusqueda}
-              placeholder="Buscar por nombre, correo, ID o carrera..."
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
-            />
-          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+  
+  <div className="relative w-full md:w-96">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+    
+    <input
+      type="text"
+      value={busqueda}
+      onChange={manejarCambioBusqueda}
+      placeholder="Buscar por nombre, correo, ID o carrera..."
+      className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+    />
+  </div>
+
+  <Button
+    onClick={abrirModalPdf}
+    className="bg-[#034991] hover:bg-[#02386f] rounded-xl"
+  >
+    <Download className="w-4 h-4 mr-2" />
+    Descargar PDF
+  </Button>
+
+</div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
@@ -206,6 +376,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Teléfono</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Universidad</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Carrera</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -224,6 +395,21 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.telefono)}</td>
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.universidad)}</td>
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.carrera)}</td>
+                          <td className="px-4 py-3 text-center">
+<Button
+  size="sm"
+  variant="ghost"
+  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+  onClick={() => confirmarEliminarInscrito(inscrito)}
+  disabled={eliminandoId === inscrito.id_usuario}
+>
+  {eliminandoId === inscrito.id_usuario ? (
+    <Loader2 className="w-4 h-4 animate-spin" />
+  ) : (
+    <Trash2 className="w-4 h-4" />
+  )}
+</Button>
+</td>
                         </tr>
                       ))
                     )}

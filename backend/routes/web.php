@@ -328,6 +328,15 @@ Route::middleware('auth')->group(function () {
             '/notificaciones/cursos/cambio-inscripcion',
             [NotificacionCursoController::class, 'notificarCambioInscripcion']
         )->name('notificaciones.cursos.cambio-inscripcion');
+// descargar pdf de inscritos o inscrito con asistencia 
+        Route::get('/{idCurso}/pdf/{tipo}', [CursoController::class, 'descargarPdf'])
+    ->name('cursos.pdf');
+
+// Eliminar inscripción de un usuario (desde gestión de inscritos)
+  Route::delete(
+    '/{idCurso}/inscritos/{idUsuario}',
+    [CursoController::class, 'eliminarInscrito']
+)->name('cursos.inscritos.eliminar');
     });
 
     // ==========================================
