@@ -145,7 +145,7 @@ export default function PpLayout({
         { title: "Usuarios", route: "/usuarios/perfiles", permisoId: 12 },
         { title: "Empresas", route: "/empresas", permisoId: 12 },
         { title: "Catálogos", route: "/catalogo", permisoId: 13 },
-        { title: "Auditoría", route: "/auditoria", permisoId: 16 },
+        { title: "Auditoría", route: "/auditoria/bitacora", permisoId: 16 },
       ],
     },
     {
