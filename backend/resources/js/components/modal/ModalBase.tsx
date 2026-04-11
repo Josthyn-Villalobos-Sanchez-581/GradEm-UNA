@@ -12,6 +12,7 @@ export type OpcionesModal = {
   textoCancelar?: string;
   contenido?: React.ReactNode;
   ariaLabel?: string;
+  onConfirm?: () => void;
 };
 
 type Props = {
