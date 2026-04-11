@@ -5,8 +5,8 @@ import {
   Pie,
   Cell,
   Tooltip,
+  TooltipProps,
 } from "recharts";
-
 interface Props {
   datos: { nombre: string; valor: number }[];
   total: number;
@@ -32,6 +32,25 @@ export default function GraficoGenero({ datos, total }: Props) {
   const [modoValor, setModoValor] = useState<"porcentaje" | "numero">(
     "porcentaje"
   );
+
+  const formatter: TooltipProps<number, string>["formatter"] = (
+  value,
+  name,
+  props
+) => {
+  const numero = value ?? 0;
+
+  const porcentaje = props?.payload?.porcentaje
+    ? props.payload.porcentaje.toFixed(1)
+    : "0";
+
+  return [
+    modoValor === "numero"
+      ? `${numero} egresados`
+      : `${porcentaje}%`,
+    name,
+  ];
+};
 
   const colores = PALETAS[paletaActiva];
 
@@ -86,7 +105,7 @@ export default function GraficoGenero({ datos, total }: Props) {
     <section className="bg-white shadow-xl rounded-2xl p-6 h-[560px] flex flex-col">
 
       {/* HEADER */}
-      <header className="mb-3 flex justify-between items-start">
+      <header className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
 
         <div>
           <h2 className="text-lg font-semibold text-[#034991]">
@@ -183,16 +202,7 @@ export default function GraficoGenero({ datos, total }: Props) {
 
               </Pie>
 
-              <Tooltip
-                formatter={(value: number, name: string, props: any) => {
-                  const porcentaje =
-                    props?.payload?.porcentaje?.toFixed(1);
-
-                  return modoValor === "numero"
-                    ? [`${value} egresados`, name]
-                    : [`${porcentaje}%`, name];
-                }}
-              />
+              <Tooltip formatter={formatter} />
 
             </PieChart>
           </ResponsiveContainer>
