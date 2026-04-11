@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CursoController extends Controller
 {
@@ -88,6 +89,24 @@ class CursoController extends Controller
             'inscritosCount' => $inscritos->count(),
             'userPermisos' => $permisos,
         ]);
+    }
+
+    public function exportarInscritosPdf(int $idCurso)
+    {
+        try {
+            return $this->service->generarPdfInscritosCurso($idCurso);
+        } catch (\Exception $e) {
+            if ($e->getMessage() === 'Curso no encontrado.') {
+                abort(404, $e->getMessage());
+            }
+
+            Log::error('Error al generar PDF de inscritos', [
+                'id_curso' => $idCurso,
+                'error' => $e->getMessage(),
+            ]);
+
+            abort(500, 'No se pudo generar el PDF de inscritos.');
+        }
     }
 
     public function store(Request $request)
