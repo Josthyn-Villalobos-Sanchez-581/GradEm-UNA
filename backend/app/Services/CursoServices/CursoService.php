@@ -7,9 +7,12 @@ use Illuminate\Support\Facades\Auth;
 use App\Repositories\CursoRepositories\CursoRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use App\Mail\CursoCanceladoMail;
 use App\Mail\CursoActualizadoMail;
+use App\Exceptions\CursoNoEncontradoException;
 use App\Models\Curso;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CursoService
 {
@@ -50,6 +53,45 @@ class CursoService
     public function obtenerModalidades()
     {
         return $this->cursoRepository->obtenerModalidades();
+    }
+
+    public function generarPdfInscritosCurso(int $idCurso)
+    {
+        $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
+
+        if (!$curso) {
+            throw new CursoNoEncontradoException();
+        }
+
+        $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
+
+        $logoSrc = null;
+        $path = public_path('logos/logo_gradem.png');
+
+        if (is_readable($path)) {
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $dataImg = file_get_contents($path);
+            $logoSrc = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
+        }
+
+        $pdf = Pdf::loadView('pdf.inscritos_curso', [
+            'curso' => $curso->load('modalidad'),
+            'inscritos' => $inscritos,
+            'logoSrc' => $logoSrc,
+            'generadoEn' => now()->format('d/m/Y H:i'),
+        ]);
+
+        $pdf->setPaper('a4', 'landscape');
+        $pdf->setOption([
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'Helvetica',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        $tituloSlug = Str::slug((string) $curso->titulo, '_');
+        $tituloSlug = $tituloSlug !== '' ? $tituloSlug : 'curso_' . $idCurso;
+
+        return $pdf->download('inscritos_' . $tituloSlug . '_' . now()->format('d_m_Y') . '.pdf');
     }
 
     public function registrarCurso(Request $request)

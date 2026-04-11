@@ -313,6 +313,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/{idCurso}/inscritos', [CursoController::class, 'inscritos'])
             ->name('cursos.inscritos');
 
+        Route::get('/{idCurso}/inscritos/descargar-pdf', [CursoController::class, 'exportarInscritosPdf'])
+            ->name('cursos.inscritos.descargar-pdf');
+
         // Correo masivo manual a inscritos
         Route::post(
             '/notificaciones/cursos/correo-masivo',
