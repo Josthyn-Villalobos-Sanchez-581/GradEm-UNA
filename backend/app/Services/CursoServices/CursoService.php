@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\CursoCanceladoMail;
 use App\Mail\CursoActualizadoMail;
+use App\Exceptions\CursoNoEncontradoException;
 use App\Models\Curso;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -59,7 +60,7 @@ class CursoService
         $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
 
         if (!$curso) {
-            throw new \Exception('Curso no encontrado.');
+            throw new CursoNoEncontradoException();
         }
 
         $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
@@ -67,7 +68,7 @@ class CursoService
         $logoSrc = null;
         $path = public_path('logos/logo_gradem.png');
 
-        if (file_exists($path) && extension_loaded('gd')) {
+        if (is_readable($path)) {
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $dataImg = file_get_contents($path);
             $logoSrc = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\CursoServices\CursoService;
+use App\Exceptions\CursoNoEncontradoException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -95,10 +96,9 @@ class CursoController extends Controller
     {
         try {
             return $this->service->generarPdfInscritosCurso($idCurso);
-        } catch (\Exception $e) {
-            if ($e->getMessage() === 'Curso no encontrado.') {
-                abort(404, $e->getMessage());
-            }
+        } catch (CursoNoEncontradoException $e) {
+            abort(404, $e->getMessage());
+        } catch (\Throwable $e) {
 
             Log::error('Error al generar PDF de inscritos', [
                 'id_curso' => $idCurso,

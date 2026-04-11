@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { route } from "ziggy-js";
@@ -113,7 +113,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
 
     if (correosInscritos.length === 0) {
       await modal.alerta({
-        titulo: "Sin correos validos",
+        titulo: "Sin correos válidos",
         mensaje: "No se encontraron correos para enviar recordatorios.",
       });
       return;
@@ -148,7 +148,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
 
       await modal.alerta({
         titulo: "Recordatorio enviado",
-        mensaje: `Se envio el recordatorio a ${correosInscritos.length} inscritos.`,
+        mensaje: `Se envió el recordatorio a ${correosInscritos.length} inscritos.`,
       });
     } catch (error: any) {
       await modal.alerta({
@@ -189,7 +189,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
             </Button>
             <Button variant="outline" onClick={() => router.visit(route("cursos.index"))}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a gestion de cursos
+              Volver a gestión de cursos
             </Button>
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                   </div>
 
                   <div className="pt-2 border-t border-blue-100/50">
-                    <p className="text-[10px] uppercase font-bold text-[#034991]/70 tracking-tight mb-1">Ocupacion de cupos</p>
+                    <p className="text-[10px] uppercase font-bold text-[#034991]/70 tracking-tight mb-1">Ocupación de cupos</p>
                     <div className="flex items-end justify-between">
                       <p className="text-sm font-semibold text-slate-800">
                         {inscritos.length} <span className="text-slate-400 font-normal">/ {curso.cupos || "∞"}</span>
@@ -272,8 +272,8 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nombre</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Correo</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Identificacion</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Telefono</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Identificación</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Teléfono</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Universidad</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Carrera</th>
                     </tr>
@@ -282,7 +282,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                     {inscritosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-slate-500 font-medium italic">
-                          No se encontraron inscritos que coincidan con la busqueda.
+                          No se encontraron inscritos que coincidan con la búsqueda.
                         </td>
                       </tr>
                     ) : (
@@ -342,14 +342,14 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
             <div className="w-full max-w-xl bg-white rounded-2xl border border-slate-200 shadow-xl p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-2">Enviar recordatorio</h2>
               <p className="text-sm text-slate-600 mb-4">
-                Se enviara a {correosInscritos.length} inscritos del curso.
+                Se enviará a {correosInscritos.length} inscritos del curso.
               </p>
 
               <label className="block text-sm font-medium text-slate-700 mb-2">Mensaje del recordatorio</label>
               <textarea
                 value={mensajeRecordatorio}
                 onChange={(e) => setMensajeRecordatorio(e.target.value.slice(0, 1000))}
-                placeholder="Escribe el mensaje que recibiran los inscritos..."
+                placeholder="Escribe el mensaje que recibirán los inscritos..."
                 className="w-full min-h-[140px] rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500/20 outline-none"
               />
               <p className="text-xs text-slate-500 mt-2">{mensajeRecordatorio.length}/1000 caracteres</p>

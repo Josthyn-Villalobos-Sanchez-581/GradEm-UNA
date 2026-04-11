@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $titulo ?? 'Notificacion de curso' }}</title>
+    <title>{{ $titulo ?? 'Notificación de curso' }}</title>
     <style>
         body {
             margin: 0;
@@ -55,7 +55,7 @@
                 {{ $titulo ?? 'Notificacion de curso' }}
             </div>
             <div class="content">
-                {!! $mensaje ?? '' !!}
+                {!! nl2br(e($mensaje ?? '')) !!}
             </div>
             <div class="footer">
                 GradEm UNA
