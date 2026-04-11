@@ -6,6 +6,7 @@ import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
 import {
+  User,
   Calendar,
   MapPin,
   Eye,
@@ -15,6 +16,7 @@ import {
   Edit3,
   Search,
   Filter,
+  FilterX,
   LayoutDashboard,
   CheckCircle2,
   Clock,
@@ -30,7 +32,11 @@ interface Evento {
   titulo: string;
   descripcion?: string;
   fecha_evento?: string;
+  hora_evento?: string;
   estado_id: number;
+
+  usuario_id?: number;
+  creador_nombre?: string;
 
   modalidad_nombre?: string;
   canton_nombre?: string;
@@ -61,6 +67,10 @@ export default function EventosIndex(props: Props) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
+  const [filtroModalidad, setFiltroModalidad] = useState("todas");
+  const [filtroCreador, setFiltroCreador] = useState("");
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+
 
   const itemsPorPagina = 8;
 
@@ -69,12 +79,26 @@ export default function EventosIndex(props: Props) {
     .filter((e) =>
       e.titulo.toLowerCase().includes(busqueda.toLowerCase())
     )
+
     // 📌 estado
     .filter((e) => {
       if (filtroEstado === "publicado") return e.estado_id === 1;
       if (filtroEstado === "borrador") return e.estado_id !== 1;
       return true;
-    });
+    })
+
+    // 🎓 modalidad
+    .filter((e) => {
+      if (filtroModalidad === "todas") return true;
+      return e.modalidad_nombre === filtroModalidad;
+    })
+
+    // 👤 creador (tipo búsqueda)
+    .filter((e) =>
+      e.creador_nombre
+        ?.toLowerCase()
+        .includes(filtroCreador.toLowerCase())
+    );
 
   /* =======================
      KPIs
@@ -88,7 +112,7 @@ export default function EventosIndex(props: Props) {
      Paginación
   ======================= */
 
-  const totalPaginas = Math.ceil(totalEventos / itemsPorPagina);
+  const totalPaginas = Math.ceil(eventosFiltrados.length / itemsPorPagina);
 
   const eventosPaginados = eventosFiltrados.slice(
     (paginaActual - 1) * itemsPorPagina,
@@ -128,9 +152,10 @@ export default function EventosIndex(props: Props) {
     }
 
     try {
-      await axios.delete(route("eventos.destroy", { idEvento: evento.id_evento }), {
-        data: { motivo },
-      });
+      await axios.put(
+        route("eventos.estado", evento.id_evento),
+        { motivo }
+      );
 
       // 🔥 eliminar del frontend
       setEventos((prev) =>
@@ -141,10 +166,17 @@ export default function EventosIndex(props: Props) {
         titulo: "Evento inactivado",
         mensaje: "Correctamente",
       });
-    } catch {
+    } catch (error: any) {
+      console.log("ERROR COMPLETO:", error);
+      console.log("RESPONSE:", error.response);
+      console.log("DATA:", error.response?.data);
+
       modal.alerta({
         titulo: "Error",
-        mensaje: "No se pudo inactivar",
+        mensaje:
+          error.response?.data?.message ??
+          error.message ??
+          "Error desconocido",
       });
     }
   };
@@ -175,6 +207,9 @@ export default function EventosIndex(props: Props) {
 
   const [detalle, setDetalle] = useState<Evento | null>(null);
 
+  const modalidadesUnicas = Array.from(
+    new Set(eventos.map(e => e.modalidad_nombre).filter(Boolean))
+  );
   /* =======================
      Render
   ======================= */
@@ -187,101 +222,160 @@ export default function EventosIndex(props: Props) {
 
         {/* HEADER ESTILO CURSOS */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+
+          {/* IZQUIERDA */}
           <div>
-            <h1 className="text-2xl font-bold text-[#034991]">Gestión de Eventos</h1>
-            <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-              Administra los eventos, publica, edita y gestiona la logística desde un solo lugar.
+            <h1 className="text-2xl font-bold text-[#034991]">
+              Gestión de Eventos
+            </h1>
+            <p className="text-sm text-slate-500 font-medium">
+              Administra los eventos, publica, edita y gestiona la logística.
             </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          {/* DERECHA */}
+          <div className="flex items-center gap-3 flex-wrap">
 
-            {/* 🔙 Volver al dashboard */}
             <Button
               variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-100"
-              onClick={() => {
-                // 🔥 aquí va la navegación real
-                // ejemplo con inertia:
-                window.location.href = route("dashboard");
-                // o router.visit(route("dashboard"));
-              }}
+              className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+              onClick={() => window.location.href = route("dashboard")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
 
-            {/* ➕ Agregar evento */}
+            <Button
+              variant="outline"
+              className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+              onClick={() => setMostrarFiltros(prev => !prev)}
+            >
+              {mostrarFiltros ? (
+                <>
+                  <FilterX className="w-4 h-4 mr-2" />
+                  Ocultar filtros
+                </>
+              ) : (
+                <>
+                  <Filter className="w-4 h-4 mr-2" />
+                  Mostrar filtros
+                </>
+              )}
+            </Button>
+
             {puedeGestionar && (
-              <Button className="bg-[#034991] hover:bg-[#023165]">
+              <Button className="h-10 rounded-full bg-[#034991] hover:bg-[#023165]">
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar evento
               </Button>
             )}
-
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          {/* SIDEBAR FILTROS (STICKY Y ELEGANTE) */}
-          <aside className="lg:col-span-3">
-            <div className="sticky top-6">
-              <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
-                <h2 className="text-lg font-semibold text-[#034991] border-b pb-2 flex items-center gap-2">
-                  <Filter className="w-4 h-4" /> Filtros de eventos
-                </h2>
+          {/* SIDEBAR SOLO SI mostrarFiltros */}
+          {mostrarFiltros && (
+            <aside className="lg:col-span-3 transition-all duration-300">
+              <div className="sticky top-6">
+                <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
 
-                <div className="space-y-4 text-sm">
-                  <div className="flex flex-col">
-                    <label className="font-semibold mb-1 text-slate-700">Buscar</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                      <input
-                        placeholder="Título del evento..."
-                        value={busqueda}
+                  <h2 className="text-lg font-semibold text-[#034991] border-b pb-2 flex items-center gap-2">
+
+                    <Filter className="w-4 h-4" /> Filtros de eventos
+
+                  </h2>
+
+                  <div className="space-y-4 text-sm">
+
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Buscar</label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <input placeholder="Título del evento..."
+                          value={busqueda}
+                          onChange={(e) => {
+                            setBusqueda(e.target.value);
+                            setPaginaActual(1);
+                          }}
+                          className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Estado</label>
+                      <select value={filtroEstado}
                         onChange={(e) => {
-                          setBusqueda(e.target.value);
+                          setFiltroEstado(e.target.value);
                           setPaginaActual(1);
                         }}
-                        className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
+                        className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" >
+                        <option value="todos">Todos los estados</option>
+                        <option value="publicado">Publicado</option>
+                        <option value="borrador">Borrador</option>
+                      </select>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col">
-                    <label className="font-semibold mb-1 text-slate-700">Estado</label>
-                    <select
-                      value={filtroEstado}
-                      onChange={(e) => {
-                        setFiltroEstado(e.target.value);
-                        setPaginaActual(1);
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Modalidad</label>
+                      <select
+                        value={filtroModalidad}
+                        onChange={(e) => {
+                          setFiltroModalidad(e.target.value);
+                          setPaginaActual(1);
+                        }}
+                        className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                        <option value="todas">Todas</option>
+                        {modalidadesUnicas.map((m, index) => (
+                          <option key={index} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Creador</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <input
+                          placeholder="Nombre del creador..."
+                          value={filtroCreador}
+                          onChange={(e) => {
+                            setFiltroCreador(e.target.value);
+                            setPaginaActual(1);
+                          }}
+                          className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      title="Quitar filtros"
+                      className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
+                      onClick={() => {
+                        setBusqueda("");
+                        setFiltroEstado("todos");
+                        setFiltroModalidad("todas");
+                        setFiltroCreador("");
                       }}
-                      className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                      <option value="todos">Todos los estados</option>
-                      <option value="publicado">Publicado</option>
-                      <option value="borrador">Borrador</option>
-                    </select>
-                  </div>
+                      Limpiar filtros
 
-                  <Button
-                    variant="outline"
-                    className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
-                    onClick={() => {
-                      setBusqueda("");
-                      setFiltroEstado("todos");
-                    }}
-                  >
-                    Limpiar filtros
-                  </Button>
+                    </Button>
+
+                  </div>
                 </div>
               </div>
-            </div>
-          </aside>
+            </aside>
+          )}
 
-          {/* MAIN CONTENT */}
-          <main className="lg:col-span-9 space-y-6">
+          {/* MAIN DINÁMICO */}
+          <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
+
 
             {/* KPIs ESTILO CURSOS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -317,7 +411,12 @@ export default function EventosIndex(props: Props) {
             </div>
 
             {/* LISTA DE EVENTOS (CARD REFORZADA) */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div
+              className={`grid grid-cols-1 ${mostrarFiltros
+                ? "md:grid-cols-2"
+                : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+                } gap-3`}
+            >
               {eventosPaginados.length > 0 ? (
                 eventosPaginados.map((evento) => (
                   <div key={evento.id_evento} className="bg-white border border-slate-200 hover:border-blue-300 transition-colors p-5 rounded-2xl shadow-sm flex flex-col justify-between">
@@ -346,21 +445,40 @@ export default function EventosIndex(props: Props) {
                     </div>
 
                     <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
-                      <Button size="sm" variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700" onClick={() => setDetalle(evento)}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        title="Ver evento"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        onClick={async () => {
+                          try {
+                            const res = await axios.get(route("eventos.show", evento.id_evento));
+
+                            if (res.data.success) {
+                              setDetalle(res.data.evento);
+                            }
+                          } catch (error) {
+                            modal.alerta({
+                              titulo: "Error",
+                              mensaje: "No se pudo cargar el detalle del evento",
+                            });
+                          }
+                        }}
+                      >
                         <Eye className="w-3.5 mr-1" /> Ver
                       </Button>
 
                       {puedeGestionar && (
                         <>
                           {evento.estado_id !== 1 && (
-                            <Button size="sm" onClick={() => publicarEvento(evento)}>
+                            <Button size="sm" title="Publicar evento" onClick={() => publicarEvento(evento)}>
                               <Play className="w-3 mr-1" /> Publicar
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" className="border-slate-300">
+                          <Button size="sm" variant="outline" title="Editar evento" className="border-slate-300">
                             <Edit3 className="w-3.5 mr-1" /> Editar
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => inactivarEvento(evento)}>
+                          <Button size="sm" variant="destructive" title="Inactivar evento" onClick={() => inactivarEvento(evento)}>
                             <Trash2 className="w-3.5" />
                           </Button>
                         </>
@@ -375,66 +493,132 @@ export default function EventosIndex(props: Props) {
               )}
             </div>
 
-            {/* PAGINACIÓN ESTILO CURSOS */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200">
-              <Button
-                variant="ghost"
-                onClick={() => setPaginaActual(paginaActual - 1)}
-                disabled={paginaActual === 1}
-                className="hover:bg-slate-100"
-              >
-                Anterior
-              </Button>
+            {/* PAGINACIÓN ESTILO  */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
 
-              <span className="text-sm font-medium text-slate-600">
-                Página <span className="text-[#034991]">{paginaActual}</span> de {totalPaginas || 1}
-              </span>
-
-              <Button
-                variant="ghost"
-                onClick={() => setPaginaActual(paginaActual + 1)}
-                disabled={paginaActual === totalPaginas || totalPaginas === 0}
-                className="hover:bg-slate-100"
-              >
-                Siguiente
-              </Button>
-            </div>
-          </main>
-        </div>
-      </div>
-
-      {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
-      {detalle && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
-              <h2 className="font-bold text-lg">Detalles del Evento</h2>
-              <button onClick={() => setDetalle(null)} className="hover:bg-white/20 rounded-full p-1">
-                <ArrowLeft className="w-5 h-5 rotate-90" />
-              </button>
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">{detalle.titulo}</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">{detalle.descripcion || 'Sin descripción detallada.'}</p>
-
-              <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-5 h-5 text-[#034991]" />
-                  <span><strong>Fecha:</strong> {detalle.fecha_evento}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-5 h-5 text-red-500" />
-                  <span><strong>Ubicación:</strong> {detalle.canton_nombre}, {detalle.provincia_nombre}, {detalle.pais_nombre}</span>
-                </div>
+              {/* IZQUIERDA */}
+              <div>
+                Mostrando {eventosPaginados.length} de {eventosFiltrados.length} eventos
               </div>
 
-              <Button className="mt-8 w-full bg-[#034991]" onClick={() => setDetalle(null)}>
-                Entendido
-              </Button>
+              {/* DERECHA */}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPaginaActual(paginaActual - 1)}
+                  disabled={paginaActual === 1}
+                >
+                  Anterior
+                </Button>
+
+                <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
+                  {paginaActual} / {totalPaginas || 1}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPaginaActual(paginaActual + 1)}
+                  disabled={paginaActual === totalPaginas || totalPaginas === 0}
+                >
+                  Siguiente
+                </Button>
+              </div>
+
+            </div>
+          </main>
+        </div >
+      </div >
+
+      {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
+      {
+        detalle && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 text-black">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+              <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
+                <h2 className="font-bold text-lg">Detalles del Evento</h2>
+                <button
+                  title="Volver a listado de eventos"
+                  onClick={() => setDetalle(null)}
+                  className="hover:bg-white/20 rounded-full p-1">
+                  <ArrowLeft className="w-5 h-5 rotate-90" />
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                <h3 className="text-2xl font-bold text-slate-800">
+                  {detalle.titulo}
+                </h3>
+
+                <p className="text-slate-600 leading-relaxed">
+                  {detalle.descripcion || 'Sin descripción detallada.'}
+                </p>
+
+                <div className="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm">
+
+                  {/* Fecha */}
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-[#034991]" />
+                    <span>
+                      <strong>Fecha:</strong> {detalle.fecha_evento || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Hora */}
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-amber-500" />
+                    <span>
+                      <strong>Hora:</strong> {detalle.hora_evento || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Ubicación */}
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <span>
+                      <strong>Ubicación:</strong>{" "}
+                      {detalle.canton_nombre}, {detalle.provincia_nombre}, {detalle.pais_nombre}
+                    </span>
+                  </div>
+
+                  {/* Modalidad */}
+                  <div className="flex items-center gap-3">
+                    <LayoutDashboard className="w-5 h-5 text-blue-500" />
+                    <span>
+                      <strong>Modalidad:</strong> {detalle.modalidad_nombre || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Creador */}
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-slate-500" />
+                    <span>
+                      <strong>Creador:</strong> {detalle.creador_nombre || 'Desconocido'}
+                    </span>
+                  </div>
+
+                  {/* Estado */}
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>
+                      <strong>Estado:</strong>{" "}
+                      {detalle.estado_id === 1 ? 'Publicado' : 'Borrador'}
+                    </span>
+                  </div>
+
+                </div>
+
+                <Button
+                  className="w-full bg-[#034991]"
+                  onClick={() => setDetalle(null)}
+                >
+                  Entendido
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 }
