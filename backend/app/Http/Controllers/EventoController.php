@@ -23,14 +23,16 @@ class EventoController extends Controller
      */
     public function index(Request $request)
     {
+        $this->service->finalizarEventosAutomaticamente();
+        
         $usuario = Auth::user();
 
         // 🔐 Permisos del usuario
         $permisos = $usuario
             ? DB::table('roles_permisos')
-                ->where('id_rol', $usuario->id_rol)
-                ->pluck('id_permiso')
-                ->toArray()
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray()
             : [];
 
         return Inertia::render('Eventos/Index', [
@@ -67,13 +69,11 @@ class EventoController extends Controller
                 'success' => true,
                 'message' => 'El evento ha sido publicado con éxito',
             ]);
-
         } catch (\DomainException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -101,11 +101,12 @@ class EventoController extends Controller
                 'success' => true,
                 'message' => 'Evento inactivado correctamente',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+                // Si quieres que el error también se vea en la respuesta JSON:
+                'error_detalle' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -122,7 +123,6 @@ class EventoController extends Controller
                 'success' => true,
                 'evento' => $evento,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -358,9 +358,10 @@ Route::middleware('auth')->group(function () {
         // Listado (HU-33 Parte 2)
         Route::get('/', [EventoController::class, 'index'])
             ->name('eventos.index');
-
+        Route::get('/eventos/{idEvento}', [EventoController::class, 'show'])
+            ->name('eventos.show');
         // Inactivar evento
-        Route::put('/{idEvento}/estado', [EventoController::class, 'cambiarEstado'])
+        Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
             ->name('eventos.estado');
         // 📌 Publicar evento
         Route::put('/{idEvento}/publicar', [EventoController::class, 'publicar'])

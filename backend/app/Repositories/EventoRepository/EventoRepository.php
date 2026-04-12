@@ -12,12 +12,14 @@ class EventoRepository
     public function filtrarEventos($request, $usuario)
     {
         $query = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
+                'usuarios.nombre_completo as creador_nombre',
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -29,7 +31,7 @@ class EventoRepository
 
         // 🔒 CONTROL POR ROL
         if (!in_array($usuario->id_rol, [1])) {
-            $query->where('eventos.id_usuario_creador', $usuario->id_usuario);
+            $query->where('eventos.usuario_id', $usuario->id_usuario);
         }
 
         // 🔍 BÚSQUEDA GENERAL
@@ -76,12 +78,14 @@ class EventoRepository
     public function obtenerEventoCompleto(int $idEvento)
     {
         return DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id') // 🔥 FALTA ESTO
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
+                'usuarios.nombre_completo as creador_nombre', // 🔥 Y ESTO
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -182,5 +186,46 @@ class EventoRepository
             ->where('inscripciones_evento.estado_id', 1) // 🔥 AQUÍ
             ->select('usuarios.correo')
             ->get();
+    }
+
+
+    public function finalizarEventosAutomaticamente()
+    {
+        cache()->remember('finalizacion_eventos_lock', 300, function () {
+
+            $existen = DB::table('eventos')
+                ->where('estado_id', 1)
+                ->where(function ($query) {
+                    $query->where('fecha_evento', '<', now()->toDateString())
+                        ->orWhere(function ($q) {
+                            $q->where('fecha_evento', now()->toDateString())
+                                ->where('hora_evento', '<', now()->format('H:i:s'));
+                        });
+                })
+                ->exists();
+
+            if (!$existen) {
+                return;
+            }
+
+            DB::table('eventos')
+                ->where('estado_id', 1)
+                ->where(function ($query) {
+                    $query->where('fecha_evento', '<', now()->toDateString())
+                        ->orWhere(function ($q) {
+                            $q->where('fecha_evento', now()->toDateString())
+                                ->where('hora_evento', '<', now()->format('H:i:s'));
+                        });
+                })
+                ->update(['estado_id' => 4]);
+
+            DB::table('bitacora_cambios')->insert([
+                'tabla_afectada' => 'eventos',
+                'operacion' => 'FINALIZAR',
+                'usuario_responsable' => null,
+                'fecha_cambio' => now(),
+                'descripcion_cambio' => 'Eventos finalizados automáticamente por sistema',
+            ]);
+        });
     }
 }

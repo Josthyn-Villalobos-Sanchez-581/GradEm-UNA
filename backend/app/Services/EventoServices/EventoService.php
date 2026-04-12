@@ -5,6 +5,7 @@ namespace App\Services\EventoServices;
 use App\Repositories\EventoRepository\EventoRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Mail\Eventos\EventoCanceladoMail;
 use Illuminate\Support\Facades\Mail;
 
 class EventoService
@@ -14,6 +15,10 @@ class EventoService
     public function __construct(EventoRepository $eventoRepository)
     {
         $this->eventoRepository = $eventoRepository;
+    }
+
+    public function finalizarEventosAutomaticamente(){
+        $this->eventoRepository->finalizarEventosAutomaticamente();
     }
 
     /**
@@ -37,10 +42,10 @@ class EventoService
 
         $usuario = Auth::user();
 
-        // 🔒 VALIDACIÓN DE ACCESO
+        //VALIDACIÓN DE ACCESO
         if (
             !in_array($usuario->id_rol, [1]) && // superadmin
-            $evento->id_usuario_creador !== $usuario->id_usuario
+            $evento->usuario_id !== $usuario->id_usuario
         ) {
             throw new \Exception('No autorizado para acceder a este evento');
         }
@@ -72,7 +77,7 @@ class EventoService
                 throw new \Exception('El evento ya está publicado');
             }
 
-            // 🔒 Validaciones básicas antes de publicar
+            //Validaciones básicas antes de publicar
             $faltantes = [];
 
             if (!$evento->titulo) $faltantes[] = 'Título';
@@ -98,7 +103,7 @@ class EventoService
     }
 
     /**
-     * Inactivar evento (HU-33 PARTE 2 🔥)
+     * Inactivar evento
      */
     public function inactivarEvento(int $idEvento, string $motivo)
     {
@@ -113,41 +118,31 @@ class EventoService
 
             $usuario = Auth::user();
 
-            // ✅ INACTIVAR
-            $this->eventoRepository->inactivarEvento($idEvento);
-
-            // 🧾 BITÁCORA
-            DB::table('bitacora_cambios')->insert([
-                'tabla' => 'eventos',
-                'accion' => 'INACTIVAR',
-                'id_registro' => $idEvento,
-                'descripcion' => $motivo,
-                'usuario_id' => $usuario->id_usuario,
-                'fecha' => now(),
-            ]);
+            // Guardar datos antes de cambiar estado
+            $eventoData = [
+                'titulo' => $evento->titulo,
+            ];
 
             $inscritos = $this->eventoRepository->obtenerInscritosEvento($idEvento);
 
-            if ($inscritos->isEmpty()) {
-                DB::commit();
-                return;
-            }
+            // INACTIVAR
+            $this->eventoRepository->inactivarEvento($idEvento);
 
+            // BITÁCORA
+            DB::table('bitacora_cambios')->insert([
+                'tabla_afectada' => 'eventos',
+                'operacion' => 'INACTIVAR',
+                'usuario_responsable' => $usuario->id_usuario,
+                'fecha_cambio' => now(),
+                'descripcion_cambio' => 'Evento ID ' . $idEvento . ' inactivado. Motivo: ' . $motivo,
+            ]);
 
+            // ENVIAR CORREOS
             foreach ($inscritos as $usuarioInscrito) {
-                dispatch(function () use ($usuarioInscrito, $motivo) {
-                    Mail::raw(
-                        "El evento ha sido cancelado.\n\nMotivo: " . $motivo,
-                        function ($message) use ($usuarioInscrito) {
-                            $message->to($usuarioInscrito->correo)
-                                ->subject('Evento cancelado');
-                        }
-                    );
-                });
+                Mail::to($usuarioInscrito->correo)->queue(
+                    new EventoCanceladoMail($eventoData, $motivo)
+                );
             }
-
-            // 📧 (Opcional - vos lo manejás)
-            // $inscritos = $this->eventoRepository->obtenerInscritosEvento($idEvento);
 
             DB::commit();
         } catch (\Exception $e) {
