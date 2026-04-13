@@ -348,6 +348,12 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/{idCurso}/inscripcion-estado', [InscripcionCursoController::class, 'estado'])
             ->name('cursos.inscripcion.estado');
+
+        Route::delete('/{idCurso}/cancelar-inscripcion', [InscripcionCursoController::class, 'cancelar'])
+            ->name('cursos.cancelar-inscripcion');
+
+        Route::get('/mis-cursos', [InscripcionCursoController::class, 'misCursos'])
+            ->name('cursos.mis-cursos');
     });
 
     // ==========================================

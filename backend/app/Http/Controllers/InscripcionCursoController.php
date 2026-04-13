@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\InscripcionCursoServices\InscripcionCursoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class InscripcionCursoController extends Controller
 {
@@ -54,6 +55,48 @@ class InscripcionCursoController extends Controller
         return response()->json([
             'inscrito'          => $this->service->estaInscrito($idCurso, $idUsuario),
             'cupos_disponibles' => $this->service->cuposDisponibles($idCurso),
+        ]);
+    }
+
+    /**
+     * DELETE /cursos/{idCurso}/cancelar
+     * Cancela la inscripción del usuario autenticado en el curso.
+     */
+    public function cancelar(int $idCurso)
+    {
+        $idUsuario = Auth::id();
+
+        try {
+            $this->service->cancelar($idCurso, $idUsuario);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tu inscripción ha sido cancelada correctamente.',
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al cancelar la inscripción.',
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /mis-cursos
+     * Retorna los cursos inscritos del usuario
+     */
+    public function misCursos()
+    {
+        $idUsuario = Auth::id();
+
+        return Inertia::render('Cursos/MisCursosIndex', [
+            'cursos' => $this->service->obtenerMisCursos($idUsuario),
+            'modalidades' => $this->service->obtenerModalidades(),
         ]);
     }
 }

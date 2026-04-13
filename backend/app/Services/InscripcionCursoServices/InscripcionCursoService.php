@@ -6,6 +6,8 @@ use App\Repositories\InscripcionCursoRepositories\InscripcionCursoRepository;
 use App\Mail\InscripcionConfirmadaMail;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Mail;
+use App\Models\Modalidad;
+
 
 class InscripcionCursoService
 {
@@ -88,4 +90,43 @@ class InscripcionCursoService
         $inscritos = $this->repo->contarInscritos($idCurso);
         return max(0, $curso->cupos - $inscritos);
     }
+
+    /**
+     * Cancelar inscripción del usuario en un curso
+     */
+    public function cancelar(int $idCurso, int $idUsuario): void
+    {
+        if (!$this->repo->existeInscripcion($idCurso, $idUsuario)) {
+            throw new \DomainException('No está inscrito en este curso.');
+        }
+
+        $this->repo->cancelarInscripcion($idCurso, $idUsuario);
+    }
+
+    /**
+     * Listar cursos del usuario autenticado
+     */
+    public function obtenerMisCursos(int $idUsuario)
+    {
+        $cursos = $this->repo->obtenerCursosPorUsuario($idUsuario);
+
+        $conteo = $this->repo->obtenerConteoInscritos($cursos);
+
+        return collect($cursos)->map(function ($curso) use ($conteo) {
+            $inscritos = $conteo[$curso['id_curso']] ?? 0;
+            $cupos = $curso['cupos'];
+
+            return [
+                ...$curso,
+                'inscritos' => $inscritos,
+                'disponibles' => is_null($cupos) ? null : max(0, $cupos - $inscritos),
+            ];
+        });
+    }
+
+    public function obtenerModalidades()
+    {
+        return Modalidad::select('id_modalidad', 'nombre')->get();
+    }
+
 }
