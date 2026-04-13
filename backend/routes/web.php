@@ -369,6 +369,14 @@ Route::middleware('auth')->group(function () {
             ->name('eventos.index');
         Route::get('/eventos/{idEvento}', [EventoController::class, 'show'])
             ->name('eventos.show');
+        Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
+            ->name('eventos.inscritos');
+        Route::delete('/{idEvento}/inscritos/{idUsuario}', [EventoController::class, 'eliminarInscrito'])
+            ->name('eventos.inscritos.eliminar');
+        Route::get('/{idEvento}/pdf/{tipo}', [EventoController::class, 'descargarPdf'])
+            ->name('eventos.pdf');
+        Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
+            ->name('notificaciones.eventos.recordatorio');
         // Inactivar evento
         Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
             ->name('eventos.estado');

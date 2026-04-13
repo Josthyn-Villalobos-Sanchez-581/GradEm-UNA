@@ -36,6 +36,7 @@ export default function CursosInscripcionIndex(props: Props) {
   const { auth } = usePage().props as any;
 
   const puedeInscribirse = (props.userPermisos ?? []).includes(9);
+  const puedeVerCursosLlenos = [1, 2, 3, 4].includes(auth?.user?.id_rol);
   const [misInscripciones, setMisInscripciones] = useState<Set<number>>(
     new Set(props.misInscripciones ?? [])
   );
@@ -64,6 +65,14 @@ export default function CursosInscripcionIndex(props: Props) {
 
   const cursosFiltrados = (props.cursos ?? [])
     .filter((c) => c.estado_id === 1)
+    .filter((c) => {
+      if (puedeVerCursosLlenos) return true;
+
+      const inscritosActuales = props.inscritosCount[c.id_curso] ?? 0;
+      const estaLleno = c.cupos != null && inscritosActuales >= c.cupos;
+
+      return !estaLleno;
+    })
     .filter((c) => {
       const texto = busqueda.toLowerCase();
       return (
@@ -294,10 +303,12 @@ export default function CursosInscripcionIndex(props: Props) {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-1">
                 {cursosPaginados.map((curso) => {
+                  const inscritosActuales = props.inscritosCount[curso.id_curso] ?? 0;
                   const cuposDisponibles = Math.max(
                     0,
-                    (curso.cupos ?? 0) - (props.inscritosCount[curso.id_curso] ?? 0)
+                    (curso.cupos ?? 0) - inscritosActuales
                   );
+                  const estaLleno = curso.cupos != null && inscritosActuales >= curso.cupos;
 
                   return (
                     <article
@@ -310,9 +321,15 @@ export default function CursosInscripcionIndex(props: Props) {
                         <button onClick={() => verDetalleCurso(curso)} className="text-left text-base font-semibold text-[#034991] hover:underline">
                           {curso.titulo}
                         </button>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-green-100 text-green-700">
-                          Publicado
-                        </span>
+                        {estaLleno ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-red-100 text-red-700">
+                            Lleno
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-green-100 text-green-700">
+                            Publicado
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-sm text-gray-600 mb-4 min-h-[44px] line-clamp-2 group-hover:text-gray-700 transition-colors duration-300">
@@ -333,9 +350,24 @@ export default function CursosInscripcionIndex(props: Props) {
                           <span className="font-medium text-gray-800 text-right">{displayValue(curso.fecha_inicio)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-gray-500">Cupos</span>
-                          <span className="font-medium text-gray-800 text-right">{curso.cupos != null ? cuposDisponibles : "Sin límite"}</span>
+                          <span className="text-gray-500">Inscritos / Cupos</span>
+                          <span className={`font-medium text-right ${estaLleno ? "text-red-700" : "text-gray-800"}`}>
+                            {curso.cupos != null ? `${inscritosActuales} / ${curso.cupos}` : `${inscritosActuales} / Sin límite`}
+                          </span>
                         </div>
+                        {curso.cupos != null && (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-gray-500">Disponibles</span>
+                            <span className={`font-medium text-right ${estaLleno ? "text-red-700" : "text-gray-800"}`}>
+                              {cuposDisponibles}
+                            </span>
+                          </div>
+                        )}
+                        {estaLleno && (
+                          <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-700 font-semibold">
+                            Este curso ya no tiene cupos disponibles.
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap gap-2 pt-1">
