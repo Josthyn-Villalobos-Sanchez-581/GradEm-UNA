@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Services\InscripcionCursoServices\InscripcionCursoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+<<<<<<< HEAD
 use Inertia\Inertia;
+=======
+use Illuminate\Support\Facades\Log;
+>>>>>>> develop
 
 class InscripcionCursoController extends Controller
 {
@@ -24,6 +28,13 @@ class InscripcionCursoController extends Controller
     {
         $idUsuario = Auth::id();
 
+        if (!$idUsuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Su sesion expiro. Inicie sesion nuevamente.',
+            ], 401);
+        }
+
         try {
             $this->service->inscribir($idCurso, $idUsuario);
 
@@ -36,7 +47,13 @@ class InscripcionCursoController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('Error al inscribir usuario en curso.', [
+                'id_curso' => $idCurso,
+                'id_usuario' => $idUsuario,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Ocurrió un error al procesar la inscripción. Intente nuevamente.',
@@ -51,6 +68,13 @@ class InscripcionCursoController extends Controller
     public function estado(int $idCurso)
     {
         $idUsuario = Auth::id();
+
+        if (!$idUsuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Su sesion expiro. Inicie sesion nuevamente.',
+            ], 401);
+        }
 
         return response()->json([
             'inscrito'          => $this->service->estaInscrito($idCurso, $idUsuario),
