@@ -1,7 +1,80 @@
 <?php
+namespace Tests\Feature;
+
+use Tests\TestCase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use App\Models\Usuario;
+use App\Models\PlataformaExterna;
+
+class PlataformaExternaTest extends TestCase
+{
+    use DatabaseTransactions;
+protected function setUp(): void
+{
+    parent::setUp();
+
+    $this->withoutMiddleware();
+}
+    public function test_agregar_plataforma()
+    {
+        $usuario = Usuario::factory()->create();
+
+        $response = $this->actingAs($usuario, 'sanctum')
+            ->postJson('/perfil/plataformas', [
+                'tipo' => 'LinkedIn',
+                'url' => 'https://linkedin.com/in/test'
+            ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('plataformas_externas', [
+            'id_usuario' => $usuario->id_usuario,
+            'tipo' => 'LinkedIn'
+        ]);
+    }
+
+    public function test_eliminar_plataforma()
+    {
+        $usuario = Usuario::factory()->create();
+
+        $plataforma = PlataformaExterna::create([
+            'id_usuario' => $usuario->id_usuario,
+            'tipo' => 'LinkedIn',
+            'url' => 'https://linkedin.com/in/test'
+        ]);
+
+        $response = $this->actingAs($usuario, 'sanctum')
+            ->deleteJson("/perfil/plataformas/{$plataforma->id_plataforma}");
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseMissing('plataformas_externas', [
+            'id_plataforma' => $plataforma->id_plataforma
+        ]);
+    }
+
+    public function test_no_puede_eliminar_plataforma_de_otro_usuario()
+    {
+        $usuario1 = Usuario::factory()->create();
+        $usuario2 = Usuario::factory()->create();
+
+        $plataforma = PlataformaExterna::create([
+            'id_usuario' => $usuario1->id_usuario,
+            'tipo' => 'LinkedIn',
+            'url' => 'https://linkedin.com/in/test'
+        ]);
+
+        $response = $this->actingAs($usuario2, 'sanctum')
+            ->deleteJson("/perfil/plataformas/{$plataforma->id_plataforma}");
+
+        $response->assertStatus(403);
+    }
+}
+
+/*
 //backend/tests/Feature/PlataformaExternaTest.php
 
-namespace Tests\Feature;
+//namespace Tests\Feature;
 
 use App\Models\PlataformaExterna;
 use App\Models\Usuario;
@@ -141,4 +214,5 @@ class PlataformaExternaTest extends TestCase
                      'error' => 'No tiene permiso para eliminar este enlace.'
                  ]);
     }
-}
+}*/
+

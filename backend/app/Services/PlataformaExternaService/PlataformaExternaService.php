@@ -1,8 +1,7 @@
 <?php
-
-namespace App\Services;
-
-use App\Repositories\PlataformaExternaRepository;
+//backend/app/Services/PlataformaExternaService/PlataformaExternaService.php
+namespace App\Services\PlataformaExternaService;
+use App\Repositories\PlataformaExternaRepository\PlataformaExternaRepository;
 use App\Models\Usuario;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,7 +31,7 @@ class PlataformaExternaService
             'success' => true,
             'mensaje' => 'Enlace agregado correctamente.',
             'plataformas' => $this->repository->obtenerPorUsuario($usuario->id_usuario),
-        ]);
+        ],201);
     }
 
     /**
