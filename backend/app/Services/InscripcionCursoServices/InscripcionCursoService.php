@@ -6,6 +6,7 @@ use App\Repositories\InscripcionCursoRepositories\InscripcionCursoRepository;
 use App\Mail\InscripcionConfirmadaMail;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class InscripcionCursoService
 {
@@ -62,9 +63,18 @@ class InscripcionCursoService
         // 7️⃣ Enviar correo de confirmación al participante
         $usuario = Usuario::find($idUsuario);
         if ($usuario && $usuario->correo) {
-            Mail::to($usuario->correo)->send(
-                new InscripcionConfirmadaMail($curso, $usuario->nombre_completo)
-            );
+            try {
+                Mail::to($usuario->correo)->send(
+                    new InscripcionConfirmadaMail($curso, $usuario->nombre_completo)
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Inscripcion registrada pero fallo envio de correo de confirmacion.', [
+                    'id_curso' => $idCurso,
+                    'id_usuario' => $idUsuario,
+                    'correo' => $usuario->correo,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 
