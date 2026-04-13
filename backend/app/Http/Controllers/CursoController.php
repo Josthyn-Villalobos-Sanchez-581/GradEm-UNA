@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\CursoServices\CursoService;
+use App\Exceptions\CursoNoEncontradoException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CursoController extends Controller
 {
@@ -90,6 +92,23 @@ class CursoController extends Controller
         ]);
     }
 
+    public function exportarInscritosPdf(int $idCurso)
+    {
+        try {
+            return $this->service->generarPdfInscritosCurso($idCurso);
+        } catch (CursoNoEncontradoException $e) {
+            abort(404, $e->getMessage());
+        } catch (\Throwable $e) {
+
+            Log::error('Error al generar PDF de inscritos', [
+                'id_curso' => $idCurso,
+                'error' => $e->getMessage(),
+            ]);
+
+            abort(500, 'No se pudo generar el PDF de inscritos.');
+        }
+    }
+
     public function store(Request $request)
     {
         $anioAnterior = now()->subYear()->year;
@@ -121,6 +140,11 @@ class CursoController extends Controller
                 'nullable',
                 'string',
                 'max:20',
+            ],
+            'cupos' => [
+                'nullable',
+                'integer',
+                'min:1',
             ],
             'id_modalidad' => [
                 'nullable',
@@ -182,6 +206,7 @@ class CursoController extends Controller
             'descripcion' => ['nullable', 'string', 'min:10', 'max:300', 'regex:/[a-zA-Z]/'],
             'nombreInstructor' => ['nullable', 'string', 'min:3', 'max:100', 'regex:/[a-zA-Z]/'],
             'duracion' => ['nullable', 'string', 'max:20'],
+            'cupos' => ['nullable', 'integer', 'min:1'],
             'id_modalidad' => ['nullable', 'integer', 'exists:modalidades,id_modalidad'],
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],

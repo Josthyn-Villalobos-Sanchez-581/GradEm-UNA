@@ -6,6 +6,7 @@ use App\Models\Usuario;
 use App\Models\Credencial;
 use App\Models\Rol;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class RegistroRepository
 {
@@ -73,7 +74,7 @@ class RegistroRepository
 
     public function enviarCodigo($correo, $codigo)
     {
-        \Mail::raw(
+        Mail::raw(
             "Tu código de verificación es: $codigo",
             fn($m) => $m->to($correo)->subject('Código de verificación')
         );
