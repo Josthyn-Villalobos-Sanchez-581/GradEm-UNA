@@ -5,7 +5,7 @@ namespace App\Repositories\CursoRepositories;
 use App\Models\Curso;
 use App\Models\Modalidad;
 use Illuminate\Support\Facades\DB;
-
+use App\Models\InscripcionCurso; 
 class CursoRepository
 {
     /**
@@ -169,4 +169,18 @@ class CursoRepository
     {
         return $curso->delete();
     }
+
+    public function eliminarInscripcionCurso(int $idCurso, int $idUsuario): bool
+{
+    $inscripcion = InscripcionCurso::where('id_curso', $idCurso)
+        ->where('id_usuario', $idUsuario)
+        ->first();
+
+    if (!$inscripcion) {
+        return false;
+    }
+
+    return $inscripcion->delete();
+}
+
 }
