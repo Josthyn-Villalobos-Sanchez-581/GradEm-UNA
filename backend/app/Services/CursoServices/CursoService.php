@@ -68,7 +68,7 @@ class CursoService
         $logoSrc = null;
         $path = public_path('logos/logo_gradem.png');
 
-        if (is_readable($path)) {
+        if (extension_loaded('gd') && is_readable($path)) {
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $dataImg = file_get_contents($path);
             $logoSrc = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
@@ -106,6 +106,7 @@ class CursoService
                 'fecha_fin' => $request->fecha_fin ?? null,
                 'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'duracion' => $request->duracion ?? null,
+                'cupos' => $request->cupos ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'nombreInstructor' => $request->nombreInstructor ?? null,
                 'estado_id' => 2,
@@ -144,6 +145,7 @@ class CursoService
                 'fecha_fin',
                 'fecha_limite_inscripcion',
                 'duracion',
+                'cupos',
                 'id_modalidad',
                 'nombreInstructor',
             ]);
@@ -156,6 +158,7 @@ class CursoService
                 'fecha_fin' => $request->input('fecha_fin'),
                 'fecha_limite_inscripcion' => $request->input('fecha_limite_inscripcion'),
                 'duracion' => $request->input('duracion'),
+                'cupos' => $request->input('cupos'),
                 'id_modalidad' => $request->input('id_modalidad'),
                 'nombreInstructor' => $request->input('nombreInstructor'),
             ];
