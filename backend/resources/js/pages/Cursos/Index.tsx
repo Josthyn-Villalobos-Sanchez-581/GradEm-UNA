@@ -321,8 +321,8 @@ export default function CursosIndex(props: Props) {
      Acciones
   ======================= */
 
-  const soloTextoValido = (valor: string, max: number) =>
-    valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "").slice(0, max);
+const filtrarTextoCurso = (valor: string, max: number) =>
+    valor.replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()"'¡!¿?%&@\/\s-]/g, "").slice(0, max);
 
   const textoFiltroValido = (valor: string, max = 100) => {
     return valor
@@ -827,7 +827,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.titulo}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, titulo: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }))}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: Fundamentos de React"
                                     />
@@ -840,7 +840,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.nombreInstructor}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, nombreInstructor: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }))}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.nombreInstructor ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: María López"
                                     />
@@ -854,7 +854,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <textarea
                                         value={formCurso.descripcion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, descripcion: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }))}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         rows={2}
                                         placeholder="Describa los objetivos del curso..."
@@ -900,7 +900,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.duracion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, duracion: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }))}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         placeholder="Ej: 4 semanas"
                                     />

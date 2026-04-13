@@ -359,6 +359,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [EventoController::class, 'index'])
             ->name('eventos.index');
 
+        // Registrar evento
+        Route::post('/', [EventoController::class, 'store'])
+            ->name('eventos.store');
+
+        // Ver detalle del evento
+        Route::get('/{idEvento}', [EventoController::class, 'show'])
+            ->name('eventos.show');
+
+        // Editar evento
+        Route::put('/{idEvento}', [EventoController::class, 'update'])
+            ->name('eventos.update');
+
         // Inactivar evento
         Route::put('/{idEvento}/estado', [EventoController::class, 'cambiarEstado'])
             ->name('eventos.estado');
