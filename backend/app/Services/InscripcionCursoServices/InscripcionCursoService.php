@@ -6,12 +6,9 @@ use App\Repositories\InscripcionCursoRepositories\InscripcionCursoRepository;
 use App\Mail\InscripcionConfirmadaMail;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Mail;
-<<<<<<< HEAD
 use App\Models\Modalidad;
-
-=======
 use Illuminate\Support\Facades\Log;
->>>>>>> develop
+
 
 class InscripcionCursoService
 {

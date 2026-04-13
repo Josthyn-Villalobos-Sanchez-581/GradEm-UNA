@@ -5,11 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\InscripcionCursoServices\InscripcionCursoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-<<<<<<< HEAD
 use Inertia\Inertia;
-=======
 use Illuminate\Support\Facades\Log;
->>>>>>> develop
 
 class InscripcionCursoController extends Controller
 {
