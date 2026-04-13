@@ -15,6 +15,7 @@ class InscripcionCursoRepository
     {
         return InscripcionCurso::where('id_curso', $idCurso)
             ->where('id_usuario', $idUsuario)
+            ->where('estado_id', 1)
             ->exists();
     }
 
@@ -23,7 +24,9 @@ class InscripcionCursoRepository
      */
     public function contarInscritos(int $idCurso): int
     {
-        return InscripcionCurso::where('id_curso', $idCurso)->count();
+        return InscripcionCurso::where('id_curso', $idCurso)
+            ->where('estado_id', 1)
+            ->count();
     }
 
     /**
@@ -31,7 +34,7 @@ class InscripcionCursoRepository
      */
     public function obtenerCursoConModalidad(int $idCurso): ?Curso
     {
-        return Curso::with('modalidades')->find($idCurso);
+        return Curso::with('modalidad')->find($idCurso);
     }
 
     /**
@@ -39,73 +42,77 @@ class InscripcionCursoRepository
      */
     public function inscribir(int $idCurso, int $idUsuario): InscripcionCurso
     {
+        $inscripcion = InscripcionCurso::where('id_curso', $idCurso)
+            ->where('id_usuario', $idUsuario)
+            ->first();
+
+        if ($inscripcion) {
+            
+            $inscripcion->update([
+                'estado_id' => 1,
+                'fecha_inscripcion' => now()
+            ]);
+
+            return $inscripcion;
+        }
+
         return InscripcionCurso::create([
-            'id_curso'          => $idCurso,
-            'id_usuario'        => $idUsuario,
-            'fecha_inscripcion' => now()->toDateTimeString(),
-            'estado_id'         => 1, // activo
+            'id_curso' => $idCurso,
+            'id_usuario' => $idUsuario,
+            'fecha_inscripcion' => now(),
+            'estado_id' => 1,
         ]);
     }
 
     /**
-     * Cancelar inscripción
-     */
-    public function cancelarInscripcion(int $idCurso, int $idUsuario): void
-    {
-        InscripcionCurso::where('id_curso', $idCurso)
-            ->where('id_usuario', $idUsuario)
-            ->delete();
-    }
-
-    /**
-     * Obtener cursos inscritos por usuario
+     * Obtener cursos en los que el usuario está inscrito
      */
     public function obtenerCursosPorUsuario(int $idUsuario)
     {
-        return DB::table('inscripciones_curso as ic')
-            ->join('cursos as c', 'c.id_curso', '=', 'ic.id_curso') // ✅ FIX
-            ->leftJoin('modalidad as m', 'm.id_modalidad', '=', 'c.id_modalidad') // ⚠️ validar nombre
-            ->select(
-                'c.id_curso',
-                'c.titulo',
-                'c.descripcion',
-                'c.fecha_inicio',
-                'c.fecha_fin',
-                'c.fecha_limite_inscripcion',
-                'c.cupos',
-                'c.estado_id',
-                'm.id_modalidad',
-                'm.nombre as modalidad_nombre'
-            )
-            ->where('ic.id_usuario', $idUsuario)
-            ->where('ic.estado_id', 1) // 🔥 importante (solo activos)
+        return InscripcionCurso::with([
+            'curso.modalidad',
+        ])
+            ->where('id_usuario', $idUsuario)
+            ->where('estado_id', 1)
             ->get()
-            ->map(function ($curso) {
+            ->map(function ($inscripcion) {
+                $curso = $inscripcion->curso;
+
                 return [
                     'id_curso' => $curso->id_curso,
                     'titulo' => $curso->titulo,
                     'descripcion' => $curso->descripcion,
+                    'modalidad' => $curso->modalidad,
+                    'nombreInstructor' => $curso->nombreInstructor ?? 'NA',
                     'fecha_inicio' => $curso->fecha_inicio,
                     'fecha_fin' => $curso->fecha_fin,
                     'fecha_limite_inscripcion' => $curso->fecha_limite_inscripcion,
+                    'duracion' => $curso->duracion,
                     'cupos' => $curso->cupos,
                     'estado_id' => $curso->estado_id,
-                    'modalidad' => [
-                        'id_modalidad' => $curso->id_modalidad,
-                        'nombre' => $curso->modalidad_nombre,
-                    ]
                 ];
             });
     }
 
-    public function obtenerConteoInscritos($cursos)
-    {
-        $ids = collect($cursos)->pluck('id_curso');
+    /**
+     * Cancelar inscripción (cambio lógico de estado)
+     */
+    public function cancelarInscripcion(int $idCurso, int $idUsuario): bool
+{
+    return InscripcionCurso::where('id_curso', $idCurso)
+        ->where('id_usuario', $idUsuario)
+        ->delete() > 0; // ✅ DELETE REAL
+}
 
-        return DB::table('inscripciones_curso')
-            ->selectRaw('id_curso, COUNT(*) as total')
-            ->whereIn('id_curso', $ids)
-            ->groupBy('id_curso')
-            ->pluck('total', 'id_curso');
-    }
+/**
+ * Obtener cantidad de inscritos por curso
+ */
+public function obtenerConteoInscritosPorCurso(): array
+{
+    return InscripcionCurso::select('id_curso', DB::raw('COUNT(*) as total'))
+        ->where('estado_id', 1)
+        ->groupBy('id_curso')
+        ->pluck('total', 'id_curso')
+        ->toArray();
+}
 }

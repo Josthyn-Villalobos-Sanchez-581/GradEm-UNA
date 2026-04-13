@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
+use App\Models\Modalidad;
 
 class InscripcionCursoController extends Controller
 {
@@ -80,44 +81,71 @@ class InscripcionCursoController extends Controller
     }
 
     /**
-     * DELETE /cursos/{idCurso}/cancelar
-     * Cancela la inscripción del usuario autenticado en el curso.
+     * Vista Mis Cursos
+     */
+    public function misCursos()
+    {
+        $idUsuario = Auth::id();
+
+        if (!$idUsuario) {
+            return redirect()->route('login');
+        }
+
+        $cursos = $this->service->obtenerMisCursos($idUsuario);
+
+        // ✅ obtener ids de cursos inscritos activos
+        $misInscripciones = \App\Models\InscripcionCurso::where('id_usuario', $idUsuario)
+            ->where('estado_id', 1)
+            ->pluck('id_curso');
+
+        $inscritosCount = $this->service->obtenerInscritosCount();
+
+        return Inertia::render('Cursos/MisCursos', [
+            'cursos' => $cursos,
+            'modalidades' => Modalidad::select('id_modalidad', 'nombre')->get(),
+            'userPermisos' => getUserPermisos() ?? [],
+            'misInscripciones' => $misInscripciones,
+            'inscritosCount' => $inscritosCount,
+        ]);
+    }
+
+    /**
+     * Cancelar inscripción
      */
     public function cancelar(int $idCurso)
     {
         $idUsuario = Auth::id();
+
+        if (!$idUsuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesión expirada.'
+            ], 401);
+        }
 
         try {
             $this->service->cancelar($idCurso, $idUsuario);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Tu inscripción ha sido cancelada correctamente.',
+                'message' => 'Inscripción cancelada correctamente.'
             ]);
         } catch (\DomainException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('Error cancelando inscripción', [
+                'id_curso' => $idCurso,
+                'id_usuario' => $idUsuario,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Ocurrió un error al cancelar la inscripción.',
+                'message' => 'Error al cancelar inscripción.'
             ], 500);
         }
-    }
-
-    /**
-     * GET /mis-cursos
-     * Retorna los cursos inscritos del usuario
-     */
-    public function misCursos()
-    {
-        $idUsuario = Auth::id();
-
-        return Inertia::render('Cursos/MisCursosIndex', [
-            'cursos' => $this->service->obtenerMisCursos($idUsuario),
-            'modalidades' => $this->service->obtenerModalidades(),
-        ]);
     }
 }

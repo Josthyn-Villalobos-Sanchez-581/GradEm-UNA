@@ -333,15 +333,15 @@ Route::middleware('auth')->group(function () {
             '/notificaciones/cursos/cambio-inscripcion',
             [NotificacionCursoController::class, 'notificarCambioInscripcion']
         )->name('notificaciones.cursos.cambio-inscripcion');
-// descargar pdf de inscritos o inscrito con asistencia 
+        // descargar pdf de inscritos o inscrito con asistencia 
         Route::get('/{idCurso}/pdf/{tipo}', [CursoController::class, 'descargarPdf'])
-    ->name('cursos.pdf');
+            ->name('cursos.pdf');
 
-// Eliminar inscripción de un usuario (desde gestión de inscritos)
-  Route::delete(
-    '/{idCurso}/inscritos/{idUsuario}',
-    [CursoController::class, 'eliminarInscrito']
-)->name('cursos.inscritos.eliminar');
+        // Eliminar inscripción de un usuario (desde gestión de inscritos)
+        Route::delete(
+            '/{idCurso}/inscritos/{idUsuario}',
+            [CursoController::class, 'eliminarInscrito']
+        )->name('cursos.inscritos.eliminar');
     });
 
     // ==========================================
@@ -358,11 +358,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/{idCurso}/inscripcion-estado', [InscripcionCursoController::class, 'estado'])
             ->name('cursos.inscripcion.estado');
 
-        Route::delete('/{idCurso}/cancelar-inscripcion', [InscripcionCursoController::class, 'cancelar'])
-            ->name('cursos.cancelar-inscripcion');
-
         Route::get('/mis-cursos', [InscripcionCursoController::class, 'misCursos'])
-            ->name('cursos.mis-cursos');
+            ->name('cursos.mis');
+
+        Route::post('/cursos/{idCurso}/cancelar', [InscripcionCursoController::class, 'cancelar'])
+            ->name('cursos.cancelar');
     });
 
     // ==========================================

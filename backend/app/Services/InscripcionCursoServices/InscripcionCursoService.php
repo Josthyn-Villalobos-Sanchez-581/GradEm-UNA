@@ -102,7 +102,15 @@ class InscripcionCursoService
     }
 
     /**
-     * Cancelar inscripción del usuario en un curso
+     * Obtener cursos del usuario
+     */
+    public function obtenerMisCursos(int $idUsuario)
+    {
+        return $this->repo->obtenerCursosPorUsuario($idUsuario);
+    }
+
+    /**
+     * Cancelar inscripción
      */
     public function cancelar(int $idCurso, int $idUsuario): void
     {
@@ -110,33 +118,15 @@ class InscripcionCursoService
             throw new \DomainException('No está inscrito en este curso.');
         }
 
-        $this->repo->cancelarInscripcion($idCurso, $idUsuario);
+        $cancelado = $this->repo->cancelarInscripcion($idCurso, $idUsuario);
+
+        if (!$cancelado) {
+            throw new \DomainException('No se pudo cancelar la inscripción.');
+        }
     }
 
-    /**
-     * Listar cursos del usuario autenticado
-     */
-    public function obtenerMisCursos(int $idUsuario)
+    public function obtenerInscritosCount(): array
     {
-        $cursos = $this->repo->obtenerCursosPorUsuario($idUsuario);
-
-        $conteo = $this->repo->obtenerConteoInscritos($cursos);
-
-        return collect($cursos)->map(function ($curso) use ($conteo) {
-            $inscritos = $conteo[$curso['id_curso']] ?? 0;
-            $cupos = $curso['cupos'];
-
-            return [
-                ...$curso,
-                'inscritos' => $inscritos,
-                'disponibles' => is_null($cupos) ? null : max(0, $cupos - $inscritos),
-            ];
-        });
+        return $this->repo->obtenerConteoInscritosPorCurso();
     }
-
-    public function obtenerModalidades()
-    {
-        return Modalidad::select('id_modalidad', 'nombre')->get();
-    }
-
 }
