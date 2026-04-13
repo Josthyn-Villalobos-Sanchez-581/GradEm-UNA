@@ -239,7 +239,7 @@ export default function ReporteEgresados({
   const [tipoReporte, setTipoReporte] = useState<string | null>("multiple");//estados para seleccion del tipo de reporte
   const [reportesSeleccionados, setReportesSeleccionados] = useState<string[]>(REPORTES_DISPONIBLES);
   const [panelAbierto, setPanelAbierto] = useState(false);
-  const hoverTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const abrirPanel = () => {
     if (hoverTimeout.current) {

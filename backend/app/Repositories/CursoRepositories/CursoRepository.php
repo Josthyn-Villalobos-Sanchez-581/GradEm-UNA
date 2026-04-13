@@ -144,6 +144,7 @@ class CursoRepository
             'fecha_fin',
             'fecha_limite_inscripcion',
             'duracion',
+            'cupos',
             'id_modalidad',
             'nombreInstructor',
             'estado_id',

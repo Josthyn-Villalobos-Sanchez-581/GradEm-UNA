@@ -24,15 +24,30 @@ class UsuariosConsultaController extends Controller
             : [];
 
         // 🔹 Cargar usuarios junto con empresa
-        $usuarios = Usuario::with(['rol', 'universidad', 'carrera', 'empresa'])
+        $usuarios = Usuario::with([
+            'rol',
+            'empresa',
+            'carrera:id_carrera,nombre',
+            'universidad:id_universidad,nombre,sigla'
+        ])
             ->whereHas('rol', function ($q) {
                 $q->whereIn('nombre_rol', ['Estudiante', 'Egresado', 'Empresa']);
             })
             ->get();
 
+        $universidades = DB::table('universidades')
+            ->select('id_universidad', DB::raw('LOWER(nombre) as nombre'), DB::raw('LOWER(sigla) as sigla'))
+            ->get();
+
+        $carreras = DB::table('carreras')
+            ->select('id_carrera', DB::raw('LOWER(nombre) as nombre'))
+            ->get();
+
         return Inertia::render('Usuarios/PerfilesUsuarios', [
-            'usuarios' => $usuarios,
+            'usuarios' => $usuarios->toArray(),
             'userPermisos' => $permisos,
+            'universidades' => $universidades->toArray(),
+            'carreras' => $carreras->toArray(),
         ]);
     }
 
