@@ -68,7 +68,7 @@ class CursoService
         $logoSrc = null;
         $path = public_path('logos/logo_gradem.png');
 
-        if (is_readable($path)) {
+        if (extension_loaded('gd') && is_readable($path)) {
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $dataImg = file_get_contents($path);
             $logoSrc = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
