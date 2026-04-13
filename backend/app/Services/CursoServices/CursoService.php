@@ -106,6 +106,7 @@ class CursoService
                 'fecha_fin' => $request->fecha_fin ?? null,
                 'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'duracion' => $request->duracion ?? null,
+                'cupos' => $request->cupos ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'nombreInstructor' => $request->nombreInstructor ?? null,
                 'estado_id' => 2,
@@ -144,6 +145,7 @@ class CursoService
                 'fecha_fin',
                 'fecha_limite_inscripcion',
                 'duracion',
+                'cupos',
                 'id_modalidad',
                 'nombreInstructor',
             ]);
@@ -156,6 +158,7 @@ class CursoService
                 'fecha_fin' => $request->input('fecha_fin'),
                 'fecha_limite_inscripcion' => $request->input('fecha_limite_inscripcion'),
                 'duracion' => $request->input('duracion'),
+                'cupos' => $request->input('cupos'),
                 'id_modalidad' => $request->input('id_modalidad'),
                 'nombreInstructor' => $request->input('nombreInstructor'),
             ];
