@@ -1,5 +1,5 @@
 <?php
-
+//app/Support/helpers.php
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 

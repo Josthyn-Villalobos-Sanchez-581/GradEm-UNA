@@ -1,3 +1,4 @@
+// backend/resources/js/pages/welcome.tsx
 import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
 import unaLogo from "../assets/logoUNATopBar.png";

@@ -188,6 +188,43 @@ class EventoRepository
             ->get();
     }
 
+    /**
+     * Obtener inscritos del evento para gestión
+     */
+    public function obtenerInscritosGestionEvento(int $idEvento)
+    {
+        return DB::table('inscripciones_evento')
+            ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_evento.id_usuario')
+            ->leftJoin('universidades', 'universidades.id_universidad', '=', 'usuarios.id_universidad')
+            ->leftJoin('carreras', 'carreras.id_carrera', '=', 'usuarios.id_carrera')
+            ->where('inscripciones_evento.id_evento', $idEvento)
+            ->where('inscripciones_evento.estado_id', 1)
+            ->select(
+                'usuarios.id_usuario',
+                'usuarios.nombre_completo',
+                'usuarios.correo',
+                'usuarios.identificacion',
+                'usuarios.telefono',
+                'universidades.nombre as universidad',
+                'carreras.nombre as carrera'
+            )
+            ->orderBy('usuarios.nombre_completo')
+            ->get();
+    }
+
+    /**
+     * Eliminar inscripción de usuario en evento
+     */
+    public function eliminarInscripcionEvento(int $idEvento, int $idUsuario): bool
+    {
+        $eliminados = DB::table('inscripciones_evento')
+            ->where('id_evento', $idEvento)
+            ->where('id_usuario', $idUsuario)
+            ->delete();
+
+        return $eliminados > 0;
+    }
+
 
     public function finalizarEventosAutomaticamente()
     {

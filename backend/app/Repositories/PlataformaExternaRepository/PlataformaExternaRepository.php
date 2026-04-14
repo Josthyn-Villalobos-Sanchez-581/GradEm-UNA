@@ -1,6 +1,6 @@
 <?php
-
-namespace App\Repositories;
+//backend/app/Repositories/PlataformaExternaRepository/PlataformaExternaRepository.php 
+namespace App\Repositories\PlataformaExternaRepository;
 
 use App\Models\PlataformaExterna;
 

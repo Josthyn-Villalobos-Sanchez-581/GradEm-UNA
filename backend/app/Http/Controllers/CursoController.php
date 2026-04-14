@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 
 class CursoController extends Controller
@@ -141,6 +142,11 @@ class CursoController extends Controller
                 'string',
                 'max:20',
             ],
+            'cupos' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
             'id_modalidad' => [
                 'nullable',
                 'integer',
@@ -201,6 +207,7 @@ class CursoController extends Controller
             'descripcion' => ['nullable', 'string', 'min:10', 'max:300', 'regex:/[a-zA-Z]/'],
             'nombreInstructor' => ['nullable', 'string', 'min:3', 'max:100', 'regex:/[a-zA-Z]/'],
             'duracion' => ['nullable', 'string', 'max:20'],
+            'cupos' => ['nullable', 'integer', 'min:1'],
             'id_modalidad' => ['nullable', 'integer', 'exists:modalidades,id_modalidad'],
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
@@ -242,4 +249,29 @@ class CursoController extends Controller
             'message' => 'El curso fue eliminado con éxito',
         ]);
     }
+
+    // Método para descargar PDF de inscritos o asistencias 
+    public function descargarPdf(int $idCurso, string $tipo)
+{
+    return $this->service->generarPdfCurso($idCurso, $tipo);
+}
+// Método para eliminar inscripción de un usuario desde gestión de inscritos 
+public function eliminarInscrito(int $idCurso, int $idUsuario)
+{
+    try {
+        $this->service->eliminarInscripcionCurso($idCurso, $idUsuario);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participante eliminado correctamente.',
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 422);
+    }
+}
+
 }
