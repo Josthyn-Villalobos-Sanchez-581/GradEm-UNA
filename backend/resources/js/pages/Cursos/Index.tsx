@@ -188,6 +188,7 @@ export default function CursosIndex(props: Props) {
     fecha_fin: "",
     fecha_limite_inscripcion: "",
     duracion: "",
+    cupos: "",
     id_modalidad: "",
     nombreInstructor: "",
   });
@@ -204,6 +205,7 @@ export default function CursosIndex(props: Props) {
         fecha_fin: curso.fecha_fin || "",
         fecha_limite_inscripcion: curso.fecha_limite_inscripcion || "",
         duracion: curso.duracion || "",
+        cupos: curso.cupos != null ? String(curso.cupos) : "",
         id_modalidad: String(curso.modalidad?.id_modalidad || curso.id_modalidad || ""),
         nombreInstructor: curso.nombreInstructor || "",
       });
@@ -216,6 +218,7 @@ export default function CursosIndex(props: Props) {
         fecha_fin: "",
         fecha_limite_inscripcion: "",
         duracion: "",
+        cupos: "",
         id_modalidad: "",
         nombreInstructor: "",
       });
@@ -269,19 +272,31 @@ export default function CursosIndex(props: Props) {
       e.fecha_fin = "La fecha fin no puede ser anterior a inicio";
     }
 
+    if (formCurso.cupos.trim() !== "") {
+      const cupos = Number(formCurso.cupos);
+      if (!Number.isInteger(cupos) || cupos < 1) {
+        e.cupos = "El límite de cupos debe ser un número entero mayor a 0";
+      }
+    }
+
     setErroresForm(e);
     return Object.keys(e).length === 0;
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const submitFormularioCurso = async () => {
+    if (isSubmitting) return;
     if (!validarFormularioCurso()) return;
 
+    setIsSubmitting(true);
     try {
       if (formMode === "create") {
         const payload = {
           ...formCurso,
           id_modalidad: formCurso.id_modalidad || null,
           fecha_fin: formCurso.fecha_fin || null,
+          cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
         };
         const response = await axios.post(route("cursos.store"), payload);
         setCursos((prev) => [response.data.curso, ...prev]);
@@ -291,6 +306,7 @@ export default function CursosIndex(props: Props) {
           ...formCurso,
           id_modalidad: Number(formCurso.id_modalidad),
           fecha_fin: formCurso.fecha_fin || null,
+          cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
         };
         await axios.put(route("cursos.update", { idCurso: cursoSeleccionado.id_curso }), payload);
         setCursos((prev) => prev.map((c) => c.id_curso === cursoSeleccionado.id_curso ? {
@@ -301,6 +317,7 @@ export default function CursosIndex(props: Props) {
           fecha_fin: formCurso.fecha_fin,
           fecha_limite_inscripcion: formCurso.fecha_limite_inscripcion,
           duracion: formCurso.duracion,
+          cupos: formCurso.cupos.trim() === "" ? undefined : Number(formCurso.cupos),
           nombreInstructor: formCurso.nombreInstructor,
           modalidad: props.modalidades.find((m) => m.id_modalidad === Number(formCurso.id_modalidad)),
         } : c));
@@ -314,6 +331,8 @@ export default function CursosIndex(props: Props) {
           error.response?.data?.message ??
           "Ocurrió un error al guardar el curso. Intente nuevamente.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -321,12 +340,14 @@ export default function CursosIndex(props: Props) {
      Acciones
   ======================= */
 
-const filtrarTextoCurso = (valor: string, max: number) =>
-    valor.replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()"'¡!¿?%&@\/\s-]/g, "").slice(0, max);
+  const filtrarTextoCurso = (valor: string, max: number) =>
+    valor
+      .replace(/[^\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]/gu, "")
+      .slice(0, max);
 
   const textoFiltroValido = (valor: string, max = 100) => {
     return valor
-      .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, "")
+      .replace(/[^\p{L}\p{N}\s]/gu, "")
       .slice(0, max);
   };
 
@@ -493,6 +514,16 @@ const filtrarTextoCurso = (valor: string, max: number) =>
             <div className="flex items-center gap-3">
               {view === "list" && puedeGestionar && (
                 <>
+                  {/* Botón Dashboard - Ahora condicionado a la lista */}
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                    onClick={() => window.location.href = route("dashboard")}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+
                   {/* Botón de Filtros - Ajustado a h-10 y rounded-full */}
                   <Button
                     type="button"
@@ -690,8 +721,13 @@ const filtrarTextoCurso = (valor: string, max: number) =>
                   ) : (
                     /* GRID DE TARJETAS: md:grid-cols-2 por defecto, md:grid-cols-3 si no hay filtros */
                     <div className={`grid grid-cols-1 ${mostrarFiltros ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"} gap-3`}>
-                      {cursosPaginados.map((curso) => (
-                        <div key={curso.id_curso} className="border rounded-2xl p-4 shadow-sm hover:shadow-md transition bg-white flex flex-col justify-between">
+                      {cursosPaginados.map((curso) => {
+                        const inscritos = props.inscritosCount[curso.id_curso] ?? 0;
+                        const cuposDisponibles =
+                          curso.cupos != null ? Math.max(0, curso.cupos - inscritos) : null;
+
+                        return (
+                        <div key={curso.id_curso} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between gap-2">
                               <div>
@@ -714,6 +750,8 @@ const filtrarTextoCurso = (valor: string, max: number) =>
                               <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inst:</span> {displayValue(curso.nombreInstructor)}</div>
                               <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inicio:</span> {curso.fecha_inicio ?? "NA"}</div>
                               <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Límite:</span> {curso.fecha_limite_inscripcion ?? "NA"}</div>
+                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Cupos:</span> {curso.cupos != null ? curso.cupos : "Sin límite"}</div>
+                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Disp.:</span> {cuposDisponibles != null ? cuposDisponibles : "Sin límite"}</div>
                             </div>
                           </div>
 
@@ -749,7 +787,7 @@ const filtrarTextoCurso = (valor: string, max: number) =>
                             )}
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </div>
@@ -909,6 +947,33 @@ const filtrarTextoCurso = (valor: string, max: number) =>
                                     )}
                                 </div>
 
+                                <div>
+                                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                      Límite de cupos
+                                  </label>
+                                  <input
+                                      type="number"
+                                      min={1}
+                                      step={1}
+                                      value={formCurso.cupos}
+                                      onChange={(e) =>
+                                        setFormCurso((prev) => ({
+                                          ...prev,
+                                          cupos: e.target.value.replace(/\D/g, ""),
+                                        }))
+                                      }
+                                      className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                                        erroresForm.cupos ? "border-[#CD1719] ring-red-50" : "border-slate-300"
+                                      }`}
+                                      placeholder="Ej: 30"
+                                  />
+                                  {erroresForm.cupos ? (
+                                      <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.cupos}</p>
+                                  ) : (
+                                      <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Déjelo vacío para cursos sin límite.</p>
+                                  )}
+                                </div>
+
                                 {/* Fecha Fin y Fecha Límite */}
                                 <div>
                                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
@@ -964,9 +1029,10 @@ const filtrarTextoCurso = (valor: string, max: number) =>
                             </Button>
                             <Button 
                                 onClick={submitFormularioCurso}
+                                disabled={isSubmitting}
                                 className="bg-[#034991] hover:bg-blue-800 text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold"
                             >
-                                {formMode === "create" ? "Registrar curso" : "Guardar cambios"}
+                                {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar curso" : "Guardar cambios"}
                             </Button>
                         </div>
                     </section>

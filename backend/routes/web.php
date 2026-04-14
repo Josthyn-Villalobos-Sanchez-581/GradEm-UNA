@@ -1,5 +1,5 @@
 <?php
-
+// backend/routes/web.php
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
@@ -333,6 +333,15 @@ Route::middleware('auth')->group(function () {
             '/notificaciones/cursos/cambio-inscripcion',
             [NotificacionCursoController::class, 'notificarCambioInscripcion']
         )->name('notificaciones.cursos.cambio-inscripcion');
+        // descargar pdf de inscritos o inscrito con asistencia 
+        Route::get('/{idCurso}/pdf/{tipo}', [CursoController::class, 'descargarPdf'])
+            ->name('cursos.pdf');
+
+        // Eliminar inscripción de un usuario (desde gestión de inscritos)
+        Route::delete(
+            '/{idCurso}/inscritos/{idUsuario}',
+            [CursoController::class, 'eliminarInscrito']
+        )->name('cursos.inscritos.eliminar');
     });
 
     // ==========================================
@@ -348,6 +357,12 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/{idCurso}/inscripcion-estado', [InscripcionCursoController::class, 'estado'])
             ->name('cursos.inscripcion.estado');
+
+        Route::get('/mis-cursos', [InscripcionCursoController::class, 'misCursos'])
+            ->name('cursos.mis');
+
+        Route::post('/cursos/{idCurso}/cancelar', [InscripcionCursoController::class, 'cancelar'])
+            ->name('cursos.cancelar');
     });
 
     // ==========================================
@@ -371,8 +386,18 @@ Route::middleware('auth')->group(function () {
         Route::put('/{idEvento}', [EventoController::class, 'update'])
             ->name('eventos.update');
 
+        Route::get('/eventos/{idEvento}', [EventoController::class, 'show'])
+            ->name('eventos.show');
+        Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
+            ->name('eventos.inscritos');
+        Route::delete('/{idEvento}/inscritos/{idUsuario}', [EventoController::class, 'eliminarInscrito'])
+            ->name('eventos.inscritos.eliminar');
+        Route::get('/{idEvento}/pdf/{tipo}', [EventoController::class, 'descargarPdf'])
+            ->name('eventos.pdf');
+        Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
+            ->name('notificaciones.eventos.recordatorio');
         // Inactivar evento
-        Route::put('/{idEvento}/estado', [EventoController::class, 'cambiarEstado'])
+        Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
             ->name('eventos.estado');
         // 📌 Publicar evento
         Route::put('/{idEvento}/publicar', [EventoController::class, 'publicar'])

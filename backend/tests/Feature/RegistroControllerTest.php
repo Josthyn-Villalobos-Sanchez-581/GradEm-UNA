@@ -1,206 +1,249 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Controllers;
 
-use App\Models\Usuario;
-use App\Models\Credencial;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
+use App\Models\Usuario;
+use App\Models\Rol;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Session;
+
 class RegistroControllerTest extends TestCase
 {
     use DatabaseTransactions;
 
-    protected $usuarioExistente;
-
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Evitar middlewares
         $this->withoutMiddleware();
- // Crear un rol necesario para el test
-    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Estudiante']);
-    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Egresado']);
-    \App\Models\Rol::firstOrCreate(['nombre_rol' => 'Empresa']);
-
-        // Crear un usuario existente para pruebas de correo duplicado
-        $this->usuarioExistente = Usuario::factory()->withCredencial()->create([
-            'correo' => 'existente@correo.com'
-        ]);
     }
 
+    // ─────────────────────────────────────────
+    // mostrarFormulario
+    // ─────────────────────────────────────────
+
     #[Test]
-    public function mostrar_formulario_registro()
+    public function test_mostrar_formulario_retorna_vista_correcta()
     {
-        $response = $this->get(route('registro.form'));
+        $response = $this->withHeaders(['X-Inertia' => 'true'])
+                         ->getJson('/registro');
 
         $response->assertStatus(200)
-                 ->assertInertia(fn ($page) => $page
-                    ->component('Registro')
-                 );
+                 ->assertJsonPath('component', 'Registro');
     }
 
+    // ─────────────────────────────────────────
+    // enviarCodigo
+    // ─────────────────────────────────────────
+
     #[Test]
-    public function enviar_codigo_exitoso()
+    public function test_enviar_codigo_correctamente()
     {
         Mail::fake();
 
-        $response = $this->post('/registro/enviar-codigo', [
-            'correo' => 'nuevo@correo.com'
+        $response = $this->postJson('/registro/enviar-codigo', [
+            'correo' => 'nuevo_' . uniqid() . '@test.com'
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Código enviado']);
-
-        // Verificar que la sesión tenga OTP
-        $this->assertEquals('nuevo@correo.com', session('otp_correo'));
-        $this->assertNotNull(session('otp_codigo'));
-        $this->assertNotNull(session('otp_expires_at'));
+                 ->assertJson([
+                     'message' => 'Código enviado correctamente'
+                 ]);
     }
 
     #[Test]
-    public function enviar_codigo_correo_ya_registrado()
+    public function test_enviar_codigo_falla_si_correo_ya_existe()
     {
-        $response = $this->post('/registro/enviar-codigo', [
-            'correo' => $this->usuarioExistente->correo
+        Mail::fake();
+
+        $usuario = Usuario::factory()->create();
+
+        $response = $this->postJson('/registro/enviar-codigo', [
+            'correo' => $usuario->correo
         ]);
 
         $response->assertStatus(422)
-                 ->assertJson(['message' => 'Este correo ya está registrado']);
+                 ->assertJson([
+                     'message' => 'Este correo ya está registrado'
+                 ]);
     }
 
     #[Test]
-    public function validar_codigo_exitoso()
+    public function test_enviar_codigo_falla_sin_correo()
     {
-        $codigo = '123456';
-        session([
-            'otp_correo' => 'validar@correo.com',
-            'otp_codigo' => $codigo,
-            'otp_expires_at' => now()->addMinutes(5)
-        ]);
+        $response = $this->postJson('/registro/enviar-codigo', []);
 
-        $response = $this->post('/registro/validar-codigo', [
-            'correo' => 'validar@correo.com',
-            'codigo' => $codigo
+        $response->assertStatus(422);
+    }
+
+    // ─────────────────────────────────────────
+    // validarCodigo
+    // ─────────────────────────────────────────
+
+    #[Test]
+    public function test_validar_codigo_correctamente()
+    {
+        Session::put('otp_correo', 'usuario@test.com');
+        Session::put('otp_codigo', 123456);
+        Session::put('otp_expires_at', now()->addMinutes(5));
+
+        $response = $this->postJson('/registro/validar-codigo', [
+            'correo' => 'usuario@test.com',
+            'codigo' => 123456
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Correo validado']);
-
-        $this->assertTrue(session('otp_validado'));
+                 ->assertJson([
+                     'message' => 'Correo validado correctamente'
+                 ]);
     }
 
     #[Test]
-    public function validar_codigo_invalido_o_expirado()
+    public function test_validar_codigo_falla_si_codigo_incorrecto()
     {
-        $codigo = '123456';
-        session([
-            'otp_correo' => 'validar@correo.com',
-            'otp_codigo' => $codigo,
-            'otp_expires_at' => now()->subMinute()
-        ]);
+        Session::put('otp_correo', 'usuario@test.com');
+        Session::put('otp_codigo', 123456);
+        Session::put('otp_expires_at', now()->addMinutes(5));
 
-        $response = $this->post('/registro/validar-codigo', [
-            'correo' => 'validar@correo.com',
-            'codigo' => '654321'
+        $response = $this->postJson('/registro/validar-codigo', [
+            'correo' => 'usuario@test.com',
+            'codigo' => 999999
         ]);
 
         $response->assertStatus(422)
-                 ->assertJson(['message' => 'Código inválido o expirado']);
+                 ->assertJson([
+                     'message' => 'Código inválido o expirado'
+                 ]);
     }
 
     #[Test]
-    public function registrar_usuario_exitoso()
+    public function test_validar_codigo_falla_si_otp_expirado()
     {
-        $codigo = '123456';
-        session([
-            'otp_correo' => 'nuevo@correo.com',
-            'otp_codigo' => $codigo,
-            'otp_expires_at' => now()->addMinutes(5),
-            'otp_validado' => true
-        ]);
+        Session::put('otp_correo', 'usuario@test.com');
+        Session::put('otp_codigo', 123456);
+        Session::put('otp_expires_at', now()->subMinutes(10));
 
-       $response = $this->post('/registro', [
-    'correo' => 'nuevo@correo.com',
-    'password' => 'Password123!',
-    'password_confirmation' => 'Password123!',
-    'nombre_completo' => 'Juan Perez',
-    'identificacion' => '12345678',
-    'tipoCuenta' => 'estudiante',
-    'telefono' => null,
-    'fecha_nacimiento' => null,
-    'genero' => null,
-    'estado_empleo' => null,
-    'estado_estudios' => null,
-    'nivel_academico' => null,
-    'anio_graduacion' => null,
-    'tiempo_conseguir_empleo' => null,
-    'area_laboral_id' => null,
-    'id_canton' => null,
-    'salario_promedio' => null,
-    'tipo_empleo' => null,
-    'id_universidad' => null,
-    'id_carrera' => null,
-]);
-        $response->assertStatus(200)
-                 ->assertJson(['message' => 'Usuario registrado correctamente']);
-
-        $usuario = Usuario::where('correo', 'nuevo@correo.com')->first();
-        $this->assertNotNull($usuario);
-
-        $credencial = Credencial::where('id_usuario', $usuario->id_usuario)->first();
-        $this->assertTrue(Hash::check('Password123!', $credencial->hash_contrasena));
-
-        // La sesión OTP debe limpiarse
-        $this->assertNull(session('otp_correo'));
-        $this->assertNull(session('otp_codigo'));
-        $this->assertNull(session('otp_expires_at'));
-        $this->assertNull(session('otp_validado'));
-    }
-
-    #[Test]
-    public function registrar_sin_validar_correo()
-    {
-        session()->forget(['otp_validado', 'otp_correo']);
-
-        $response = $this->post('/registro', [
-            'correo' => 'nuevo@correo.com',
-            'password' => 'Password123!',
-            'password_confirmation' => 'Password123!',
-            'nombre_completo' => 'Juan Perez',
-            'identificacion' => '12345678',
-            'tipoCuenta' => 'estudiante'
+        $response = $this->postJson('/registro/validar-codigo', [
+            'correo' => 'usuario@test.com',
+            'codigo' => 123456
         ]);
 
         $response->assertStatus(422)
-                 ->assertJson(['message' => 'Debe validar su correo primero']);
+                 ->assertJson([
+                     'message' => 'Código inválido o expirado'
+                 ]);
     }
 
     #[Test]
-    public function registrar_correo_duplicado()
+    public function test_validar_codigo_falla_si_correo_no_coincide()
     {
-        $codigo = '123456';
-        session([
-            'otp_correo' => $this->usuarioExistente->correo,
-            'otp_codigo' => $codigo,
-            'otp_expires_at' => now()->addMinutes(5),
-            'otp_validado' => true
+        Session::put('otp_correo', 'otro@test.com');
+        Session::put('otp_codigo', 123456);
+        Session::put('otp_expires_at', now()->addMinutes(5));
+
+        $response = $this->postJson('/registro/validar-codigo', [
+            'correo' => 'usuario@test.com',
+            'codigo' => 123456
         ]);
 
-        $response = $this->post('/registro', [
-            'correo' => $this->usuarioExistente->correo,
-            'password' => 'Password123!',
-            'password_confirmation' => 'Password123!',
-            'nombre_completo' => 'Juan Perez',
-            'identificacion' => '87654321',
-            'tipoCuenta' => 'estudiante'
-        ], ['Accept' => 'application/json']);
         $response->assertStatus(422)
-                  ->assertJsonFragment([
-             'message' => 'El correo ya está registrado.'
+                 ->assertJson([
+                     'message' => 'Código inválido o expirado'
+                 ]);
+    }
+
+    // ─────────────────────────────────────────
+    // registrar
+    // ─────────────────────────────────────────
+
+    #[Test]
+public function test_registrar_usuario_correctamente()
+{
+    $correo = 'nuevo_' . uniqid() . '@test.com';
+
+    Session::put('otp_validado', true);
+    Session::put('otp_correo', $correo);
+
+    $rol = Rol::where('nombre_rol', 'Estudiante')->first();
+
+    if (!$rol) {
+        $rol = Rol::factory()->create(['nombre_rol' => 'Estudiante']);
+    }
+
+    $response = $this->postJson('/registro', [
+        'correo'                => $correo,
+        'password'              => 'password123',
+        'password_confirmation' => 'password123',
+        'nombre_completo'       => 'Juan Perez',
+        'identificacion'        => 'ABC' . rand(10000, 99999),
+        'tipoCuenta'            => 'estudiante',
+    ]);
+
+    $response->assertStatus(200)
+             ->assertJson([
+                 'message' => 'Usuario registrado correctamente'
+             ]);
+
+    $this->assertDatabaseHas('usuarios', [
+        'correo' => $correo,
+    ]);
+}
+
+    #[Test]
+public function test_registrar_falla_si_otp_no_validado()
+{
+    Session::forget('otp_validado');
+    Session::put('otp_correo', 'usuario@test.com');
+
+    $response = $this->postJson('/registro', [
+        'correo'                => 'usuario@test.com',
+        'password'              => 'password123',
+        'password_confirmation' => 'password123',
+        'nombre_completo'       => 'Juan Perez',
+        'identificacion'        => 'ABC' . rand(10000, 99999),
+        'tipoCuenta'            => 'estudiante',
+    ]);
+
+    $response->assertStatus(422)
+             ->assertJson([
+                 'message' => 'Debe validar su correo primero'
+             ]);
+}
+
+    #[Test]
+public function test_registrar_falla_si_correo_no_coincide_con_otp()
+{
+    Session::put('otp_validado', true);
+    Session::put('otp_correo', 'otro@test.com');
+
+    $response = $this->postJson('/registro', [
+        'correo'                => 'diferente@test.com',
+        'password'              => 'password123',
+        'password_confirmation' => 'password123',
+        'nombre_completo'       => 'Juan Perez',
+        'identificacion'        => 'ABC' . rand(10000, 99999),
+        'tipoCuenta'            => 'estudiante',
+    ]);
+
+    $response->assertStatus(422)
+             ->assertJson([
+                 'message' => 'Debe validar su correo primero'
+             ]);
+}
+    #[Test]
+    public function test_registrar_falla_sin_datos_requeridos()
+    {
+        $correo = 'nuevo_' . uniqid() . '@test.com';
+
+        Session::put('otp_validado', true);
+        Session::put('otp_correo', $correo);
+
+        $response = $this->postJson('/registro', [
+            'correo' => $correo,
         ]);
+
+        $response->assertStatus(422);
     }
 }

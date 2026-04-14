@@ -7,7 +7,10 @@ use App\Mail\EventoPublicadoMail;
 use App\Repositories\EventoRepository\EventoRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Mail\Eventos\EventoCanceladoMail;
+use App\Mail\Eventos\RecordatorioEventoMail;
 use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EventoService
 {
@@ -16,6 +19,10 @@ class EventoService
     public function __construct(EventoRepository $eventoRepository)
     {
         $this->eventoRepository = $eventoRepository;
+    }
+
+    public function finalizarEventosAutomaticamente(){
+        $this->eventoRepository->finalizarEventosAutomaticamente();
     }
 
     /**
@@ -39,7 +46,7 @@ class EventoService
 
         $usuario = Auth::user();
 
-        // 🔒 VALIDACIÓN DE ACCESO
+        //VALIDACIÓN DE ACCESO
         if (
             !in_array($usuario->id_rol, [1]) && // superadmin
             $evento->usuario_id !== $usuario->id_usuario
@@ -176,22 +183,8 @@ class EventoService
                 }
             }
 
-            $carrerasOriginales = array_map('strval', $eventoCompleto->carreras_invitadas ?? []);
-            sort($carrerasOriginales);
-
-            $rolesOriginales = array_map('strval', $eventoCompleto->roles_interesados ?? []);
-            sort($rolesOriginales);
-
-            $carrerasActuales = array_map('strval', $request->carreras_invitadas ?? []);
-            sort($carrerasActuales);
-
-            $rolesActuales = array_map('strval', $request->roles_interesados ?? []);
-            sort($rolesActuales);
-
-            if ($carrerasOriginales !== $carrerasActuales || $rolesOriginales !== $rolesActuales) {
-                $cambiosCriticos['destinatarios'] = 'Se actualizó la selección de carreras o roles interesados';
-            }
-
+            // No notificar por cambios en destinatarios (carreras o roles interesados).
+            // Solo se envían correos cuando otros datos críticos del evento cambian.
             $this->eventoRepository->actualizarEvento($evento, $data);
 
             if ($request->carreras_invitadas) {
@@ -207,7 +200,7 @@ class EventoService
 
             if ($evento->estado_id === 1 && !empty($cambiosCriticos) && $destinatarios->count() > 0) {
                 foreach ($destinatarios as $destinatario) {
-                    Mail::to($destinatario->correo)->send(
+                    Mail::to($destinatario->correo)->queue(
                         new EventoActualizadoMail($eventoActualizado, $cambiosCriticos)
                     );
                 }
@@ -220,6 +213,16 @@ class EventoService
             DB::rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Obtener inscritos del evento para vista de gestión
+     */
+    public function obtenerInscritosEventoGestion(int $idEvento)
+    {
+        $evento = $this->obtenerEventoSeguro($idEvento);
+
+        return $this->eventoRepository->obtenerInscritosGestionEvento($evento->id_evento);
     }
 
     /**
@@ -236,7 +239,7 @@ class EventoService
                 throw new \Exception('El evento ya está publicado');
             }
 
-            // 🔒 Validaciones básicas antes de publicar
+            //Validaciones básicas antes de publicar
             $faltantes = [];
 
             if (!$evento->titulo) $faltantes[] = 'Título';
@@ -259,7 +262,7 @@ class EventoService
 
             if ($destinatarios->count() > 0) {
                 foreach ($destinatarios as $destinatario) {
-                    Mail::to($destinatario->correo)->send(new EventoPublicadoMail($eventoPublicado));
+                    Mail::to($destinatario->correo)->queue(new EventoPublicadoMail($eventoPublicado));
                 }
             }
 
@@ -271,7 +274,7 @@ class EventoService
     }
 
     /**
-     * Inactivar evento (HU-33 PARTE 2 🔥)
+     * Inactivar evento
      */
     public function inactivarEvento(int $idEvento, string $motivo)
     {
@@ -286,18 +289,31 @@ class EventoService
 
             $usuario = Auth::user();
 
-            // ✅ INACTIVAR
+            // Guardar datos antes de cambiar estado
+            $eventoData = [
+                'titulo' => $evento->titulo,
+            ];
+
+            $inscritos = $this->eventoRepository->obtenerInscritosEvento($idEvento);
+
+            // INACTIVAR
             $this->eventoRepository->inactivarEvento($idEvento);
 
-            // 🧾 BITÁCORA
+            // BITÁCORA
             DB::table('bitacora_cambios')->insert([
-                'tabla' => 'eventos',
-                'accion' => 'INACTIVAR',
-                'id_registro' => $idEvento,
-                'descripcion' => $motivo,
-                'usuario_id' => $usuario->id_usuario,
-                'fecha' => now(),
+                'tabla_afectada' => 'eventos',
+                'operacion' => 'INACTIVAR',
+                'usuario_responsable' => $usuario->id_usuario,
+                'fecha_cambio' => now(),
+                'descripcion_cambio' => 'Evento ID ' . $idEvento . ' inactivado. Motivo: ' . $motivo,
             ]);
+
+            // ENVIAR CORREOS
+            foreach ($inscritos as $usuarioInscrito) {
+                Mail::to($usuarioInscrito->correo)->queue(
+                    new EventoCanceladoMail($eventoData, $motivo)
+                );
+            }
 
             DB::commit();
         } catch (\Exception $e) {
@@ -336,5 +352,72 @@ class EventoService
     public function obtenerRolesInteresados()
     {
         return $this->eventoRepository->obtenerRolesInteresados();
+    }
+
+    public function eliminarInscripcionEvento(int $idEvento, int $idUsuario): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $evento = $this->obtenerEventoSeguro($idEvento);
+
+            $eliminado = $this->eventoRepository->eliminarInscripcionEvento(
+                $evento->id_evento,
+                $idUsuario
+            );
+
+            if (!$eliminado) {
+                throw new \Exception('La inscripción no existe.');
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Generar PDF de participantes o asistencia del evento
+     */
+    public function generarPdfEvento(int $idEvento, string $tipo)
+    {
+        $evento = $this->obtenerEventoCompleto($idEvento);
+
+        if (!$evento) {
+            throw new \Exception('Evento no encontrado.');
+        }
+
+        $inscritos = $this->obtenerInscritosEventoGestion($idEvento);
+
+        if ($tipo === 'participantes') {
+            $pdf = Pdf::loadView('pdf.evento-inscritos', [
+                'evento' => $evento,
+                'inscritos' => $inscritos,
+            ]);
+
+            return $pdf->download('Participantes_' . $evento->titulo . '.pdf');
+        }
+
+        if ($tipo === 'asistencia') {
+            $pdf = Pdf::loadView('pdf.evento-asistencia', [
+                'evento' => $evento,
+                'inscritos' => $inscritos,
+            ]);
+
+            return $pdf->download('Asistencia_' . $evento->titulo . '.pdf');
+        }
+
+        throw new \Exception('Tipo de PDF inválido.');
+    }
+
+    /**
+     * Enviar recordatorio a inscritos del evento
+     */
+    public function enviarRecordatorio(array $correos, array $datos): void
+    {
+        foreach ($correos as $correo) {
+            Mail::to($correo)->send(new RecordatorioEventoMail($datos));
+        }
     }
 }

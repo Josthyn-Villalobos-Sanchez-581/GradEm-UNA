@@ -1,11 +1,14 @@
+// backend/resources/js/pages/Cursos/GestionInscritos.tsx
 import React, { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { route } from "ziggy-js";
-import { ArrowLeft, Bell, Download, Search, GraduationCap } from "lucide-react";
+import { ArrowLeft, Bell, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GraduationCap } from "lucide-react";
 import axios from "axios";
 import { useModal } from "@/hooks/useModal";
+import { Download, Loader2 } from "lucide-react";
 
 interface Curso {
   id_curso: number;
@@ -42,6 +45,8 @@ interface Props {
 export default function GestionInscritos({ curso, inscritos }: Props) {
   const modal = useModal();
   const [busqueda, setBusqueda] = useState("");
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [mostrarModalRecordatorio, setMostrarModalRecordatorio] = useState(false);
   const [mensajeRecordatorio, setMensajeRecordatorio] = useState("");
@@ -96,9 +101,147 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
     return trimmed.length ? trimmed : "NA";
   };
 
-  const descargarPdf = () => {
-    window.location.href = route("cursos.inscritos.descargar-pdf", {
-      idCurso: curso.id_curso,
+  const descargarPdf = async (tipo: string) => {
+    if (descargandoPdf) return;
+
+    setDescargandoPdf(true);
+
+    modal.alerta({
+      titulo: "Generando PDF",
+      textoAceptar: "",
+      contenido: (
+        <div className="flex flex-col items-center gap-4 py-4">
+          <Loader2 className="w-10 h-10 animate-spin text-[#034991]" />
+          <p className="text-sm text-slate-600">
+            Estamos preparando tu archivo PDF...
+          </p>
+        </div>
+      ),
+    });
+
+    try {
+      const res = await axios.get(
+        route("cursos.pdf", {
+          idCurso: curso.id_curso,
+          tipo,
+        }),
+        {
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        tipo === "participantes"
+          ? `Participantes_${curso.titulo}.pdf`
+          : `Asistencia_${curso.titulo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      modal.alerta({
+        titulo: "Descarga completada",
+        mensaje: "El PDF se descargó correctamente.",
+      });
+    } catch {
+      modal.alerta({
+        titulo: "Error",
+        mensaje: "Ocurrió un problema al descargar el PDF.",
+      });
+    } finally {
+      setDescargandoPdf(false);
+    }
+  };
+
+  const confirmarEliminarInscrito = async (inscrito: Inscrito) => {
+    const confirmado = await modal.confirmacion({
+      titulo: "Eliminar inscripción",
+      mensaje: `¿Deseas eliminar a ${inscrito.nombre_completo} del curso?`,
+      textoAceptar: "Sí, eliminar",
+      textoCancelar: "Cancelar",
+    });
+
+    if (!confirmado) return;
+
+    eliminarInscrito(inscrito.id_usuario);
+  };
+
+  const eliminarInscrito = async (idUsuario: number) => {
+    try {
+      setEliminandoId(idUsuario);
+
+      await axios.delete(
+        route("cursos.inscritos.eliminar", {
+          idCurso: curso.id_curso,
+          idUsuario,
+        })
+      );
+
+      modal.alerta({
+        titulo: "Éxito",
+        mensaje: "Participante eliminado correctamente.",
+      });
+
+      router.reload({
+        only: ["inscritos"],
+      });
+    } catch {
+      modal.alerta({
+        titulo: "Error",
+        mensaje: "No se pudo eliminar al participante.",
+      });
+    } finally {
+      setEliminandoId(null);
+    }
+  };
+
+  const abrirModalPdf = () => {
+    modal.alerta({
+      titulo: "Descargar lista de participantes",
+      textoAceptar: "Cerrar",
+      contenido: (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Selecciona el tipo de PDF que deseas descargar.
+          </p>
+
+          <div className="flex flex-col gap-3">
+            <Button
+              className="w-full bg-[#034991] hover:bg-[#02386f]"
+              onClick={() => descargarPdf("participantes")}
+              disabled={descargandoPdf}
+            >
+              {descargandoPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando PDF...
+                </>
+              ) : (
+                "Descargar Lista de Participantes"
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => descargarPdf("asistencia")}
+              disabled={descargandoPdf}
+            >
+              {descargandoPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando PDF...
+                </>
+              ) : (
+                "Descargar Hoja de Asistencia"
+              )}
+            </Button>
+          </div>
+        </div>
+      ),
     });
   };
 
@@ -172,37 +315,50 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Inscritos del curso</h1>
             <p className="text-sm text-slate-500 font-medium">
-              {curso.titulo} | <span className="text-red-600 font-bold">
+              {curso.titulo} |{" "}
+              <span className="text-red-600 font-bold">
                 {inscritos.length} {inscritos.length === 1 ? "inscrito" : "inscritos"}
               </span>
             </p>
           </div>
 
-          <div className="flex w-full md:w-auto flex-col sm:flex-row gap-2">
-            <Button onClick={descargarPdf} className="bg-[#034991] hover:bg-[#02376e] text-white">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={manejarCambioBusqueda}
+                placeholder="Buscar por nombre, correo, ID o carrera..."
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+              />
+            </div>
+
+            <Button
+              onClick={abrirModalPdf}
+              className="bg-[#034991] hover:bg-[#02386f] rounded-xl"
+            >
               <Download className="w-4 h-4 mr-2" />
               Descargar PDF
             </Button>
-            <Button onClick={abrirModalRecordatorio} className="bg-amber-500 hover:bg-amber-600 text-white">
+
+            <Button
+              onClick={abrirModalRecordatorio}
+              className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
+            >
               <Bell className="w-4 h-4 mr-2" />
               Enviar recordatorio
             </Button>
-            <Button variant="outline" onClick={() => router.visit(route("cursos.index"))}>
+
+            <Button
+              variant="outline"
+              onClick={() => router.visit(route("cursos.index"))}
+              className="rounded-xl"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a gestión de cursos
+              Volver a cursos
             </Button>
           </div>
-        </div>
-
-        <div className="relative w-full md:w-96 mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={busqueda}
-            onChange={manejarCambioBusqueda}
-            placeholder="Buscar por nombre, correo, ID o carrera..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
-          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
@@ -236,13 +392,16 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                     <p className="text-[10px] uppercase font-bold text-[#034991]/70 tracking-tight mb-1">Ocupación de cupos</p>
                     <div className="flex items-end justify-between">
                       <p className="text-sm font-semibold text-slate-800">
-                        {inscritos.length} <span className="text-slate-400 font-normal">/ {curso.cupos || "∞"}</span>
+                        {inscritos.length}{" "}
+                        <span className="text-slate-400 font-normal">/ {curso.cupos || "∞"}</span>
                       </p>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        curso.cupos && inscritos.length >= curso.cupos
-                          ? "bg-red-100 text-red-700"
-                          : "bg-emerald-100 text-emerald-700"
-                      }`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          curso.cupos && inscritos.length >= curso.cupos
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
                         {curso.cupos && inscritos.length >= curso.cupos ? "Lleno" : "Disponible"}
                       </span>
                     </div>
@@ -276,12 +435,13 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Teléfono</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Universidad</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Carrera</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {inscritosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500 font-medium italic">
+                        <td colSpan={7} className="p-8 text-center text-slate-500 font-medium italic">
                           No se encontraron inscritos que coincidan con la búsqueda.
                         </td>
                       </tr>
@@ -294,12 +454,28 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.telefono)}</td>
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.universidad)}</td>
                           <td className="px-4 py-3 text-sm text-slate-600">{displayValue(inscrito.carrera)}</td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => confirmarEliminarInscrito(inscrito)}
+                              disabled={eliminandoId === inscrito.id_usuario}
+                            >
+                              {eliminandoId === inscrito.id_usuario ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
+
               {inscritosFiltrados.length > 0 && (
                 <div className="mt-4 flex items-center justify-between text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <div>

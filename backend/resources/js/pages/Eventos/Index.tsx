@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Head, usePage } from "@inertiajs/react";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
@@ -7,6 +7,7 @@ import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  User,
   Calendar,
   CalendarDays,
   MapPin,
@@ -17,6 +18,7 @@ import {
   Edit3,
   Search,
   Filter,
+  FilterX,
   LayoutDashboard,
   CheckCircle2,
   Clock,
@@ -40,6 +42,9 @@ interface Evento {
   carreras_invitadas?: number[] | string;
   roles_interesados?: number[] | string;
   otras_observaciones?: string;
+
+  usuario_id?: number;
+  creador_nombre?: string;
 
   modalidad_nombre?: string;
   canton_nombre?: string;
@@ -74,20 +79,38 @@ export default function EventosIndex(props: Props) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
+  const [filtroModalidad, setFiltroModalidad] = useState("todas");
+  const [filtroCreador, setFiltroCreador] = useState("");
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+
 
   const itemsPorPagina = 8;
 
   const eventosFiltrados = eventos
-    // 🔍 búsqueda
+    // ðŸ” bÃºsqueda
     .filter((e) =>
       e.titulo.toLowerCase().includes(busqueda.toLowerCase())
     )
-    // 📌 estado
+
+    // ðŸ“Œ estado
     .filter((e) => {
       if (filtroEstado === "publicado") return e.estado_id === 1;
       if (filtroEstado === "borrador") return e.estado_id !== 1;
       return true;
-    });
+    })
+
+    // ðŸŽ“ modalidad
+    .filter((e) => {
+      if (filtroModalidad === "todas") return true;
+      return e.modalidad_nombre === filtroModalidad;
+    })
+
+    // ðŸ‘¤ creador (tipo bÃºsqueda)
+    .filter((e) =>
+      e.creador_nombre
+        ?.toLowerCase()
+        .includes(filtroCreador.toLowerCase())
+    );
 
   /* =======================
      KPIs
@@ -101,7 +124,7 @@ export default function EventosIndex(props: Props) {
      Paginación
   ======================= */
 
-  const totalPaginas = Math.ceil(totalEventos / itemsPorPagina);
+  const totalPaginas = Math.ceil(eventosFiltrados.length / itemsPorPagina);
 
   const eventosPaginados = eventosFiltrados.slice(
     (paginaActual - 1) * itemsPorPagina,
@@ -141,11 +164,12 @@ export default function EventosIndex(props: Props) {
     }
 
     try {
-      await axios.delete(route("eventos.destroy", { idEvento: evento.id_evento }), {
-        data: { motivo },
-      });
+      await axios.put(
+        route("eventos.estado", evento.id_evento),
+        { motivo }
+      );
 
-      // 🔥 eliminar del frontend
+      // ðŸ”¥ eliminar del frontend
       setEventos((prev) =>
         prev.filter((e) => e.id_evento !== evento.id_evento)
       );
@@ -154,10 +178,17 @@ export default function EventosIndex(props: Props) {
         titulo: "Evento inactivado",
         mensaje: "Correctamente",
       });
-    } catch {
+    } catch (error: any) {
+      console.log("ERROR COMPLETO:", error);
+      console.log("RESPONSE:", error.response);
+      console.log("DATA:", error.response?.data);
+
       modal.alerta({
         titulo: "Error",
-        mensaje: "No se pudo inactivar",
+        mensaje:
+          error.response?.data?.message ??
+          error.message ??
+          "Error desconocido",
       });
     }
   };
@@ -304,20 +335,22 @@ export default function EventosIndex(props: Props) {
   };
 
   const filtrarTextoEvento = (valor: string, max: number) =>
-    valor.replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()"'¡!¿?%&@\/\s-]/g, "").slice(0, max);
+  valor
+    .replace(/[^\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]/gu, "")
+    .slice(0, max);
 
   const validarFormularioEvento = () => {
     const errores: Record<string, string> = {};
-    const textoValido = /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()"'¡!¿?%&@\/\s-]+$/u;
+    const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
 
     if (!formEvento.titulo.trim()) {
-      errores.titulo = "Título es obligatorio";
+      errores.titulo = "Tí­tulo es obligatorio";
     } else if (formEvento.titulo.trim().length < 5) {
-      errores.titulo = "El título debe tener al menos 5 caracteres";
+      errores.titulo = "El tí­tulo debe tener al menos 5 caracteres";
     } else if (formEvento.titulo.trim().length > 100) {
-      errores.titulo = "El título no puede superar los 100 caracteres";
+      errores.titulo = "El tí­tulo no puede superar los 100 caracteres";
     } else if (!textoValido.test(formEvento.titulo.trim())) {
-      errores.titulo = "El título contiene caracteres inválidos";
+      errores.titulo = "El tí­tulo contiene caracteres inválidos";
     }
 
     if (!formEvento.descripcion.trim()) {
@@ -471,6 +504,9 @@ export default function EventosIndex(props: Props) {
     }
   };
 
+  const modalidadesUnicas = Array.from(
+    new Set(eventos.map(e => e.modalidad_nombre).filter(Boolean))
+  );
   /* =======================
      Render
   ======================= */
@@ -495,64 +531,90 @@ export default function EventosIndex(props: Props) {
                   ? "Crea un nuevo evento completando los campos del formulario."
                   : `Actualiza la información y fechas del evento: ${formEvento.titulo || ''}`}
             </p>
-            </div>
-
-          <div className="flex gap-2 flex-wrap">
-
-                  {view === 'list' ? (
-                  <>
-                      {/* Botón Dashboard: Solo visible en la lista principal */}
-                      <Button
-                          variant="outline"
-                          className="border-slate-300 text-slate-700 hover:bg-slate-100"
-                          onClick={() => window.location.href = route("dashboard")}
-                      >
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Dashboard
-                      </Button>
-
-                      {/* Botón Agregar: Solo visible si tiene permisos y está en la lista */}
-                      {puedeGestionar && (
-                          <Button 
-                              className="bg-[#034991] hover:bg-[#023165]" 
-                              onClick={() => abrirFormularioEvento("create")}
-                          >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Registrar evento
-                          </Button>
-                      )}
-                  </>
-              ) : (
-                  /* Botón Volver: Reemplaza a los anteriores cuando se está en el Formulario */
-                  <Button 
-                    variant="secondary" 
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
-                    onClick={cerrarFormularioEvento}
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Volver
-                  </Button>
-              )}
           </div>
-      </div>
 
-        {view === 'list' && (
+          {/* DERECHA */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Solo mostrar Filtros y Registrar si estamos en la lista */}
+            {view === "list" && (
+              <>
+                {/* Botón Dashboard - Ahora condicionado a la lista */}
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                  onClick={() => window.location.href = route("dashboard")}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+
+                {/* Botón Filtros */}
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                  onClick={() => setMostrarFiltros(prev => !prev)}
+                >
+                  {mostrarFiltros ? (
+                    <>
+                      <FilterX className="w-4 h-4 mr-2" />
+                      Ocultar filtros
+                    </>
+                  ) : (
+                    <>
+                      <Filter className="w-4 h-4 mr-2" />
+                      Mostrar filtros
+                    </>
+                  )}
+                </Button>
+
+                {/* Botón Registrar */}
+                {puedeGestionar && (
+                  <Button
+                    className="h-10 rounded-full bg-[#034991] hover:bg-[#023165]"
+                    onClick={() => abrirFormularioEvento("create")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Registrar evento
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Solo mostrar botón Volver si estamos en el formulario */}
+            {view === "form" && (
+              <Button 
+                variant="secondary" 
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
+                onClick={cerrarFormularioEvento}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {view === "list" ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* SIDEBAR FILTROS (STICKY Y ELEGANTE) */}
-            <aside className="lg:col-span-3">
+            {/* SIDEBAR SOLO SI mostrarFiltros */}
+            {mostrarFiltros && (
+            <aside className="lg:col-span-3 transition-all duration-300">
               <div className="sticky top-6">
                 <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
+
                   <h2 className="text-lg font-semibold text-[#034991] border-b pb-2 flex items-center gap-2">
+
                     <Filter className="w-4 h-4" /> Filtros de eventos
+
                   </h2>
 
                   <div className="space-y-4 text-sm">
+
                     <div className="flex flex-col">
                       <label className="font-semibold mb-1 text-slate-700">Buscar</label>
                       <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                        <input
-                          placeholder="Título del evento..."
+                        <input placeholder="Tí­tulo del evento..."
                           value={busqueda}
                           onChange={(e) => {
                             setBusqueda(e.target.value);
@@ -565,158 +627,244 @@ export default function EventosIndex(props: Props) {
 
                     <div className="flex flex-col">
                       <label className="font-semibold mb-1 text-slate-700">Estado</label>
-                      <select
-                        value={filtroEstado}
+                      <select value={filtroEstado}
                         onChange={(e) => {
                           setFiltroEstado(e.target.value);
                           setPaginaActual(1);
                         }}
-                        className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                      >
+                        className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" >
                         <option value="todos">Todos los estados</option>
                         <option value="publicado">Publicado</option>
                         <option value="borrador">Borrador</option>
                       </select>
                     </div>
 
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Modalidad</label>
+                      <select
+                        value={filtroModalidad}
+                        onChange={(e) => {
+                          setFiltroModalidad(e.target.value);
+                          setPaginaActual(1);
+                        }}
+                        className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                        <option value="todas">Todas</option>
+                        {modalidadesUnicas.map((m, index) => (
+                          <option key={index} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="font-semibold mb-1 text-slate-700">Creador</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <input
+                          placeholder="Nombre del creador..."
+                          value={filtroCreador}
+                          onChange={(e) => {
+                            setFiltroCreador(e.target.value);
+                            setPaginaActual(1);
+                          }}
+                          className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
                     <Button
                       variant="outline"
+                      title="Quitar filtros"
                       className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
                       onClick={() => {
                         setBusqueda("");
                         setFiltroEstado("todos");
+                        setFiltroModalidad("todas");
+                        setFiltroCreador("");
                       }}
                     >
                       Limpiar filtros
+
                     </Button>
+
                   </div>
                 </div>
               </div>
             </aside>
+          )}
 
-            {/* MAIN CONTENT */}
-            <main className="lg:col-span-9 space-y-6">
+          {/* MAIN DINÁMICO */}
+          <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
 
-              {/* KPIs ESTILO CURSOS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-blue-100 p-2 text-blue-600">
-                    <LayoutDashboard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Total Eventos</p>
-                    <p className="text-2xl font-bold text-slate-900">{totalEventos}</p>
-                  </div>
+
+            {/* KPIs ESTILO CURSOS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div className="rounded-xl bg-blue-100 p-2 text-blue-600">
+                  <LayoutDashboard className="w-5 h-5" />
                 </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Publicados</p>
-                    <p className="text-2xl font-bold text-slate-900">{publicados}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-amber-100 p-2 text-amber-600">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Borradores</p>
-                    <p className="text-2xl font-bold text-slate-900">{borradores}</p>
-                  </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Total Eventos</p>
+                  <p className="text-2xl font-bold text-slate-900">{totalEventos}</p>
                 </div>
               </div>
 
-              {/* LISTA DE EVENTOS (CARD REFORZADA) */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {eventosPaginados.length > 0 ? (
-                  eventosPaginados.map((evento) => (
-                    <div key={evento.id_evento} className="bg-white border border-slate-200 hover:border-blue-300 transition-colors p-5 rounded-2xl shadow-sm flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h2 className="font-bold text-lg text-slate-800 line-clamp-1">{evento.titulo}</h2>
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${evento.estado_id === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                            {evento.estado_id === 1 ? 'Publicado' : 'Borrador'}
-                          </span>
-                        </div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Publicados</p>
+                  <p className="text-2xl font-bold text-slate-900">{publicados}</p>
+                </div>
+              </div>
 
-                        <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                          {evento.descripcion ?? "Sin descripción disponible para este evento."}
-                        </p>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div className="rounded-xl bg-amber-100 p-2 text-amber-600">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Borradores</p>
+                  <p className="text-2xl font-bold text-slate-900">{borradores}</p>
+                </div>
+              </div>
+            </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                            {evento.fecha_evento || 'Por definir'}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-red-500" />
-                            <span className="truncate">{evento.canton_nombre}, {evento.provincia_nombre}</span>
-                          </div>
-                        </div>
+            {/* LISTA DE EVENTOS (CARD REFORZADA) */}
+            <div
+              className={`grid grid-cols-1 ${mostrarFiltros
+                ? "md:grid-cols-2"
+                : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+                } gap-3`}
+            >
+              {eventosPaginados.length > 0 ? (
+                eventosPaginados.map((evento) => (
+                  <div key={evento.id_evento} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h2 className="font-bold text-lg text-slate-800 line-clamp-1">{evento.titulo}</h2>
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${evento.estado_id === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+                          {evento.estado_id === 1 ? 'Publicado' : 'Borrador'}
+                        </span>
                       </div>
 
-                      <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
-                        <Button size="sm" variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700" onClick={() => setDetalle(evento)}>
-                          <Eye className="w-3.5 mr-1" /> Ver
-                        </Button>
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                        {evento.descripcion ?? "Sin descripciÓn disponible para este evento."}
+                      </p>
 
-                        {puedeGestionar && (
-                          <>
-                            {evento.estado_id !== 1 && (
-                              <Button size="sm" onClick={() => publicarEvento(evento)}>
-                                <Play className="w-3 mr-1" /> Publicar
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" className="border-slate-300" onClick={() => editarEvento(evento)}>
-                              <Edit3 className="w-3.5 mr-1" /> Editar
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => inactivarEvento(evento)}>
-                              <Trash2 className="w-3.5" />
-                            </Button>
-                          </>
-                        )}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                          {evento.fecha_evento || 'Por definir'}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-red-500" />
+                          <span className="truncate">{evento.canton_nombre}, {evento.provincia_nombre}</span>
+                        </div>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center bg-slate-50 rounded-2xl border-2 border-dashed">
-                    <p className="text-slate-400">No se encontraron eventos con los filtros aplicados.</p>
+
+                    <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
+                      {evento.estado_id === 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs text-[#034991] hover:bg-blue-50"
+                          onClick={() => router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))}
+                        >
+                          <User className="w-3 h-3 mr-1" /> Inscritos
+                        </Button>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        title="Ver evento"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        onClick={async () => {
+                          try {
+                            const res = await axios.get(route("eventos.show", evento.id_evento));
+
+                            if (res.data.success) {
+                              setDetalle(res.data.evento);
+                            }
+                          } catch {
+                            modal.alerta({
+                              titulo: "Error",
+                              mensaje: "No se pudo cargar el detalle del evento",
+                            });
+                          }
+                        }}
+                      >
+                        <Eye className="w-3.5 mr-1" /> Ver
+                      </Button>
+
+                      {/* Botón Agregar: Solo visible si tiene permisos y está en la lista */}
+                      {puedeGestionar && (
+                        <>
+                          {evento.estado_id !== 1 && (
+                            <Button size="sm" title="Publicar evento" onClick={() => publicarEvento(evento)}>
+                              <Play className="w-3 mr-1" /> Publicar
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" title="Editar evento" className="border-slate-300" onClick={() => editarEvento(evento)}>
+                            <Edit3 className="w-3.5 mr-1" /> Editar
+                          </Button>
+                          <Button size="sm" variant="destructive" title="Inactivar evento" onClick={() => inactivarEvento(evento)}>
+                            <Trash2 className="w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
+                ))
+              ) : (
+                <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-500 py-10">
+                  No se encontraron eventos que coincidan con los filtros aplicados.
+                </div>
+              )}
+            </div>
+
+            {/* PAGINACIÓN ESTILO  */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+
+              {/* IZQUIERDA */}
+              <div>
+                Mostrando {eventosPaginados.length} de {eventosFiltrados.length} eventos
               </div>
 
-              {/* PAGINACIÓN ESTILO CURSOS */}
-              <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200">
+              {/* DERECHA */}
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost"
+                  size="sm"
+                  variant="outline"
                   onClick={() => setPaginaActual(paginaActual - 1)}
                   disabled={paginaActual === 1}
-                  className="hover:bg-slate-100"
                 >
                   Anterior
                 </Button>
 
-                <span className="text-sm font-medium text-slate-600">
-                  Página <span className="text-[#034991]">{paginaActual}</span> de {totalPaginas || 1}
-                </span>
+                <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
+                  {paginaActual} / {totalPaginas || 1}
+                </div>
 
                 <Button
-                  variant="ghost"
+                  size="sm"
+                  variant="outline"
                   onClick={() => setPaginaActual(paginaActual + 1)}
                   disabled={paginaActual === totalPaginas || totalPaginas === 0}
-                  className="hover:bg-slate-100"
                 >
                   Siguiente
                 </Button>
               </div>
-            </main>
-          </div>
-        )} 
-    {view === "form" && (
+
+            </div>
+          </main>
+        </div >
+
+      ) : (
         <div className="w-full animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="grid grid-cols-12">
@@ -806,7 +954,7 @@ export default function EventosIndex(props: Props) {
                                     {erroresForm.id_modalidad && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_modalidad}</p>}
                                 </div>
 
-                                {/* Descripción */}
+                                {/* DescripciÃ³n */}
                                 <div className="md:col-span-3">
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                                         Descripción del evento <span className="text-[#CD1719]">*</span>
@@ -1023,33 +1171,88 @@ export default function EventosIndex(props: Props) {
   </div>
 
       {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
-      {detalle && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
-              <h2 className="font-bold text-lg">Detalles del Evento</h2>
-              <button onClick={() => setDetalle(null)} className="hover:bg-white/20 rounded-full p-1">
-                <ArrowLeft className="w-5 h-5 rotate-90" />
-              </button>
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">{detalle.titulo}</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">{detalle.descripcion || 'Sin descripción detallada.'}</p>
-
-              <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-5 h-5 text-[#034991]" />
-                  <span><strong>Fecha:</strong> {detalle.fecha_evento}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-5 h-5 text-red-500" />
-                  <span><strong>Ubicación:</strong> {detalle.canton_nombre}, {detalle.provincia_nombre}, {detalle.pais_nombre}</span>
-                </div>
+      {
+        detalle && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 text-black">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+              <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
+                <h2 className="font-bold text-lg">Detalles del Evento</h2>
+                <button
+                  title="Volver a listado de eventos"
+                  onClick={() => setDetalle(null)}
+                  className="hover:bg-white/20 rounded-full p-1">
+                  <ArrowLeft className="w-5 h-5 rotate-90" />
+                </button>
               </div>
+              <div className="p-6 space-y-5">
+                <h3 className="text-2xl font-bold text-slate-800">
+                  {detalle.titulo}
+                </h3>
 
-              <Button className="mt-8 w-full bg-[#034991]" onClick={() => setDetalle(null)}>
-                Entendido
-              </Button>
+                <p className="text-slate-600 leading-relaxed">
+                  {detalle.descripcion || 'Sin descripción detallada.'}
+                </p>
+
+                <div className="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm">
+
+                  {/* Fecha */}
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-[#034991]" />
+                    <span>
+                      <strong>Fecha:</strong> {detalle.fecha_evento || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Hora */}
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-amber-500" />
+                    <span>
+                      <strong>Hora:</strong> {detalle.hora_evento || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Ubicación */}
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <span>
+                      <strong>Ubicación:</strong>{" "}
+                      {detalle.canton_nombre}, {detalle.provincia_nombre}, {detalle.pais_nombre}
+                    </span>
+                  </div>
+
+                  {/* Modalidad */}
+                  <div className="flex items-center gap-3">
+                    <LayoutDashboard className="w-5 h-5 text-blue-500" />
+                    <span>
+                      <strong>Modalidad:</strong> {detalle.modalidad_nombre || 'No definida'}
+                    </span>
+                  </div>
+
+                  {/* Creador */}
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-slate-500" />
+                    <span>
+                      <strong>Creador:</strong> {detalle.creador_nombre || 'Desconocido'}
+                    </span>
+                  </div>
+
+                  {/* Estado */}
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>
+                      <strong>Estado:</strong>{" "}
+                      {detalle.estado_id === 1 ? 'Publicado' : 'Borrador'}
+                    </span>
+                  </div>
+
+                </div>
+
+                <Button
+                  className="w-full bg-[#034991]"
+                  onClick={() => setDetalle(null)}
+                >
+                  Entendido
+                </Button>
             </div>
           </div>
         </div>

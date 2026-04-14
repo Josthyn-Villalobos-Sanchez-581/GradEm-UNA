@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Illuminate\Http\JsonResponse;
 
 class EventoController extends Controller
 {
@@ -24,14 +25,16 @@ class EventoController extends Controller
      */
     public function index(Request $request)
     {
+        $this->service->finalizarEventosAutomaticamente();
+        
         $usuario = Auth::user();
 
         // 🔐 Permisos del usuario
         $permisos = $usuario
             ? DB::table('roles_permisos')
-                ->where('id_rol', $usuario->id_rol)
-                ->pluck('id_permiso')
-                ->toArray()
+            ->where('id_rol', $usuario->id_rol)
+            ->pluck('id_permiso')
+            ->toArray()
             : [];
 
         return Inertia::render('Eventos/Index', [
@@ -139,13 +142,11 @@ class EventoController extends Controller
                 'success' => true,
                 'message' => 'El evento ha sido publicado con éxito',
             ]);
-
         } catch (\DomainException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -173,11 +174,12 @@ class EventoController extends Controller
                 'success' => true,
                 'message' => 'Evento inactivado correctamente',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+                // Si quieres que el error también se vea en la respuesta JSON:
+                'error_detalle' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -194,12 +196,92 @@ class EventoController extends Controller
                 'success' => true,
                 'evento' => $evento,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 403);
         }
+    }
+
+    /**
+     * 📌 Gestión de inscritos de evento
+     */
+    public function inscritos(int $idEvento)
+    {
+        $evento = $this->service->obtenerEventoCompleto($idEvento);
+
+        if (!$evento) {
+            abort(404, 'Evento no encontrado');
+        }
+
+        $usuario = Auth::user();
+
+        $permisos = $usuario
+            ? DB::table('roles_permisos')
+                ->where('id_rol', $usuario->id_rol)
+                ->pluck('id_permiso')
+                ->toArray()
+            : [];
+
+        $inscritos = $this->service->obtenerInscritosEventoGestion($idEvento);
+
+        return Inertia::render('Eventos/GestionInscritos', [
+            'evento' => $evento,
+            'inscritos' => $inscritos,
+            'inscritosCount' => $inscritos->count(),
+            'userPermisos' => $permisos,
+        ]);
+    }
+
+    /**
+     * 📌 Eliminar inscripción de evento
+     */
+    public function eliminarInscrito(int $idEvento, int $idUsuario)
+    {
+        try {
+            $this->service->eliminarInscripcionEvento($idEvento, $idUsuario);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Participante eliminado correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * 📌 Descargar PDF de participantes o asistencia de evento
+     */
+    public function descargarPdf(int $idEvento, string $tipo)
+    {
+        return $this->service->generarPdfEvento($idEvento, $tipo);
+    }
+
+    /**
+     * 📌 Enviar recordatorio a inscritos de evento
+     */
+    public function enviarRecordatorio(Request $request): JsonResponse
+    {
+        $request->validate([
+            'correos' => 'required|array|min:1',
+            'correos.*' => 'email',
+            'nombre_evento' => 'required|string|max:150',
+            'fecha_evento' => 'required|string|max:50',
+            'mensaje' => 'required|string',
+        ]);
+
+        $this->service->enviarRecordatorio(
+            $request->correos,
+            $request->only(['nombre_evento', 'fecha_evento', 'mensaje'])
+        );
+
+        return response()->json([
+            'mensaje' => 'Recordatorios enviados correctamente',
+        ]);
     }
 }

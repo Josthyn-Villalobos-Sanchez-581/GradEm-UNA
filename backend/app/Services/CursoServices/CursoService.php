@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\CursoCanceladoMail;
 use App\Mail\CursoActualizadoMail;
+use App\Mail\DesinscripcionCursoMail;
 use App\Exceptions\CursoNoEncontradoException;
 use App\Models\Curso;
+use App\Models\Usuario;
 use Barryvdh\DomPDF\Facade\Pdf;
-
 class CursoService
 {
     protected $cursoRepository;
@@ -68,7 +69,7 @@ class CursoService
         $logoSrc = null;
         $path = public_path('logos/logo_gradem.png');
 
-        if (is_readable($path)) {
+        if (extension_loaded('gd') && is_readable($path)) {
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $dataImg = file_get_contents($path);
             $logoSrc = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
@@ -106,6 +107,7 @@ class CursoService
                 'fecha_fin' => $request->fecha_fin ?? null,
                 'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'duracion' => $request->duracion ?? null,
+                'cupos' => $request->cupos ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'nombreInstructor' => $request->nombreInstructor ?? null,
                 'estado_id' => 2,
@@ -144,6 +146,7 @@ class CursoService
                 'fecha_fin',
                 'fecha_limite_inscripcion',
                 'duracion',
+                'cupos',
                 'id_modalidad',
                 'nombreInstructor',
             ]);
@@ -156,6 +159,7 @@ class CursoService
                 'fecha_fin' => $request->input('fecha_fin'),
                 'fecha_limite_inscripcion' => $request->input('fecha_limite_inscripcion'),
                 'duracion' => $request->input('duracion'),
+                'cupos' => $request->input('cupos'),
                 'id_modalidad' => $request->input('id_modalidad'),
                 'nombreInstructor' => $request->input('nombreInstructor'),
             ];
@@ -287,6 +291,79 @@ class CursoService
             $this->cursoRepository->eliminarCurso($curso);
 
             DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+// Método para generar PDF de inscritos o asistencias
+    public function generarPdfCurso(int $idCurso, string $tipo)
+{
+    $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
+
+    if (!$curso) {
+        throw new \Exception('Curso no encontrado.');
+    }
+
+    $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
+
+    if ($tipo === 'participantes') {
+        $pdf = Pdf::loadView('pdf.curso-inscritos', [
+            'curso' => $curso,
+            'inscritos' => $inscritos,
+        ]);
+
+        return $pdf->download('Participantes_'.$curso->titulo.'.pdf');
+    }
+
+    if ($tipo === 'asistencia') {
+        $pdf = Pdf::loadView('pdf.curso-asistencia', [
+            'curso' => $curso,
+            'inscritos' => $inscritos,
+        ]);
+
+        return $pdf->download('Asistencia_'.$curso->titulo.'.pdf');
+    }
+
+    throw new \Exception('Tipo de PDF inválido.');
+}
+
+public function eliminarInscripcionCurso(int $idCurso, int $idUsuario): void
+    {
+        DB::beginTransaction();
+ 
+        try {
+            $curso = $this->cursoRepository->obtenerCursoPorId($idCurso);
+ 
+            if (!$curso) {
+                throw new \Exception('Curso no encontrado.');
+            }
+ 
+            $usuario = Usuario::find($idUsuario);
+ 
+            if (!$usuario) {
+                throw new \Exception('Usuario no encontrado.');
+            }
+ 
+            $eliminado = $this->cursoRepository->eliminarInscripcionCurso(
+                $idCurso,
+                $idUsuario
+            );
+ 
+            if (!$eliminado) {
+                throw new \Exception('La inscripción no existe.');
+            }
+ 
+            Mail::to($usuario->correo)->send(
+                new DesinscripcionCursoMail(
+                    $curso->load('modalidad'),
+                    $usuario->nombre_completo
+                )
+            );
+ 
+            DB::commit();
+ 
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

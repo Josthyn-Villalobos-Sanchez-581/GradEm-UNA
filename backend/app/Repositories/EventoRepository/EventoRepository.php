@@ -12,12 +12,14 @@ class EventoRepository
     public function filtrarEventos($request, $usuario)
     {
         $query = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
+                'usuarios.nombre_completo as creador_nombre',
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -76,12 +78,14 @@ class EventoRepository
     public function obtenerEventoCompleto(int $idEvento)
     {
         $evento = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
+                'usuarios.nombre_completo as creador_nombre',
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -294,5 +298,83 @@ class EventoRepository
             ->where('inscripciones_evento.estado_id', 1) // 🔥 AQUÍ
             ->select('usuarios.correo')
             ->get();
+    }
+
+    /**
+     * Obtener inscritos del evento para gestión
+     */
+    public function obtenerInscritosGestionEvento(int $idEvento)
+    {
+        return DB::table('inscripciones_evento')
+            ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_evento.id_usuario')
+            ->leftJoin('universidades', 'universidades.id_universidad', '=', 'usuarios.id_universidad')
+            ->leftJoin('carreras', 'carreras.id_carrera', '=', 'usuarios.id_carrera')
+            ->where('inscripciones_evento.id_evento', $idEvento)
+            ->where('inscripciones_evento.estado_id', 1)
+            ->select(
+                'usuarios.id_usuario',
+                'usuarios.nombre_completo',
+                'usuarios.correo',
+                'usuarios.identificacion',
+                'usuarios.telefono',
+                'universidades.nombre as universidad',
+                'carreras.nombre as carrera'
+            )
+            ->orderBy('usuarios.nombre_completo')
+            ->get();
+    }
+
+    /**
+     * Eliminar inscripción de usuario en evento
+     */
+    public function eliminarInscripcionEvento(int $idEvento, int $idUsuario): bool
+    {
+        $eliminados = DB::table('inscripciones_evento')
+            ->where('id_evento', $idEvento)
+            ->where('id_usuario', $idUsuario)
+            ->delete();
+
+        return $eliminados > 0;
+    }
+
+
+    public function finalizarEventosAutomaticamente()
+    {
+        cache()->remember('finalizacion_eventos_lock', 300, function () {
+
+            $existen = DB::table('eventos')
+                ->where('estado_id', 1)
+                ->where(function ($query) {
+                    $query->where('fecha_evento', '<', now()->toDateString())
+                        ->orWhere(function ($q) {
+                            $q->where('fecha_evento', now()->toDateString())
+                                ->where('hora_evento', '<', now()->format('H:i:s'));
+                        });
+                })
+                ->exists();
+
+            if (!$existen) {
+                return;
+            }
+
+            DB::table('eventos')
+                ->where('estado_id', 1)
+                ->where(function ($query) {
+                    $query->where('fecha_evento', '<', now()->toDateString())
+                        ->orWhere(function ($q) {
+                            $q->where('fecha_evento', now()->toDateString())
+                                ->where('hora_evento', '<', now()->format('H:i:s'));
+                        });
+                })
+                ->update(['estado_id' => 4]);
+
+            DB::table('bitacora_cambios')->insert([
+                'tabla_afectada' => 'eventos',
+                'operacion' => 'FINALIZAR',
+                'usuario_responsable' => null,
+                'fecha_cambio' => now(),
+                'descripcion_cambio' => 'Eventos finalizados automáticamente por sistema',
+            ]);
+        });
     }
 }

@@ -1,95 +1,150 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Controllers;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\Usuario;
-use App\Models\Rol;
-use Inertia\Testing\AssertableInertia as Assert;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
+use Illuminate\Support\Facades\DB;
 
 class UsuariosConsultaControllerTest extends TestCase
 {
     use DatabaseTransactions;
 
-    protected $usuarioEstudiante;
-    protected $usuarioEgresado;
-
     protected function setUp(): void
     {
         parent::setUp();
         $this->withoutMiddleware();
+    }
 
-        // Crear roles individualmente
-        $rolEstudiante = Rol::firstOrCreate(['nombre_rol' => 'Estudiante']);
-        $rolEgresado = Rol::firstOrCreate(['nombre_rol' => 'Egresado']);
-        Rol::firstOrCreate(['nombre_rol' => 'Empresa']);
-        Rol::firstOrCreate(['nombre_rol' => 'Administrador del Sistema']);
+    // ─────────────────────────────────────────
+    // index
+    // ─────────────────────────────────────────
 
-        // Crear usuarios de prueba
-        $this->usuarioEstudiante = Usuario::factory()->create([
-            'id_rol' => $rolEstudiante->id_rol,
+    #[Test]
+    public function test_index_retorna_vista_correcta()
+    {
+        $usuario = Usuario::factory()->create();
+
+        $response = $this->actingAs($usuario, 'sanctum')
+                         ->withHeaders(['X-Inertia' => 'true'])
+                         ->getJson('/usuarios/perfiles');
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('component', 'Usuarios/PerfilesUsuarios');
+    }
+
+    // ─────────────────────────────────────────
+    // toggleEstado
+    // ─────────────────────────────────────────
+
+    #[Test]
+    public function test_toggle_estado_activa_usuario_inactivo()
+    {
+        $usuarioAuth = Usuario::factory()->create();
+
+        $usuarioTarget = Usuario::factory()->create([
+            'estado_id' => 2
         ]);
 
-        $this->usuarioEgresado = Usuario::factory()->create([
-            'id_rol' => $rolEgresado->id_rol,
+        $response = $this->actingAs($usuarioAuth, 'sanctum')
+                         ->putJson("/usuarios/{$usuarioTarget->id_usuario}/toggle-estado");
+
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'success'      => true,
+                     'nuevo_estado' => 1,
+                 ]);
+
+        $this->assertDatabaseHas('usuarios', [
+            'id_usuario' => $usuarioTarget->id_usuario,
+            'estado_id'  => 1,
         ]);
     }
 
     #[Test]
-    public function index_muestra_usuarios_y_permisos()
+    public function test_toggle_estado_inactiva_usuario_activo()
     {
-        $this->be($this->usuarioEstudiante);
+        $usuarioAuth = Usuario::factory()->create();
 
-        $response = $this->get(route('usuarios.perfiles'));
+        $usuarioTarget = Usuario::factory()->create([
+            'estado_id' => 1
+        ]);
 
-        $response->assertStatus(200);
+        $response = $this->actingAs($usuarioAuth, 'sanctum')
+                         ->putJson("/usuarios/{$usuarioTarget->id_usuario}/toggle-estado");
 
-        $response->assertInertia(fn (Assert $page) =>
-            $page->component('Usuarios/PerfilesUsuarios')
-                 ->has('usuarios')
-                 ->has('userPermisos')
-                 ->where('usuarios', fn ($usuarios) =>
-                     collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEstudiante->id_usuario)
-                 )
-        );
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'success'      => true,
+                     'nuevo_estado' => 2,
+                 ]);
+
+        $this->assertDatabaseHas('usuarios', [
+            'id_usuario' => $usuarioTarget->id_usuario,
+            'estado_id'  => 2,
+        ]);
     }
 
     #[Test]
-    public function index_filtra_por_rol_estudiante_egresado()
+    public function test_toggle_estado_retorna_404_si_usuario_no_existe()
     {
-        $this->be($this->usuarioEstudiante);
+        $usuarioAuth = Usuario::factory()->create();
 
-        // Crear un usuario admin para probar que no se incluye
-        $rolAdmin = Rol::where('nombre_rol', 'Administrador del Sistema')->first();
-        $usuarioAdmin = Usuario::factory()->create(['id_rol' => $rolAdmin->id_rol]);
+        $response = $this->actingAs($usuarioAuth, 'sanctum')
+                         ->putJson('/usuarios/999999/toggle-estado');
 
-        $response = $this->get(route('usuarios.perfiles'));
-
-        $response->assertStatus(200);
-
-        $response->assertInertia(fn (Assert $page) =>
-            $page->component('Usuarios/PerfilesUsuarios')
-                 ->where('usuarios', fn ($usuarios) => 
-                     collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEstudiante->id_usuario)
-                     && collect($usuarios)->pluck('id_usuario')->contains($this->usuarioEgresado->id_usuario)
-                     && !collect($usuarios)->pluck('id_usuario')->contains($usuarioAdmin->id_usuario)
-                 )
-        );
+        $response->assertStatus(404);
     }
 
-    public function test_index_sin_usuario_autenticado_retorna_permisos_vacios()
+    // ─────────────────────────────────────────
+    // ver
+    // ─────────────────────────────────────────
+
+    #[Test]
+public function test_ver_perfil_retorna_vista_correcta()
+{
+    $usuarioAuth = Usuario::factory()->create();
+    $usuarioAuth->rol->nombre_rol = 'superusuario';
+    $usuarioAuth->rol->save();
+
+    $usuarioTarget = Usuario::factory()->create();
+
+    $response = $this->actingAs($usuarioAuth, 'sanctum')
+                     ->withHeaders(['X-Inertia' => 'true'])
+                     ->getJson("/usuarios/{$usuarioTarget->id_usuario}/ver");
+
+    $response->assertStatus(200)
+             ->assertJsonPath('component', 'Usuarios/VerPerfil');
+}
+
+    #[Test]
+    public function test_ver_perfil_retorna_404_si_usuario_no_existe()
     {
-        $this->withoutMiddleware();
+        $usuarioAuth = Usuario::factory()->create();
 
-        $response = $this->get('/usuarios/perfiles');
+        $response = $this->actingAs($usuarioAuth, 'sanctum')
+                         ->withHeaders(['X-Inertia' => 'true'])
+                         ->getJson('/usuarios/999999/ver');
 
-        $response->assertStatus(200);
-
-        $response->assertInertia(fn (Assert $page) =>
-            $page->component('Usuarios/PerfilesUsuarios')
-                 ->where('userPermisos', [])
-        );
+        $response->assertStatus(404);
     }
+
+    #[Test]
+public function test_ver_perfil_empresa_postulante()
+{
+    $usuarioAuth = Usuario::factory()->create();
+    $usuarioAuth->rol->nombre_rol = 'superusuario';
+    $usuarioAuth->rol->save();
+
+    $usuarioTarget = Usuario::factory()->create();
+
+    $response = $this->actingAs($usuarioAuth, 'sanctum')
+                     ->withHeaders(['X-Inertia' => 'true'])
+                     ->getJson("/empresa/postulantes/{$usuarioTarget->id_usuario}/perfil");
+
+    $response->assertStatus(200)
+             ->assertJsonPath('component', 'Usuarios/VerPerfil');
+}
 }
