@@ -26,15 +26,15 @@ class EventoRepository
                 'paises.nombre as pais_nombre'
             );
 
-        // 🔥 AQUÍ VA (INMEDIATAMENTE DESPUÉS DEL QUERY)
+        // AQUÍ VA (INMEDIATAMENTE DESPUÉS DEL QUERY)
         $query->whereNotIn('eventos.estado_id', [2, 4]);
 
-        // 🔒 CONTROL POR ROL
+        // CONTROL POR ROL
         if (!in_array($usuario->id_rol, [1])) {
             $query->where('eventos.usuario_id', $usuario->id_usuario);
         }
 
-        // 🔍 BÚSQUEDA GENERAL
+        // BÚSQUEDA GENERAL
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
@@ -43,12 +43,12 @@ class EventoRepository
             });
         }
 
-        // 📌 FILTRO POR ESTADO (⚠️ OPCIONAL AJUSTAR)
+        // FILTRO POR ESTADO (⚠️ OPCIONAL AJUSTAR)
         if ($request->filled('estado') && $request->estado != 2  && $request->estado != 4) {
             $query->where('eventos.estado_id', $request->estado);
         }
 
-        // 📅 FILTRO POR FECHA
+        // FILTRO POR FECHA
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('eventos.fecha_evento', '>=', $request->fecha_inicio);
         }
@@ -126,7 +126,7 @@ class EventoRepository
      */
     public function actualizarEvento($evento, array $data)
     {
-        // 🔒 SOLO CAMPOS PERMITIDOS
+        //SOLO CAMPOS PERMITIDOS
         $camposPermitidos = [
             'titulo',
             'descripcion',
@@ -183,7 +183,7 @@ class EventoRepository
         return DB::table('inscripciones_evento')
             ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_evento.id_usuario')
             ->where('inscripciones_evento.id_evento', $idEvento)
-            ->where('inscripciones_evento.estado_id', 1) // 🔥 AQUÍ
+            ->where('inscripciones_evento.estado_id', 1) 
             ->select('usuarios.correo')
             ->get();
     }
