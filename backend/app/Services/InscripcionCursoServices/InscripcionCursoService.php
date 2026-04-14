@@ -6,7 +6,9 @@ use App\Repositories\InscripcionCursoRepositories\InscripcionCursoRepository;
 use App\Mail\InscripcionConfirmadaMail;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Mail;
+use App\Models\Modalidad;
 use Illuminate\Support\Facades\Log;
+
 
 class InscripcionCursoService
 {
@@ -97,5 +99,34 @@ class InscripcionCursoService
         }
         $inscritos = $this->repo->contarInscritos($idCurso);
         return max(0, $curso->cupos - $inscritos);
+    }
+
+    /**
+     * Obtener cursos del usuario
+     */
+    public function obtenerMisCursos(int $idUsuario)
+    {
+        return $this->repo->obtenerCursosPorUsuario($idUsuario);
+    }
+
+    /**
+     * Cancelar inscripción
+     */
+    public function cancelar(int $idCurso, int $idUsuario): void
+    {
+        if (!$this->repo->existeInscripcion($idCurso, $idUsuario)) {
+            throw new \DomainException('No está inscrito en este curso.');
+        }
+
+        $cancelado = $this->repo->cancelarInscripcion($idCurso, $idUsuario);
+
+        if (!$cancelado) {
+            throw new \DomainException('No se pudo cancelar la inscripción.');
+        }
+    }
+
+    public function obtenerInscritosCount(): array
+    {
+        return $this->repo->obtenerConteoInscritosPorCurso();
     }
 }
