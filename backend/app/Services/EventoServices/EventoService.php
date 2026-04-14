@@ -6,7 +6,9 @@ use App\Repositories\EventoRepository\EventoRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\Eventos\EventoCanceladoMail;
+use App\Mail\Eventos\RecordatorioEventoMail;
 use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EventoService
 {
@@ -61,6 +63,16 @@ class EventoService
         $evento = $this->obtenerEventoSeguro($idEvento);
 
         return $this->eventoRepository->obtenerEventoCompleto($evento->id_evento);
+    }
+
+    /**
+     * Obtener inscritos del evento para vista de gestión
+     */
+    public function obtenerInscritosEventoGestion(int $idEvento)
+    {
+        $evento = $this->obtenerEventoSeguro($idEvento);
+
+        return $this->eventoRepository->obtenerInscritosGestionEvento($evento->id_evento);
     }
 
     /**
@@ -165,5 +177,75 @@ class EventoService
     public function obtenerUbicaciones()
     {
         return $this->eventoRepository->obtenerUbicaciones();
+    }
+
+    /**
+     * Eliminar inscripción de un usuario en evento
+     */
+    public function eliminarInscripcionEvento(int $idEvento, int $idUsuario): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $evento = $this->obtenerEventoSeguro($idEvento);
+
+            $eliminado = $this->eventoRepository->eliminarInscripcionEvento(
+                $evento->id_evento,
+                $idUsuario
+            );
+
+            if (!$eliminado) {
+                throw new \Exception('La inscripción no existe.');
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Generar PDF de participantes o asistencia del evento
+     */
+    public function generarPdfEvento(int $idEvento, string $tipo)
+    {
+        $evento = $this->obtenerEventoCompleto($idEvento);
+
+        if (!$evento) {
+            throw new \Exception('Evento no encontrado.');
+        }
+
+        $inscritos = $this->obtenerInscritosEventoGestion($idEvento);
+
+        if ($tipo === 'participantes') {
+            $pdf = Pdf::loadView('pdf.evento-inscritos', [
+                'evento' => $evento,
+                'inscritos' => $inscritos,
+            ]);
+
+            return $pdf->download('Participantes_' . $evento->titulo . '.pdf');
+        }
+
+        if ($tipo === 'asistencia') {
+            $pdf = Pdf::loadView('pdf.evento-asistencia', [
+                'evento' => $evento,
+                'inscritos' => $inscritos,
+            ]);
+
+            return $pdf->download('Asistencia_' . $evento->titulo . '.pdf');
+        }
+
+        throw new \Exception('Tipo de PDF inválido.');
+    }
+
+    /**
+     * Enviar recordatorio a inscritos del evento
+     */
+    public function enviarRecordatorio(array $correos, array $datos): void
+    {
+        foreach ($correos as $correo) {
+            Mail::to($correo)->send(new RecordatorioEventoMail($datos));
+        }
     }
 }
