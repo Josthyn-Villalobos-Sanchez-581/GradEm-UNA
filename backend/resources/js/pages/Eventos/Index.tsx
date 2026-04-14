@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Head, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
@@ -445,6 +445,17 @@ export default function EventosIndex(props: Props) {
                     </div>
 
                     <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
+                      {evento.estado_id === 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs text-[#034991] hover:bg-blue-50"
+                          onClick={() => router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))}
+                        >
+                          <User className="w-3 h-3 mr-1" /> Inscritos
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="secondary"

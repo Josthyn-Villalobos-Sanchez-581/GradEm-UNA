@@ -38,6 +38,7 @@ export default function CursosInscripcionIndex(props: Props) {
   const { auth } = usePage().props as any;
 
   const puedeInscribirse = (props.userPermisos ?? []).includes(9);
+  const puedeVerCursosLlenos = [1, 2, 3, 4].includes(auth?.user?.id_rol);
   const [misInscripciones, setMisInscripciones] = useState<Set<number>>(
     new Set(props.misInscripciones ?? [])
   );
@@ -48,7 +49,7 @@ export default function CursosInscripcionIndex(props: Props) {
   const [paginaActual, setPaginaActual] = useState(1);
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
-  
+
 
   const fechaVencida = (fecha?: string) => {
     if (!fecha) return false;
@@ -80,6 +81,14 @@ export default function CursosInscripcionIndex(props: Props) {
 
   const cursosFiltrados = (props.cursos ?? [])
     .filter((c) => c.estado_id === 1)
+    .filter((c) => {
+      if (puedeVerCursosLlenos) return true;
+
+      const inscritosActuales = props.inscritosCount[c.id_curso] ?? 0;
+      const estaLleno = c.cupos != null && inscritosActuales >= c.cupos;
+
+      return !estaLleno;
+    })
     .filter((c) => {
       const texto = busqueda.toLowerCase();
       return (
@@ -355,8 +364,14 @@ export default function CursosInscripcionIndex(props: Props) {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-1">
                 {cursosPaginados.map((curso) => {
-                  const inscritos = props.inscritosCount?.[curso.id_curso] ?? 0;
-                  const cuposDisponibles = Math.max(0, (curso.cupos ?? 0) - (props.inscritosCount[curso.id_curso] ?? 0));
+                  const inscritosActuales = props.inscritosCount[curso.id_curso] ?? 0;
+                  const cuposDisponibles = Math.max(
+                    0,
+                    (curso.cupos ?? 0) - inscritosActuales
+                  );
+                  const estaLleno =
+                    curso.cupos != null && inscritosActuales >= curso.cupos;
+
                   const esVencida = fechaVencida(curso.fecha_limite_inscripcion);
 
                   return (
@@ -364,74 +379,81 @@ export default function CursosInscripcionIndex(props: Props) {
                       key={curso.id_curso}
                       className="group relative flex flex-col bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-900/15 transition-all duration-500"
                     >
-                      {/* 1. Accent superior */}
-                      <div className={`h-2 w-full ${esVencida ? 'bg-red-500' : 'bg-[#034991]'}`} />
+                      {/* Accent superior */}
+                      <div
+                        className={`h-2 w-full ${esVencida ? "bg-red-500" : "bg-[#034991]"
+                          }`}
+                      />
 
                       <div className="p-6 flex flex-col flex-1">
-
-                        {/* 2. Header: Título y Estado en la misma línea */}
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <h3 className="text-lg font-extrabold text-[#034991] leading-tight group-hover:text-[#CD1719] transition-colors line-clamp-2 flex-1">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <button
+                            onClick={() => verDetalleCurso(curso)}
+                            className="text-left text-base font-semibold text-[#034991] hover:underline"
+                          >
                             {curso.titulo}
-                          </h3>
+                          </button>
 
-                          <span className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight bg-blue-50 text-[#034991] border border-blue-100 mt-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            Disponible
+                          {estaLleno ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                              Lleno
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              Publicado
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Instructor</span>
+                          <span className="font-medium text-gray-800">
+                            {displayValue(curso.nombreInstructor)}
                           </span>
                         </div>
 
-                        {/* 4. Timeline & Cupos (Contenedor destacado) */}
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-4 mb-6">
-                          {/* Rango de Fechas */}
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="text-center flex-1">
-                              <p className="text-slate-400 font-bold uppercase text-[9px]">Inicio</p>
-                              <p className="font-bold text-slate-800">{displayValue(curso.fecha_inicio)}</p>
-                            </div>
-                            <div className="h-8 w-px bg-slate-200 mx-2" />
-                            <div className="text-center flex-1">
-                              <p className="text-slate-400 font-bold uppercase text-[9px]">Finalización</p>
-                              <p className="font-bold text-slate-800">{displayValue(curso.fecha_fin)}</p>
-                            </div>
-                          </div>
-
-                          {/* Fecha Límite */}
-                          <div className={`flex items-center justify-between p-3 rounded-xl border-2 ${esVencida ? 'bg-red-50 border-red-200' : 'bg-white border-[#034991]/20'
-                            }`}>
-                            <span className={`text-[11px] font-black uppercase ${esVencida ? 'text-red-600' : 'text-[#034991]'}`}>
-                              Límite de Inscripción
-                            </span>
-                            <span className={`text-sm font-black ${esVencida ? 'text-red-700' : 'text-[#034991]'}`}>
-                              {displayValue(curso.fecha_limite_inscripcion)}
-                            </span>
-                          </div>
-
-                          {/* Progress Bar para Cupos */}
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-[11px] font-bold">
-                              <span className="text-slate-500 uppercase">Inscritos</span>
-                              <span className={cuposDisponibles > 0 ? 'text-[#034991]' : 'text-red-600'}>
-                                {curso.cupos ? `${inscritos} de ${curso.cupos}` : 'Ilimitados'}
-                              </span>
-                            </div>
-                            {curso.cupos && (
-                              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full transition-all duration-1000 ${cuposDisponibles > 0 ? 'bg-[#034991]' : 'bg-red-500'}`}
-                                  style={{ width: `${(inscritos / curso.cupos) * 100}%` }}
-                                />
-                              </div>
-                            )}
-                          </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Fecha inicio</span>
+                          <span className="font-medium text-gray-800">
+                            {displayValue(curso.fecha_inicio)}
+                          </span>
                         </div>
 
-                        {/* Botones de Acción */}
-                        <div className="mt-auto flex gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Inscritos / Cupos</span>
+                          <span
+                            className={`font-medium ${estaLleno ? "text-red-700" : "text-gray-800"
+                              }`}
+                          >
+                            {curso.cupos != null
+                              ? `${inscritosActuales} / ${curso.cupos}`
+                              : `${inscritosActuales} / Sin límite`}
+                          </span>
+                        </div>
+
+                        {/* Barra progreso */}
+                        {curso.cupos && (
+                          <div className="mt-3">
+                            <div className="w-full h-2 bg-gray-200 rounded-full">
+                              <div
+                                className={`h-full ${cuposDisponibles > 0 ? "bg-[#034991]" : "bg-red-500"
+                                  }`}
+                                style={{
+                                  width: `${(inscritosActuales / curso.cupos) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Botones */}
+                        <div className="mt-auto flex gap-2 pt-4">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 rounded-full border-[#034991] text-[#034991] font-bold hover:bg-[#E6F2FB] h-10"
+                            className="flex-1"
                             onClick={() => verDetalleCurso(curso)}
                           >
                             Ver Detalle
@@ -439,21 +461,19 @@ export default function CursosInscripcionIndex(props: Props) {
 
                           {puedeInscribirse && (
                             misInscripciones.has(curso.id_curso) ? (
-                              <div className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-green-50 text-green-600 text-[11px] font-black uppercase border border-green-100 h-10">
+                              <div className="flex-1 flex items-center justify-center bg-green-100 text-green-700 rounded">
                                 ✓ Inscrito
                               </div>
                             ) : (
                               <Button
                                 size="sm"
-                                className={`flex-1 rounded-full font-bold transition-all duration-300 h-10 ${inscribiendose.has(curso.id_curso) || (curso.cupos != null && cuposDisponibles <= 0)
-                                    ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                    : "bg-[#034991] hover:bg-[#CD1719] text-white shadow-md shadow-blue-900/10"
-                                  }`}
-                                disabled={inscribiendose.has(curso.id_curso) || (curso.cupos != null && cuposDisponibles <= 0)}
+                                disabled={
+                                  inscribiendose.has(curso.id_curso) ||
+                                  (curso.cupos != null && cuposDisponibles <= 0)
+                                }
                                 onClick={() => inscribirse(curso)}
                               >
-                                {inscribiendose.has(curso.id_curso) ? "..." :
-                                  (curso.cupos != null && cuposDisponibles <= 0 ? "Agotado" : "Inscribirme")}
+                                Inscribirme
                               </Button>
                             )
                           )}
