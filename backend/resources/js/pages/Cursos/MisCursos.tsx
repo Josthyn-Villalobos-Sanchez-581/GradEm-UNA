@@ -149,18 +149,23 @@ export default function MisCursosIndex(props: Props) {
     };
 
     const verDetalleCurso = async (curso: Curso) => {
-        const inscritos = props.inscritosCount?.[curso.id_curso] ?? 0;
-        const cuposTotales = curso.cupos ?? 0;
+        const inscritosActuales = props.inscritosCount?.[curso.id_curso] ?? 0;
+        const cuposDisponibles = Math.max(0, (curso.cupos ?? 0) - inscritosActuales);
+        const estaLleno = curso.cupos != null && inscritosActuales >= curso.cupos;
+        const esVencida = fechaVencida(curso.fecha_limite_inscripcion);
 
         await modal.alerta({
             titulo: "",
             mensaje: (
                 <div className="text-left px-1">
-                    {/* Cabecera Institucional: Título y Badge */}
-                    <div className="relative mb-6 pb-4 border-b border-slate-100">
+                    {/* Accent superior */}
+                    <div className={`h-2 w-full absolute top-0 left-0 ${esVencida ? "bg-red-500" : "bg-[#034991]"}`} />
+
+                    {/* Header Institucional */}
+                    <div className="relative mb-6 mt-4 pb-4 border-b border-slate-100">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="w-1 h-4 bg-[#CD1719] rounded-full" />
-                            <span className="text-[10px] font-black text-[#CD1719] uppercase tracking-[0.2em]">
+                            <div className={`w-1 h-4 rounded-full ${esVencida ? "bg-red-500" : "bg-[#CD1719]"}`} />
+                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${esVencida ? "text-red-500" : "text-[#CD1719]"}`}>
                                 Detalles del Programa
                             </span>
                         </div>
@@ -169,25 +174,61 @@ export default function MisCursosIndex(props: Props) {
                         </h2>
                     </div>
 
-                    <div className="space-y-5">
-                        {/* Bloque de Información General (Estilo Cards Pequeñas) */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
-                                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Modalidad</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#034991]" />
-                                    <p className="text-sm font-bold text-[#034991]">{displayValue(curso.modalidad?.nombre)}</p>
-                                </div>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
-                                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Instructor</p>
-                                <p className="text-sm font-bold text-slate-700 truncate">{displayValue(curso.nombreInstructor)}</p>
-                            </div>
+                    <div className="space-y-4">
+                        {/* Fila de Badges de Estado - Lógica de Fecha Vencida añadida */}
+                        <div className="flex gap-2">
+                            {esVencida ? (
+                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                    Inscripción Cerrada
+                                </span>
+                            ) : estaLleno ? (
+                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                                    Cupo Lleno
+                                </span>
+                            ) : (
+                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                                    Inscripciones Abiertas
+                                </span>
+                            )}
+
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#034991] border border-blue-100">
+                                {displayValue(curso.modalidad?.nombre)}
+                            </span>
                         </div>
 
-                        {/* Descripción: Contenedor con foco visual */}
-                        <div className="bg-white border-2 border-slate-50 p-4 rounded-[1.5rem] shadow-sm">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2">
+                        {/* Información en Formato Píldora */}
+                        <div className="bg-slate-50 border border-slate-100 p-5 rounded-[2rem] space-y-2 shadow-sm">
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="text-gray-500 font-medium">Instructor</span>
+                                <span className="font-bold text-gray-800">{displayValue(curso.nombreInstructor)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="text-gray-500 font-medium">Fecha de inicio</span>
+                                <span className="font-bold text-gray-800">{displayValue(curso.fecha_inicio)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="text-gray-500 font-medium">Inscritos / Cupos</span>
+                                <span className={`font-bold ${estaLleno || esVencida ? "text-red-700" : "text-gray-800"}`}>
+                                    {curso.cupos != null ? `${inscritosActuales} / ${curso.cupos}` : "Sin límite"}
+                                </span>
+                            </div>
+
+                            {/* Barra de Progreso */}
+                            {curso.cupos && (
+                                <div className="pt-2">
+                                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full transition-all duration-500 ${esVencida || estaLleno ? "bg-red-500" : "bg-[#034991]"}`}
+                                            style={{ width: `${(inscritosActuales / curso.cupos) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Descripción */}
+                        <div className="px-2">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">
                                 Sobre el curso
                             </h4>
                             <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
@@ -195,45 +236,18 @@ export default function MisCursosIndex(props: Props) {
                             </p>
                         </div>
 
-                        {/* Banner de Cronograma: Inspirado en el footer de la card */}
-                        <div className="bg-[#034991] rounded-[2rem] p-5 text-white shadow-lg shadow-blue-900/20 relative overflow-hidden">
-                            {/* Decoración sutil */}
-                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-
-                            <div className="relative z-10 space-y-4">
-                                <div className="flex justify-between items-end border-b border-white/10 pb-3">
-                                    <div>
-                                        <p className="text-[9px] font-bold text-blue-200 uppercase tracking-tighter">Duración total</p>
-                                        <p className="text-lg font-black">{displayValue(curso.duracion)}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-bold text-amber-400 uppercase tracking-tighter">Límite inscripción</p>
-                                        <p className="text-lg font-black text-amber-50">{displayValue(curso.fecha_limite_inscripcion)}</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-between items-center pt-1">
-                                    <div className="flex gap-4">
-                                        <div>
-                                            <p className="text-[8px] font-bold text-blue-300 uppercase">Inicio</p>
-                                            <p className="text-xs font-bold">{displayValue(curso.fecha_inicio)}</p>
-                                        </div>
-                                        <div className="w-px h-6 bg-white/20" />
-                                        <div>
-                                            <p className="text-[8px] font-bold text-blue-300 uppercase">Fin</p>
-                                            <p className="text-xs font-bold">{displayValue(curso.fecha_fin)}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/10">
-                                        <p className="text-[8px] font-bold text-blue-200 uppercase text-center">Cupos</p>
-                                        <p className="text-xs font-black text-center">
-                                            {curso.cupos
-                                                ? `${inscritos} / ${curso.cupos}`
-                                                : "Ilimitados"}
-                                        </p>
-                                    </div>
-                                </div>
+                        {/* Footer del Modal */}
+                        <div className={`${esVencida ? "bg-slate-800" : "bg-[#034991]"} rounded-[1.5rem] p-4 flex items-center justify-between text-white transition-colors duration-500`}>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-blue-200 uppercase">Límite inscripción</span>
+                                <span className={`text-base font-black ${esVencida ? "text-red-400" : "text-amber-400"}`}>
+                                    {displayValue(curso.fecha_limite_inscripcion)}
+                                </span>
+                            </div>
+                            <div className="h-8 w-px bg-white/20 mx-2" />
+                            <div className="flex flex-col text-right">
+                                <span className="text-[10px] font-bold text-blue-200 uppercase">Duración</span>
+                                <span className="text-base font-black">{displayValue(curso.duracion)}</span>
                             </div>
                         </div>
                     </div>
@@ -241,7 +255,7 @@ export default function MisCursosIndex(props: Props) {
             ),
         });
     };
-
+    
     return (
         <>
             <Head title="Mis Cursos" />
@@ -340,128 +354,91 @@ export default function MisCursosIndex(props: Props) {
                                 No se encontraron cursos con los filtros seleccionados.
                             </div>
                         ) : (
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-1">
+                            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-1">
                                 {cursosPaginados.map((curso) => {
-                                    const cuposDisponibles = Math.max(
-                                        0,
-                                        (curso.cupos ?? 0) - (props.inscritosCount?.[curso.id_curso] ?? 0)
-                                    );
-                                    const inscritos = props.inscritosCount?.[curso.id_curso] ?? 0;
-
+                                    const inscritosActuales = props.inscritosCount[curso.id_curso] ?? 0;
+                                    const cuposDisponibles = Math.max(0, (curso.cupos ?? 0) - inscritosActuales);
+                                    const estaLleno = curso.cupos != null && inscritosActuales >= curso.cupos;
                                     const esVencida = fechaVencida(curso.fecha_limite_inscripcion);
 
                                     return (
                                         <article
                                             key={curso.id_curso}
-                                            className="group relative flex flex-col bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-900/15 transition-all duration-500"
+                                            className="group relative flex flex-col bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-900/10 transition-all duration-500"
                                         >
-                                            {/* Accent superior */}
-                                            <div className={`h-2 w-full ${esVencida ? "bg-red-500" : "bg-[#034991]"}`} />
+                                            {/* Accent superior dinámico */}
+                                            <div className={`h-2.5 w-full ${esVencida ? "bg-red-500" : "bg-[#034991]"}`} />
 
-                                            <div className="p-6 flex flex-col flex-1">
-
-                                                {/* Header */}
-                                                <div className="flex items-start justify-between gap-4 mb-4">
-                                                    <h3
-                                                        onClick={() => verDetalleCurso(curso)}
-                                                        className="cursor-pointer text-lg font-extrabold text-[#034991] leading-tight group-hover:text-[#CD1719] transition-colors line-clamp-2 flex-1"
-                                                    >
-                                                        {curso.titulo}
-                                                    </h3>
-
-                                                    {/* Estado */}
-                                                    <span className="flex-shrink-0 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700 border border-green-200">
-                                                        Inscrito
-                                                    </span>
+                                            <div className="p-7 flex flex-col flex-1">
+                                                {/* Header: Título y Status */}
+                                                <div className="flex flex-col gap-2 mb-4">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <button
+                                                            onClick={() => verDetalleCurso(curso)}
+                                                            className="text-left text-lg font-bold text-[#034991] leading-tight hover:text-blue-700 transition-colors"
+                                                        >
+                                                            {curso.titulo}
+                                                        </button>
+                                                        <span className={`shrink-0 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${estaLleno ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                                                            }`}>
+                                                            {estaLleno ? "Lleno" : "Activo"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500 font-medium">
+                                                        {displayValue(curso.nombreInstructor)}
+                                                    </p>
                                                 </div>
 
-                                                {/* Timeline + Cupos */}
-                                                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-4 mb-6">
-
-                                                    {/* Fechas */}
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <div className="text-center flex-1">
-                                                            <p className="text-slate-400 font-bold uppercase text-[9px]">Inicio</p>
-                                                            <p className="font-bold text-slate-800">
-                                                                {displayValue(curso.fecha_inicio)}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="h-8 w-px bg-slate-200 mx-2" />
-
-                                                        <div className="text-center flex-1">
-                                                            <p className="text-slate-400 font-bold uppercase text-[9px]">Finalización</p>
-                                                            <p className="font-bold text-slate-800">
-                                                                {displayValue(curso.fecha_fin)}
-                                                            </p>
-                                                        </div>
+                                                {/* Info Grid: Datos clave */}
+                                                <div className="space-y-3 mb-6">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-400">Inicio</span>
+                                                        <span className="font-semibold text-gray-700">{displayValue(curso.fecha_inicio)}</span>
                                                     </div>
 
-                                                    {/* Fecha límite */}
-                                                    <div
-                                                        className={`flex items-center justify-between p-3 rounded-xl border-2 ${esVencida
-                                                            ? "bg-red-50 border-red-200"
-                                                            : "bg-white border-[#034991]/20"
-                                                            }`}
-                                                    >
-                                                        <span
-                                                            className={`text-[11px] font-black uppercase ${esVencida ? "text-red-600" : "text-[#034991]"
-                                                                }`}
-                                                        >
-                                                            Límite inscripción
-                                                        </span>
-
-                                                        <span
-                                                            className={`text-sm font-black ${esVencida ? "text-red-700" : "text-[#034991]"
-                                                                }`}
-                                                        >
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-400">Inscripción hasta</span>
+                                                        <span className={`font-bold ${esVencida ? "text-red-600" : "text-amber-600"}`}>
                                                             {displayValue(curso.fecha_limite_inscripcion)}
                                                         </span>
                                                     </div>
 
-                                                    {/* Progress Bar para Cupos */}
-                                                    <div className="space-y-1.5">
-                                                        <div className="flex justify-between text-[11px] font-bold">
-                                                            <span className="text-slate-500 uppercase">Inscritos</span>
-                                                            <span className={cuposDisponibles > 0 ? 'text-[#034991]' : 'text-red-600'}>
-                                                                {curso.cupos ? `${inscritos} de ${curso.cupos}` : 'Ilimitados'}
+                                                    {/* Sección de Cupos y Progreso */}
+                                                    <div className="pt-2">
+                                                        <div className="flex justify-between items-end mb-1.5">
+                                                            <span className="text-xs text-gray-400 uppercase tracking-tight">Cupos confirmados</span>
+                                                            <span className={`text-sm font-bold ${estaLleno ? "text-red-600" : "text-[#034991]"}`}>
+                                                                {curso.cupos ? `${inscritosActuales} / ${curso.cupos}` : `${inscritosActuales} / ∞`}
                                                             </span>
                                                         </div>
                                                         {curso.cupos && (
-                                                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                                                 <div
-                                                                    className={`h-full transition-all duration-1000 ${cuposDisponibles > 0 ? 'bg-[#034991]' : 'bg-red-500'}`}
-                                                                    style={{ width: `${(inscritos / curso.cupos) * 100}%` }}
+                                                                    className={`h-full transition-all duration-1000 ${estaLleno ? "bg-red-500" : "bg-[#034991]"}`}
+                                                                    style={{ width: `${Math.min(100, (inscritosActuales / curso.cupos) * 100)}%` }}
                                                                 />
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                {/* ACCIONES */}
-                                                <div className="mt-auto flex gap-2">
-
-                                                    {/* Botón Ver Detalle */}
+                                                {/* ACCIONES: Botones tipo Píldora simétricos */}
+                                                <div className="mt-auto flex gap-3">
                                                     <Button
                                                         variant="outline"
-                                                        size="sm"
-                                                        className="flex-1 rounded-full border-[#034991] text-[#034991] font-bold hover:bg-[#E6F2FB] h-10"
+                                                        className="flex-1 rounded-full border-2 border-[#034991] text-[#034991] font-bold hover:bg-[#034991] hover:text-white transition-all h-11"
                                                         onClick={() => verDetalleCurso(curso)}
                                                     >
                                                         Ver detalle
                                                     </Button>
 
-                                                    {/* Botón Cancelar */}
                                                     <Button
-                                                        size="sm"
                                                         variant="destructive"
-                                                        className="flex-1 rounded-full font-bold h-10"
+                                                        className="flex-1 rounded-full font-bold shadow-lg shadow-red-200 hover:shadow-none transition-all h-11"
                                                         disabled={cancelando.has(curso.id_curso)}
                                                         onClick={() => cancelarInscripcion(curso)}
                                                     >
-                                                        {cancelando.has(curso.id_curso)
-                                                            ? "Cancelando..."
-                                                            : "Cancelar"}
+                                                        {cancelando.has(curso.id_curso) ? "Procesando..." : "Cancelar"}
                                                     </Button>
                                                 </div>
                                             </div>
