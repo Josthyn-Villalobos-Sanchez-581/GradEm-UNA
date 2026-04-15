@@ -77,15 +77,15 @@ class EventoRepository
      */
     public function obtenerEventoCompleto(int $idEvento)
     {
-        return DB::table('eventos')
-            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id') // 🔥 FALTA ESTO
+        $evento = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
-                'usuarios.nombre_completo as creador_nombre', // 🔥 Y ESTO
+                'usuarios.nombre_completo as creador_nombre',
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -93,6 +93,26 @@ class EventoRepository
             )
             ->where('eventos.id_evento', $idEvento)
             ->first();
+
+        if (!$evento) return null;
+
+        // TRAER CARRERAS
+        $carreras = DB::table('evento_carrera')
+            ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
+            ->where('evento_carrera.id_evento', $idEvento)
+            ->pluck('carreras.nombre');
+
+        // TRAER ROLES
+        $roles = DB::table('evento_rol')
+            ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
+            ->where('evento_rol.id_evento', $idEvento)
+            ->pluck('roles.nombre_rol');
+
+        // AGREGARLOS AL OBJETO
+        $evento->carreras = $carreras;
+        $evento->roles = $roles;
+
+        return $evento;
     }
 
     /**
@@ -183,7 +203,7 @@ class EventoRepository
         return DB::table('inscripciones_evento')
             ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_evento.id_usuario')
             ->where('inscripciones_evento.id_evento', $idEvento)
-            ->where('inscripciones_evento.estado_id', 1) 
+            ->where('inscripciones_evento.estado_id', 1)
             ->select('usuarios.correo')
             ->get();
     }

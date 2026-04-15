@@ -3,6 +3,7 @@ import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
+import EventoDetalleModal from "@/components/modal/EventoDetalleModal";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,10 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  GraduationCap,
+  Users,
+  Link as LinkIcon,
+  Info
 } from "lucide-react";
 
 /* =======================
@@ -42,6 +47,11 @@ interface Evento {
   canton_nombre?: string;
   provincia_nombre?: string;
   pais_nombre?: string;
+
+  // NUEVOS
+  otras_observaciones?: string;
+  carreras?: string[];
+  roles?: string[];
 }
 
 interface Props {
@@ -75,25 +85,25 @@ export default function EventosIndex(props: Props) {
   const itemsPorPagina = 8;
 
   const eventosFiltrados = eventos
-    // 🔍 búsqueda
+    // búsqueda
     .filter((e) =>
       e.titulo.toLowerCase().includes(busqueda.toLowerCase())
     )
 
-    // 📌 estado
+    // estado
     .filter((e) => {
       if (filtroEstado === "publicado") return e.estado_id === 1;
       if (filtroEstado === "borrador") return e.estado_id !== 1;
       return true;
     })
 
-    // 🎓 modalidad
+    // modalidad
     .filter((e) => {
       if (filtroModalidad === "todas") return true;
       return e.modalidad_nombre === filtroModalidad;
     })
 
-    // 👤 creador (tipo búsqueda)
+    // creador (tipo búsqueda)
     .filter((e) =>
       e.creador_nombre
         ?.toLowerCase()
@@ -157,7 +167,7 @@ export default function EventosIndex(props: Props) {
         { motivo }
       );
 
-      // 🔥 eliminar del frontend
+      // eliminar del frontend
       setEventos((prev) =>
         prev.filter((e) => e.id_evento !== evento.id_evento)
       );
@@ -544,91 +554,10 @@ export default function EventosIndex(props: Props) {
 
       {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
       {
-        detalle && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 text-black">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-              <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
-                <h2 className="font-bold text-lg">Detalles del Evento</h2>
-                <button
-                  title="Volver a listado de eventos"
-                  onClick={() => setDetalle(null)}
-                  className="hover:bg-white/20 rounded-full p-1">
-                  <ArrowLeft className="w-5 h-5 rotate-90" />
-                </button>
-              </div>
-              <div className="p-6 space-y-5">
-                <h3 className="text-2xl font-bold text-slate-800">
-                  {detalle.titulo}
-                </h3>
-
-                <p className="text-slate-600 leading-relaxed">
-                  {detalle.descripcion || 'Sin descripción detallada.'}
-                </p>
-
-                <div className="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm">
-
-                  {/* Fecha */}
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-[#034991]" />
-                    <span>
-                      <strong>Fecha:</strong> {detalle.fecha_evento || 'No definida'}
-                    </span>
-                  </div>
-
-                  {/* Hora */}
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-amber-500" />
-                    <span>
-                      <strong>Hora:</strong> {detalle.hora_evento || 'No definida'}
-                    </span>
-                  </div>
-
-                  {/* Ubicación */}
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-red-500" />
-                    <span>
-                      <strong>Ubicación:</strong>{" "}
-                      {detalle.canton_nombre}, {detalle.provincia_nombre}, {detalle.pais_nombre}
-                    </span>
-                  </div>
-
-                  {/* Modalidad */}
-                  <div className="flex items-center gap-3">
-                    <LayoutDashboard className="w-5 h-5 text-blue-500" />
-                    <span>
-                      <strong>Modalidad:</strong> {detalle.modalidad_nombre || 'No definida'}
-                    </span>
-                  </div>
-
-                  {/* Creador */}
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-slate-500" />
-                    <span>
-                      <strong>Creador:</strong> {detalle.creador_nombre || 'Desconocido'}
-                    </span>
-                  </div>
-
-                  {/* Estado */}
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    <span>
-                      <strong>Estado:</strong>{" "}
-                      {detalle.estado_id === 1 ? 'Publicado' : 'Borrador'}
-                    </span>
-                  </div>
-
-                </div>
-
-                <Button
-                  className="w-full bg-[#034991]"
-                  onClick={() => setDetalle(null)}
-                >
-                  Entendido
-                </Button>
-              </div>
-            </div>
-          </div>
-        )
+        <EventoDetalleModal
+          detalle={detalle}
+          onClose={() => setDetalle(null)}
+        />
       }
     </>
   );
