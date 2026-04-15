@@ -336,7 +336,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
 
             <Button
               onClick={abrirModalPdf}
-              className="bg-[#034991] hover:bg-[#02386f] rounded-xl"
+              className="bg-[#034991] hover:bg-[#023165] text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
             >
               <Download className="w-4 h-4 mr-2" />
               Descargar PDF
@@ -344,7 +344,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
 
             <Button
               onClick={abrirModalRecordatorio}
-              className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
+              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
             >
               <Bell className="w-4 h-4 mr-2" />
               Enviar recordatorio
@@ -353,7 +353,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
             <Button
               variant="outline"
               onClick={() => router.visit(route("cursos.index"))}
-              className="rounded-xl"
+              className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] h-10 px-5 text-md font-semibold transition-all"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a cursos
