@@ -373,6 +373,19 @@ Route::middleware('auth')->group(function () {
         // Listado (HU-33 Parte 2)
         Route::get('/', [EventoController::class, 'index'])
             ->name('eventos.index');
+
+        // Registrar evento
+        Route::post('/', [EventoController::class, 'store'])
+            ->name('eventos.store');
+
+        // Ver detalle del evento
+        Route::get('/{idEvento}', [EventoController::class, 'show'])
+            ->name('eventos.show');
+
+        // Editar evento
+        Route::put('/{idEvento}', [EventoController::class, 'update'])
+            ->name('eventos.update');
+
         Route::get('/eventos/{idEvento}', [EventoController::class, 'show'])
             ->name('eventos.show');
         Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
