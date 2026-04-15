@@ -26,7 +26,7 @@ class EventoRepository
                 'paises.nombre as pais_nombre'
             );
 
-            //AQUÍ VA (INMEDIATAMENTE DESPUÉS DEL QUERY)
+        //AQUÍ VA (INMEDIATAMENTE DESPUÉS DEL QUERY)
         $query->whereNotIn('eventos.estado_id', [2, 4]);
 
         // CONTROL POR ROL
@@ -104,6 +104,16 @@ class EventoRepository
                 ->where('id_evento', $idEvento)
                 ->pluck('id_rol')
                 ->toArray();
+
+            $evento->carreras = DB::table('evento_carrera')
+                ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
+                ->where('evento_carrera.id_evento', $idEvento)
+                ->pluck('carreras.nombre');
+
+            $evento->roles = DB::table('evento_rol')
+                ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
+                ->where('evento_rol.id_evento', $idEvento)
+                ->pluck('roles.nombre_rol');
         }
 
         return $evento;
