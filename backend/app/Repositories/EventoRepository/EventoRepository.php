@@ -213,6 +213,23 @@ class EventoRepository
     }
 
     /**
+     * Obtener datos de un inscrito puntual en evento
+     */
+    public function obtenerInscritoEvento(int $idEvento, int $idUsuario)
+    {
+        return DB::table('inscripciones_evento')
+            ->join('usuarios', 'usuarios.id_usuario', '=', 'inscripciones_evento.id_usuario')
+            ->where('inscripciones_evento.id_evento', $idEvento)
+            ->where('inscripciones_evento.id_usuario', $idUsuario)
+            ->where('inscripciones_evento.estado_id', 1)
+            ->select(
+                'usuarios.nombre_completo',
+                'usuarios.correo'
+            )
+            ->first();
+    }
+
+    /**
      * Eliminar inscripción de usuario en evento
      */
     public function eliminarInscripcionEvento(int $idEvento, int $idUsuario): bool
