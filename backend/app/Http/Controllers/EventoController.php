@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Services\EventoServices\EventoService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 use Illuminate\Http\JsonResponse;
 
 class EventoController extends Controller
@@ -45,6 +46,8 @@ class EventoController extends Controller
             // FK necesarias para frontend
             'modalidades' => $this->service->obtenerModalidades(),
             'ubicaciones' => $this->service->obtenerUbicaciones(),
+            'carreras' => $this->service->obtenerCarreras(),
+            'roles' => $this->service->obtenerRolesInteresados(),
 
             'userPermisos' => $permisos,
 
@@ -55,6 +58,75 @@ class EventoController extends Controller
                 'fecha_inicio',
                 'fecha_fin'
             ]),
+        ]);
+    }
+
+    /**
+     * 📌 Registrar evento
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titulo' => ['required', 'string', 'min:5', 'max:100', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()\"\'¡!¿?%&@\/\-\s]+$/u'],
+            'descripcion' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()\"\'¡!¿?%&@\/\-\s]+$/u'],
+            'fecha_evento' => ['required', 'date'],
+            'hora_evento' => ['required', 'regex:/^(?:[01]\d|2[0-3]):[0-5]\d(?:\:[0-5]\d)?$/'],
+            'id_modalidad' => ['required', 'integer', 'exists:modalidades,id_modalidad'],
+            'id_ubicacion' => ['required', 'integer', 'exists:cantones,id_canton'],
+            'carreras_invitadas' => ['required', 'array', 'min:1'],
+            'carreras_invitadas.*' => ['integer', 'exists:carreras,id_carrera'],
+            'roles_interesados' => ['required', 'array', 'min:1'],
+            'roles_interesados.*' => ['integer', Rule::in([6, 7])],
+            'otras_observaciones' => ['nullable', 'string', 'min:10', 'max:500'],
+        ]);
+
+        $evento = $this->service->registrarEvento($request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Evento registrado correctamente',
+            'evento' => $evento,
+        ]);
+    }
+
+    /**
+     * 📌 Actualizar evento
+     */
+    public function update(Request $request, int $idEvento)
+    {
+        $evento = $this->service->obtenerEventoSeguro($idEvento);
+
+        $reglasBase = [
+            'titulo' => ['nullable', 'string', 'min:5', 'max:100', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:\(\)"\'¡!¿?%&@\/\-\s]+$/u'],
+            'descripcion' => ['nullable', 'string', 'min:10', 'max:500', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:\(\)"\'¡!¿?%&@\/\-\s]+$/u'],
+            'fecha_evento' => ['nullable', 'date'],
+            'hora_evento' => ['nullable', 'regex:/^(?:[01]\d|2[0-3]):[0-5]\d(?:\:[0-5]\d)?$/'],
+            'id_modalidad' => ['nullable', 'integer', 'exists:modalidades,id_modalidad'],
+            'id_ubicacion' => ['nullable', 'integer', 'exists:cantones,id_canton'],
+            'carreras_invitadas' => ['required', 'array', 'min:1'],
+            'carreras_invitadas.*' => ['integer', 'exists:carreras,id_carrera'],
+            'roles_interesados' => ['required', 'array', 'min:1'],
+            'roles_interesados.*' => ['integer', Rule::in([6, 7])],
+            'otras_observaciones' => ['required', 'string', 'min:10', 'max:500'],
+        ];
+
+        if ($evento->estado_id === 1) {
+            $reglasBase['titulo'][0] = 'required';
+            $reglasBase['descripcion'][0] = 'required';
+            $reglasBase['fecha_evento'][0] = 'required';
+            $reglasBase['hora_evento'][0] = 'required';
+            $reglasBase['id_modalidad'][0] = 'required';
+            $reglasBase['id_ubicacion'][0] = 'required';
+        }
+
+        $request->validate($reglasBase);
+
+        $eventoActualizado = $this->service->actualizarEvento($request, $idEvento);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Evento actualizado correctamente',
+            'evento' => $eventoActualizado,
         ]);
     }
 

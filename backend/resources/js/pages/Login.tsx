@@ -364,7 +364,16 @@ const Login: React.FC = () => {
               size="default"
               disabled={processing || estaEnCooldown}
             >
-              <span onClick={() => router.get("/registro")} style={{ cursor: "pointer" }}>
+              <span
+                onClick={() =>
+                  router.get(
+                    redirect
+                      ? "/registro?redirect=" + encodeURIComponent(redirect)
+                      : "/registro"
+                  )
+                }
+                style={{ cursor: "pointer" }}
+              >
                 Crear cuenta
               </span>
             </Button>

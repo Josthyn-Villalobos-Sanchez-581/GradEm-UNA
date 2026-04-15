@@ -53,11 +53,21 @@ interface RegistroEmpresaProps {
 }
 
 const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo }) => {
+    const [redirect, setRedirect] = useState<string | null>(null);
+
     // Estados del flujo OTP
     const [paso, setPaso] = useState<'correo' | 'validacion' | 'registro'>('correo');
     const [codigo, setCodigo] = useState<string>("");
     const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
     const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const redirectParam = params.get('redirect');
+        if (redirectParam) {
+            setRedirect(redirectParam);
+        }
+    }, []);
 
     // Inicializamos el estado del correo con la prop que se recibe
     const [correo, setCorreo] = useState<string>(propCorreo || "");
@@ -258,8 +268,17 @@ const RegistroEmpresa: React.FC<RegistroEmpresaProps> = ({ correo: propCorreo })
             // 🔹 Limpiar flag de validación
             sessionStorage.removeItem("correo_validado_empresa");
 
-            // 🔹 Redirigir al login
-            router.get("/login");
+            // 🔹 Redirigir al login con redirect si corresponde
+            const loginRedirectUrl = redirect
+                ? `/login?redirect=${encodeURIComponent(redirect)}`
+                : '/login';
+
+            try {
+                router.get(loginRedirectUrl);
+            } catch (navErr) {
+                console.error('Inertia navigation failed, falling back to full redirect', navErr);
+                window.location.href = loginRedirectUrl;
+            }
 
             // Limpiar sessionStorage de validación
             sessionStorage.removeItem("correo_validado_empresa");
