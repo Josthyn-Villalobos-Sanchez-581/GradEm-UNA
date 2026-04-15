@@ -343,8 +343,9 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
             </Button>
 
             <Button
+              variant="outline"
               onClick={abrirModalRecordatorio}
-              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
+              className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] h-10 px-5 text-md font-semibold transition-all"
             >
               <Bell className="w-4 h-4 mr-2" />
               Enviar recordatorio
@@ -544,7 +545,7 @@ export default function GestionInscritos({ curso, inscritos }: Props) {
                 <Button
                   onClick={enviarRecordatorio}
                   disabled={enviandoRecordatorio}
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  className="bg-[#034991] hover:bg-[#023165] text-white rounded-full font-semibold transition-all"
                 >
                   {enviandoRecordatorio ? "Enviando..." : "Enviar recordatorio"}
                 </Button>
