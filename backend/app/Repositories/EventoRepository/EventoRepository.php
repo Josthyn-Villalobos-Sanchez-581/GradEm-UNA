@@ -26,8 +26,8 @@ class EventoRepository
                 'paises.nombre as pais_nombre'
             );
 
-        // 🔥 AQUÍ VA (INMEDIATAMENTE DESPUÉS DEL QUERY)
-        $query->whereNotIn('eventos.estado_id', [2, 4]);
+        // Excluir únicamente eventos inactivados.
+        $query->where('eventos.estado_id', '!=', 4);
 
         // 🔒 CONTROL POR ROL
         if (!in_array($usuario->id_rol, [1])) {
@@ -77,15 +77,15 @@ class EventoRepository
      */
     public function obtenerEventoCompleto(int $idEvento)
     {
-        return DB::table('eventos')
-            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id') // 🔥 FALTA ESTO
+        $evento = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
             ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
             ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
             ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
             ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
             ->select(
                 'eventos.*',
-                'usuarios.nombre_completo as creador_nombre', // 🔥 Y ESTO
+                'usuarios.nombre_completo as creador_nombre',
                 'modalidades.nombre as modalidad_nombre',
                 'cantones.nombre as canton_nombre',
                 'provincias.nombre as provincia_nombre',
@@ -93,6 +93,20 @@ class EventoRepository
             )
             ->where('eventos.id_evento', $idEvento)
             ->first();
+
+        if ($evento) {
+            $evento->carreras_invitadas = DB::table('evento_carrera')
+                ->where('id_evento', $idEvento)
+                ->pluck('id_carrera')
+                ->toArray();
+
+            $evento->roles_interesados = DB::table('evento_rol')
+                ->where('id_evento', $idEvento)
+                ->pluck('id_rol')
+                ->toArray();
+        }
+
+        return $evento;
     }
 
     /**
@@ -122,6 +136,37 @@ class EventoRepository
     }
 
     /**
+     * Obtener carreras para el formulario de eventos
+     */
+    public function obtenerCarreras()
+    {
+        return DB::table('carreras')
+            ->orderBy('nombre')
+            ->get(['id_carrera', 'nombre']);
+    }
+
+    /**
+     * Obtener roles interesados para el formulario de eventos
+     */
+    public function obtenerRolesInteresados()
+    {
+        return DB::table('roles')
+            ->whereIn('id_rol', [6, 7])
+            ->orderBy('nombre_rol')
+            ->get(['id_rol', 'nombre_rol']);
+    }
+
+    /**
+     * Crear evento
+     */
+    public function crearEvento(array $data)
+    {
+        $idEvento = DB::table('eventos')->insertGetId($data);
+
+        return $this->obtenerEventoCompleto($idEvento);
+    }
+
+    /**
      * Actualizar evento (incluye inactivar/publicar)
      */
     public function actualizarEvento($evento, array $data)
@@ -134,6 +179,7 @@ class EventoRepository
             'hora_evento',
             'id_modalidad',
             'id_ubicacion',
+            'otras_observaciones',
             'estado_id',
         ];
 
@@ -149,6 +195,44 @@ class EventoRepository
         DB::table('eventos')
             ->where('id_evento', $evento->id_evento)
             ->update($dataFiltrada);
+    }
+
+    /**
+     * Sincronizar carreras invitadas de un evento
+     */
+    public function sincronizarCarrerasEvento(int $idEvento, array $carreras)
+    {
+        DB::table('evento_carrera')->where('id_evento', $idEvento)->delete();
+
+        $insert = array_map(function ($idCarrera) use ($idEvento) {
+            return [
+                'id_evento' => $idEvento,
+                'id_carrera' => $idCarrera,
+            ];
+        }, $carreras);
+
+        if (!empty($insert)) {
+            DB::table('evento_carrera')->insert($insert);
+        }
+    }
+
+    /**
+     * Sincronizar roles interesados de un evento
+     */
+    public function sincronizarRolesEvento(int $idEvento, array $roles)
+    {
+        DB::table('evento_rol')->where('id_evento', $idEvento)->delete();
+
+        $insert = array_map(function ($idRol) use ($idEvento) {
+            return [
+                'id_evento' => $idEvento,
+                'id_rol' => $idRol,
+            ];
+        }, $roles);
+
+        if (!empty($insert)) {
+            DB::table('evento_rol')->insert($insert);
+        }
     }
 
     /**
@@ -173,6 +257,34 @@ class EventoRepository
             ->update([
                 'estado_id' => 2 // INACTIVO
             ]);
+    }
+
+    /**
+     * Obtener usuarios por carreras y roles interesados
+     */
+    public function obtenerUsuariosPorCarrerasYRoles(array $carreras, array $roles)
+    {
+        if (empty($carreras) && empty($roles)) {
+            return collect();
+        }
+
+        $query = DB::table('usuarios')
+            ->where('estado_id', 1)
+            ->where(function ($q) use ($carreras, $roles) {
+                if (!empty($carreras)) {
+                    $q->whereIn('id_carrera', $carreras);
+                }
+
+                if (!empty($roles)) {
+                    if (!empty($carreras)) {
+                        $q->orWhereIn('id_rol', $roles);
+                    } else {
+                        $q->whereIn('id_rol', $roles);
+                    }
+                }
+            });
+
+        return $query->distinct()->select('correo')->get();
     }
 
     /**

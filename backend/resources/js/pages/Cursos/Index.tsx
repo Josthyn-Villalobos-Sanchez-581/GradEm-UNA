@@ -283,9 +283,13 @@ export default function CursosIndex(props: Props) {
     return Object.keys(e).length === 0;
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const submitFormularioCurso = async () => {
+    if (isSubmitting) return;
     if (!validarFormularioCurso()) return;
 
+    setIsSubmitting(true);
     try {
       if (formMode === "create") {
         const payload = {
@@ -327,6 +331,8 @@ export default function CursosIndex(props: Props) {
           error.response?.data?.message ??
           "Ocurrió un error al guardar el curso. Intente nuevamente.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -334,12 +340,14 @@ export default function CursosIndex(props: Props) {
      Acciones
   ======================= */
 
-  const soloTextoValido = (valor: string, max: number) =>
-    valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "").slice(0, max);
+  const filtrarTextoCurso = (valor: string, max: number) =>
+    valor
+      .replace(/[^\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]/gu, "")
+      .slice(0, max);
 
   const textoFiltroValido = (valor: string, max = 100) => {
     return valor
-      .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, "")
+      .replace(/[^\p{L}\p{N}\s]/gu, "")
       .slice(0, max);
   };
 
@@ -506,6 +514,16 @@ export default function CursosIndex(props: Props) {
             <div className="flex items-center gap-3">
               {view === "list" && puedeGestionar && (
                 <>
+                  {/* Botón Dashboard - Ahora condicionado a la lista */}
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                    onClick={() => window.location.href = route("dashboard")}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+
                   {/* Botón de Filtros - Ajustado a h-10 y rounded-full */}
                   <Button
                     type="button"
@@ -709,7 +727,7 @@ export default function CursosIndex(props: Props) {
                           curso.cupos != null ? Math.max(0, curso.cupos - inscritos) : null;
 
                         return (
-                        <div key={curso.id_curso} className="border rounded-2xl p-4 shadow-sm hover:shadow-md transition bg-white flex flex-col justify-between">
+                        <div key={curso.id_curso} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between gap-2">
                               <div>
@@ -847,7 +865,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.titulo}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, titulo: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }))}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: Fundamentos de React"
                                     />
@@ -860,7 +878,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.nombreInstructor}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, nombreInstructor: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }))}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.nombreInstructor ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: María López"
                                     />
@@ -874,7 +892,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <textarea
                                         value={formCurso.descripcion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, descripcion: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }))}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         rows={2}
                                         placeholder="Describa los objetivos del curso..."
@@ -920,7 +938,7 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.duracion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, duracion: e.target.value }))}
+                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }))}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         placeholder="Ej: 4 semanas"
                                     />
@@ -1011,9 +1029,10 @@ export default function CursosIndex(props: Props) {
                             </Button>
                             <Button 
                                 onClick={submitFormularioCurso}
+                                disabled={isSubmitting}
                                 className="bg-[#034991] hover:bg-blue-800 text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold"
                             >
-                                {formMode === "create" ? "Registrar curso" : "Guardar cambios"}
+                                {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar curso" : "Guardar cambios"}
                             </Button>
                         </div>
                     </section>

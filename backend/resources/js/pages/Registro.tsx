@@ -36,8 +36,18 @@ const logoStyle: React.CSSProperties = {
 };
 
 const Registro: React.FC = () => {
+    const [redirect, setRedirect] = useState<string | null>(null);
     const [tipoCuenta, setTipoCuenta] = useState<string>("");
     const [correo, setCorreo] = useState<string>("");
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const redirectParam = params.get('redirect');
+        if (redirectParam) {
+            setRedirect(redirectParam);
+        }
+    }, []);
+
     const [codigo, setCodigo] = useState<string>("");
     const [codigoEnviado, setCodigoEnviado] = useState<boolean>(false);
     const [codigoValidado, setCodigoValidado] = useState<boolean>(false);
@@ -545,6 +555,7 @@ const Registro: React.FC = () => {
                 password_confirmation: confirmPassword,
                 tipoCuenta,
                 identificacion: numeroIdentificacion,
+                redirect: redirect || null,
                 // Enviar null en lugar de cadena vacía para campos opcionales
                 telefono: telefono || null,
                 fecha_nacimiento: fechaNacimiento || null,
@@ -583,13 +594,17 @@ const Registro: React.FC = () => {
 
             // 🔹 Redirigir después de cerrar el modal
             try {
+                const loginRedirectUrl = redirect
+                    ? `/login?redirect=${encodeURIComponent(redirect)}`
+                    : '/login';
                 // Intentamos usar Inertia (mejor UX). Si falla, caemos a window.location
-                router.get("/login");
+                router.get(loginRedirectUrl);
             } catch (navErr) {
                 // Fallback robusto: navegación completa
-                 
                 console.error('Inertia navigation failed, falling back to full redirect', navErr);
-                window.location.href = '/login';
+                window.location.href = redirect
+                    ? `/login?redirect=${encodeURIComponent(redirect)}`
+                    : '/login';
             }
 
             // 🔹 limpiar formulario
