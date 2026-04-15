@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\Eventos\EventoCanceladoMail;
 use App\Mail\Eventos\RecordatorioEventoMail;
+use App\Mail\Eventos\DesinscripcionEventoMail;
 use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -360,6 +361,14 @@ class EventoService
 
         try {
             $evento = $this->obtenerEventoSeguro($idEvento);
+            $inscrito = $this->eventoRepository->obtenerInscritoEvento(
+                $evento->id_evento,
+                $idUsuario
+            );
+
+            if (!$inscrito) {
+                throw new \Exception('La inscripción no existe.');
+            }
 
             $eliminado = $this->eventoRepository->eliminarInscripcionEvento(
                 $evento->id_evento,
@@ -368,6 +377,17 @@ class EventoService
 
             if (!$eliminado) {
                 throw new \Exception('La inscripción no existe.');
+            }
+
+            if (!empty($inscrito->correo)) {
+                Mail::to($inscrito->correo)->queue(new DesinscripcionEventoMail(
+                    [
+                        'titulo' => $evento->titulo,
+                        'fecha_evento' => $evento->fecha_evento,
+                        'hora_evento' => $evento->hora_evento,
+                    ],
+                    $inscrito->nombre_completo
+                ));
             }
 
             DB::commit();
@@ -414,10 +434,24 @@ class EventoService
     /**
      * Enviar recordatorio a inscritos del evento
      */
-    public function enviarRecordatorio(array $correos, array $datos): void
+    public function enviarRecordatorio(int $idEvento, array $datos): int
     {
-        foreach ($correos as $correo) {
-            Mail::to($correo)->send(new RecordatorioEventoMail($datos));
+        $evento = $this->obtenerEventoSeguro($idEvento);
+        $inscritos = $this->eventoRepository->obtenerInscritosGestionEvento($evento->id_evento);
+        $enviados = 0;
+
+        foreach ($inscritos as $inscrito) {
+            if (empty($inscrito->correo)) {
+                continue;
+            }
+
+            Mail::to($inscrito->correo)->queue(new RecordatorioEventoMail([
+                ...$datos,
+                'nombre_participante' => $inscrito->nombre_completo,
+            ]));
+            $enviados++;
         }
+
+        return $enviados;
     }
 }

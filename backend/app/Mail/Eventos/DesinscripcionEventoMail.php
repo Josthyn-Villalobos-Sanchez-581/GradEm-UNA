@@ -7,23 +7,27 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class RecordatorioEventoMail extends Mailable implements ShouldQueue
+class DesinscripcionEventoMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public array $datos;
+    public array $evento;
+    public string $nombreParticipante;
 
-    public function __construct(array $datos)
+    public function __construct(array $evento, string $nombreParticipante)
     {
-        $this->datos = $datos;
+        $this->evento = $evento;
+        $this->nombreParticipante = $nombreParticipante;
     }
 
     public function build()
     {
-        return $this
-            ->subject('Recordatorio de evento – ' . ($this->datos['nombre_evento'] ?? 'GradEm SIUA'))
-            ->view('emails.eventos.recordatorio')
-            ->with($this->datos)
+        return $this->subject('Has sido desinscrito del evento – ' . ($this->evento['titulo'] ?? 'GradEm SIUA') . ' – GradEm SIUA')
+            ->view('emails.eventos.desinscripcion_evento')
+            ->with([
+                'evento' => $this->evento,
+                'nombreParticipante' => $this->nombreParticipante,
+            ])
             ->withSymfonyMessage(function ($message) {
                 $message->embedFromPath(
                     public_path('logos/logo_universidad.png'),

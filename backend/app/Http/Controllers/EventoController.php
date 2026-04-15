@@ -268,20 +268,20 @@ class EventoController extends Controller
     public function enviarRecordatorio(Request $request): JsonResponse
     {
         $request->validate([
-            'correos' => 'required|array|min:1',
-            'correos.*' => 'email',
+            'id_evento' => 'required|integer|exists:eventos,id_evento',
             'nombre_evento' => 'required|string|max:150',
             'fecha_evento' => 'required|string|max:50',
             'mensaje' => 'required|string',
         ]);
 
-        $this->service->enviarRecordatorio(
-            $request->correos,
+        $enviados = $this->service->enviarRecordatorio(
+            (int) $request->id_evento,
             $request->only(['nombre_evento', 'fecha_evento', 'mensaje'])
         );
 
         return response()->json([
             'mensaje' => 'Recordatorios enviados correctamente',
+            'enviados' => $enviados,
         ]);
     }
 }
