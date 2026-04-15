@@ -5,6 +5,8 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+import { router } from "@inertiajs/react";
 
 interface Curso {
   id_curso: number;
@@ -36,6 +38,7 @@ export default function CursosInscripcionIndex(props: Props) {
   const { auth } = usePage().props as any;
 
   const puedeInscribirse = (props.userPermisos ?? []).includes(9);
+  const puedeVerCursosLlenos = [1, 2, 3, 4].includes(auth?.user?.id_rol);
   const [misInscripciones, setMisInscripciones] = useState<Set<number>>(
     new Set(props.misInscripciones ?? [])
   );
@@ -45,6 +48,20 @@ export default function CursosInscripcionIndex(props: Props) {
   const [filtroModalidad, setFiltroModalidad] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
+
+
+
+  const fechaVencida = (fecha?: string) => {
+    if (!fecha) return false;
+
+    const hoy = new Date();
+    const limite = new Date(fecha);
+
+    // llevar al final del día
+    limite.setHours(23, 59, 59, 999);
+
+    return hoy > limite;
+  };
 
   const itemsPorPagina = 10;
 
@@ -64,6 +81,14 @@ export default function CursosInscripcionIndex(props: Props) {
 
   const cursosFiltrados = (props.cursos ?? [])
     .filter((c) => c.estado_id === 1)
+    .filter((c) => {
+      if (puedeVerCursosLlenos) return true;
+
+      const inscritosActuales = props.inscritosCount[c.id_curso] ?? 0;
+      const estaLleno = c.cupos != null && inscritosActuales >= c.cupos;
+
+      return !estaLleno;
+    })
     .filter((c) => {
       const texto = busqueda.toLowerCase();
       return (
@@ -123,7 +148,6 @@ export default function CursosInscripcionIndex(props: Props) {
 
     try {
       await axios.post(route("cursos.inscribirse", { idCurso: curso.id_curso }));
-      setMisInscripciones((prev) => new Set(prev).add(curso.id_curso));
 
       await modal.alerta({
         titulo: "Inscripción exitosa",
@@ -133,6 +157,7 @@ export default function CursosInscripcionIndex(props: Props) {
           </p>
         ),
       });
+      setMisInscripciones((prev) => new Set(prev).add(curso.id_curso));
     } catch (error: any) {
       await modal.alerta({
         titulo: "No se pudo inscribir",
@@ -150,50 +175,90 @@ export default function CursosInscripcionIndex(props: Props) {
   };
 
   const verDetalleCurso = async (curso: Curso) => {
+    const cuposDisponibles = Math.max(0, (curso.cupos ?? 0) - (props.inscritosCount[curso.id_curso] ?? 0));
+
     await modal.alerta({
-      titulo: "Detalle del curso",
+      titulo: "",
       mensaje: (
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-semibold">Título</label>
-            <input className="border rounded p-2 w-full bg-gray-100" value={curso.titulo} readOnly />
+        <div className="text-left px-1">
+          {/* Cabecera Institucional: Título y Badge */}
+          <div className="relative mb-6 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-4 bg-[#CD1719] rounded-full" />
+              <span className="text-[10px] font-black text-[#CD1719] uppercase tracking-[0.2em]">
+                Detalles del Programa
+              </span>
+            </div>
+            <h2 className="text-2xl font-extrabold text-[#034991] leading-tight">
+              {curso.titulo}
+            </h2>
           </div>
 
-          <div>
-            <label className="text-sm font-semibold">Descripción</label>
-            <textarea className="border rounded p-2 w-full bg-gray-100" value={curso.descripcion ?? ""} readOnly />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-semibold">Fecha inicio</label>
-              <input type="date" className="border rounded p-2 w-full bg-gray-100" value={curso.fecha_inicio ?? ""} readOnly />
+          <div className="space-y-5">
+            {/* Bloque de Información General (Estilo Cards Pequeñas) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Modalidad</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#034991]" />
+                  <p className="text-sm font-bold text-[#034991]">{displayValue(curso.modalidad?.nombre)}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Instructor</p>
+                <p className="text-sm font-bold text-slate-700 truncate">{displayValue(curso.nombreInstructor)}</p>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold">Fecha fin</label>
-              <input type="date" className="border rounded p-2 w-full bg-gray-100" value={curso.fecha_fin ?? ""} readOnly />
+            {/* Descripción: Contenedor con foco visual */}
+            <div className="bg-white border-2 border-slate-50 p-4 rounded-[1.5rem] shadow-sm">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2">
+                Sobre el curso
+              </h4>
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                {curso.descripcion || "No hay una descripción detallada disponible."}
+              </p>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold">Fecha límite de inscripción</label>
-              <input type="date" className="border rounded p-2 w-full bg-gray-100" value={curso.fecha_limite_inscripcion ?? ""} readOnly />
+            {/* Banner de Cronograma: Inspirado en el footer de la card */}
+            <div className="bg-[#034991] rounded-[2rem] p-5 text-white shadow-lg shadow-blue-900/20 relative overflow-hidden">
+              {/* Decoración sutil */}
+              <div className="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+
+              <div className="relative z-10 space-y-4">
+                <div className="flex justify-between items-end border-b border-white/10 pb-3">
+                  <div>
+                    <p className="text-[9px] font-bold text-blue-200 uppercase tracking-tighter">Duración total</p>
+                    <p className="text-lg font-black">{displayValue(curso.duracion)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-bold text-amber-400 uppercase tracking-tighter">Límite inscripción</p>
+                    <p className="text-lg font-black text-amber-50">{displayValue(curso.fecha_limite_inscripcion)}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-[8px] font-bold text-blue-300 uppercase">Inicio</p>
+                      <p className="text-xs font-bold">{displayValue(curso.fecha_inicio)}</p>
+                    </div>
+                    <div className="w-px h-6 bg-white/20" />
+                    <div>
+                      <p className="text-[8px] font-bold text-blue-300 uppercase">Fin</p>
+                      <p className="text-xs font-bold">{displayValue(curso.fecha_fin)}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/10">
+                    <p className="text-[8px] font-bold text-blue-200 uppercase text-center">Cupos</p>
+                    <p className="text-xs font-black text-center">
+                      {curso.cupos ? `${cuposDisponibles} / ${curso.cupos}` : '∞'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <div>
-              <label className="text-sm font-semibold">Duración</label>
-              <input className="border rounded p-2 w-full bg-gray-100" value={curso.duracion ?? ""} readOnly />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold">Modalidad</label>
-            <input className="border rounded p-2 w-full bg-gray-100" value={curso.modalidad?.nombre ?? ""} readOnly />
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold">Instructor</label>
-            <input className="border rounded p-2 w-full bg-gray-100" value={curso.nombreInstructor ?? ""} readOnly />
           </div>
         </div>
       ),
@@ -244,16 +309,21 @@ export default function CursosInscripcionIndex(props: Props) {
                 >
                   <div className="flex flex-col">
                     <label className="font-semibold mb-1">Buscar</label>
-                    <input
-                      type="text"
-                      placeholder="Título o descripción"
-                      value={busqueda}
-                      onChange={(e) => {
-                        setBusqueda(textoFiltroValido(e.target.value, 100));
-                        setPaginaActual(1);
-                      }}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
-                    />
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
+                      <input
+                        type="text"
+                        placeholder="Título o descripción"
+                        value={busqueda}
+                        onChange={(e) => {
+                          setBusqueda(textoFiltroValido(e.target.value, 100));
+                          setPaginaActual(1);
+                        }}
+                        className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#034991]"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col">
@@ -294,77 +364,121 @@ export default function CursosInscripcionIndex(props: Props) {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-1">
                 {cursosPaginados.map((curso) => {
+                  const inscritosActuales = props.inscritosCount[curso.id_curso] ?? 0;
                   const cuposDisponibles = Math.max(
                     0,
-                    (curso.cupos ?? 0) - (props.inscritosCount[curso.id_curso] ?? 0)
+                    (curso.cupos ?? 0) - inscritosActuales
                   );
+                  const estaLleno =
+                    curso.cupos != null && inscritosActuales >= curso.cupos;
+
+                  const esVencida = fechaVencida(curso.fecha_limite_inscripcion);
 
                   return (
                     <article
                       key={curso.id_curso}
-                      className="group relative overflow-hidden bg-white border border-gray-100 rounded-[2rem] p-5 shadow-sm hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-2 transition-all duration-500"
+                      className="group relative flex flex-col bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-900/15 transition-all duration-500"
                     >
-                      <div className="absolute top-0 left-0 w-full h-1.5 bg-[#CD1719] opacity-90" />
+                      {/* Accent superior */}
+                      <div
+                        className={`h-2 w-full ${esVencida ? "bg-red-500" : "bg-[#034991]"
+                          }`}
+                      />
 
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <button onClick={() => verDetalleCurso(curso)} className="text-left text-base font-semibold text-[#034991] hover:underline">
-                          {curso.titulo}
-                        </button>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-green-100 text-green-700">
-                          Publicado
-                        </span>
-                      </div>
+                      <div className="p-6 flex flex-col flex-1">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <button
+                            onClick={() => verDetalleCurso(curso)}
+                            className="text-left text-base font-semibold text-[#034991] hover:underline"
+                          >
+                            {curso.titulo}
+                          </button>
 
-                      <p className="text-sm text-gray-600 mb-4 min-h-[44px] line-clamp-2 group-hover:text-gray-700 transition-colors duration-300">
-                        {displayValue(curso.descripcion)}
-                      </p>
-
-                      <div className="space-y-2 text-sm mb-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-gray-500">Modalidad</span>
-                          <span className="font-medium text-gray-800 text-right">{displayValue(curso.modalidad?.nombre)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-gray-500">Instructor</span>
-                          <span className="font-medium text-gray-800 text-right">{displayValue(curso.nombreInstructor)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-gray-500">Fecha inicio</span>
-                          <span className="font-medium text-gray-800 text-right">{displayValue(curso.fecha_inicio)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-gray-500">Cupos</span>
-                          <span className="font-medium text-gray-800 text-right">{curso.cupos != null ? cuposDisponibles : "Sin límite"}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {puedeInscribirse && (
-                          misInscripciones.has(curso.id_curso) ? (
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                              Inscrito
+                          {estaLleno ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                              Lleno
                             </span>
                           ) : (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              disabled={
-                                inscribiendose.has(curso.id_curso) ||
-                                (curso.cupos != null && cuposDisponibles <= 0)
-                              }
-                              onClick={() => inscribirse(curso)}
-                            >
-                              {inscribiendose.has(curso.id_curso)
-                                ? "Procesando..."
-                                : curso.cupos != null && cuposDisponibles <= 0
-                                ? "Sin cupos"
-                                : "Inscribirme"}
-                            </Button>
-                          )
-                        )}
-                      </div>
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              Publicado
+                            </span>
+                          )}
+                        </div>
 
-                      <div className="absolute -bottom-10 -right-10 w-20 h-20 rounded-full blur-2xl bg-[#034991]/10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                        {/* Info */}
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Instructor</span>
+                          <span className="font-medium text-gray-800">
+                            {displayValue(curso.nombreInstructor)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Fecha inicio</span>
+                          <span className="font-medium text-gray-800">
+                            {displayValue(curso.fecha_inicio)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-500">Inscritos / Cupos</span>
+                          <span
+                            className={`font-medium ${estaLleno ? "text-red-700" : "text-gray-800"
+                              }`}
+                          >
+                            {curso.cupos != null
+                              ? `${inscritosActuales} / ${curso.cupos}`
+                              : `${inscritosActuales} / Sin límite`}
+                          </span>
+                        </div>
+
+                        {/* Barra progreso */}
+                        {curso.cupos && (
+                          <div className="mt-3">
+                            <div className="w-full h-2 bg-gray-200 rounded-full">
+                              <div
+                                className={`h-full ${cuposDisponibles > 0 ? "bg-[#034991]" : "bg-red-500"
+                                  }`}
+                                style={{
+                                  width: `${(inscritosActuales / curso.cupos) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Botones */}
+                        <div className="mt-auto flex gap-2 pt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => verDetalleCurso(curso)}
+                          >
+                            Ver Detalle
+                          </Button>
+
+                          {puedeInscribirse && (
+                            misInscripciones.has(curso.id_curso) ? (
+                              <div className="flex-1 flex items-center justify-center bg-green-100 text-green-700 rounded">
+                                ✓ Inscrito
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={
+                                  inscribiendose.has(curso.id_curso) ||
+                                  (curso.cupos != null && cuposDisponibles <= 0)
+                                }
+                                onClick={() => inscribirse(curso)}
+                              >
+                                Inscribirme
+                              </Button>
+                            )
+                          )}
+                        </div>
+                      </div>
                     </article>
                   );
                 })}

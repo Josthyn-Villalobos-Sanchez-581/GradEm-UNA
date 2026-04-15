@@ -173,6 +173,7 @@ export default function PpLayout({
       subMenu: [
         { title: "Gestión de Cursos", route: "/cursos", permisoId: 8 },
         { title: "Inscribirme", route: "/cursos/inscripcion", permisoId: 9 },
+        { title: "Mis Cursos", route: "/cursos/mis-cursos ", permisoId: 9 },
       ],
     },
     {
