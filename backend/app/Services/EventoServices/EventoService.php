@@ -97,6 +97,7 @@ class EventoService
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
+                'cupos' => $request->cupos ?? null,
                 'estado_id' => 2,
                 'usuario_id' => $usuario?->id_usuario,
             ];
@@ -136,6 +137,7 @@ class EventoService
                 'id_modalidad' => $evento->id_modalidad,
                 'id_ubicacion' => $evento->id_ubicacion,
                 'otras_observaciones' => $evento->otras_observaciones,
+                'cupos' => $evento->cupos,
             ];
 
             $data = [
@@ -146,6 +148,7 @@ class EventoService
                 'id_modalidad' => $request->id_modalidad,
                 'id_ubicacion' => $request->id_ubicacion,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
+                'cupos' => $request->cupos ?? null,
             ];
 
             $cambiosCriticos = [];
@@ -171,7 +174,10 @@ class EventoService
                         $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
                         $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
                         break;
-
+case 'cupos':
+    $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
+    $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
+    break;
                     default:
                         $valorOriginal = $valorOriginal !== null ? trim((string)$valorOriginal) : null;
                         $valorNuevo = $valorNuevo !== null ? trim((string)$valorNuevo) : null;
