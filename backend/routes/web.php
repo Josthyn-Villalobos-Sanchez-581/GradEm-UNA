@@ -36,6 +36,9 @@ use App\Http\Controllers\CursoInscripcionController;
 use App\Http\Controllers\InscripcionCursoController;
 use App\Http\Controllers\BitacoraCambioController;
 
+use App\Http\Controllers\InscripcionEventoController;
+
+
 use App\Http\Controllers\EventoController;
 
 // ==========================================
@@ -368,45 +371,104 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // 10 - Gestión de Eventos
     // ==========================================
+    /*
     Route::middleware(['auth', 'permiso:10'])->prefix('eventos')->group(function () {
 
-        // Listado (HU-33 Parte 2)
-        Route::get('/', [EventoController::class, 'index'])
-            ->name('eventos.index');
+    // ✅ PRIMERO: rutas estáticas (sin parámetro dinámico)
+    Route::get('/', [EventoController::class, 'index'])
+        ->name('eventos.index');
 
-        // Registrar evento
-        Route::post('/', [EventoController::class, 'store'])
-            ->name('eventos.store');
+    Route::post('/', [EventoController::class, 'store'])
+        ->name('eventos.store');
 
-        // Ver detalle del evento
-        Route::get('/{idEvento}', [EventoController::class, 'show'])
-            ->name('eventos.show');
+    Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
+        ->name('notificaciones.eventos.recordatorio');
 
-        // Editar evento
-        Route::put('/{idEvento}', [EventoController::class, 'update'])
-            ->name('eventos.update');
+    // ✅ DESPUÉS: rutas con parámetro dinámico {idEvento}
+    Route::get('/{idEvento}', [EventoController::class, 'show'])
+        ->name('eventos.show');
 
-        Route::get('/eventos/{idEvento}', [EventoController::class, 'show'])
-            ->name('eventos.show');
-        Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
-            ->name('eventos.inscritos');
-        Route::delete('/{idEvento}/inscritos/{idUsuario}', [EventoController::class, 'eliminarInscrito'])
-            ->name('eventos.inscritos.eliminar');
-        Route::get('/{idEvento}/pdf/{tipo}', [EventoController::class, 'descargarPdf'])
-            ->name('eventos.pdf');
-        Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
-            ->name('notificaciones.eventos.recordatorio');
-        // Inactivar evento
-        Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
-            ->name('eventos.estado');
-        // 📌 Publicar evento
-        Route::put('/{idEvento}/publicar', [EventoController::class, 'publicar'])
-            ->name('eventos.publicar');
-    });
+    Route::put('/{idEvento}', [EventoController::class, 'update'])
+        ->name('eventos.update');
+
+    Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
+        ->name('eventos.estado');
+
+    Route::put('/{idEvento}/publicar', [EventoController::class, 'publicar'])
+        ->name('eventos.publicar');
+
+    Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
+        ->name('eventos.inscritos');
+
+    Route::delete('/{idEvento}/inscritos/{idUsuario}', [EventoController::class, 'eliminarInscrito'])
+        ->name('eventos.inscritos.eliminar');
+
+    Route::get('/{idEvento}/pdf/{tipo}', [EventoController::class, 'descargarPdf'])
+        ->name('eventos.pdf');
+});
+*/
+Route::middleware(['auth', 'permiso:10'])->prefix('eventos')->group(function () {
+
+    // Rutas estáticas primero
+    Route::get('/', [EventoController::class, 'index'])
+        ->name('eventos.index');
+
+    Route::post('/', [EventoController::class, 'store'])
+        ->name('eventos.store');
+
+    Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
+        ->name('notificaciones.eventos.recordatorio');
+
+    // Rutas con parámetro numérico (whereNumber evita capturar strings como "inscripcion")
+    Route::get('/{idEvento}', [EventoController::class, 'show'])
+        ->name('eventos.show')
+        ->whereNumber('idEvento');
+
+    Route::put('/{idEvento}', [EventoController::class, 'update'])
+        ->name('eventos.update')
+        ->whereNumber('idEvento');
+
+    Route::put('/{idEvento}/estado', [EventoController::class, 'destroy'])
+        ->name('eventos.estado')
+        ->whereNumber('idEvento');
+
+    Route::put('/{idEvento}/publicar', [EventoController::class, 'publicar'])
+        ->name('eventos.publicar')
+        ->whereNumber('idEvento');
+
+    Route::get('/{idEvento}/inscritos', [EventoController::class, 'inscritos'])
+        ->name('eventos.inscritos')
+        ->whereNumber('idEvento');
+
+    Route::delete('/{idEvento}/inscritos/{idUsuario}', [EventoController::class, 'eliminarInscrito'])
+        ->name('eventos.inscritos.eliminar')
+        ->whereNumber('idEvento');
+
+    Route::get('/{idEvento}/pdf/{tipo}', [EventoController::class, 'descargarPdf'])
+        ->name('eventos.pdf')
+        ->whereNumber('idEvento');
+});
     // ==========================================
     // 11 - Confirmación de Asistencia a Eventos 
     // ==========================================
+// ==========================================
+// 11 - Inscripción a Eventos (HU-34)
+// ==========================================
+Route::middleware(['auth', 'permiso:11'])->prefix('eventos')->group(function () {
 
+    Route::get('/inscripcion', [InscripcionEventoController::class, 'index'])
+        ->name('eventos.inscripcion.index');
+    Route::get('/inscripcion/{idEvento}/detalle', [InscripcionEventoController::class, 'show'])
+        ->name('eventos.inscripcion.show');
+    Route::post('/inscripcion/{idEvento}/inscribirse', [InscripcionEventoController::class, 'store'])
+        ->name('eventos.inscribirse');
+    Route::post('/inscripcion/{idEvento}/cancelar', [InscripcionEventoController::class, 'cancelar'])
+        ->name('eventos.cancelar');
+    Route::get('/inscripcion/{idEvento}/estado', [InscripcionEventoController::class, 'estado'])
+        ->name('eventos.inscripcion.estado');
+    Route::get('/inscripcion/mis-eventos', [InscripcionEventoController::class, 'misEventosIndex'])
+        ->name('eventos.mis');
+});
     // ==========================================
     // Gestión de Usuarios y Roles (Permiso 12)
     // ==========================================

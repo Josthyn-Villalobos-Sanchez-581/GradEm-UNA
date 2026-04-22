@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
-
 interface Evento {
   id_evento: number;
   titulo: string;
