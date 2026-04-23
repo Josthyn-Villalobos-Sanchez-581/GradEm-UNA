@@ -23,7 +23,11 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  ArrowRight,
   ChevronDown,
+  Check,
+  Briefcase,
+  FileText,
 } from "lucide-react";
 
 /* =======================
@@ -216,27 +220,40 @@ export default function EventosIndex(props: Props) {
     }
   };
 
+  type PasoEvento = "general" | "detalles" | "publicacion";
+  const pasosEvento: PasoEvento[] = ["general", "detalles", "publicacion"];
+
   const [detalle, setDetalle] = useState<Evento | null>(null);
   const [view, setView] = useState<"list" | "form">("list");
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
+  const [pasoActual, setPasoActual] = useState<PasoEvento>("general");
+  const [formularioModificado, setFormularioModificado] = useState(false);
   const [formEvento, setFormEvento] = useState({
     titulo: "",
     descripcion: "",
     fecha_evento: "",
     hora_evento: "",
     id_modalidad: "",
+    id_pais: "",
+    id_provincia: "",
     id_ubicacion: "",
     carrerasInvitadas: [] as string[],
     rolesInteresados: [] as string[],
     otras_observaciones: "",
-     cupos: "",
+    cupos: "",
   });
+  const [formEventiInicial, setFormEventoInicial] = useState(formEvento);
   const [erroresForm, setErroresForm] = useState<Record<string, string>>({});
   const [carrerasOpen, setCarrerasOpen] = useState(false);
   const [rolesOpen, setRolesOpen] = useState(false);
+  const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
   const carrerasDropdownRef = useRef<HTMLDivElement | null>(null);
   const rolesDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setFormularioModificado(JSON.stringify(formEvento) !== JSON.stringify(formEventiInicial));
+  }, [formEvento, formEventiInicial]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -283,6 +300,8 @@ export default function EventosIndex(props: Props) {
 
   const abrirFormularioEvento = (modo: "create" | "edit", evento?: Evento) => {
     setFormMode(modo);
+    setPasoActual("general");
+    setFormularioModificado(false);
 
     if (modo === "edit" && evento) {
       setEventoSeleccionado(evento);
@@ -297,32 +316,41 @@ export default function EventosIndex(props: Props) {
           ? JSON.parse(evento.roles_interesados)
           : [];
 
-      setFormEvento({
+      const formInicialEdit = {
         titulo: evento.titulo || "",
         descripcion: evento.descripcion || "",
         fecha_evento: evento.fecha_evento || "",
         hora_evento: normalizarHoraEvento(evento.hora_evento),
         id_modalidad: evento.id_modalidad ? String(evento.id_modalidad) : "",
+        id_pais: "",
+        id_provincia: "",
         id_ubicacion: evento.id_ubicacion ? String(evento.id_ubicacion) : "",
         carrerasInvitadas: carrerasInvitadas.map(String),
         rolesInteresados: Array.isArray(rolesInteresados) ? rolesInteresados.map(String) : [],
         otras_observaciones: evento.otras_observaciones || "",
         cupos: evento.cupos ? String(evento.cupos) : "",
-      });
+      };
+      
+      setFormEventoInicial(formInicialEdit);
+      setFormEvento(formInicialEdit);
     } else {
       setEventoSeleccionado(null);
-      setFormEvento({
+      const formInicialCreate = {
         titulo: "",
         descripcion: "",
         fecha_evento: "",
         hora_evento: "",
         id_modalidad: "",
+        id_pais: "",
+        id_provincia: "",
         id_ubicacion: "",
         carrerasInvitadas: [],
         rolesInteresados: [],
         otras_observaciones: "",
         cupos:  "",
-      });
+      };
+      setFormEventoInicial(formInicialCreate);
+      setFormEvento(formInicialCreate);
     }
 
     setErroresForm({});
@@ -331,9 +359,107 @@ export default function EventosIndex(props: Props) {
   };
 
   const cerrarFormularioEvento = () => {
+    if (formularioModificado) {
+      setMostrarConfirmacionSalida(true);
+      return;
+    }
     setView("list");
     setEventoSeleccionado(null);
     setErroresForm({});
+    setPasoActual("general");
+    setFormularioModificado(false);
+  };
+
+  const confirmarSalida = (confirmado: boolean) => {
+    setMostrarConfirmacionSalida(false);
+    if (confirmado) {
+      setView("list");
+      setEventoSeleccionado(null);
+      setErroresForm({});
+      setPasoActual("general");
+      setFormularioModificado(false);
+    }
+  };
+
+  const validarPasoEvento = (): boolean => {
+    const e: Record<string, string> = {};
+    const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
+
+    if (pasoActual === "general") {
+      if (!formEvento.titulo.trim()) {
+        e.titulo = "Título es obligatorio";
+      } else if (formEvento.titulo.trim().length < 5) {
+        e.titulo = "El título debe tener al menos 5 caracteres";
+      } else if (formEvento.titulo.trim().length > 100) {
+        e.titulo = "El título no puede superar los 100 caracteres";
+      } else if (!textoValido.test(formEvento.titulo.trim())) {
+        e.titulo = "El título contiene caracteres inválidos";
+      }
+
+      if (!formEvento.descripcion.trim()) {
+        e.descripcion = "Descripción es obligatoria";
+      } else if (formEvento.descripcion.trim().length < 10) {
+        e.descripcion = "Mínimo 10 caracteres";
+      } else if (formEvento.descripcion.trim().length > 500) {
+        e.descripcion = "Máximo 500 caracteres";
+      } else if (!textoValido.test(formEvento.descripcion.trim())) {
+        e.descripcion = "La descripción contiene caracteres inválidos";
+      }
+
+      if (!formEvento.id_modalidad) {
+        e.id_modalidad = "Modalidad es obligatoria";
+      }
+    } else if (pasoActual === "detalles") {
+      if (!formEvento.fecha_evento) {
+        e.fecha_evento = "Fecha del evento es obligatoria";
+      } else {
+        const selectedDate = new Date(formEvento.fecha_evento);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(`${new Date().getFullYear() + 2}-12-31`);
+        if (selectedDate < today) {
+          e.fecha_evento = "La fecha debe ser hoy o posterior";
+        } else if (selectedDate > maxDate) {
+          e.fecha_evento = "La fecha debe ser como máximo a dos años";
+        }
+      }
+
+      if (!formEvento.hora_evento) {
+        e.hora_evento = "Hora del evento es obligatoria";
+      }
+
+      if (!formEvento.id_ubicacion) {
+        e.id_ubicacion = "Ubicación es obligatoria";
+      }
+    } else if (pasoActual === "publicacion") {
+      if (!formEvento.carrerasInvitadas.length) {
+        e.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
+      }
+
+      if (!formEvento.rolesInteresados.length) {
+        e.rolesInteresados = "Debe seleccionar al menos un tipo de usuario interesado";
+      }
+    }
+
+    setErroresForm(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const irAlPasoSiguiente = () => {
+    if (validarPasoEvento()) {
+      const indiceActual = pasosEvento.indexOf(pasoActual);
+      if (indiceActual < pasosEvento.length - 1) {
+        setPasoActual(pasosEvento[indiceActual + 1]);
+      }
+    }
+  };
+
+  const irAlPasoAnterior = () => {
+    const indiceActual = pasosEvento.indexOf(pasoActual);
+    if (indiceActual > 0) {
+      setPasoActual(pasosEvento[indiceActual - 1]);
+      setErroresForm({});
+    }
   };
 
   const filtrarTextoEvento = (valor: string, max: number) =>
@@ -345,14 +471,15 @@ export default function EventosIndex(props: Props) {
     const errores: Record<string, string> = {};
     const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
 
+    // Validar PASO GENERAL
     if (!formEvento.titulo.trim()) {
-      errores.titulo = "Tí­tulo es obligatorio";
+      errores.titulo = "Título es obligatorio";
     } else if (formEvento.titulo.trim().length < 5) {
-      errores.titulo = "El tí­tulo debe tener al menos 5 caracteres";
+      errores.titulo = "El título debe tener al menos 5 caracteres";
     } else if (formEvento.titulo.trim().length > 100) {
-      errores.titulo = "El tí­tulo no puede superar los 100 caracteres";
+      errores.titulo = "El título no puede superar los 100 caracteres";
     } else if (!textoValido.test(formEvento.titulo.trim())) {
-      errores.titulo = "El tí­tulo contiene caracteres inválidos";
+      errores.titulo = "El título contiene caracteres inválidos";
     }
 
     if (!formEvento.descripcion.trim()) {
@@ -365,6 +492,11 @@ export default function EventosIndex(props: Props) {
       errores.descripcion = "La descripción contiene caracteres inválidos";
     }
 
+    if (!formEvento.id_modalidad) {
+      errores.id_modalidad = "Modalidad es obligatoria";
+    }
+
+    // Validar PASO DETALLES
     if (!formEvento.fecha_evento) {
       errores.fecha_evento = "Fecha del evento es obligatoria";
     } else {
@@ -383,14 +515,11 @@ export default function EventosIndex(props: Props) {
       errores.hora_evento = "Hora del evento es obligatoria";
     }
 
-    if (!formEvento.id_modalidad) {
-      errores.id_modalidad = "Modalidad es obligatoria";
-    }
-
     if (!formEvento.id_ubicacion) {
       errores.id_ubicacion = "Ubicación es obligatoria";
     }
 
+    // Validar PASO PUBLICACIÓN
     if (!formEvento.carrerasInvitadas.length) {
       errores.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
     }
@@ -399,12 +528,6 @@ export default function EventosIndex(props: Props) {
       errores.rolesInteresados = "Debe seleccionar al menos un tipo de usuario interesado";
     }
 
-    /*if (formMode === 'edit') {
-      if (!formEvento.otras_observaciones.trim()) {
-        errores.otras_observaciones = "Otras observaciones es obligatorio";
-      }
-    }*/
-
     if (formEvento.otras_observaciones.trim()) {
       if (formEvento.otras_observaciones.trim().length < 10) {
         errores.otras_observaciones = "Mínimo 10 caracteres";
@@ -412,17 +535,18 @@ export default function EventosIndex(props: Props) {
         errores.otras_observaciones = "Máximo 500 caracteres";
       }
     }
-if (formEvento.cupos) {
-  const cuposNum = Number(formEvento.cupos);
 
-  if (isNaN(cuposNum)) {
-    errores.cupos = "Debe ser un número válido";
-  } else if (cuposNum <= 0) {
-    errores.cupos = "Debe ser mayor a 0";
-  } else if (cuposNum > 10000) {
-    errores.cupos = "Máximo permitido: 10000";
-  }
-}
+    if (formEvento.cupos) {
+      const cuposNum = Number(formEvento.cupos);
+      if (isNaN(cuposNum)) {
+        errores.cupos = "Debe ser un número válido";
+      } else if (cuposNum <= 0) {
+        errores.cupos = "Debe ser mayor a 0";
+      } else if (cuposNum > 10000) {
+        errores.cupos = "Máximo permitido: 10000";
+      }
+    }
+
     setErroresForm(errores);
     return Object.keys(errores).length === 0;
   };
@@ -438,6 +562,14 @@ const submitFormularioEvento = async () => {
   const valido = validarFormularioEvento();
 
   if (!valido) {
+    // Navegar al primer paso con errores
+    if (Object.keys(erroresForm).some(key => ["titulo", "descripcion", "id_modalidad"].includes(key))) {
+      setPasoActual("general");
+    } else if (Object.keys(erroresForm).some(key => ["fecha_evento", "hora_evento", "id_ubicacion"].includes(key))) {
+      setPasoActual("detalles");
+    } else if (Object.keys(erroresForm).some(key => ["carrerasInvitadas", "rolesInteresados", "otras_observaciones"].includes(key))) {
+      setPasoActual("publicacion");
+    }
     return;
   }
 
@@ -922,6 +1054,46 @@ const submitFormularioEvento = async () => {
                                     <li>Indica el tipo de público</li>
                                 </ul>
                             </div>
+
+                            {/* NAVEGACIÓN DE PASOS INTEGRADA */}
+                            <nav className="pt-4 space-y-1">
+                                {pasosEvento.map((p) => {
+                                    const active = pasoActual === p;
+
+                                    return (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPasoActual(p)}
+                                            className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${
+                                                active
+                                                    ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                                    : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
+                                            }`}
+                                        >
+                                            <div
+                                                className={`mr-3 transition-colors ${
+                                                    active
+                                                        ? "text-[#034991]"
+                                                        : "text-gray-400 group-hover:text-[#034991]"
+                                                }`}
+                                            >
+                                                {/* Iconos adaptados a los pasos de Eventos */}
+                                                {p === "general" && <Briefcase className="w-5 h-5" />}
+                                                {p === "detalles" && <FileText className="w-5 h-5" />}
+                                                {p === "publicacion" && <Calendar className="w-5 h-5" />}
+                                            </div>
+
+                                            <span className="capitalize">
+                                                {p.replace("publicacion", "publicación")}
+                                            </span>
+
+                                            {active && (
+                                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
                         </div>
                     </aside>
 
@@ -932,17 +1104,24 @@ const submitFormularioEvento = async () => {
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-800">
-                                        {formMode === 'create' ? "Información General del Evento" : "Modificar Detalles del Evento"}
+                                        {pasoActual === "general" 
+                                            ? "Información General del Evento"
+                                            : pasoActual === "detalles"
+                                            ? "Detalles y Ubicación"
+                                            : "Publicación y Audiencia"}
                                     </h2>
                                     <p className="text-gray-500 text-sm mt-1">
-                                        {formMode === 'create' 
-                                            ? "Complete los campos para publicar el nuevo evento en el sistema."
-                                            : "Actualice la información necesaria del evento seleccionado."}
+                                        {pasoActual === "general"
+                                            ? "Define el título, descripción y modalidad del evento."
+                                            : pasoActual === "detalles"
+                                            ? "Especifica la fecha, hora y ubicación del evento."
+                                            : "Selecciona las carreras invitadas y el público objetivo."}
                                     </p>
                                 </div>
                             </div>
 
-                            {/* Grid de campos */}
+                            {/* Grid de campos - PASO GENERAL */}
+                            {pasoActual === "general" && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
                                 
                                 {/* Título y Modalidad */}
@@ -1010,12 +1189,15 @@ const submitFormularioEvento = async () => {
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                                         Hora de inicio <span className="text-[#CD1719]">*</span>
                                     </label>
-                                    <input
-                                        type="time"
-                                        value={formEvento.hora_evento}
-                                        onChange={(e) => setFormEvento((prev) => ({ ...prev, hora_evento: e.target.value }))}
-                                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.hora_evento ? "border-[#CD1719]" : "border-slate-300"}`}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="time"
+                                            value={formEvento.hora_evento}
+                                            onChange={(e) => setFormEvento((prev) => ({ ...prev, hora_evento: e.target.value }))}
+                                            className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none bg-white ${erroresForm.hora_evento ? "border-[#CD1719]" : "border-slate-300"}`}
+                                            style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23034991%22 stroke-width=%222%22%3E%3Ccircle cx=%2212%22 cy=%2712%22 r=%2710%22%3E%3C/circle%3E%3Cpolyline points=%2712 6 12 12 16 14%22%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '36px'}}
+                                        />
+                                    </div>
                                     {erroresForm.hora_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.hora_evento}</p>}
                                 </div>
 <div>
@@ -1042,18 +1224,19 @@ const submitFormularioEvento = async () => {
 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Ubicación / Cantón <span className="text-[#CD1719]">*</span>
+                                        Ubicación (Cantón) <span className="text-[#CD1719]">*</span>
                                     </label>
                                     <select
                                         value={formEvento.id_ubicacion}
                                         onChange={(e) => setFormEvento((prev) => ({ ...prev, id_ubicacion: e.target.value }))}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.id_ubicacion ? "border-[#CD1719]" : "border-slate-300"}`}
                                     >
-                                        <option value="">Seleccione</option>
+                                        <option value="">Seleccione un cantón</option>
                                         {(props.ubicaciones ?? []).map((u) => (
                                             <option key={u.id_canton} value={u.id_canton}>{u.nombre}</option>
                                         ))}
                                     </select>
+                                    <p className="text-[11px] text-gray-500 mt-1 italic">El cantón incluye información de provincia y país</p>
                                     {erroresForm.id_ubicacion && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_ubicacion}</p>}
                                 </div>
 
@@ -1187,31 +1370,87 @@ const submitFormularioEvento = async () => {
                                     )}
                                 </div>
                             </div>
+                            )}
                         </div>
 
-                        {/* FOOTER DE BOTONES */}
-                        <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end gap-3">
-                            <Button 
-                                variant="ghost" 
-                                onClick={cerrarFormularioEvento}
-                                className="text-slate-500 hover:bg-slate-100 px-8 rounded-full transition-colors font-medium"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button 
+                        {/* FOOTER DE BOTONES CON NAVEGACIÓN DE PASOS */}
+                        <div className="mt-8 pt-5 border-t border-slate-100 flex justify-between gap-3">
+                            <div className="flex gap-2">
+                                {pasoActual !== "general" && (
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={irAlPasoAnterior}
+                                        className="px-6 rounded-full transition-colors font-medium"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
+                                    </Button>
+                                )}
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={cerrarFormularioEvento}
+                                    className="text-slate-500 hover:bg-slate-100 px-8 rounded-full transition-colors font-medium"
+                                >
+                                    Cancelar
+                                </Button>
+                            </div>
                             
-                                onClick={submitFormularioEvento}
-                                disabled={isSubmitting}
-                                className={`bg-[#034991] text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold ${isSubmitting ? 'opacity-60 cursor-not-allowed hover:bg-[#034991]' : 'hover:bg-blue-800'}`}
-                            >
-                                {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar evento" : "Guardar cambios"}
-                            </Button>
+                            <div className="flex gap-2">
+                                {pasoActual !== "publicacion" && (
+                                    <Button 
+                                        onClick={irAlPasoSiguiente}
+                                        className="bg-slate-600 hover:bg-slate-700 text-white px-6 rounded-full transition-all font-semibold"
+                                    >
+                                        Siguiente <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                )}
+                                {pasoActual === "publicacion" && (
+                                    <Button 
+                                        onClick={submitFormularioEvento}
+                                        disabled={isSubmitting}
+                                        className={`bg-[#034991] text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold ${isSubmitting ? 'opacity-60 cursor-not-allowed hover:bg-[#034991]' : 'hover:bg-blue-800'}`}
+                                    >
+                                        {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar evento" : "Guardar cambios"}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </section>
                 </div>
             </div>
         </div>
     )}
+
+      {/* MODAL CONFIRMACIÓN SALIDA CON DATOS */}
+      {mostrarConfirmacionSalida && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="bg-amber-50 p-6 border-b border-amber-200">
+              <h2 className="font-bold text-lg text-amber-900">Confirmar salida</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">
+                Está seguro que desea salir, se perderán todos los datos ingresados.
+              </p>
+              <div className="flex gap-3 justify-end pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => confirmarSalida(false)}
+                  className="border-slate-300"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => confirmarSalida(true)}
+                  className="bg-[#CD1719] hover:bg-red-700"
+                >
+                  Salir sin guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
   </div>
 
       {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
