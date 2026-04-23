@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\Eventos\EventoCanceladoMail;
 use App\Mail\Eventos\RecordatorioEventoMail;
+use App\Mail\Eventos\DesinscripcionEventoMail;
 use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -96,6 +97,7 @@ class EventoService
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
+                'cupos' => $request->cupos ?? null,
                 'estado_id' => 7,//7 es borrador
                 'usuario_id' => $usuario?->id_usuario,
             ];
@@ -135,6 +137,7 @@ class EventoService
                 'id_modalidad' => $evento->id_modalidad,
                 'id_ubicacion' => $evento->id_ubicacion,
                 'otras_observaciones' => $evento->otras_observaciones,
+                'cupos' => $evento->cupos,
             ];
 
             $data = [
@@ -145,6 +148,7 @@ class EventoService
                 'id_modalidad' => $request->id_modalidad,
                 'id_ubicacion' => $request->id_ubicacion,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
+                'cupos' => $request->cupos ?? null,
             ];
 
             $cambiosCriticos = [];
@@ -170,7 +174,10 @@ class EventoService
                         $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
                         $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
                         break;
-
+case 'cupos':
+    $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
+    $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
+    break;
                     default:
                         $valorOriginal = $valorOriginal !== null ? trim((string)$valorOriginal) : null;
                         $valorNuevo = $valorNuevo !== null ? trim((string)$valorNuevo) : null;
@@ -360,6 +367,14 @@ class EventoService
 
         try {
             $evento = $this->obtenerEventoSeguro($idEvento);
+            $inscrito = $this->eventoRepository->obtenerInscritoEvento(
+                $evento->id_evento,
+                $idUsuario
+            );
+
+            if (!$inscrito) {
+                throw new \Exception('La inscripción no existe.');
+            }
 
             $eliminado = $this->eventoRepository->eliminarInscripcionEvento(
                 $evento->id_evento,
@@ -368,6 +383,17 @@ class EventoService
 
             if (!$eliminado) {
                 throw new \Exception('La inscripción no existe.');
+            }
+
+            if (!empty($inscrito->correo)) {
+                Mail::to($inscrito->correo)->queue(new DesinscripcionEventoMail(
+                    [
+                        'titulo' => $evento->titulo,
+                        'fecha_evento' => $evento->fecha_evento,
+                        'hora_evento' => $evento->hora_evento,
+                    ],
+                    $inscrito->nombre_completo
+                ));
             }
 
             DB::commit();
@@ -414,10 +440,24 @@ class EventoService
     /**
      * Enviar recordatorio a inscritos del evento
      */
-    public function enviarRecordatorio(array $correos, array $datos): void
+    public function enviarRecordatorio(int $idEvento, array $datos): int
     {
-        foreach ($correos as $correo) {
-            Mail::to($correo)->send(new RecordatorioEventoMail($datos));
+        $evento = $this->obtenerEventoSeguro($idEvento);
+        $inscritos = $this->eventoRepository->obtenerInscritosGestionEvento($evento->id_evento);
+        $enviados = 0;
+
+        foreach ($inscritos as $inscrito) {
+            if (empty($inscrito->correo)) {
+                continue;
+            }
+
+            Mail::to($inscrito->correo)->queue(new RecordatorioEventoMail([
+                ...$datos,
+                'nombre_participante' => $inscrito->nombre_completo,
+            ]));
+            $enviados++;
         }
+
+        return $enviados;
     }
 }

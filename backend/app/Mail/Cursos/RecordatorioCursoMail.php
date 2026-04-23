@@ -16,8 +16,18 @@ class RecordatorioCursoMail extends Mailable
     public function build()
     {
         return $this
-            ->subject('Recordatorio de curso')
+            ->subject('Recordatorio de curso – ' . ($this->datos['nombre_curso'] ?? 'GradEm SIUA'))
             ->view('emails.cursos.recordatorio')
-            ->with($this->datos);
+            ->with($this->datos)
+            ->withSymfonyMessage(function ($message) {
+                $message->embedFromPath(
+                    public_path('logos/logo_universidad.png'),
+                    'logo_universidad'
+                );
+                $message->embedFromPath(
+                    public_path('logos/logo_gradem.png'),
+                    'logo_gradem'
+                );
+            });
     }
 }

@@ -181,7 +181,8 @@ export default function PpLayout({
       icon: Calendar,
       subMenu: [
         { title: "Gestión de Eventos", route: "/eventos", permisoId: 10 },
-        { title: "Confirmar Asistencia", route: "/confirmar-asistencia", permisoId: 11 },
+        { title: "Inscribirse a Eventos", route: "/eventos/inscripcion", permisoId: 11 },
+         { title: "Mis Eventos", route: "/eventos/inscripcion/mis-eventos", permisoId: 11 },
       ],
     },
     {

@@ -56,6 +56,8 @@ interface Evento {
   provincia_nombre?: string;
   pais_nombre?: string;
 
+cupos?: number;
+
   // NUEVOS
   carreras?: string[];
   roles?: string[];
@@ -213,9 +215,6 @@ export default function EventosIndex(props: Props) {
         mensaje: "Correctamente",
       });
     } catch (error: any) {
-      console.log("ERROR COMPLETO:", error);
-      console.log("RESPONSE:", error.response);
-      console.log("DATA:", error.response?.data);
 
       modal.alerta({
         titulo: "Error",
@@ -265,6 +264,7 @@ export default function EventosIndex(props: Props) {
     carrerasInvitadas: [] as string[],
     rolesInteresados: [] as string[],
     otras_observaciones: "",
+     cupos: "",
   });
   const [erroresForm, setErroresForm] = useState<Record<string, string>>({});
   const [carrerasOpen, setCarrerasOpen] = useState(false);
@@ -341,6 +341,7 @@ export default function EventosIndex(props: Props) {
         carrerasInvitadas: carrerasInvitadas.map(String),
         rolesInteresados: Array.isArray(rolesInteresados) ? rolesInteresados.map(String) : [],
         otras_observaciones: evento.otras_observaciones || "",
+        cupos: evento.cupos ? String(evento.cupos) : "",
       });
     } else {
       setEventoSeleccionado(null);
@@ -354,6 +355,7 @@ export default function EventosIndex(props: Props) {
         carrerasInvitadas: [],
         rolesInteresados: [],
         otras_observaciones: "",
+        cupos:  "",
       });
     }
 
@@ -431,11 +433,11 @@ export default function EventosIndex(props: Props) {
       errores.rolesInteresados = "Debe seleccionar al menos un tipo de usuario interesado";
     }
 
-    if (formMode === 'edit') {
+    /*if (formMode === 'edit') {
       if (!formEvento.otras_observaciones.trim()) {
         errores.otras_observaciones = "Otras observaciones es obligatorio";
       }
-    }
+    }*/
 
     if (formEvento.otras_observaciones.trim()) {
       if (formEvento.otras_observaciones.trim().length < 10) {
@@ -444,80 +446,100 @@ export default function EventosIndex(props: Props) {
         errores.otras_observaciones = "Máximo 500 caracteres";
       }
     }
+if (formEvento.cupos) {
+  const cuposNum = Number(formEvento.cupos);
 
+  if (isNaN(cuposNum)) {
+    errores.cupos = "Debe ser un número válido";
+  } else if (cuposNum <= 0) {
+    errores.cupos = "Debe ser mayor a 0";
+  } else if (cuposNum > 10000) {
+    errores.cupos = "Máximo permitido: 10000";
+  }
+}
     setErroresForm(errores);
     return Object.keys(errores).length === 0;
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitFormularioEvento = async () => {
-    if (isSubmitting) return;
-    if (!validarFormularioEvento()) return;
+const submitFormularioEvento = async () => {
 
-    setIsSubmitting(true);
-    try {
-      if (formMode === "create") {
-        const payload = {
-          ...formEvento,
-          id_modalidad: formEvento.id_modalidad || null,
-          id_ubicacion: formEvento.id_ubicacion || null,
-          hora_evento: normalizarHoraEvento(formEvento.hora_evento),
-          carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
-          roles_interesados: formEvento.rolesInteresados.map(Number),
-          otras_observaciones: formEvento.otras_observaciones.trim() || null,
-        };
+  if (isSubmitting) { 
+    return;
+  }
 
-        const response = await axios.post(route("eventos.store"), payload);
+  const valido = validarFormularioEvento();
 
-        setEventos((prev) => [response.data.evento, ...prev]);
+  if (!valido) {
+    return;
+  }
 
-        modal.alerta({
-          titulo: "Evento registrado",
-          mensaje: "El evento fue guardado en estado BORRADOR.",
-        });
-      } else if (eventoSeleccionado) {
-        const payload = {
-          ...formEvento,
-          id_modalidad: formEvento.id_modalidad || null,
-          id_ubicacion: formEvento.id_ubicacion || null,
-          hora_evento: normalizarHoraEvento(formEvento.hora_evento),
-          carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
-          roles_interesados: formEvento.rolesInteresados.map(Number),
-          otras_observaciones: formEvento.otras_observaciones.trim() || null,
-        };
+  setIsSubmitting(true);
 
-        const response = await axios.put(
-          route("eventos.update", { idEvento: eventoSeleccionado.id_evento }),
-          payload
-        );
+  try {
+    if (formMode === "create") {
+      const payload = {
+        ...formEvento,
+        id_modalidad: formEvento.id_modalidad || null,
+        id_ubicacion: formEvento.id_ubicacion || null,
+        hora_evento: normalizarHoraEvento(formEvento.hora_evento),
+        carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
+        roles_interesados: formEvento.rolesInteresados.map(Number),
+        otras_observaciones: formEvento.otras_observaciones.trim() || null,
+        cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
+      };
 
-        setEventos((prev) =>
-          prev.map((evento) =>
-            evento.id_evento === eventoSeleccionado.id_evento
-              ? response.data.evento
-              : evento
-          )
-        );
+      const response = await axios.post(route("eventos.store"), payload);
 
-        modal.alerta({
-          titulo: "Evento actualizado",
-          mensaje: "Los cambios se guardaron correctamente.",
-        });
-      }
+      setEventos((prev) => [response.data.evento, ...prev]);
 
-      cerrarFormularioEvento();
-    } catch (error: any) {
-      modal.alerta({
-        titulo: "Error",
-        mensaje:
-          error.response?.data?.message ??
-          "Ocurrió un error al guardar el evento. Intente nuevamente.",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } else if (eventoSeleccionado) {
+      const payload = {
+        ...formEvento,
+        id_modalidad: formEvento.id_modalidad || null,
+        id_ubicacion: formEvento.id_ubicacion || null,
+        hora_evento: normalizarHoraEvento(formEvento.hora_evento),
+        carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
+        roles_interesados: formEvento.rolesInteresados.map(Number),
+        otras_observaciones: formEvento.otras_observaciones.trim() || null,
+        cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
+      };
+
+      const response = await axios.put(
+        route("eventos.update", { idEvento: eventoSeleccionado.id_evento }),
+        payload
+      );
+
+      setEventos((prev) =>
+        prev.map((evento) =>
+          evento.id_evento === eventoSeleccionado.id_evento
+            ? response.data.evento
+            : evento
+        )
+      );
     }
-  };
+
+    modal.alerta({
+      titulo: "Éxito",
+      mensaje: "Operación realizada correctamente",
+    });
+
+    cerrarFormularioEvento();
+
+  } catch (error: any) {
+
+    modal.alerta({
+      titulo: "Error",
+      mensaje:
+        error.response?.data?.message ??
+        "Ocurrió un error al guardar el evento.",
+    });
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const editarEvento = async (evento: Evento) => {
     try {
@@ -1058,7 +1080,28 @@ export default function EventosIndex(props: Props) {
                         />
                         {erroresForm.hora_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.hora_evento}</p>}
                       </div>
-
+<div>
+    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+        Límite de cupos
+    </label>
+    <input
+        type="number"
+        min={1}
+        step={1}
+        value={formEvento.cupos ?? ""}
+       onChange={(e) =>
+  setFormEvento((prev) => ({
+    ...prev,
+    cupos: e.target.value,
+  }))
+}
+        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+        placeholder="Ej: 50"
+    />
+    <p className="text-gray-400 text-[11px] mt-1 italic font-medium">
+        Déjelo vacío para eventos sin límite de cupos.
+    </p>
+</div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                           Ubicación / Cantón <span className="text-[#CD1719]">*</span>

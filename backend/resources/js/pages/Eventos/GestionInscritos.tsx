@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
-
 interface Evento {
   id_evento: number;
   titulo: string;
@@ -172,7 +171,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
 
           <div className="flex flex-col gap-3">
             <Button
-              className="w-full bg-[#034991] hover:bg-[#02386f]"
+              className="w-full rounded-full bg-[#034991] hover:bg-[#02386f]"
               onClick={() => descargarPdf("participantes")}
               disabled={descargandoPdf}
             >
@@ -188,7 +187,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full rounded-full border-[#034991]/30 text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
               onClick={() => descargarPdf("asistencia")}
               disabled={descargandoPdf}
             >
@@ -241,19 +240,22 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
     setEnviandoRecordatorio(true);
 
     try {
-      await axios.post(route("notificaciones.eventos.recordatorio"), {
+      const response = await axios.post(route("notificaciones.eventos.recordatorio"), {
+        id_evento: evento.id_evento,
         correos: correosInscritos,
         nombre_evento: evento.titulo,
         fecha_evento: displayValue(evento.fecha_evento),
         mensaje,
       });
 
+      const enviados = response?.data?.enviados ?? correosInscritos.length;
+
       setMostrarModalRecordatorio(false);
       setMensajeRecordatorio("");
 
       await modal.alerta({
         titulo: "Recordatorio enviado",
-        mensaje: `Se envió el recordatorio a ${correosInscritos.length} inscritos.`,
+        mensaje: `Se envió el recordatorio a ${enviados} inscritos.`,
       });
     } catch (error: any) {
       await modal.alerta({
@@ -340,7 +342,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
 
             <Button
               onClick={abrirModalPdf}
-              className="bg-[#034991] hover:bg-[#02386f] rounded-xl"
+              className="bg-[#034991] hover:bg-[#02386f] rounded-full"
             >
               <Download className="w-4 h-4 mr-2" />
               Descargar PDF
@@ -348,7 +350,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
 
             <Button
               onClick={abrirModalRecordatorio}
-              className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
+              className="bg-[#034991] hover:bg-[#02386f] text-white rounded-full"
             >
               <Bell className="w-4 h-4 mr-2" />
               Enviar recordatorio
@@ -357,7 +359,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
             <Button
               variant="outline"
               onClick={() => router.visit(route("eventos.index"))}
-              className="rounded-xl"
+              className="rounded-full border-[#034991]/30 text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a eventos
@@ -454,7 +456,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="rounded-full text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
                               onClick={() => confirmarEliminarInscrito(inscrito)}
                               disabled={eliminandoId === inscrito.id_usuario}
                             >
@@ -482,21 +484,21 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="rounded-lg h-8 px-3 text-xs font-medium"
+                      className="rounded-full h-8 px-3 text-xs font-medium border-[#034991]/30 text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
                       onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                       disabled={paginaActual === 1}
                     >
                       Anterior
                     </Button>
 
-                    <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
+                    <div className="flex items-center px-4 font-semibold text-[#034991] bg-white border border-[#034991]/20 rounded-full h-8 shadow-sm">
                       {paginaActual} / {totalPaginas || 1}
                     </div>
 
                     <Button
                       size="sm"
                       variant="outline"
-                      className="rounded-lg h-8 px-3 text-xs font-medium"
+                      className="rounded-full h-8 px-3 text-xs font-medium border-[#034991]/30 text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
                       onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
                       disabled={paginaActual === totalPaginas || totalPaginas === 0}
                     >
@@ -529,6 +531,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
               <div className="mt-5 flex justify-end gap-2">
                 <Button
                   variant="outline"
+                  className="rounded-full border-[#034991]/30 text-[#034991] hover:bg-[#034991]/10 hover:text-[#02386f]"
                   onClick={() => {
                     setMostrarModalRecordatorio(false);
                     setMensajeRecordatorio("");
@@ -540,7 +543,7 @@ export default function GestionInscritos({ evento, inscritos }: Props) {
                 <Button
                   onClick={enviarRecordatorio}
                   disabled={enviandoRecordatorio}
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  className="rounded-full bg-[#034991] hover:bg-[#02386f] text-white"
                 >
                   {enviandoRecordatorio ? "Enviando..." : "Enviar recordatorio"}
                 </Button>

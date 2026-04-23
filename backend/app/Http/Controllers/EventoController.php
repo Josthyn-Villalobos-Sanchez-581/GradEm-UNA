@@ -78,6 +78,7 @@ class EventoController extends Controller
             'roles_interesados' => ['required', 'array', 'min:1'],
             'roles_interesados.*' => ['integer', Rule::in([6, 7])],
             'otras_observaciones' => ['nullable', 'string', 'min:10', 'max:500'],
+            'cupos' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $evento = $this->service->registrarEvento($request);
@@ -107,7 +108,8 @@ class EventoController extends Controller
             'carreras_invitadas.*' => ['integer', 'exists:carreras,id_carrera'],
             'roles_interesados' => ['required', 'array', 'min:1'],
             'roles_interesados.*' => ['integer', Rule::in([6, 7])],
-            'otras_observaciones' => ['required', 'string', 'min:10', 'max:500'],
+            'otras_observaciones' => ['nullable', 'string', 'min:10', 'max:500'],
+            'cupos' => ['nullable', 'integer', 'min:1'],
         ];
 
         if ($evento->estado_id === 1) {
@@ -268,20 +270,112 @@ class EventoController extends Controller
     public function enviarRecordatorio(Request $request): JsonResponse
     {
         $request->validate([
-            'correos' => 'required|array|min:1',
-            'correos.*' => 'email',
+            'id_evento' => 'required|integer|exists:eventos,id_evento',
             'nombre_evento' => 'required|string|max:150',
             'fecha_evento' => 'required|string|max:50',
             'mensaje' => 'required|string',
         ]);
 
-        $this->service->enviarRecordatorio(
-            $request->correos,
+        $enviados = $this->service->enviarRecordatorio(
+            (int) $request->id_evento,
             $request->only(['nombre_evento', 'fecha_evento', 'mensaje'])
         );
 
         return response()->json([
             'mensaje' => 'Recordatorios enviados correctamente',
+            'enviados' => $enviados,
         ]);
     }
+
+
+ /*   
+// ===============================================
+// INSCRIPCIONES A EVENTOS
+// ===============================================
+
+/**
+ * Verificar si el usuario ya está inscrito en el evento
+ *//*
+public function existeInscripcion(int $idEvento, int $idUsuario): bool
+{
+    return DB::table('inscripciones_evento')
+        ->where('id_evento', $idEvento)
+        ->where('id_usuario', $idUsuario)
+        ->where('estado_id', 1) // activo
+        ->exists();
+}
+*/
+/**
+ * Obtener cantidad de inscritos activos por evento
+ *//*
+public function contarInscritos(int $idEvento): int
+{
+    return DB::table('inscripciones_evento')
+        ->where('id_evento', $idEvento)
+        ->where('estado_id', 1)
+        ->count();
+}
+*/
+/**
+ * Obtener conteo de inscritos para todos los eventos
+ *//*
+public function obtenerInscritosCount(): array
+{
+    return DB::table('inscripciones_evento')
+        ->select('id_evento', DB::raw('COUNT(*) as total'))
+        ->where('estado_id', 1)
+        ->groupBy('id_evento')
+        ->pluck('total', 'id_evento')
+        ->toArray();
+}
+*/
+/**
+ * Registrar inscripción
+ *//*
+public function crearInscripcion(int $idEvento, int $idUsuario): bool
+{
+    return DB::table('inscripciones_evento')->insert([
+        'id_evento' => $idEvento,
+        'id_usuario' => $idUsuario,
+        'fecha_inscripcion' => now(),
+        'estado_id' => 1 // activo
+    ]);
+}
+*/
+/**
+ * Obtener inscripciones del usuario
+ *//*
+public function obtenerMisInscripciones(int $idUsuario): array
+{
+    return DB::table('inscripciones_evento')
+        ->where('id_usuario', $idUsuario)
+        ->where('estado_id', 1)
+        ->pluck('id_evento')
+        ->toArray();
+}*/
+
+/**
+ * Obtener evento con cupos (para validación)
+ *//*
+public function obtenerEventoParaInscripcion(int $idEvento)
+{
+    return DB::table('eventos')
+        ->where('id_evento', $idEvento)
+        ->first();
+}
+*/
+/**
+ * Cancelar inscripción (cambio de estado)
+ *//*
+public function cancelarInscripcion(int $idEvento, int $idUsuario): bool
+{
+    return DB::table('inscripciones_evento')
+        ->where('id_evento', $idEvento)
+        ->where('id_usuario', $idUsuario)
+        ->update([
+            'estado_id' => 2 // cancelado
+        ]) > 0;
+}
+
+*/
 }
