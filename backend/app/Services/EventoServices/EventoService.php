@@ -98,7 +98,7 @@ class EventoService
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
                 'cupos' => $request->cupos ?? null,
-                'estado_id' => 2,
+                'estado_id' => 7,//7 es borrador
                 'usuario_id' => $usuario?->id_usuario,
             ];
 
