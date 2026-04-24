@@ -24,6 +24,10 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  ArrowRight,
+  Check,
+  Briefcase,
+  FileText,
   GraduationCap,
   Users,
   Link as LinkIcon,
@@ -67,6 +71,7 @@ interface Props {
   eventos: Evento[];
   modalidades: { id_modalidad: number; nombre: string }[];
   ubicaciones: { id_canton: number; nombre: string }[];
+  paises: { id_pais: number; nombre: string }[];
   carreras: { id_carrera: number; nombre: string }[];
   roles: { id_rol: number; nombre_rol: string }[];
   userPermisos: number[];
@@ -250,27 +255,97 @@ export default function EventosIndex(props: Props) {
     }
   };
 
+  type PasoEvento = "general" | "detalles" | "publicacion";
+  const pasosEvento: PasoEvento[] = ["general", "detalles", "publicacion"];
+
   const [detalle, setDetalle] = useState<Evento | null>(null);
   const [view, setView] = useState<"list" | "form">("list");
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
+  const [pasoActual, setPasoActual] = useState<PasoEvento>("general");
+  const [formularioModificado, setFormularioModificado] = useState(false);
   const [formEvento, setFormEvento] = useState({
     titulo: "",
     descripcion: "",
     fecha_evento: "",
     hora_evento: "",
     id_modalidad: "",
+    id_pais: "",
+    id_provincia: "",
     id_ubicacion: "",
     carrerasInvitadas: [] as string[],
     rolesInteresados: [] as string[],
     otras_observaciones: "",
     cupos: "",
   });
+  const [formEventiInicial, setFormEventoInicial] = useState(formEvento);
   const [erroresForm, setErroresForm] = useState<Record<string, string>>({});
   const [carrerasOpen, setCarrerasOpen] = useState(false);
   const [rolesOpen, setRolesOpen] = useState(false);
+  const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
+  
+  // Estados para cascada de ubicación
+  const [paises, setPaises] = useState<Array<{ id_pais: number; nombre: string }>>([]);
+  const [provincias, setProvincias] = useState<Array<{ id_provincia: number; nombre: string }>>([]);
+  const [cantones, setCantones] = useState<Array<{ id_canton: number; nombre: string }>>([]);
+  const [cargandoProvincias, setCargandoProvincias] = useState(false);
+  const [cargandoCantones, setCargandoCantones] = useState(false);
+  
   const carrerasDropdownRef = useRef<HTMLDivElement | null>(null);
   const rolesDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setFormularioModificado(JSON.stringify(formEvento) !== JSON.stringify(formEventiInicial));
+  }, [formEvento, formEventiInicial]);
+
+  // Efecto para cargar países al montar el componente
+  useEffect(() => {
+    if (props.paises && props.paises.length > 0) {
+      setPaises(props.paises);
+    }
+  }, [props.paises]);
+
+  // Efecto para cargar provincias cuando cambia el país
+  useEffect(() => {
+    if (formEvento.id_pais) {
+      setCargandoProvincias(true);
+      axios.get(route('eventos.api.provincias', { idPais: formEvento.id_pais }))
+        .then(response => {
+          if (response.data.success) {
+            setProvincias(response.data.data);
+            // Limpiar provincia y cantón cuando cambia país
+            setFormEvento(prev => ({ ...prev, id_provincia: '', id_ubicacion: '' }));
+            setCantones([]);
+          }
+        })
+        .catch(error => console.error('Error al cargar provincias:', error))
+        .finally(() => setCargandoProvincias(false));
+    } else {
+      setProvincias([]);
+      setCantones([]);
+      setFormEvento(prev => ({ ...prev, id_provincia: '', id_ubicacion: '' }));
+    }
+  }, [formEvento.id_pais]);
+
+  // Efecto para cargar cantones cuando cambia la provincia
+  useEffect(() => {
+    if (formEvento.id_provincia) {
+      setCargandoCantones(true);
+      axios.get(route('eventos.api.cantones', { idProvincia: formEvento.id_provincia }))
+        .then(response => {
+          if (response.data.success) {
+            setCantones(response.data.data);
+            // Limpiar cantón cuando cambia provincia
+            setFormEvento(prev => ({ ...prev, id_ubicacion: '' }));
+          }
+        })
+        .catch(error => console.error('Error al cargar cantones:', error))
+        .finally(() => setCargandoCantones(false));
+    } else {
+      setCantones([]);
+      setFormEvento(prev => ({ ...prev, id_ubicacion: '' }));
+    }
+  }, [formEvento.id_provincia]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -317,6 +392,8 @@ export default function EventosIndex(props: Props) {
 
   const abrirFormularioEvento = (modo: "create" | "edit", evento?: Evento) => {
     setFormMode(modo);
+    setPasoActual("general");
+    setFormularioModificado(false);
 
     if (modo === "edit" && evento) {
       setEventoSeleccionado(evento);
@@ -331,32 +408,41 @@ export default function EventosIndex(props: Props) {
           ? JSON.parse(evento.roles_interesados)
           : [];
 
-      setFormEvento({
+      const formInicialEdit = {
         titulo: evento.titulo || "",
         descripcion: evento.descripcion || "",
         fecha_evento: evento.fecha_evento || "",
         hora_evento: normalizarHoraEvento(evento.hora_evento),
         id_modalidad: evento.id_modalidad ? String(evento.id_modalidad) : "",
+        id_pais: "",
+        id_provincia: "",
         id_ubicacion: evento.id_ubicacion ? String(evento.id_ubicacion) : "",
         carrerasInvitadas: carrerasInvitadas.map(String),
         rolesInteresados: Array.isArray(rolesInteresados) ? rolesInteresados.map(String) : [],
         otras_observaciones: evento.otras_observaciones || "",
         cupos: evento.cupos ? String(evento.cupos) : "",
-      });
+      };
+
+      setFormEventoInicial(formInicialEdit);
+      setFormEvento(formInicialEdit);
     } else {
       setEventoSeleccionado(null);
-      setFormEvento({
+      const formInicialCreate = {
         titulo: "",
         descripcion: "",
         fecha_evento: "",
         hora_evento: "",
         id_modalidad: "",
+        id_pais: "",
+        id_provincia: "",
         id_ubicacion: "",
         carrerasInvitadas: [],
         rolesInteresados: [],
         otras_observaciones: "",
         cupos: "",
-      });
+      };
+      setFormEventoInicial(formInicialCreate);
+      setFormEvento(formInicialCreate);
     }
 
     setErroresForm({});
@@ -365,9 +451,125 @@ export default function EventosIndex(props: Props) {
   };
 
   const cerrarFormularioEvento = () => {
+    if (formularioModificado) {
+      setMostrarConfirmacionSalida(true);
+      return;
+    }
     setView("list");
     setEventoSeleccionado(null);
     setErroresForm({});
+    setPasoActual("general");
+    setFormularioModificado(false);
+  };
+
+  const confirmarSalida = (confirmado: boolean) => {
+    setMostrarConfirmacionSalida(false);
+    if (confirmado) {
+      setView("list");
+      setEventoSeleccionado(null);
+      setErroresForm({});
+      setPasoActual("general");
+      setFormularioModificado(false);
+    }
+  };
+
+  const validarPasoEvento = (): boolean => {
+    const e: Record<string, string> = {};
+    const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
+
+    if (pasoActual === "general") {
+      if (!formEvento.titulo.trim()) {
+        e.titulo = "Título es obligatorio";
+      } else if (formEvento.titulo.trim().length < 5) {
+        e.titulo = "El título debe tener al menos 5 caracteres";
+      } else if (formEvento.titulo.trim().length > 100) {
+        e.titulo = "El título no puede superar los 100 caracteres";
+      } else if (!textoValido.test(formEvento.titulo.trim())) {
+        e.titulo = "El título contiene caracteres inválidos";
+      }
+
+      if (!formEvento.descripcion.trim()) {
+        e.descripcion = "Descripción es obligatoria";
+      } else if (formEvento.descripcion.trim().length < 10) {
+        e.descripcion = "Mínimo 10 caracteres";
+      } else if (formEvento.descripcion.trim().length > 500) {
+        e.descripcion = "Máximo 500 caracteres";
+      } else if (!textoValido.test(formEvento.descripcion.trim())) {
+        e.descripcion = "La descripción contiene caracteres inválidos";
+      }
+
+      if (!formEvento.id_modalidad) {
+        e.id_modalidad = "Modalidad es obligatoria";
+      }
+    } else if (pasoActual === "detalles") {
+      if (!formEvento.fecha_evento) {
+        e.fecha_evento = "Fecha del evento es obligatoria";
+      } else {
+        const selectedDate = new Date(formEvento.fecha_evento);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(`${new Date().getFullYear() + 2}-12-31`);
+        if (selectedDate < today) {
+          e.fecha_evento = "La fecha debe ser hoy o posterior";
+        } else if (selectedDate > maxDate) {
+          e.fecha_evento = "La fecha debe ser como máximo a dos años";
+        }
+      }
+
+      if (!formEvento.hora_evento) {
+        e.hora_evento = "Hora del evento es obligatoria";
+      }
+
+      if (!formEvento.id_pais) {
+        e.id_pais = "País es obligatorio";
+      }
+
+      if (!formEvento.id_provincia) {
+        e.id_provincia = "Provincia es obligatoria";
+      }
+
+      if (!formEvento.id_ubicacion) {
+        e.id_ubicacion = "Cantón es obligatorio";
+      }
+    } else if (pasoActual === "publicacion") {
+      if (!formEvento.carrerasInvitadas.length) {
+        e.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
+      }
+
+      if (!formEvento.rolesInteresados.length) {
+        e.rolesInteresados = "Debe seleccionar al menos un tipo de usuario interesado";
+      }
+    }
+
+    setErroresForm(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const irAlPasoSiguiente = () => {
+    if (validarPasoEvento()) {
+      const indiceActual = pasosEvento.indexOf(pasoActual);
+      if (indiceActual < pasosEvento.length - 1) {
+        setPasoActual(pasosEvento[indiceActual + 1]);
+      }
+    }
+  };
+
+  const irAlPasoAnterior = () => {
+    const indiceActual = pasosEvento.indexOf(pasoActual);
+    if (indiceActual > 0) {
+      setPasoActual(pasosEvento[indiceActual - 1]);
+      setErroresForm({});
+    }
+  };
+
+  const limpiarErroresEvento = (nombreCampo: string) => {
+    if (erroresForm[nombreCampo]) {
+      setErroresForm((prev) => {
+        const nuevosErrores = { ...prev };
+        delete nuevosErrores[nombreCampo];
+        return nuevosErrores;
+      });
+    }
   };
 
   const filtrarTextoEvento = (valor: string, max: number) =>
@@ -379,14 +581,15 @@ export default function EventosIndex(props: Props) {
     const errores: Record<string, string> = {};
     const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
 
+    // Validar PASO GENERAL
     if (!formEvento.titulo.trim()) {
-      errores.titulo = "Tí­tulo es obligatorio";
+      errores.titulo = "Título es obligatorio";
     } else if (formEvento.titulo.trim().length < 5) {
-      errores.titulo = "El tí­tulo debe tener al menos 5 caracteres";
+      errores.titulo = "El título debe tener al menos 5 caracteres";
     } else if (formEvento.titulo.trim().length > 100) {
-      errores.titulo = "El tí­tulo no puede superar los 100 caracteres";
+      errores.titulo = "El título no puede superar los 100 caracteres";
     } else if (!textoValido.test(formEvento.titulo.trim())) {
-      errores.titulo = "El tí­tulo contiene caracteres inválidos";
+      errores.titulo = "El título contiene caracteres inválidos";
     }
 
     if (!formEvento.descripcion.trim()) {
@@ -399,6 +602,11 @@ export default function EventosIndex(props: Props) {
       errores.descripcion = "La descripción contiene caracteres inválidos";
     }
 
+    if (!formEvento.id_modalidad) {
+      errores.id_modalidad = "Modalidad es obligatoria";
+    }
+
+    // Validar PASO DETALLES
     if (!formEvento.fecha_evento) {
       errores.fecha_evento = "Fecha del evento es obligatoria";
     } else {
@@ -417,14 +625,19 @@ export default function EventosIndex(props: Props) {
       errores.hora_evento = "Hora del evento es obligatoria";
     }
 
-    if (!formEvento.id_modalidad) {
-      errores.id_modalidad = "Modalidad es obligatoria";
+    if (!formEvento.id_pais) {
+      errores.id_pais = "País es obligatorio";
+    }
+
+    if (!formEvento.id_provincia) {
+      errores.id_provincia = "Provincia es obligatoria";
     }
 
     if (!formEvento.id_ubicacion) {
-      errores.id_ubicacion = "Ubicación es obligatoria";
+      errores.id_ubicacion = "Cantón es obligatorio";
     }
 
+    // Validar PASO PUBLICACIÓN
     if (!formEvento.carrerasInvitadas.length) {
       errores.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
     }
@@ -432,12 +645,6 @@ export default function EventosIndex(props: Props) {
     if (!formEvento.rolesInteresados.length) {
       errores.rolesInteresados = "Debe seleccionar al menos un tipo de usuario interesado";
     }
-
-    /*if (formMode === 'edit') {
-      if (!formEvento.otras_observaciones.trim()) {
-        errores.otras_observaciones = "Otras observaciones es obligatorio";
-      }
-    }*/
 
     if (formEvento.otras_observaciones.trim()) {
       if (formEvento.otras_observaciones.trim().length < 10) {
@@ -472,40 +679,37 @@ export default function EventosIndex(props: Props) {
     const valido = validarFormularioEvento();
 
     if (!valido) {
+      // Navegar al primer paso con errores
+      if (Object.keys(erroresForm).some(key => ["titulo", "descripcion", "id_modalidad"].includes(key))) {
+        setPasoActual("general");
+      } else if (Object.keys(erroresForm).some(key => ["fecha_evento", "hora_evento", "id_ubicacion"].includes(key))) {
+        setPasoActual("detalles");
+      } else if (Object.keys(erroresForm).some(key => ["carrerasInvitadas", "rolesInteresados", "otras_observaciones"].includes(key))) {
+        setPasoActual("publicacion");
+      }
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      if (formMode === "create") {
-        const payload = {
-          ...formEvento,
-          id_modalidad: formEvento.id_modalidad || null,
-          id_ubicacion: formEvento.id_ubicacion || null,
-          hora_evento: normalizarHoraEvento(formEvento.hora_evento),
-          carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
-          roles_interesados: formEvento.rolesInteresados.map(Number),
-          otras_observaciones: formEvento.otras_observaciones.trim() || null,
-          cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
-        };
+      const payload = {
+        ...formEvento,
+        id_modalidad: formEvento.id_modalidad || null,
+        id_ubicacion: formEvento.id_ubicacion || null,
+        hora_evento: normalizarHoraEvento(formEvento.hora_evento),
+        carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
+        roles_interesados: formEvento.rolesInteresados.map(Number),
+        otras_observaciones: formEvento.otras_observaciones.trim() || null,
+        cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
+      };
 
+      if (formMode === "create") {
         const response = await axios.post(route("eventos.store"), payload);
 
         setEventos((prev) => [response.data.evento, ...prev]);
 
       } else if (eventoSeleccionado) {
-        const payload = {
-          ...formEvento,
-          id_modalidad: formEvento.id_modalidad || null,
-          id_ubicacion: formEvento.id_ubicacion || null,
-          hora_evento: normalizarHoraEvento(formEvento.hora_evento),
-          carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
-          roles_interesados: formEvento.rolesInteresados.map(Number),
-          otras_observaciones: formEvento.otras_observaciones.trim() || null,
-          cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
-        };
-
         const response = await axios.put(
           route("eventos.update", { idEvento: eventoSeleccionado.id_evento }),
           payload
@@ -539,755 +743,935 @@ export default function EventosIndex(props: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+    };
 
-  const editarEvento = async (evento: Evento) => {
-    try {
-      const response = await axios.get(route("eventos.show", { idEvento: evento.id_evento }));
-      if (response.data?.success) {
-        abrirFormularioEvento("edit", response.data.evento);
-      } else {
+    const editarEvento = async (evento: Evento) => {
+      try {
+        const response = await axios.get(route("eventos.show", { idEvento: evento.id_evento }));
+        if (response.data?.success) {
+          abrirFormularioEvento("edit", response.data.evento);
+        } else {
+          modal.alerta({
+            titulo: "Error",
+            mensaje: "No se pudo cargar el evento para edición.",
+          });
+        }
+      } catch (error: any) {
         modal.alerta({
           titulo: "Error",
-          mensaje: "No se pudo cargar el evento para edición.",
+          mensaje: error.response?.data?.message ?? "No se pudo cargar el evento.",
         });
       }
-    } catch (error: any) {
-      modal.alerta({
-        titulo: "Error",
-        mensaje: error.response?.data?.message ?? "No se pudo cargar el evento.",
-      });
-    }
-  };
+    };
 
-  const modalidadesUnicas = Array.from(
-    new Set(eventos.map(e => e.modalidad_nombre).filter(Boolean))
-  );
-  /* =======================
-     Render
-  ======================= */
+    const modalidadesUnicas = Array.from(
+      new Set(eventos.map(e => e.modalidad_nombre).filter(Boolean))
+    );
+    /* =======================
+       Render
+    ======================= */
 
-  return (
-    <>
-      <Head title="Gestión de Eventos" />
+    return (
+      <>
+        <Head title="Gestión de Eventos" />
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 relative">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 relative">
 
-        {/* HEADER: Aseguramos que sea un bloque sólido que empuje el contenido hacia abajo */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h1 className="text-2xl font-bold text-[#034991]">
-              {view === "list" ? "Gestión de Eventos" :
-                formMode === 'create' ? 'Registrar Evento' : 'Editar Evento'}
-            </h1>
-            <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-              {view === "list"
-                ? "Administra los eventos, publica, edita y consulta información rápidamente."
-                : formMode === 'create'
-                  ? "Crea un nuevo evento completando los campos del formulario."
-                  : `Actualiza la información y fechas del evento: ${formEvento.titulo || ''}`}
-            </p>
-          </div>
+          {/* HEADER: Aseguramos que sea un bloque sólido que empuje el contenido hacia abajo */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+            <div>
+              <h1 className="text-2xl font-bold text-[#034991]">
+                {view === "list" ? "Gestión de Eventos" :
+                  formMode === 'create' ? 'Registrar Evento' : 'Editar Evento'}
+              </h1>
+              <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+                {view === "list"
+                  ? "Administra los eventos, publica, edita y consulta información rápidamente."
+                  : formMode === 'create'
+                    ? "Crea un nuevo evento completando los campos del formulario."
+                    : `Actualiza la información y fechas del evento: ${formEvento.titulo || ''}`}
+              </p>
+            </div>
 
-          {/* DERECHA */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Solo mostrar Filtros y Registrar si estamos en la lista */}
-            {view === "list" && (
-              <>
-                {/* Botón Dashboard - Ahora condicionado a la lista */}
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
-                  onClick={() => window.location.href = route("dashboard")}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-
-                {/* Botón Filtros */}
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
-                  onClick={() => setMostrarFiltros(prev => !prev)}
-                >
-                  {mostrarFiltros ? (
-                    <>
-                      <FilterX className="w-4 h-4 mr-2" />
-                      Ocultar filtros
-                    </>
-                  ) : (
-                    <>
-                      <Filter className="w-4 h-4 mr-2" />
-                      Mostrar filtros
-                    </>
-                  )}
-                </Button>
-
-                {/* Botón Registrar */}
-                {puedeGestionar && (
+            {/* DERECHA */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Solo mostrar Filtros y Registrar si estamos en la lista */}
+              {view === "list" && (
+                <>
+                  {/* Botón Dashboard - Ahora condicionado a la lista */}
                   <Button
-                    className="h-10 rounded-full bg-[#034991] hover:bg-[#023165]"
-                    onClick={() => abrirFormularioEvento("create")}
+                    variant="outline"
+                    className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                    onClick={() => window.location.href = route("dashboard")}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Registrar evento
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Dashboard
                   </Button>
-                )}
-              </>
-            )}
 
-            {/* Solo mostrar botón Volver si estamos en el formulario */}
-            {view === "form" && (
-              <Button
-                variant="secondary"
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
-                onClick={cerrarFormularioEvento}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Volver
-              </Button>
-            )}
-          </div>
-        </div>
+                  {/* Botón Filtros */}
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                    onClick={() => setMostrarFiltros(prev => !prev)}
+                  >
+                    {mostrarFiltros ? (
+                      <>
+                        <FilterX className="w-4 h-4 mr-2" />
+                        Ocultar filtros
+                      </>
+                    ) : (
+                      <>
+                        <Filter className="w-4 h-4 mr-2" />
+                        Mostrar filtros
+                      </>
+                    )}
+                  </Button>
 
-        {view === "list" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Botón Registrar */}
+                  {puedeGestionar && (
+                    <Button
+                      className="h-10 rounded-full bg-[#034991] hover:bg-[#023165]"
+                      onClick={() => abrirFormularioEvento("create")}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Registrar evento
+                    </Button>
+                  )}
+                </>
+              )}
 
-            {/* SIDEBAR SOLO SI mostrarFiltros */}
-            {mostrarFiltros && (
-              <aside className="lg:col-span-3 transition-all duration-300">
-                <div className="sticky top-6">
-                  <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
-
-                    <h2 className="text-lg font-semibold text-[#034991] border-b pb-2 flex items-center gap-2">
-
-                      <Filter className="w-4 h-4" /> Filtros de eventos
-
-                    </h2>
-
-                    <div className="space-y-4 text-sm">
-
-                      <div className="flex flex-col">
-                        <label className="font-semibold mb-1 text-slate-700">Buscar</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <input placeholder="Tí­tulo del evento..."
-                            value={busqueda}
-                            onChange={(e) => {
-                              setBusqueda(e.target.value);
-                              setPaginaActual(1);
-                            }}
-                            className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="font-semibold mb-1 text-slate-700">Estado</label>
-                        <select value={filtroEstado}
-                          onChange={(e) => {
-                            setFiltroEstado(e.target.value);
-                            setPaginaActual(1);
-                          }}
-                          className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" >
-                          <option value="todos">Todos los estados</option>
-                          <option value="publicado">Publicado</option>
-                          <option value="borrador">Borrador</option>
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="font-semibold mb-1 text-slate-700">Modalidad</label>
-                        <select
-                          value={filtroModalidad}
-                          onChange={(e) => {
-                            setFiltroModalidad(e.target.value);
-                            setPaginaActual(1);
-                          }}
-                          className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                          <option value="todas">Todas</option>
-                          {modalidadesUnicas.map((m, index) => (
-                            <option key={index} value={m}>
-                              {m}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="font-semibold mb-1 text-slate-700">Creador</label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                          <input
-                            placeholder="Nombre del creador..."
-                            value={filtroCreador}
-                            onChange={(e) => {
-                              setFiltroCreador(e.target.value);
-                              setPaginaActual(1);
-                            }}
-                            className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <Button
-                        variant="default"
-                        onClick={aplicarFiltros}
-                        className="w-full rounded-full"
-                      >
-                        Aplicar filtros
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        title="Quitar filtros"
-                        className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
-                        onClick={() => {
-                          setBusqueda("");
-                          setFiltroEstado("todos");
-                          setFiltroModalidad("todas");
-                          setFiltroCreador("");
-                        }}
-                      >
-                        Limpiar filtros
-
-                      </Button>
-
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            )}
-
-            {/* MAIN DINÁMICO */}
-            <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
-
-
-              {/* KPIs ESTILO CURSOS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-blue-100 p-2 text-blue-600">
-                    <LayoutDashboard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Total Eventos</p>
-                    <p className="text-2xl font-bold text-slate-900">{totalEventos}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Publicados</p>
-                    <p className="text-2xl font-bold text-slate-900">{publicados}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                  <div className="rounded-xl bg-amber-100 p-2 text-amber-600">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Borradores</p>
-                    <p className="text-2xl font-bold text-slate-900">{borradores}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* RESULTADO FILTROS */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
-
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                    Resultado de filtros
-                  </h3>
-                  <span className="text-xs text-slate-400">
-                    {eventosFiltrados.length} resultados
-                  </span>
-                </div>
-
-                {/* LISTA DE EVENTOS */}
-                <div
-                  className={`grid grid-cols-1 ${mostrarFiltros
-                    ? "md:grid-cols-2"
-                    : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
-                    } gap-3`}
+              {/* Solo mostrar botón Volver si estamos en el formulario */}
+              {view === "form" && (
+                <Button
+                  variant="secondary"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
+                  onClick={cerrarFormularioEvento}
                 >
-                  {eventosPaginados.length > 0 ? (
-                    eventosPaginados.map((evento) => (
-                      <div key={evento.id_evento} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                            <h2
-                              className="font-bold text-lg text-slate-800 line-clamp-1 cursor-pointer hover:text-blue-600 transition"
-                              onClick={() =>
-                                router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))
-                              }
-                            >
-                              {evento.titulo}
-                            </h2>
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${evento.estado_id === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
-                              {evento.estado_id === 1 ? 'Publicado' : 'Borrador'}
-                            </span>
-                          </div>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+                </Button>
+              )}
+            </div>
+          </div>
 
-                          <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                            {evento.descripcion ?? "Sin descripciÓn disponible para este evento."}
-                          </p>
+          {view === "list" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                              {evento.fecha_evento || 'Por definir'}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-red-500" />
-                              <span className="truncate">{evento.canton_nombre}, {evento.provincia_nombre}</span>
-                            </div>
+              {/* SIDEBAR SOLO SI mostrarFiltros */}
+              {mostrarFiltros && (
+                <aside className="lg:col-span-3 transition-all duration-300">
+                  <div className="sticky top-6">
+                    <div className="bg-[#F9FAFB] border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
+
+                      <h2 className="text-lg font-semibold text-[#034991] border-b pb-2 flex items-center gap-2">
+
+                        <Filter className="w-4 h-4" /> Filtros de eventos
+
+                      </h2>
+
+                      <div className="space-y-4 text-sm">
+
+                        <div className="flex flex-col">
+                          <label className="font-semibold mb-1 text-slate-700">Buscar</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                            <input placeholder="Tí­tulo del evento..."
+                              value={busqueda}
+                              onChange={(e) => {
+                                setBusqueda(e.target.value);
+                                setPaginaActual(1);
+                              }}
+                              className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
                           </div>
                         </div>
 
-                        <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
-                          {evento.estado_id === 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs text-[#034991] hover:bg-blue-50"
-                              onClick={() => router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))}
-                            >
-                              <User className="w-3 h-3 mr-1" /> Inscritos
-                            </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            title="Ver evento"
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700"
-                            onClick={async () => {
-                              try {
-                                const res = await axios.get(route("eventos.show", evento.id_evento));
-
-                                if (res.data.success) {
-                                  setDetalle(res.data.evento);
-                                }
-                              } catch {
-                                modal.alerta({
-                                  titulo: "Error",
-                                  mensaje: "No se pudo cargar el detalle del evento",
-                                });
-                              }
+                        <div className="flex flex-col">
+                          <label className="font-semibold mb-1 text-slate-700">Estado</label>
+                          <select value={filtroEstado}
+                            onChange={(e) => {
+                              setFiltroEstado(e.target.value);
+                              setPaginaActual(1);
                             }}
+                            className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" >
+                            <option value="todos">Todos los estados</option>
+                            <option value="publicado">Publicado</option>
+                            <option value="borrador">Borrador</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <label className="font-semibold mb-1 text-slate-700">Modalidad</label>
+                          <select
+                            value={filtroModalidad}
+                            onChange={(e) => {
+                              setFiltroModalidad(e.target.value);
+                              setPaginaActual(1);
+                            }}
+                            className="bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                           >
-                            <Eye className="w-3.5 mr-1" /> Ver
-                          </Button>
-
-                          {/* Botón Agregar: Solo visible si tiene permisos y está en la lista */}
-                          {puedeGestionar && (
-                            <>
-                              {evento.estado_id !== 1 && (
-                                <Button size="sm" title="Publicar evento" onClick={() => publicarEvento(evento)}>
-                                  <Play className="w-3 mr-1" /> Publicar
-                                </Button>
-                              )}
-                              <Button size="sm" variant="outline" title="Editar evento" className="border-slate-300" onClick={() => editarEvento(evento)}>
-                                <Edit3 className="w-3.5 mr-1" /> Editar
-                              </Button>
-                              <Button size="sm" variant="destructive" title="Inactivar evento" onClick={() => inactivarEvento(evento)}>
-                                <Trash2 className="w-3.5" />
-                              </Button>
-                            </>
-                          )}
+                            <option value="todas">Todas</option>
+                            {modalidadesUnicas.map((m, index) => (
+                              <option key={index} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
                         </div>
+
+                        <div className="flex flex-col">
+                          <label className="font-semibold mb-1 text-slate-700">Creador</label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                            <input
+                              placeholder="Nombre del creador..."
+                              value={filtroCreador}
+                              onChange={(e) => {
+                                setFiltroCreador(e.target.value);
+                                setPaginaActual(1);
+                              }}
+                              className="w-full pl-9 bg-white text-black border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="default"
+                          onClick={aplicarFiltros}
+                          className="w-full rounded-full"
+                        >
+                          Aplicar filtros
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          title="Quitar filtros"
+                          className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
+                          onClick={() => {
+                            setBusqueda("");
+                            setFiltroEstado("todos");
+                            setFiltroModalidad("todas");
+                            setFiltroCreador("");
+                          }}
+                        >
+                          Limpiar filtros
+
+                        </Button>
+
                       </div>
-                    ))
-                  ) : (
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-500 py-10">
-                      No se encontraron eventos que coincidan con los filtros aplicados.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* PAGINACIÓN ESTILO  */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
-
-                {/* IZQUIERDA */}
-                <div>
-                  Mostrando {eventosPaginados.length} de {eventosFiltrados.length} eventos
-                </div>
-
-                {/* DERECHA */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPaginaActual(paginaActual - 1)}
-                    disabled={paginaActual === 1}
-                  >
-                    Anterior
-                  </Button>
-
-                  <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
-                    {paginaActual} / {totalPaginas || 1}
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPaginaActual(paginaActual + 1)}
-                    disabled={paginaActual === totalPaginas || totalPaginas === 0}
-                  >
-                    Siguiente
-                  </Button>
-                </div>
-
-              </div>
-            </main>
-          </div >
-
-        ) : (
-          <div className="w-full animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="grid grid-cols-12">
-
-                {/* SIDEBAR INFORMATIVO (Estilo Cursos/Ofertas) */}
-                <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8 flex flex-col items-center">
-                  <div className="flex flex-col items-center text-center mb-10">
-                    <div className="relative p-4 bg-white rounded-full shadow-md mb-4 text-[#034991]">
-                      <CalendarDays className="w-16 h-16" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                      Gestión de Eventos
-                    </h3>
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">
-                      Módulo de Vinculación
-                    </span>
-                  </div>
-
-                  <div className="hidden md:block space-y-4">
-                    <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                      <p className="text-xs text-[#034991] font-medium leading-relaxed">
-                        {formMode === 'create'
-                          ? "Estás registrando un nuevo evento. Asegúrate de definir la ubicación y las carreras invitadas correctamente."
-                          : "Estás editando la información de un evento. Los cambios se actualizarán en el calendario de los interesados."}
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <p className="text-[11px] text-slate-500 font-medium uppercase mb-2 tracking-wider">Recordatorio</p>
-                      <ul className="text-xs text-slate-600 space-y-2 list-disc list-inside">
-                        <li>Define la modalidad</li>
-                        <li>Selecciona carreras</li>
-                        <li>Indica el tipo de público</li>
-                      </ul>
                     </div>
                   </div>
                 </aside>
+              )}
 
-                {/* CUERPO DEL FORMULARIO */}
-                <section className="col-span-12 md:col-span-9 p-6 md:p-10 flex flex-col">
-                  <div className="flex-grow space-y-6">
-                    {/* Encabezado interno */}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-800">
-                          {formMode === 'create' ? "Información General del Evento" : "Modificar Detalles del Evento"}
-                        </h2>
-                        <p className="text-gray-500 text-sm mt-1">
-                          {formMode === 'create'
-                            ? "Complete los campos para publicar el nuevo evento en el sistema."
-                            : "Actualice la información necesaria del evento seleccionado."}
-                        </p>
+              {/* MAIN DINÁMICO */}
+              <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
+
+
+                {/* KPIs ESTILO CURSOS */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                    <div className="rounded-xl bg-blue-100 p-2 text-blue-600">
+                      <LayoutDashboard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Total Eventos</p>
+                      <p className="text-2xl font-bold text-slate-900">{totalEventos}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                    <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Publicados</p>
+                      <p className="text-2xl font-bold text-slate-900">{publicados}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                    <div className="rounded-xl bg-amber-100 p-2 text-amber-600">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Borradores</p>
+                      <p className="text-2xl font-bold text-slate-900">{borradores}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RESULTADO FILTROS */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
+
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                      Resultado de filtros
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      {eventosFiltrados.length} resultados
+                    </span>
+                  </div>
+
+                  {/* LISTA DE EVENTOS */}
+                  <div
+                    className={`grid grid-cols-1 ${mostrarFiltros
+                      ? "md:grid-cols-2"
+                      : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+                      } gap-3`}
+                  >
+                    {eventosPaginados.length > 0 ? (
+                      eventosPaginados.map((evento) => (
+                        <div key={evento.id_evento} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h2
+                                className="font-bold text-lg text-slate-800 line-clamp-1 cursor-pointer hover:text-blue-600 transition"
+                                onClick={() =>
+                                  router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))
+                                }
+                              >
+                                {evento.titulo}
+                              </h2>
+                              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${evento.estado_id === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+                                {evento.estado_id === 1 ? 'Publicado' : 'Borrador'}
+                              </span>
+                            </div>
+
+                            <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                              {evento.descripcion ?? "Sin descripciÓn disponible para este evento."}
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                                {evento.fecha_evento || 'Por definir'}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5 text-red-500" />
+                                <span className="truncate">{evento.canton_nombre}, {evento.provincia_nombre}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
+                            {evento.estado_id === 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs text-[#034991] hover:bg-blue-50"
+                                onClick={() => router.visit(route("eventos.inscritos", { idEvento: evento.id_evento }))}
+                              >
+                                <User className="w-3 h-3 mr-1" /> Inscritos
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              title="Ver evento"
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700"
+                              onClick={async () => {
+                                try {
+                                  const res = await axios.get(route("eventos.show", evento.id_evento));
+
+                                  if (res.data.success) {
+                                    setDetalle(res.data.evento);
+                                  }
+                                } catch {
+                                  modal.alerta({
+                                    titulo: "Error",
+                                    mensaje: "No se pudo cargar el detalle del evento",
+                                  });
+                                }
+                              }}
+                            >
+                              <Eye className="w-3.5 mr-1" /> Ver
+                            </Button>
+
+                            {/* Botón Agregar: Solo visible si tiene permisos y está en la lista */}
+                            {puedeGestionar && (
+                              <>
+                                {evento.estado_id !== 1 && (
+                                  <Button size="sm" title="Publicar evento" onClick={() => publicarEvento(evento)}>
+                                    <Play className="w-3 mr-1" /> Publicar
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="outline" title="Editar evento" className="border-slate-300" onClick={() => editarEvento(evento)}>
+                                  <Edit3 className="w-3.5 mr-1" /> Editar
+                                </Button>
+                                <Button size="sm" variant="destructive" title="Inactivar evento" onClick={() => inactivarEvento(evento)}>
+                                  <Trash2 className="w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-500 py-10">
+                        No se encontraron eventos que coincidan con los filtros aplicados.
                       </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* PAGINACIÓN ESTILO  */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+
+                  {/* IZQUIERDA */}
+                  <div>
+                    Mostrando {eventosPaginados.length} de {eventosFiltrados.length} eventos
+                  </div>
+
+                  {/* DERECHA */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPaginaActual(paginaActual - 1)}
+                      disabled={paginaActual === 1}
+                    >
+                      Anterior
+                    </Button>
+
+                    <div className="flex items-center px-4 font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 shadow-sm">
+                      {paginaActual} / {totalPaginas || 1}
                     </div>
 
-                    {/* Grid de campos */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPaginaActual(paginaActual + 1)}
+                      disabled={paginaActual === totalPaginas || totalPaginas === 0}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
 
-                      {/* Título y Modalidad */}
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Título del evento <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <input
-                          value={formEvento.titulo}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, titulo: filtrarTextoEvento(e.target.value, 100) }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
-                          placeholder="Ej: Jornada de Vinculación Profesional"
-                        />
-                        {erroresForm.titulo && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.titulo}</p>}
-                      </div>
+                </div>
+              </main>
+            </div >
 
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Modalidad <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <select
-                          value={formEvento.id_modalidad}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, id_modalidad: e.target.value }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.id_modalidad ? "border-[#CD1719]" : "border-slate-300"}`}
-                        >
-                          <option value="">Seleccione</option>
-                          {(props.modalidades ?? []).map((m) => (
-                            <option key={m.id_modalidad} value={m.id_modalidad}>{m.nombre}</option>
-                          ))}
-                        </select>
-                        {erroresForm.id_modalidad && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_modalidad}</p>}
-                      </div>
+          ) : (
+            <div className="w-full animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="grid grid-cols-12">
 
-                      {/* DescripciÃ³n */}
-                      <div className="md:col-span-3">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Descripción del evento <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <textarea
-                          value={formEvento.descripcion}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, descripcion: filtrarTextoEvento(e.target.value, 500) }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.descripcion ? "border-[#CD1719]" : "border-slate-300"}`}
-                          rows={3}
-                          placeholder="Detalle los objetivos y actividades del evento..."
-                        />
-                        {erroresForm.descripcion && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.descripcion}</p>}
+                  {/* SIDEBAR INFORMATIVO (Estilo Cursos/Ofertas) */}
+                  <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8 flex flex-col items-center">
+                    <div className="flex flex-col items-center text-center mb-10">
+                      <div className="relative p-4 bg-white rounded-full shadow-md mb-4 text-[#034991]">
+                        <CalendarDays className="w-16 h-16" />
                       </div>
+                      <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                        Gestión de Eventos
+                      </h3>
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">
+                        Módulo de Vinculación
+                      </span>
+                    </div>
 
-                      {/* Fecha, Hora y Ubicación */}
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Fecha del evento <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          min={new Date().toISOString().split('T')[0]}
-                          value={formEvento.fecha_evento}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, fecha_evento: e.target.value }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_evento ? "border-[#CD1719]" : "border-slate-300"}`}
-                        />
-                        {erroresForm.fecha_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_evento}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Hora de inicio <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <input
-                          type="time"
-                          value={formEvento.hora_evento}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, hora_evento: e.target.value }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.hora_evento ? "border-[#CD1719]" : "border-slate-300"}`}
-                        />
-                        {erroresForm.hora_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.hora_evento}</p>}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Límite de cupos
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          value={formEvento.cupos ?? ""}
-                          onChange={(e) =>
-                            setFormEvento((prev) => ({
-                              ...prev,
-                              cupos: e.target.value,
-                            }))
-                          }
-                          className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                          placeholder="Ej: 50"
-                        />
-                        <p className="text-gray-400 text-[11px] mt-1 italic font-medium">
-                          Déjelo vacío para eventos sin límite de cupos.
+                    <div className="hidden md:block space-y-4">
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <p className="text-xs text-[#034991] font-medium leading-relaxed">
+                          {formMode === 'create'
+                            ? "Estás registrando un nuevo evento. Asegúrate de definir la ubicación y las carreras invitadas correctamente."
+                            : "Estás editando la información de un evento. Los cambios se actualizarán en el calendario de los interesados."}
                         </p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Ubicación / Cantón <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <select
-                          value={formEvento.id_ubicacion}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, id_ubicacion: e.target.value }))}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.id_ubicacion ? "border-[#CD1719]" : "border-slate-300"}`}
-                        >
-                          <option value="">Seleccione</option>
-                          {(props.ubicaciones ?? []).map((u) => (
-                            <option key={u.id_canton} value={u.id_canton}>{u.nombre}</option>
-                          ))}
-                        </select>
-                        {erroresForm.id_ubicacion && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_ubicacion}</p>}
+
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <p className="text-[11px] text-slate-500 font-medium uppercase mb-2 tracking-wider">Recordatorio</p>
+                        <ul className="text-xs text-slate-600 space-y-2 list-disc list-inside">
+                          <li>Define la modalidad</li>
+                          <li>Selecciona carreras</li>
+                          <li>Indica el tipo de público</li>
+                        </ul>
                       </div>
+                      {/* NAVEGACIÓN DE PASOS INTEGRADA */}
+                      <nav className="pt-4 space-y-1">
+                        {pasosEvento.map((p) => {
+                          const active = pasoActual === p;
+
+                          return (
+                            <button
+                              key={p}
+                              onClick={() => setPasoActual(p)}
+                              className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
+                                  ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                  : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
+                                }`}
+                            >
+                              <div
+                                className={`mr-3 transition-colors ${active
+                                    ? "text-[#034991]"
+                                    : "text-gray-400 group-hover:text-[#034991]"
+                                  }`}
+                              >
+                                {/* Iconos adaptados a los pasos de Eventos */}
+                                {p === "general" && <Briefcase className="w-5 h-5" />}
+                                {p === "detalles" && <FileText className="w-5 h-5" />}
+                                {p === "publicacion" && <Calendar className="w-5 h-5" />}
+                              </div>
+
+                              <span className="capitalize">
+                                {p.replace("publicacion", "publicación")}
+                              </span>
+
+                              {active && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#034991]"></div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </nav>
+                    </div>
+                  </aside>
+
+                  {/* CUERPO DEL FORMULARIO */}
+                  <section className="col-span-12 md:col-span-9 p-6 md:p-10 flex flex-col">
+                    <div className="flex-grow space-y-6">
+                      {/* Encabezado interno */}
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h2 className="text-xl font-bold text-slate-800">
+                            {pasoActual === "general"
+                              ? "Información General del Evento"
+                              : pasoActual === "detalles"
+                                ? "Detalles y Ubicación"
+                                : "Publicación y Audiencia"}
+                          </h2>
+
+                          <p className="text-gray-500 text-sm mt-1">
+                            {pasoActual === "general"
+                              ? "Define el título, descripción y modalidad del evento."
+                              : pasoActual === "detalles"
+                                ? "Especifica la fecha, hora y ubicación del evento."
+                                : "Selecciona las carreras invitadas y el público objetivo."}
+                          </p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            {formMode === 'create'
+                              ? "Complete los campos para publicar el nuevo evento en el sistema."
+                              : "Actualice la información necesaria del evento seleccionado."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Grid de campos */}
+                      {pasoActual === "general" && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+
+                          {/* Título y Modalidad */}
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Título del evento <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <input
+                              value={formEvento.titulo}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, titulo: filtrarTextoEvento(e.target.value, 100) }));
+                                limpiarErroresEvento("titulo");
+                              }}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
+                              placeholder="Ej: Jornada de Vinculación Profesional"
+                            />
+                            {erroresForm.titulo && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.titulo}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Modalidad <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <select
+                              value={formEvento.id_modalidad}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, id_modalidad: e.target.value }));
+                                limpiarErroresEvento("id_modalidad");
+                              }}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.id_modalidad ? "border-[#CD1719]" : "border-slate-300"}`}
+                            >
+                              <option value="">Seleccione</option>
+                              {(props.modalidades ?? []).map((m) => (
+                                <option key={m.id_modalidad} value={m.id_modalidad}>{m.nombre}</option>
+                              ))}
+                            </select>
+                            {erroresForm.id_modalidad && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_modalidad}</p>}
+                          </div>
+
+                          {/* DescripciÃ³n */}
+                          <div className="md:col-span-3">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Descripción del evento <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <textarea
+                              value={formEvento.descripcion}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, descripcion: filtrarTextoEvento(e.target.value, 500) }));
+                                limpiarErroresEvento("descripcion");
+                              }}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.descripcion ? "border-[#CD1719]" : "border-slate-300"}`}
+                              rows={3}
+                              placeholder="Detalle los objetivos y actividades del evento..."
+                            />
+                            {erroresForm.descripcion && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.descripcion}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {pasoActual === "detalles" && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+                          {/* Fecha, Hora y Ubicación */}
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Fecha del evento <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <input
+                              type="date"
+                              min={new Date().toISOString().split('T')[0]}
+                              value={formEvento.fecha_evento}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, fecha_evento: e.target.value }));
+                                limpiarErroresEvento("fecha_evento");
+                              }}
+                              // 1. Bloquea el teclado
+                              onKeyDown={(e) => e.preventDefault()} 
+                              // 2. Abre el calendario al hacer clic en cualquier parte del input
+                              onClick={(e) => e.currentTarget.showPicker()}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_evento ? "border-[#CD1719]" : "border-slate-300"}`}
+                            />
+                            {erroresForm.fecha_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_evento}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Hora de inicio <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <input
+                              type="time"
+                              value={formEvento.hora_evento}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, hora_evento: e.target.value }));
+                                limpiarErroresEvento("hora_evento");
+                              }}
+                              // 1. Bloquea el teclado
+                              onKeyDown={(e) => e.preventDefault()} 
+                              // 2. Abre el calendario al hacer clic en cualquier parte del input
+                              onClick={(e) => e.currentTarget.showPicker()}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.hora_evento ? "border-[#CD1719]" : "border-slate-300 dark:[&::-webkit-calendar-picker-indicator]:invert"}`}
+                            />
+                            {erroresForm.hora_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.hora_evento}</p>}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Límite de cupos
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={formEvento.cupos ?? ""}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({
+                                  ...prev,
+                                  cupos: e.target.value,
+                                }));
+                                limpiarErroresEvento("cupos");
+                              }}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                              placeholder="Ej: 50"
+                            />
+                            <p className="text-gray-400 text-[11px] mt-1 italic font-medium">
+                              Déjelo vacío para eventos sin límite de cupos.
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              País <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <select
+                              value={formEvento.id_pais}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, id_pais: e.target.value }));
+                                limpiarErroresEvento("id_pais");
+                              }}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.id_pais ? "border-[#CD1719]" : "border-slate-300"}`}
+                            >
+                              <option value="">Seleccione país</option>
+                              {paises.map((p) => (
+                                <option key={p.id_pais} value={p.id_pais}>{p.nombre}</option>
+                              ))}
+                            </select>
+                            {erroresForm.id_pais && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_pais}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Provincia <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <select
+                              value={formEvento.id_provincia}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, id_provincia: e.target.value }));
+                                limpiarErroresEvento("id_provincia");
+                              }}
+                              disabled={!formEvento.id_pais || cargandoProvincias}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                                !formEvento.id_pais ? "bg-gray-100 cursor-not-allowed opacity-50" : ""
+                              } ${erroresForm.id_provincia ? "border-[#CD1719]" : "border-slate-300"}`}
+                            >
+                              <option value="">{cargandoProvincias ? "Cargando..." : "Seleccione provincia"}</option>
+                              {provincias.map((p) => (
+                                <option key={p.id_provincia} value={p.id_provincia}>{p.nombre}</option>
+                              ))}
+                            </select>
+                            {erroresForm.id_provincia && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_provincia}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Cantón <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <select
+                              value={formEvento.id_ubicacion}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, id_ubicacion: e.target.value }));
+                                limpiarErroresEvento("id_ubicacion");
+                              }}
+                              disabled={!formEvento.id_provincia || cargandoCantones}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                                !formEvento.id_provincia ? "bg-gray-100 cursor-not-allowed opacity-50" : ""
+                              } ${erroresForm.id_ubicacion ? "border-[#CD1719]" : "border-slate-300"}`}
+                            >
+                              <option value="">{cargandoCantones ? "Cargando..." : "Seleccione cantón"}</option>
+                              {cantones.map((c) => (
+                                <option key={c.id_canton} value={c.id_canton}>{c.nombre}</option>
+                              ))}
+                            </select>
+                            {erroresForm.id_ubicacion && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.id_ubicacion}</p>}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Carreras y Roles (Multi-selects con estilo alineado) */}
-                      <div className="md:col-span-2 relative" ref={carrerasDropdownRef}>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Carreras invitadas <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setCarrerasOpen((prev) => !prev)}
-                          className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${erroresForm.carrerasInvitadas ? "border-[#CD1719] bg-red-50" : "border-slate-300 bg-white"}`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2 min-h-[46px]">
-                            {formEvento.carrerasInvitadas.length === 0 ? (
-                              <span className="text-slate-400">Seleccione las opciones</span>
-                            ) : (
-                              formEvento.carrerasInvitadas.map((carreraId) => {
-                                const item = props.carreras.find((c) => String(c.id_carrera) === carreraId);
-                                return item ? (
-                                  <span key={carreraId} className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium">
-                                    {item.nombre}
-                                  </span>
-                                ) : null;
-                              })
+                      {pasoActual === "publicacion" && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+                          <div className="md:col-span-2 relative" ref={carrerasDropdownRef}>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Carreras invitadas <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setCarrerasOpen((prev) => !prev)}
+                              className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${erroresForm.carrerasInvitadas ? "border-[#CD1719] bg-red-50" : "border-slate-300 bg-white"}`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2 min-h-[46px]">
+                                {formEvento.carrerasInvitadas.length === 0 ? (
+                                  <span className="text-slate-400">Seleccione las opciones</span>
+                                ) : (
+                                  formEvento.carrerasInvitadas.map((carreraId) => {
+                                    const item = props.carreras.find((c) => String(c.id_carrera) === carreraId);
+                                    return item ? (
+                                      <span key={carreraId} className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium">
+                                        {item.nombre}
+                                      </span>
+                                    ) : null;
+                                  })
+                                )}
+                              </div>
+                              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <ChevronDown className="w-4 h-4" />
+                              </div>
+                            </button>
+
+                            {carrerasOpen && (
+                              <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl max-h-72 overflow-auto p-3">
+                                {(props.carreras ?? []).map((carrera) => {
+                                  const seleccionado = formEvento.carrerasInvitadas.includes(String(carrera.id_carrera));
+                                  return (
+                                    <div
+                                      key={carrera.id_carrera}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() => toggleCarrera(String(carrera.id_carrera))}
+                                      onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                          event.preventDefault();
+                                          toggleCarrera(String(carrera.id_carrera));
+                                        }
+                                      }}
+                                      className="w-full text-left rounded-xl px-3 py-2 transition-colors hover:bg-slate-100 flex items-center gap-3 cursor-pointer"
+                                    >
+                                      <Checkbox checked={seleccionado} onCheckedChange={() => toggleCarrera(String(carrera.id_carrera))} />
+                                      <span className="text-sm text-slate-700">{carrera.nombre}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {erroresForm.carrerasInvitadas && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.carrerasInvitadas}</p>}
+                          </div>
+
+                          <div className="md:col-span-1 relative" ref={rolesDropdownRef}>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Público objetivo <span className="text-[#CD1719]">*</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setRolesOpen((prev) => !prev)}
+                              className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${erroresForm.rolesInteresados ? "border-[#CD1719] bg-red-50" : "border-slate-300 bg-white"}`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2 min-h-[46px]">
+                                {formEvento.rolesInteresados.length === 0 ? (
+                                  <span className="text-slate-400">Seleccione las opciones</span>
+                                ) : (
+                                  formEvento.rolesInteresados.map((rolId) => {
+                                    const item = props.roles.find((r) => String(r.id_rol) === rolId);
+                                    return item ? (
+                                      <span key={rolId} className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs font-medium">
+                                        {item.nombre_rol}
+                                      </span>
+                                    ) : null;
+                                  })
+                                )}
+                              </div>
+                              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <ChevronDown className="w-4 h-4" />
+                              </div>
+                            </button>
+
+                            {rolesOpen && (
+                              <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl max-h-72 overflow-auto p-3">
+                                {(props.roles ?? []).map((rol) => {
+                                  const seleccionado = formEvento.rolesInteresados.includes(String(rol.id_rol));
+                                  return (
+                                    <div
+                                      key={rol.id_rol}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() => toggleRol(String(rol.id_rol))}
+                                      onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                          event.preventDefault();
+                                          toggleRol(String(rol.id_rol));
+                                        }
+                                      }}
+                                      className="w-full text-left rounded-xl px-3 py-2 transition-colors hover:bg-slate-100 flex items-center gap-3 cursor-pointer"
+                                    >
+                                      <Checkbox checked={seleccionado} onCheckedChange={() => toggleRol(String(rol.id_rol))} />
+                                      <span className="text-sm text-slate-700">{rol.nombre_rol}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {erroresForm.rolesInteresados && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.rolesInteresados}</p>}
+                          </div>
+
+                          {/* Observaciones */}
+                          <div className="md:col-span-3">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Otras observaciones
+                            </label>
+                            <textarea
+                              value={formEvento.otras_observaciones}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({ ...prev, otras_observaciones: filtrarTextoEvento(e.target.value, 500) }));
+                                limpiarErroresEvento("otras_observaciones");
+                              }}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                              rows={2}
+                              placeholder="Dirección exacta, enlaces de reunión o requisitos adicionales..."
+                            />
+                            {formMode === 'create' && (
+                              <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
                             )}
                           </div>
-                          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                            <ChevronDown className="w-4 h-4" />
-                          </div>
-                        </button>
-
-                        {carrerasOpen && (
-                          <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl max-h-72 overflow-auto p-3">
-                            {(props.carreras ?? []).map((carrera) => {
-                              const seleccionado = formEvento.carrerasInvitadas.includes(String(carrera.id_carrera));
-                              return (
-                                <div
-                                  key={carrera.id_carrera}
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => toggleCarrera(String(carrera.id_carrera))}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter' || event.key === ' ') {
-                                      event.preventDefault();
-                                      toggleCarrera(String(carrera.id_carrera));
-                                    }
-                                  }}
-                                  className="w-full text-left rounded-xl px-3 py-2 transition-colors hover:bg-slate-100 flex items-center gap-3 cursor-pointer"
-                                >
-                                  <Checkbox checked={seleccionado} onCheckedChange={() => toggleCarrera(String(carrera.id_carrera))} />
-                                  <span className="text-sm text-slate-700">{carrera.nombre}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        {erroresForm.carrerasInvitadas && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.carrerasInvitadas}</p>}
-                      </div>
-
-                      <div className="md:col-span-1 relative" ref={rolesDropdownRef}>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Público objetivo <span className="text-[#CD1719]">*</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setRolesOpen((prev) => !prev)}
-                          className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${erroresForm.rolesInteresados ? "border-[#CD1719] bg-red-50" : "border-slate-300 bg-white"}`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2 min-h-[46px]">
-                            {formEvento.rolesInteresados.length === 0 ? (
-                              <span className="text-slate-400">Seleccione las opciones</span>
-                            ) : (
-                              formEvento.rolesInteresados.map((rolId) => {
-                                const item = props.roles.find((r) => String(r.id_rol) === rolId);
-                                return item ? (
-                                  <span key={rolId} className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs font-medium">
-                                    {item.nombre_rol}
-                                  </span>
-                                ) : null;
-                              })
-                            )}
-                          </div>
-                          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                            <ChevronDown className="w-4 h-4" />
-                          </div>
-                        </button>
-
-                        {rolesOpen && (
-                          <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl max-h-72 overflow-auto p-3">
-                            {(props.roles ?? []).map((rol) => {
-                              const seleccionado = formEvento.rolesInteresados.includes(String(rol.id_rol));
-                              return (
-                                <div
-                                  key={rol.id_rol}
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => toggleRol(String(rol.id_rol))}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter' || event.key === ' ') {
-                                      event.preventDefault();
-                                      toggleRol(String(rol.id_rol));
-                                    }
-                                  }}
-                                  className="w-full text-left rounded-xl px-3 py-2 transition-colors hover:bg-slate-100 flex items-center gap-3 cursor-pointer"
-                                >
-                                  <Checkbox checked={seleccionado} onCheckedChange={() => toggleRol(String(rol.id_rol))} />
-                                  <span className="text-sm text-slate-700">{rol.nombre_rol}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        {erroresForm.rolesInteresados && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.rolesInteresados}</p>}
-                      </div>
-
-                      {/* Observaciones */}
-                      <div className="md:col-span-3">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                          Otras observaciones
-                        </label>
-                        <textarea
-                          value={formEvento.otras_observaciones}
-                          onChange={(e) => setFormEvento((prev) => ({ ...prev, otras_observaciones: filtrarTextoEvento(e.target.value, 500) }))}
-                          className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                          rows={2}
-                          placeholder="Dirección exacta, enlaces de reunión o requisitos adicionales..."
-                        />
-                        {formMode === 'create' && (
-                          <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
 
-                  {/* FOOTER DE BOTONES */}
-                  <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end gap-3">
-                    <Button
-                      variant="ghost"
-                      onClick={cerrarFormularioEvento}
-                      className="text-slate-500 hover:bg-slate-100 px-8 rounded-full transition-colors font-medium"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={submitFormularioEvento}
-                      disabled={isSubmitting}
-                      className={`bg-[#034991] text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold ${isSubmitting ? 'opacity-60 cursor-not-allowed hover:bg-[#034991]' : 'hover:bg-blue-800'}`}
-                    >
-                      {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar evento" : "Guardar cambios"}
-                    </Button>
-                  </div>
-                </section>
+                    {/* FOOTER DE BOTONES */}
+                    <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end gap-3">
+                      {/* BOTÓN VOLVER */}
+                      <Button
+                        variant="ghost"
+                        onClick={pasoActual === "general" ? cerrarFormularioEvento : irAlPasoAnterior}
+                        className="text-slate-500 hover:bg-slate-100 px-8 rounded-full font-medium"
+                      >
+                        {pasoActual === "general" ? "Cancelar" : "Anterior"}
+                      </Button>
+
+                      {/* BOTÓN DERECHO DINÁMICO */}
+                      {pasoActual !== "publicacion" ? (
+                        <Button
+                          onClick={irAlPasoSiguiente}
+                          className="bg-[#034991] text-white px-10 rounded-full shadow-lg font-semibold hover:bg-blue-800"
+                        >
+                          Siguiente
+                        </Button>
+                        ) : (
+                      <Button
+                        onClick={submitFormularioEvento}
+                        disabled={isSubmitting}
+                        className={`bg-[#034991] text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold ${isSubmitting ? 'opacity-60 cursor-not-allowed hover:bg-[#034991]' : 'hover:bg-blue-800'}`}
+                      >
+                        {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar evento" : "Guardar cambios"}
+                      </Button>
+                      )}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* MODAL CONFIRMACIÓN SALIDA */}
+        {mostrarConfirmacionSalida && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+              <div className="bg-amber-50 p-6 border-b border-amber-200">
+                <h2 className="font-bold text-lg text-amber-900">Confirmar salida</h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-slate-700">
+                  Está seguro que desea salir, se perderán todos los datos ingresados.
+                </p>
+                <div className="flex gap-3 justify-end pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => confirmarSalida(false)}
+                    className="border-slate-300"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => confirmarSalida(true)}
+                    className="bg-[#CD1719] hover:bg-red-700"
+                  >
+                    Salir sin guardar
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
-      {detalle && (
-        <EventoDetalleModal
-          detalle={detalle}
-          onClose={() => setDetalle(null)}
-        />
-      )}
-    </>
+        {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
+        {detalle && (
+          <EventoDetalleModal
+            detalle={detalle}
+            onClose={() => setDetalle(null)}
+          />
+        )}
+      </>
+    );
+  }
+
+  EventosIndex.layout = (page: any) => (
+    <PpLayout userPermisos={page.props.userPermisos}>
+      {page}
+    </PpLayout>
   );
-}
-
-EventosIndex.layout = (page: any) => (
-  <PpLayout userPermisos={page.props.userPermisos}>
-    {page}
-  </PpLayout>
-);
