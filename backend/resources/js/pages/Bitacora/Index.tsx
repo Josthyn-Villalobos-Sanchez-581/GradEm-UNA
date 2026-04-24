@@ -27,13 +27,12 @@ interface Props {
         }[];
     };
 
+    operaciones: string[];
+
     estadisticas: {
         total: number;
-        insert: number;
-        update: number;
-        delete: number;
         hoy: number;
-        otros: number;
+        por_operacion: Record<string, number>;
     };
 
     filtros: {
@@ -51,37 +50,31 @@ interface Props {
 /* =========================
    BADGE OPERACIÓN
 ========================= */
+const coloresBadge: Record<string, string> = {
+    crear: "bg-green-100 text-green-700",
+    actualizar: "bg-yellow-100 text-yellow-800",
+    eliminar: "bg-red-100 text-red-700",
+    estado: "bg-blue-100 text-blue-700",
+    asignar: "bg-purple-100 text-purple-700",
+    desasignar: "bg-pink-100 text-pink-700",
+    otros: "bg-gray-100 text-gray-700",
+};
+
 const BadgeOperacion = ({ operacion }: { operacion: string }) => {
     const base = "px-3 py-1 text-xs font-semibold rounded-full";
+    const color = coloresBadge[operacion.toLowerCase()] || "bg-gray-100 text-gray-700";
 
-    switch (operacion) {
-        case "crear":
-            return <span className={`${base} bg-green-100 text-green-700`}>CREAR</span>;
-
-        case "actualizar":
-            return <span className={`${base} bg-yellow-100 text-yellow-800`}>ACTUALIZAR</span>;
-
-        case "eliminar":
-            return <span className={`${base} bg-red-100 text-red-700`}>ELIMINAR</span>;
-
-        case "estado":
-            return <span className={`${base} bg-blue-100 text-blue-700`}>ESTADO</span>;
-
-        case "asignar":
-            return <span className={`${base} bg-purple-100 text-purple-700`}>ASIGNAR</span>;
-
-        case "desasignar":
-            return <span className={`${base} bg-pink-100 text-pink-700`}>DESASIGNAR</span>;
-
-        default:
-            return <span className={`${base} bg-gray-100`}>{operacion}</span>;
-    }
+    return (
+        <span className={`${base} ${color}`}>
+            {operacion.toUpperCase()}
+        </span>
+    );
 };
 
 /* =========================
    COMPONENTE
 ========================= */
-export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props) {
+export default function BitacoraIndex({ bitacora, estadisticas, filtros, operaciones }: Props) {
 
     const data = bitacora.data;
     const links = bitacora.links;
@@ -98,6 +91,9 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
        FILTROS
     ========================= */
     const aplicarFiltros = () => {
+
+        if (!validarFechas()) return;
+
         router.get(
             route("auditoria.bitacora.index"),
             {
@@ -120,6 +116,16 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
         router.get(route("auditoria.bitacora.index"));
     };
 
+    const validarFechas = (): boolean => {
+        if (fechaInicio && fechaFin && fechaFin < fechaInicio) {
+            alert("La fecha fin no puede ser menor que la fecha inicio");
+            return false;
+        }
+        return true;
+    };
+
+    const LIMITE_BUSQUEDA = 100;
+
     /* =========================
        RENDER
     ========================= */
@@ -130,7 +136,7 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
             <div className="max-full w-full mx-auto px-6 py-6 text-[#000]">
 
                 {/* HEADER */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                     <div>
                         <h1 className="text-2xl font-bold text-[#034991] tracking-tight flex items-center gap-3">
                             Bitácora del sistema
@@ -168,62 +174,72 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
                     </div>
                 </header>
 
-                {/* =========================
-                ESTADÍSTICAS
-                ========================= */}
-                {/* =========================
-    ESTADÍSTICAS
-========================= */}
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                {/* SIDEBAR */}
+                <div className="flex justify-end mb-3">
+                    <div className="flex flex-col items-end gap-2">
 
-                    {/* TOTAL */}
-                    <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-                        <p className="text-xs text-slate-400 uppercase font-bold">Total</p>
-                        <p className="text-2xl font-extrabold text-[#034991]">
-                            {estadisticas.total}
-                        </p>
+                        {/* TÍTULO */}
+                        <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">
+                            Estadísticas
+                        </span>
+
+                        {/* CONTENEDOR PÍLDORAS */}
+                        <div className="flex flex-wrap justify-end gap-2">
+
+                            {/* TOTAL */}
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold text-xs shadow-sm">
+                                <span className="uppercase opacity-70">
+                                    Total
+                                </span>
+
+                                <span className="bg-white/70 px-2 py-0.5 rounded-full font-bold">
+                                    {estadisticas.total}
+                                </span>
+                            </div>
+
+                            {/* HOY */}
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-semibold text-xs shadow-sm">
+                                <span className="uppercase opacity-70">
+                                    Hoy
+                                </span>
+
+                                <span className="bg-white/70 px-2 py-0.5 rounded-full font-bold">
+                                    {estadisticas.hoy}
+                                </span>
+                            </div>
+
+                            {/* DINÁMICOS */}
+                            {Object.entries(estadisticas.por_operacion).map(([op, total]) => {
+                                const estilos = {
+                                    crear: "bg-green-100 text-green-800",
+                                    actualizar: "bg-yellow-100 text-yellow-800",
+                                    eliminar: "bg-red-100 text-red-800",
+                                    estado: "bg-blue-100 text-blue-800",
+                                    asignar: "bg-purple-100 text-purple-800",
+                                    desasignar: "bg-pink-100 text-pink-800",
+                                    otros: "bg-gray-100 text-gray-800",
+                                } as const;
+
+                                const estilo = estilos[op as keyof typeof estilos] || estilos.otros;
+
+                                return (
+                                    <div
+                                        key={op}
+                                        className={`flex items-center gap-2 px-3 py-1 rounded-full font-semibold text-xs shadow-sm ${estilo}`}
+                                    >
+                                        <span className="uppercase opacity-70">
+                                            {op}
+                                        </span>
+
+                                        <span className="bg-white/70 px-2 py-0.5 rounded-full font-bold">
+                                            {total}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+
+                        </div>
                     </div>
-
-                    {/* CREAR */}
-                    <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
-                        <p className="text-xs text-green-600 uppercase font-bold">Crear</p>
-                        <p className="text-2xl font-extrabold text-green-700">
-                            {estadisticas.insert}
-                        </p>
-                    </div>
-
-                    {/* ACTUALIZAR */}
-                    <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4">
-                        <p className="text-xs text-yellow-600 uppercase font-bold">Actualizar</p>
-                        <p className="text-2xl font-extrabold text-yellow-700">
-                            {estadisticas.update}
-                        </p>
-                    </div>
-
-                    {/* ELIMINAR */}
-                    <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
-                        <p className="text-xs text-red-600 uppercase font-bold">Eliminar</p>
-                        <p className="text-2xl font-extrabold text-red-700">
-                            {estadisticas.delete}
-                        </p>
-                    </div>
-
-                    {/* OTROS */}
-                    <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
-                        <p className="text-xs text-purple-600 uppercase font-bold">Otros</p>
-                        <p className="text-2xl font-extrabold text-purple-700">
-                            {estadisticas.otros}
-                        </p>
-                    </div>
-
-                    {/* HOY */}
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                        <p className="text-xs text-blue-600 uppercase font-bold">Hoy</p>
-                        <p className="text-2xl font-extrabold text-blue-700">
-                            {estadisticas.hoy}
-                        </p>
-                    </div>
-
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -253,7 +269,14 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
                                             <input
                                                 type="text"
                                                 value={busqueda}
-                                                onChange={(e) => setBusqueda(e.target.value)}
+                                                maxLength={LIMITE_BUSQUEDA}
+                                                onChange={(e) => {
+                                                    const valor = e.target.value;
+
+                                                    if (valor.length <= LIMITE_BUSQUEDA) {
+                                                        setBusqueda(valor);
+                                                    }
+                                                }}
                                                 placeholder="Tabla, usuario o descripción..."
                                                 className="border border-gray-300 rounded-lg pl-9 pr-3 py-2 bg-white shadow-sm focus:ring-2 focus:ring-[#034991] w-full"
                                             />
@@ -269,12 +292,15 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
                                             className="border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm focus:ring-2 focus:ring-[#034991]"
                                         >
                                             <option value="">Todas</option>
-                                            <option value="crear">Crear</option>
-                                            <option value="actualizar">Actualizar</option>
-                                            <option value="eliminar">Eliminar</option>
-                                            <option value="estado">Estado</option>
-                                            <option value="asignar">Asignar</option>
-                                            <option value="desasignar">Desasignar</option>
+                                            {operaciones.map((op) => {
+                                                const valor = op.toLowerCase();
+
+                                                return (
+                                                    <option key={op} value={valor}>
+                                                        {op.toUpperCase()}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
@@ -289,6 +315,7 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
                                                 <input
                                                     type="date"
                                                     value={fechaInicio}
+                                                    max={fechaFin || undefined}
                                                     onChange={(e) => setFechaInicio(e.target.value)}
                                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm focus:ring-2 focus:ring-[#034991]"
                                                 />
@@ -299,6 +326,7 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros }: Props
                                                 <input
                                                     type="date"
                                                     value={fechaFin}
+                                                    min={fechaInicio || undefined}
                                                     onChange={(e) => setFechaFin(e.target.value)}
                                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm focus:ring-2 focus:ring-[#034991]"
                                                 />
