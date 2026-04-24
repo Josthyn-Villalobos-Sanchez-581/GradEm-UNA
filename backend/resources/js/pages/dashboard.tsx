@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sparkles,
   ChevronRight,
-  Bookmark
+  Bookmark,
+  PlusCircle
 } from "lucide-react";
 
 /* =========================
@@ -53,6 +54,18 @@ export default function Dashboard() {
       bg: "bg-red-50",
       borderColor: "hover:border-red-200"
     },
+
+    // Crear oferta
+    permisos.includes(5) && {
+      title: "CREAR OFERTA",
+      desc: "Publica una nueva oportunidad laboral.",
+      href: "/empresa/ofertas/crear",
+      icon: PlusCircle,
+      color: "text-black",
+      bg: "bg-green-100",
+      borderColor: "hover:border-red-300"
+    },
+
 
     // ESTUDIANTE / EGRESADO → ver y postular
     permisos.includes(6) && {
