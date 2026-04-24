@@ -426,7 +426,23 @@ public function contarInscritos(int $idEvento): int
  */
 public function crearInscripcion(array $data): void
 {
-    DB::table('inscripciones_evento')->insert($data);
+    $existente = DB::table('inscripciones_evento')
+        ->where('id_evento', $data['id_evento'])
+        ->where('id_usuario', $data['id_usuario'])
+        ->first();
+
+    if ($existente) {
+        // Reactivar inscripción cancelada
+        DB::table('inscripciones_evento')
+            ->where('id_evento', $data['id_evento'])
+            ->where('id_usuario', $data['id_usuario'])
+            ->update([
+                'estado_id' => 1,
+                'fecha_inscripcion' => $data['fecha_inscripcion'],
+            ]);
+    } else {
+        DB::table('inscripciones_evento')->insert($data);
+    }
 }
 
 /**
