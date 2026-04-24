@@ -346,6 +346,30 @@ case 'cupos':
     }
 
     /**
+     * Obtener todos los países
+     */
+    public function obtenerPaises()
+    {
+        return $this->eventoRepository->obtenerPaises();
+    }
+
+    /**
+     * Obtener provincias por país
+     */
+    public function obtenerProvinciasPorPais($idPais)
+    {
+        return $this->eventoRepository->obtenerProvinciasPorPais($idPais);
+    }
+
+    /**
+     * Obtener cantones por provincia
+     */
+    public function obtenerCantonePorProvincia($idProvincia)
+    {
+        return $this->eventoRepository->obtenerCantonePorProvincia($idProvincia);
+    }
+
+    /**
      * Obtener carreras para el formulario de eventos
      */
     public function obtenerCarreras()

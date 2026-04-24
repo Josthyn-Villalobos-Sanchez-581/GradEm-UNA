@@ -179,6 +179,41 @@ class EventoRepository
     }
 
     /**
+     * Obtener todos los países
+     */
+    public function obtenerPaises()
+    {
+        return DB::table('paises')
+            ->select('id_pais', 'nombre')
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
+     * Obtener provincias por país
+     */
+    public function obtenerProvinciasPorPais($idPais)
+    {
+        return DB::table('provincias')
+            ->where('id_pais', $idPais)
+            ->select('id_provincia', 'nombre')
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
+     * Obtener cantones por provincia
+     */
+    public function obtenerCantonePorProvincia($idProvincia)
+    {
+        return DB::table('cantones')
+            ->where('id_provincia', $idProvincia)
+            ->select('id_canton', 'nombre')
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
      * Obtener carreras para el formulario de eventos
      */
     public function obtenerCarreras()

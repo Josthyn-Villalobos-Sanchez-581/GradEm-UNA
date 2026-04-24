@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap, Filter, FilterX } from "lucide-react";
+import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap, Filter, FilterX, AlertCircle } from "lucide-react";
 
 /* =======================
    Tipos
@@ -193,12 +193,19 @@ export default function CursosIndex(props: Props) {
     nombreInstructor: "",
   });
   const [erroresForm, setErroresForm] = useState<Record<string, string>>({});
+  const [formCursoInicial, setFormCursoInicial] = useState(formCurso);
+  const [formularioModificado, setFormularioModificado] = useState(false);
+  const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
+
+  useEffect(() => {
+    setFormularioModificado(JSON.stringify(formCurso) !== JSON.stringify(formCursoInicial));
+  }, [formCurso, formCursoInicial]);
 
   const abrirFormularioCurso = (modo: "create" | "edit", curso?: Curso) => {
     setFormMode(modo);
     if (modo === "edit" && curso) {
       setCursoSeleccionado(curso);
-      setFormCurso({
+      const formInicialEdit = {
         titulo: curso.titulo || "",
         descripcion: curso.descripcion || "",
         fecha_inicio: curso.fecha_inicio || "",
@@ -208,10 +215,12 @@ export default function CursosIndex(props: Props) {
         cupos: curso.cupos != null ? String(curso.cupos) : "",
         id_modalidad: String(curso.modalidad?.id_modalidad || curso.id_modalidad || ""),
         nombreInstructor: curso.nombreInstructor || "",
-      });
+      };
+      setFormCursoInicial(formInicialEdit);
+      setFormCurso(formInicialEdit);
     } else {
       setCursoSeleccionado(null);
-      setFormCurso({
+      const formInicialCreate = {
         titulo: "",
         descripcion: "",
         fecha_inicio: "",
@@ -221,7 +230,9 @@ export default function CursosIndex(props: Props) {
         cupos: "",
         id_modalidad: "",
         nombreInstructor: "",
-      });
+      };
+      setFormCursoInicial(formInicialCreate);
+      setFormCurso(formInicialCreate);
     }
     setErroresForm({});
     setDetalleCurso(null);
@@ -229,9 +240,34 @@ export default function CursosIndex(props: Props) {
   };
 
   const cerrarFormularioCurso = () => {
+    if (formularioModificado) {
+      setMostrarConfirmacionSalida(true);
+      return;
+    }
     setView("list");
     setCursoSeleccionado(null);
     setErroresForm({});
+    setFormularioModificado(false);
+  };
+
+  const confirmarSalidaCurso = (confirmado: boolean) => {
+    setMostrarConfirmacionSalida(false);
+    if (confirmado) {
+      setView("list");
+      setCursoSeleccionado(null);
+      setErroresForm({});
+      setFormularioModificado(false);
+    }
+  };
+
+  const limpiarErroresCurso = (nombreCampo: string) => {
+    if (erroresForm[nombreCampo]) {
+      setErroresForm((prev) => {
+        const nuevosErrores = { ...prev };
+        delete nuevosErrores[nombreCampo];
+        return nuevosErrores;
+      });
+    }
   };
 
   const abrirDetalleCurso = (curso: Curso) => {
@@ -865,7 +901,10 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.titulo}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }))}
+                                        onChange={(e) => {
+                                          setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }));
+                                          limpiarErroresCurso("titulo");
+                                        }}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: Fundamentos de React"
                                     />
@@ -878,7 +917,10 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.nombreInstructor}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }))}
+                                        onChange={(e) => {
+                                          setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }));
+                                          limpiarErroresCurso("nombreInstructor");
+                                        }}
                                         className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.nombreInstructor ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                         placeholder="Ej: María López"
                                     />
@@ -892,7 +934,10 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <textarea
                                         value={formCurso.descripcion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }))}
+                                        onChange={(e) => {
+                                          setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }));
+                                          limpiarErroresCurso("descripcion");
+                                        }}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         rows={2}
                                         placeholder="Describa los objetivos del curso..."
@@ -906,7 +951,10 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <select
                                         value={formCurso.id_modalidad}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, id_modalidad: e.target.value }))}
+                                        onChange={(e) => {
+                                          setFormCurso((prev) => ({ ...prev, id_modalidad: e.target.value }));
+                                          limpiarErroresCurso("id_modalidad");
+                                        }}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                     >
                                         <option value="">Seleccione</option>
@@ -925,7 +973,12 @@ export default function CursosIndex(props: Props) {
                                       min={minGlobal}
                                       max={maxGlobal}
                                       value={formCurso.fecha_inicio}
-                                      onChange={(e) => setFormCurso((prev) => ({ ...prev, fecha_inicio: e.target.value }))}
+                                      onChange={(e) => {
+                                        setFormCurso((prev) => ({ ...prev, fecha_inicio: e.target.value }));
+                                        limpiarErroresCurso("fecha_inicio");
+                                      }}
+                                      onKeyDown={(e) => e.preventDefault()} 
+                                      onClick={(e) => e.currentTarget.showPicker()}
                                       className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_inicio ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                   />
                                   {erroresForm.fecha_inicio && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_inicio}</p>}
@@ -938,7 +991,10 @@ export default function CursosIndex(props: Props) {
                                     </label>
                                     <input
                                         value={formCurso.duracion}
-                                        onChange={(e) => setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }))}
+                                        onChange={(e) => {
+                                          setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }));
+                                          limpiarErroresCurso("duracion");
+                                        }}
                                         className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         placeholder="Ej: 4 semanas"
                                     />
@@ -956,12 +1012,13 @@ export default function CursosIndex(props: Props) {
                                       min={1}
                                       step={1}
                                       value={formCurso.cupos}
-                                      onChange={(e) =>
+                                      onChange={(e) => {
                                         setFormCurso((prev) => ({
                                           ...prev,
                                           cupos: e.target.value.replace(/\D/g, ""),
-                                        }))
-                                      }
+                                        }));
+                                        limpiarErroresCurso("cupos");
+                                      }}
                                       className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
                                         erroresForm.cupos ? "border-[#CD1719] ring-red-50" : "border-slate-300"
                                       }`}
@@ -985,7 +1042,12 @@ export default function CursosIndex(props: Props) {
                                       min={formCurso.fecha_inicio || minGlobal} 
                                       max={maxGlobal}
                                       value={formCurso.fecha_fin}
-                                      onChange={(e) => setFormCurso((prev) => ({ ...prev, fecha_fin: e.target.value }))}
+                                      onChange={(e) => {
+                                        setFormCurso((prev) => ({ ...prev, fecha_fin: e.target.value }));
+                                        limpiarErroresCurso("fecha_fin");
+                                      }}
+                                      onKeyDown={(e) => e.preventDefault()} 
+                                      onClick={(e) => e.currentTarget.showPicker()}
                                       className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_fin ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
                                   />
                                   {erroresForm.fecha_fin && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_fin}</p>}
@@ -1004,7 +1066,12 @@ export default function CursosIndex(props: Props) {
                                       // Permite seleccionar hasta la fecha de inicio o el tope de 3 años
                                       max={formCurso.fecha_inicio || maxGlobal} 
                                       value={formCurso.fecha_limite_inscripcion}
-                                      onChange={(e) => setFormCurso((prev) => ({ ...prev, fecha_limite_inscripcion: e.target.value }))}
+                                      onChange={(e) => {
+                                        setFormCurso((prev) => ({ ...prev, fecha_limite_inscripcion: e.target.value }));
+                                        limpiarErroresCurso("fecha_limite_inscripcion");
+                                      }}
+                                      onKeyDown={(e) => e.preventDefault()} 
+                                      onClick={(e) => e.currentTarget.showPicker()}
                                       className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white ${
                                           erroresForm.fecha_limite_inscripcion ? "border-[#CD1719] ring-red-50" : "border-slate-300"
                                       }`}
@@ -1110,6 +1177,38 @@ export default function CursosIndex(props: Props) {
                   </Button>
                 )}
               </aside>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMACIÓN SALIDA CON DATOS - CURSOS */}
+      {mostrarConfirmacionSalida && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="bg-amber-50 p-6 border-b border-amber-200">
+              <h2 className="font-bold text-lg text-amber-900">Confirmar salida</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">
+                Está seguro que desea salir, se perderán todos los datos ingresados.
+              </p>
+              <div className="flex gap-3 justify-end pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => confirmarSalidaCurso(false)}
+                  className="border-slate-300"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => confirmarSalidaCurso(true)}
+                  className="bg-[#CD1719] hover:bg-red-700"
+                >
+                  Salir sin guardar
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -46,6 +46,7 @@ class EventoController extends Controller
             // FK necesarias para frontend
             'modalidades' => $this->service->obtenerModalidades(),
             'ubicaciones' => $this->service->obtenerUbicaciones(),
+            'paises' => $this->service->obtenerPaises(),
             'carreras' => $this->service->obtenerCarreras(),
             'roles' => $this->service->obtenerRolesInteresados(),
 
@@ -284,6 +285,39 @@ class EventoController extends Controller
         return response()->json([
             'mensaje' => 'Recordatorios enviados correctamente',
             'enviados' => $enviados,
+        ]);
+    }
+
+    /**
+     * API: Obtener países para cascada de ubicación
+     */
+    public function obtenerPaises(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerPaises(),
+        ]);
+    }
+
+    /**
+     * API: Obtener provincias por país
+     */
+    public function obtenerProvinciasPorPais(int $idPais): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerProvinciasPorPais($idPais),
+        ]);
+    }
+
+    /**
+     * API: Obtener cantones por provincia
+     */
+    public function obtenerCantonePorProvincia(int $idProvincia): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerCantonePorProvincia($idProvincia),
         ]);
     }
 
