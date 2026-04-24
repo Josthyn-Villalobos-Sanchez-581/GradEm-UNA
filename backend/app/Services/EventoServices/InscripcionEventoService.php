@@ -173,7 +173,7 @@ public function obtenerEventosParaInscripcion(int $idCarrera, int $idRol): array
 
 public function obtenerEventoParaInscripcionPorId(int $idEvento)
 {
-    return $this->repository->obtenerEventoParaInscripcionPorId($idEvento);
+    return $this->repository->obtenerEventoCompleto($idEvento);
 }
 public function obtenerMisEventos(int $idUsuario): array
 {

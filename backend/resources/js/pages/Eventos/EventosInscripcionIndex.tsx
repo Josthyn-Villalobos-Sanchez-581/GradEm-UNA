@@ -3,6 +3,7 @@ import { Head, usePage } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import axios from "axios";
+import EventoDetalleModal from "@/components/modal/EventoDetalleModal";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,18 +88,18 @@ export default function EventosInscripcionIndex(props: Props) {
       return e.fecha_evento && e.fecha_evento >= filtroFecha;
     })
     .filter((e) => {
-  if (!e.fecha_evento) return true;
-  return new Date(e.fecha_evento) >= new Date();
-})
-   .filter((e) => {
-  if (!soloDisponibles) return true;
+      if (!e.fecha_evento) return true;
+      return new Date(e.fecha_evento) >= new Date();
+    })
+    .filter((e) => {
+      if (!soloDisponibles) return true;
 
-  const inscritos = e.inscritos_count ?? 0;
-  const sinCupos = e.cupos != null && inscritos >= e.cupos;
-  const yaInscrito = misInscripciones.has(e.id_evento);
+      const inscritos = e.inscritos_count ?? 0;
+      const sinCupos = e.cupos != null && inscritos >= e.cupos;
+      const yaInscrito = misInscripciones.has(e.id_evento);
 
-  return !sinCupos && !yaInscrito;
-});
+      return !sinCupos && !yaInscrito;
+    });
 
   const totalPaginas = Math.ceil(eventosFiltrados.length / itemsPorPagina);
 
@@ -124,70 +125,70 @@ export default function EventosInscripcionIndex(props: Props) {
   // INSCRIPCIÓN
   // =======================
 
-const inscribirse = async (evento: Evento) => {
-  const confirmado = await modal.confirmacion({
-    titulo: "Inscribirse al evento",
-    contenido: (
-      <p>
-        ¿Deseas inscribirte a <strong>{evento.titulo}</strong>?
-      </p>
-    ),
-  });
-
-  if (!confirmado) return;
-
-  // VALIDAR CUPOS ANTES DE ENVIAR
-  if (evento.cupos && (evento.inscritos_count ?? 0) >= evento.cupos) {
-    modal.alerta({
-      titulo: "Sin cupos",
-      mensaje: "Este evento ya está lleno",
+  const inscribirse = async (evento: Evento) => {
+    const confirmado = await modal.confirmacion({
+      titulo: "Inscribirse al evento",
+      contenido: (
+        <p>
+          ¿Deseas inscribirte a <strong>{evento.titulo}</strong>?
+        </p>
+      ),
     });
-    return;
-  }
 
-  setInscribiendose((prev) => new Set(prev).add(evento.id_evento));
+    if (!confirmado) return;
 
-  try {
-    // 🔥 CAMBIO AQUÍ
-    const res = await axios.post(
-      route("eventos.inscribirse", { idEvento: evento.id_evento })
-    );
+    // VALIDAR CUPOS ANTES DE ENVIAR
+    if (evento.cupos && (evento.inscritos_count ?? 0) >= evento.cupos) {
+      modal.alerta({
+        titulo: "Sin cupos",
+        mensaje: "Este evento ya está lleno",
+      });
+      return;
+    }
 
-    // marcar como inscrito
-    setMisInscripciones((prev) => new Set(prev).add(evento.id_evento));
+    setInscribiendose((prev) => new Set(prev).add(evento.id_evento));
 
-    // 🔥 ACTUALIZAR EVENTO DESDE BACKEND
-    setEventos((prev) =>
-      prev.map((e) =>
-        e.id_evento === evento.id_evento
-          ? {
+    try {
+      // 🔥 CAMBIO AQUÍ
+      const res = await axios.post(
+        route("eventos.inscribirse", { idEvento: evento.id_evento })
+      );
+
+      // marcar como inscrito
+      setMisInscripciones((prev) => new Set(prev).add(evento.id_evento));
+
+      // 🔥 ACTUALIZAR EVENTO DESDE BACKEND
+      setEventos((prev) =>
+        prev.map((e) =>
+          e.id_evento === evento.id_evento
+            ? {
               ...e,
               inscritos_count: res.data.evento.inscritos_count,
             }
-          : e
-      )
-    );
+            : e
+        )
+      );
 
-    modal.alerta({
-      titulo: "Éxito",
-      mensaje: "Te has inscrito correctamente",
-    });
-  } catch (error: any) {
-    modal.alerta({
-      titulo: "Error",
-      mensaje:
-        error?.response?.data?.message ??
-        error?.message ??
-        "Error inesperado",
-    });
-  } finally {
-    setInscribiendose((prev) => {
-      const next = new Set(prev);
-      next.delete(evento.id_evento);
-      return next;
-    });
-  }
-};
+      modal.alerta({
+        titulo: "Éxito",
+        mensaje: "Te has inscrito correctamente",
+      });
+    } catch (error: any) {
+      modal.alerta({
+        titulo: "Error",
+        mensaje:
+          error?.response?.data?.message ??
+          error?.message ??
+          "Error inesperado",
+      });
+    } finally {
+      setInscribiendose((prev) => {
+        const next = new Set(prev);
+        next.delete(evento.id_evento);
+        return next;
+      });
+    }
+  };
 
   const limpiarFiltros = () => {
     setBusqueda("");
@@ -354,9 +355,8 @@ const inscribirse = async (evento: Evento) => {
 
           {/* MAIN */}
           <main
-            className={`${
-              mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"
-            } space-y-4`}
+            className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"
+              } space-y-4`}
           >
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -405,18 +405,17 @@ const inscribirse = async (evento: Evento) => {
 
             {/* GRID DE EVENTOS */}
             <div
-              className={`grid grid-cols-1 ${
-                mostrarFiltros
+              className={`grid grid-cols-1 ${mostrarFiltros
                   ? "md:grid-cols-2"
                   : "md:grid-cols-2 lg:grid-cols-3"
-              } gap-4`}
+                } gap-4`}
             >
               {eventosPaginados.length > 0 ? (
                 eventosPaginados.map((evento) => {
                   const inscritos = evento.inscritos_count ?? 0;
                   const porcentaje = evento.cupos
-  ? Math.min((inscritos / evento.cupos) * 100, 100)
-  : 0;
+                    ? Math.min((inscritos / evento.cupos) * 100, 100)
+                    : 0;
                   const yaInscrito = misInscripciones.has(evento.id_evento);
                   const lleno =
                     evento.cupos != null && inscritos >= evento.cupos;
@@ -460,9 +459,8 @@ const inscribirse = async (evento: Evento) => {
                           </div>
                           <div className="w-full bg-gray-200 h-2 rounded-full">
                             <div
-                              className={`h-2 rounded-full ${
-                                lleno ? "bg-red-400" : "bg-[#034991]"
-                              }`}
+                              className={`h-2 rounded-full ${lleno ? "bg-red-400" : "bg-[#034991]"
+                                }`}
                               style={{
                                 width: `${porcentaje}%`,
                               }}
@@ -475,11 +473,11 @@ const inscribirse = async (evento: Evento) => {
                           )}
                         </div>
                       )}
-{evento.cupos == null && (
-  <p className="text-xs text-slate-400 mb-3">
-    Cupos no definidos
-  </p>
-)}
+                      {evento.cupos == null && (
+                        <p className="text-xs text-slate-400 mb-3">
+                          Cupos no definidos
+                        </p>
+                      )}
                       {/* FECHA Y UBICACIÓN */}
                       <div className="text-xs text-gray-600 mb-4 space-y-1">
                         <div className="flex items-center gap-1">
@@ -589,75 +587,10 @@ const inscribirse = async (evento: Evento) => {
 
         {/* MODAL DETALLE */}
         {detalle && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-              <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
-                <h2 className="font-bold text-lg">Detalles del Evento</h2>
-                <button
-                  onClick={() => setDetalle(null)}
-                  className="hover:bg-white/20 rounded-full p-1"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <h3 className="text-xl font-bold text-slate-800">
-                  {detalle.titulo}
-                </h3>
-
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  {detalle.descripcion || "Sin descripción."}
-                </p>
-
-                <div className="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-[#034991]" />
-                    <span>
-                      <strong>Fecha:</strong>{" "}
-                      {detalle.fecha_evento || "No definida"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    <span>
-                      <strong>Hora:</strong>{" "}
-                      {detalle.hora_evento || "No definida"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 text-red-500" />
-                    <span>
-                      <strong>Ubicación:</strong>{" "}
-                      {[
-                        detalle.canton_nombre,
-                        detalle.provincia_nombre,
-                        detalle.pais_nombre,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
-                  </div>
-                  {detalle.cupos != null && (
-                    <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-blue-500" />
-                      <span>
-                        <strong>Cupos:</strong> {detalle.inscritos_count ?? 0}{" "}
-                        / {detalle.cupos}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  className="w-full bg-[#034991] hover:bg-[#023165]"
-                  onClick={() => setDetalle(null)}
-                >
-                  Cerrar
-                </Button>
-              </div>
-            </div>
-          </div>
+          <EventoDetalleModal
+            detalle={detalle}
+            onClose={() => setDetalle(null)}
+          />
         )}
       </div>
     </>
