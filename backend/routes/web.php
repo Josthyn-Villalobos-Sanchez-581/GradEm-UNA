@@ -419,6 +419,18 @@ Route::middleware(['auth', 'permiso:10'])->prefix('eventos')->group(function () 
     Route::post('/notificaciones/eventos/recordatorio', [EventoController::class, 'enviarRecordatorio'])
         ->name('notificaciones.eventos.recordatorio');
 
+    // API: Rutas para cascada de ubicación
+    Route::get('/api/paises', [EventoController::class, 'obtenerPaises'])
+        ->name('eventos.api.paises');
+
+    Route::get('/api/provincias/{idPais}', [EventoController::class, 'obtenerProvinciasPorPais'])
+        ->name('eventos.api.provincias')
+        ->whereNumber('idPais');
+
+    Route::get('/api/cantones/{idProvincia}', [EventoController::class, 'obtenerCantonePorProvincia'])
+        ->name('eventos.api.cantones')
+        ->whereNumber('idProvincia');
+
     // Rutas con parámetro numérico (whereNumber evita capturar strings como "inscripcion")
     Route::get('/{idEvento}', [EventoController::class, 'show'])
         ->name('eventos.show')

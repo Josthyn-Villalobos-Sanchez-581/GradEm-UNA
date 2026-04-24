@@ -98,7 +98,7 @@ class EventoService
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
                 'cupos' => $request->cupos ?? null,
-                'estado_id' => 2,
+                'estado_id' => 7,//7 es borrador
                 'usuario_id' => $usuario?->id_usuario,
             ];
 
@@ -343,6 +343,30 @@ case 'cupos':
     public function obtenerUbicaciones()
     {
         return $this->eventoRepository->obtenerUbicaciones();
+    }
+
+    /**
+     * Obtener todos los países
+     */
+    public function obtenerPaises()
+    {
+        return $this->eventoRepository->obtenerPaises();
+    }
+
+    /**
+     * Obtener provincias por país
+     */
+    public function obtenerProvinciasPorPais($idPais)
+    {
+        return $this->eventoRepository->obtenerProvinciasPorPais($idPais);
+    }
+
+    /**
+     * Obtener cantones por provincia
+     */
+    public function obtenerCantonePorProvincia($idProvincia)
+    {
+        return $this->eventoRepository->obtenerCantonePorProvincia($idProvincia);
     }
 
     /**

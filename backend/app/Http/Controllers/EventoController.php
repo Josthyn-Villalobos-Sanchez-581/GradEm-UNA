@@ -20,7 +20,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Listado de eventos (HU-33 Parte 2)
+     * Listado de eventos (HU-33 Parte 2)
      * Carga TODO desde el inicio (eventos + FK)
      */
     public function index(Request $request)
@@ -29,7 +29,7 @@ class EventoController extends Controller
         
         $usuario = Auth::user();
 
-        // 🔐 Permisos del usuario
+        // Permisos del usuario
         $permisos = $usuario
             ? DB::table('roles_permisos')
             ->where('id_rol', $usuario->id_rol)
@@ -43,15 +43,16 @@ class EventoController extends Controller
                 $usuario
             ),
 
-            // 🔽 FK necesarias para frontend
+            // FK necesarias para frontend
             'modalidades' => $this->service->obtenerModalidades(),
             'ubicaciones' => $this->service->obtenerUbicaciones(),
+            'paises' => $this->service->obtenerPaises(),
             'carreras' => $this->service->obtenerCarreras(),
             'roles' => $this->service->obtenerRolesInteresados(),
 
             'userPermisos' => $permisos,
 
-            // 🔍 Para mantener filtros en frontend
+            // Para mantener filtros en frontend
             'filtros' => $request->only([
                 'buscar',
                 'estado',
@@ -133,7 +134,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Publicar evento
+     * Publicar evento
      */
     public function publicar(int $idEvento)
     {
@@ -158,7 +159,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Inactivar evento (HU-33 Parte 2 🔥)
+     * Inactivar evento 
      */
     public function destroy(Request $request, int $idEvento)
     {
@@ -187,7 +188,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Obtener detalle de evento (para modal si lo querés dinámico)
+     * Obtener detalle de evento
      */
     public function show(int $idEvento)
     {
@@ -207,7 +208,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Gestión de inscritos de evento
+     * Gestión de inscritos de evento
      */
     public function inscritos(int $idEvento)
     {
@@ -237,7 +238,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Eliminar inscripción de evento
+     * Eliminar inscripción de evento
      */
     public function eliminarInscrito(int $idEvento, int $idUsuario)
     {
@@ -257,7 +258,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Descargar PDF de participantes o asistencia de evento
+     * Descargar PDF de participantes o asistencia de evento
      */
     public function descargarPdf(int $idEvento, string $tipo)
     {
@@ -265,7 +266,7 @@ class EventoController extends Controller
     }
 
     /**
-     * 📌 Enviar recordatorio a inscritos de evento
+     * Enviar recordatorio a inscritos de evento
      */
     public function enviarRecordatorio(Request $request): JsonResponse
     {
@@ -284,6 +285,39 @@ class EventoController extends Controller
         return response()->json([
             'mensaje' => 'Recordatorios enviados correctamente',
             'enviados' => $enviados,
+        ]);
+    }
+
+    /**
+     * API: Obtener países para cascada de ubicación
+     */
+    public function obtenerPaises(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerPaises(),
+        ]);
+    }
+
+    /**
+     * API: Obtener provincias por país
+     */
+    public function obtenerProvinciasPorPais(int $idPais): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerProvinciasPorPais($idPais),
+        ]);
+    }
+
+    /**
+     * API: Obtener cantones por provincia
+     */
+    public function obtenerCantonePorProvincia(int $idProvincia): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->obtenerCantonePorProvincia($idProvincia),
         ]);
     }
 
