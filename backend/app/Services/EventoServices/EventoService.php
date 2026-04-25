@@ -93,6 +93,7 @@ class EventoService
                 'titulo' => $request->titulo ?? null,
                 'descripcion' => $request->descripcion ?? null,
                 'fecha_evento' => $request->fecha_evento ?? null,
+                'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'hora_evento' => $request->hora_evento ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'id_ubicacion' => $request->id_ubicacion ?? null,
@@ -134,6 +135,7 @@ class EventoService
                 'descripcion' => $evento->descripcion,
                 'fecha_evento' => $evento->fecha_evento,
                 'hora_evento' => $evento->hora_evento,
+                'fecha_limite_inscripcion' => $evento->fecha_limite_inscripcion,
                 'id_modalidad' => $evento->id_modalidad,
                 'id_ubicacion' => $evento->id_ubicacion,
                 'otras_observaciones' => $evento->otras_observaciones,
@@ -144,6 +146,7 @@ class EventoService
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
                 'fecha_evento' => $request->fecha_evento,
+                'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'hora_evento' => $request->hora_evento,
                 'id_modalidad' => $request->id_modalidad,
                 'id_ubicacion' => $request->id_ubicacion,
@@ -160,6 +163,11 @@ class EventoService
                 switch ($campo) {
 
                     case 'fecha_evento':
+                        $valorOriginal = $valorOriginal ? date('Y-m-d', strtotime($valorOriginal)) : null;
+                        $valorNuevo = $valorNuevo ? date('Y-m-d', strtotime($valorNuevo)) : null;
+                        break;
+
+                    case 'fecha_limite_inscripcion':
                         $valorOriginal = $valorOriginal ? date('Y-m-d', strtotime($valorOriginal)) : null;
                         $valorNuevo = $valorNuevo ? date('Y-m-d', strtotime($valorNuevo)) : null;
                         break;
@@ -252,6 +260,7 @@ case 'cupos':
             if (!$evento->titulo) $faltantes[] = 'Título';
             if (!$evento->descripcion) $faltantes[] = 'Descripción';
             if (!$evento->fecha_evento) $faltantes[] = 'Fecha del evento';
+            if (!$evento->fecha_limite_inscripcion) $faltantes[] = 'Fecha límite de inscripción';
             if (!$evento->hora_evento) $faltantes[] = 'Hora del evento';
             if (!$evento->id_modalidad) $faltantes[] = 'Modalidad';
             if (!$evento->id_ubicacion) $faltantes[] = 'Ubicación';

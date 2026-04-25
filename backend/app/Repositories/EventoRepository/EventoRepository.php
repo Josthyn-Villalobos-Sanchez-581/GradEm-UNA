@@ -77,80 +77,73 @@ class EventoRepository
      * Obtener evento con relaciones (para detalle/modal)
      */
     public function obtenerEventoCompleto(int $idEvento)
-    {
-        $evento = DB::table('eventos')
-            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
-            ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
-            ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
-            ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
-            ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
+{
+    $evento = DB::table('eventos')
+        ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
+        ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
+        ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
+        ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
+        ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
 
-            // 🔥 CLAVE: JOIN PARA CONTAR INSCRITOS
-            ->leftJoin('inscripciones_evento as ie', function ($join) {
-                $join->on('ie.id_evento', '=', 'eventos.id_evento')
-                    ->where('ie.estado_id', 1);
-            })
+        ->where('eventos.id_evento', $idEvento)
 
-            ->where('eventos.id_evento', $idEvento)
+        ->select(
+            'eventos.*',
+            'usuarios.nombre_completo as creador_nombre',
+            'modalidades.nombre as modalidad_nombre',
 
-            ->select(
-                'eventos.*',
-                'usuarios.nombre_completo as creador_nombre',
-                'modalidades.nombre as modalidad_nombre',
-                'cantones.nombre as canton_nombre',
-                'provincias.nombre as provincia_nombre',
-                'paises.nombre as pais_nombre',
+            // 🔥 NOMBRES
+            'cantones.nombre as canton_nombre',
+            'provincias.nombre as provincia_nombre',
+            'paises.nombre as pais_nombre',
 
-                // 🔥 TOTAL INSCRITOS
-                DB::raw('COUNT(ie.id_inscripcion) as inscritos_count')
-            )
+            // 🔥 IDS (CLAVE PARA FRONTEND)
+            'cantones.id_canton',
+            'provincias.id_provincia',
+            'paises.id_pais',
 
-            // 🔥 NECESARIO POR EL COUNT
-            ->groupBy(
-                'eventos.id_evento',
-                'usuarios.nombre_completo',
-                'modalidades.nombre',
-                'cantones.nombre',
-                'provincias.nombre',
-                'paises.nombre'
-            )
+            // ✅ SUBQUERY (SOLUCIÓN CORRECTA)
+            DB::raw('(
+                SELECT COUNT(*)
+                FROM inscripciones_evento ie
+                WHERE ie.id_evento = eventos.id_evento
+                AND ie.estado_id = 1
+            ) as inscritos_count')
+        )
 
-            ->first();
+        ->first();
 
-        if ($evento) {
+    if ($evento) {
 
-            // 🔥 CUPOS DISPONIBLES (BACKEND LIMPIO)
-            $evento->cupos_disponibles = is_null($evento->cupos)
-                ? null
-                : max(0, $evento->cupos - $evento->inscritos_count);
+        // CUPOS DISPONIBLES
+        $evento->cupos_disponibles = is_null($evento->cupos)
+            ? null
+            : max(0, $evento->cupos - $evento->inscritos_count);
 
-            // =============================
-            // RELACIONES EXISTENTES
-            // =============================
+        // RELACIONES
+        $evento->carreras_invitadas = DB::table('evento_carrera')
+            ->where('id_evento', $idEvento)
+            ->pluck('id_carrera')
+            ->toArray();
 
-            $evento->carreras_invitadas = DB::table('evento_carrera')
-                ->where('id_evento', $idEvento)
-                ->pluck('id_carrera')
-                ->toArray();
+        $evento->roles_interesados = DB::table('evento_rol')
+            ->where('id_evento', $idEvento)
+            ->pluck('id_rol')
+            ->toArray();
 
-            $evento->roles_interesados = DB::table('evento_rol')
-                ->where('id_evento', $idEvento)
-                ->pluck('id_rol')
-                ->toArray();
+        $evento->carreras = DB::table('evento_carrera')
+            ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
+            ->where('evento_carrera.id_evento', $idEvento)
+            ->pluck('carreras.nombre');
 
-            $evento->carreras = DB::table('evento_carrera')
-                ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
-                ->where('evento_carrera.id_evento', $idEvento)
-                ->pluck('carreras.nombre');
-
-            $evento->roles = DB::table('evento_rol')
-                ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
-                ->where('evento_rol.id_evento', $idEvento)
-                ->pluck('roles.nombre_rol');
-        }
-
-        return $evento;
+        $evento->roles = DB::table('evento_rol')
+            ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
+            ->where('evento_rol.id_evento', $idEvento)
+            ->pluck('roles.nombre_rol');
     }
+
+    return $evento;
+}
 
     /**
      * Obtener modalidades (para filtros frontend)
@@ -254,6 +247,7 @@ class EventoRepository
             'titulo',
             'descripcion',
             'fecha_evento',
+            'fecha_limite_inscripcion',
             'hora_evento',
             'id_modalidad',
             'id_ubicacion',
@@ -551,6 +545,7 @@ public function crearInscripcion(array $data): void
                 'eventos.titulo',
                 'eventos.descripcion',
                 'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
                 'eventos.hora_evento',
                 'eventos.cupos',
                 'modalidades.nombre as modalidad_nombre',
@@ -564,6 +559,7 @@ public function crearInscripcion(array $data): void
                 'eventos.titulo',
                 'eventos.descripcion',
                 'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
                 'eventos.hora_evento',
                 'eventos.cupos',
                 'modalidades.nombre',
@@ -633,6 +629,7 @@ public function crearInscripcion(array $data): void
                 'eventos.titulo',
                 'eventos.descripcion',
                 'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
                 'eventos.hora_evento',
                 'eventos.estado_id',
                 'eventos.cupos',
@@ -647,6 +644,7 @@ public function crearInscripcion(array $data): void
                 'eventos.titulo',
                 'eventos.descripcion',
                 'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
                 'eventos.hora_evento',
                 'eventos.estado_id',
                 'eventos.cupos',
@@ -678,6 +676,7 @@ public function crearInscripcion(array $data): void
                 'eventos.titulo',
                 'eventos.descripcion',
                 'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
                 'eventos.hora_evento',
                 'eventos.cupos',
                 'eventos.estado_id',
