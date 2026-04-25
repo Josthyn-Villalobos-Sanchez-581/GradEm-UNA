@@ -6,6 +6,9 @@ use App\Repositories\EventoRepository\EventoRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Eventos\InscripcionConfirmadaEventoMail;
+use App\Mail\Eventos\CancelacionUsuarioEventoMail;
 use Exception;
 
 class InscripcionEventoService
@@ -64,11 +67,20 @@ public function inscribirse(int $idEvento)
             'estado_id' => 1
         ]);
 
-        // 🔥 NUEVO
+
         $eventoActualizado = $this->repository->obtenerEventoParaInscripcionPorId($idEvento);
 
         DB::commit();
-
+// Enviar correo de confirmación
+try {
+    $eventoCompleto = $this->repository->obtenerEventoCompleto($idEvento);
+    Mail::to($usuario->correo)->send(
+        new InscripcionConfirmadaEventoMail($eventoCompleto, $usuario->nombre_completo)
+    );
+} catch (\Exception $e) {
+    // No interrumpir el flujo si el correo falla
+    \Log::warning('No se pudo enviar correo de inscripción evento: ' . $e->getMessage());
+}
         return $eventoActualizado;
 
     } catch (Exception $e) {
@@ -105,7 +117,20 @@ public function inscribirse(int $idEvento)
             );
 
             DB::commit();
+// Enviar correo de cancelación
+DB::commit();
 
+try {
+    $eventoCompleto = $this->repository->obtenerEventoCompleto($idEvento);
+    Mail::to($usuario->correo)->send(
+        new CancelacionUsuarioEventoMail(
+            (array) $eventoCompleto,
+            $usuario->nombre_completo
+        )
+    );
+} catch (\Exception $e) {
+    \Log::warning('No se pudo enviar correo de cancelación: ' . $e->getMessage());
+}
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
