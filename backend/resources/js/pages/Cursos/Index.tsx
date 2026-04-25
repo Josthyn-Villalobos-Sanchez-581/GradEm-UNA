@@ -1185,26 +1185,32 @@ export default function CursosIndex(props: Props) {
       {/* MODAL CONFIRMACIÓN SALIDA CON DATOS - CURSOS */}
       {mostrarConfirmacionSalida && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div className="bg-amber-50 p-6 border-b border-amber-200">
-              <h2 className="font-bold text-lg text-amber-900">Confirmar salida</h2>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            
+            {/* HEADER ROJO UNA */}
+            <div className="bg-[#CD1719] p-4 text-center">
+              <h2 className="font-bold text-lg text-white">Confirmar salida</h2>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-slate-700">
-                Está seguro que desea salir, se perderán todos los datos ingresados.
+
+            <div className="p-8 space-y-6 text-center">
+              <p className="text-slate-700 leading-relaxed">
+                ¿Está seguro que desea salir? <br /> 
+                <span className="font-medium text-slate-900">Se perderán todos los cambios realizados.</span>
               </p>
-              <div className="flex gap-3 justify-end pt-4">
+
+              {/* BOTONES ALINEADOS AL CENTRO UNO AL LADO DEL OTRO */}
+              <div className="flex flex-row gap-3 justify-center pt-2">
                 <Button
                   variant="outline"
                   onClick={() => confirmarSalidaCurso(false)}
-                  className="border-slate-300"
+                  className="flex-1 max-w-[120px] border-slate-300 hover:bg-slate-50 transition-colors"
                 >
                   Cancelar
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => confirmarSalidaCurso(true)}
-                  className="bg-[#CD1719] hover:bg-red-700"
+                  className="flex-1 max-w-[150px] bg-[#CD1719] hover:bg-red-800 text-white shadow-md transition-colors"
                 >
                   Salir sin guardar
                 </Button>

@@ -44,9 +44,10 @@ interface Evento {
   titulo: string;
   descripcion?: string;
   fecha_evento?: string;
+  fecha_limite_inscripcion?: string;
   hora_evento?: string;
-  id_modalidad?: number;
-  id_ubicacion?: number;
+  id_modalidad?: number | string;
+  id_ubicacion?: number | string;
   estado_id: number;
   carreras_invitadas?: number[] | string;
   roles_interesados?: number[] | string;
@@ -59,6 +60,9 @@ interface Evento {
   canton_nombre?: string;
   provincia_nombre?: string;
   pais_nombre?: string;
+
+  id_pais?: number | string;
+  id_provincia?: number | string;
 
   cupos?: number;
 
@@ -268,6 +272,7 @@ export default function EventosIndex(props: Props) {
     titulo: "",
     descripcion: "",
     fecha_evento: "",
+    fecha_limite_inscripcion: "",
     hora_evento: "",
     id_modalidad: "",
     id_pais: "",
@@ -278,7 +283,7 @@ export default function EventosIndex(props: Props) {
     otras_observaciones: "",
     cupos: "",
   });
-  const [formEventiInicial, setFormEventoInicial] = useState(formEvento);
+  const [formEventoInicial, setFormEventoInicial] = useState(formEvento);
   const [erroresForm, setErroresForm] = useState<Record<string, string>>({});
   const [carrerasOpen, setCarrerasOpen] = useState(false);
   const [rolesOpen, setRolesOpen] = useState(false);
@@ -294,9 +299,6 @@ export default function EventosIndex(props: Props) {
   const carrerasDropdownRef = useRef<HTMLDivElement | null>(null);
   const rolesDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setFormularioModificado(JSON.stringify(formEvento) !== JSON.stringify(formEventiInicial));
-  }, [formEvento, formEventiInicial]);
 
   // Efecto para cargar países al montar el componente
   useEffect(() => {
@@ -305,47 +307,78 @@ export default function EventosIndex(props: Props) {
     }
   }, [props.paises]);
 
-  // Efecto para cargar provincias cuando cambia el país
   useEffect(() => {
-    if (formEvento.id_pais) {
-      setCargandoProvincias(true);
-      axios.get(route('eventos.api.provincias', { idPais: formEvento.id_pais }))
-        .then(response => {
-          if (response.data.success) {
-            setProvincias(response.data.data);
-            // Limpiar provincia y cantón cuando cambia país
-            setFormEvento(prev => ({ ...prev, id_provincia: '', id_ubicacion: '' }));
-            setCantones([]);
-          }
-        })
-        .catch(error => console.error('Error al cargar provincias:', error))
-        .finally(() => setCargandoProvincias(false));
-    } else {
+    if (!formEvento.id_pais) {
       setProvincias([]);
       setCantones([]);
-      setFormEvento(prev => ({ ...prev, id_provincia: '', id_ubicacion: '' }));
+      return;
     }
+
+    setCargandoProvincias(true);
+
+    axios.get(route('eventos.api.provincias', { idPais: formEvento.id_pais }))
+      .then(res => {
+        if (res.data.success) {
+          setProvincias(res.data.data);
+
+          // 🔥 SOLO limpiar en CREATE
+          if (formMode === "create") {
+            setFormEvento(prev => ({
+              ...prev,
+              id_provincia: '',
+              id_ubicacion: ''
+            }));
+          }
+        }
+      })
+      .finally(() => setCargandoProvincias(false));
+
   }, [formEvento.id_pais]);
 
-  // Efecto para cargar cantones cuando cambia la provincia
+  // Efecto para cargar provincias cuando cambia el país
   useEffect(() => {
-    if (formEvento.id_provincia) {
-      setCargandoCantones(true);
-      axios.get(route('eventos.api.cantones', { idProvincia: formEvento.id_provincia }))
-        .then(response => {
-          if (response.data.success) {
-            setCantones(response.data.data);
-            // Limpiar cantón cuando cambia provincia
-            setFormEvento(prev => ({ ...prev, id_ubicacion: '' }));
-          }
-        })
-        .catch(error => console.error('Error al cargar cantones:', error))
-        .finally(() => setCargandoCantones(false));
-    } else {
+    if (!formEvento.id_provincia) {
       setCantones([]);
-      setFormEvento(prev => ({ ...prev, id_ubicacion: '' }));
+      return;
     }
+
+    setCargandoCantones(true);
+
+    axios.get(route('eventos.api.cantones', { idProvincia: formEvento.id_provincia }))
+      .then(res => {
+        if (res.data.success) {
+          setCantones(res.data.data);
+
+          // 🔥 SOLO limpiar en CREATE
+          if (formMode === "create") {
+            setFormEvento(prev => ({
+              ...prev,
+              id_ubicacion: ''
+            }));
+          }
+        }
+      })
+      .finally(() => setCargandoCantones(false));
+
   }, [formEvento.id_provincia]);
+
+
+  useEffect(() => {
+    if (formMode === "create") {
+      const tieneDatos = Object.values(formEvento).some(val =>
+        Array.isArray(val) ? val.length > 0 : val !== ""
+      );
+
+      setFormularioModificado(tieneDatos);
+    }
+
+    if (formMode === "edit") {
+      setFormularioModificado(
+        JSON.stringify(formEvento) !== JSON.stringify(formEventoInicial)
+      );
+    }
+
+  }, [formEvento, formEventoInicial, formMode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -412,13 +445,14 @@ export default function EventosIndex(props: Props) {
         titulo: evento.titulo || "",
         descripcion: evento.descripcion || "",
         fecha_evento: evento.fecha_evento || "",
+        fecha_limite_inscripcion: evento.fecha_limite_inscripcion || "",
         hora_evento: normalizarHoraEvento(evento.hora_evento),
         id_modalidad: evento.id_modalidad ? String(evento.id_modalidad) : "",
-        id_pais: "",
-        id_provincia: "",
+        id_pais: evento.id_pais ? String(evento.id_pais) : "",
+        id_provincia: evento.id_provincia ? String(evento.id_provincia) : "",
         id_ubicacion: evento.id_ubicacion ? String(evento.id_ubicacion) : "",
         carrerasInvitadas: carrerasInvitadas.map(String),
-        rolesInteresados: Array.isArray(rolesInteresados) ? rolesInteresados.map(String) : [],
+        rolesInteresados: Array.isArray(rolesInteresados)? rolesInteresados.filter((id) => id !== null && id !== undefined && id !== "").map((id) => String(id)): [],
         otras_observaciones: evento.otras_observaciones || "",
         cupos: evento.cupos ? String(evento.cupos) : "",
       };
@@ -431,6 +465,7 @@ export default function EventosIndex(props: Props) {
         titulo: "",
         descripcion: "",
         fecha_evento: "",
+        fecha_limite_inscripcion: "",
         hora_evento: "",
         id_modalidad: "",
         id_pais: "",
@@ -451,16 +486,24 @@ export default function EventosIndex(props: Props) {
   };
 
   const cerrarFormularioEvento = () => {
+
+    if (isSubmitting) return;
+
     if (formularioModificado) {
       setMostrarConfirmacionSalida(true);
       return;
     }
-    setView("list");
-    setEventoSeleccionado(null);
-    setErroresForm({});
-    setPasoActual("general");
-    setFormularioModificado(false);
-  };
+
+    cerrarDirecto();
+    };
+    const cerrarDirecto = () => {
+      setView("list");
+      setEventoSeleccionado(null);
+      setErroresForm({});
+      setPasoActual("general");
+      setFormularioModificado(false);
+    };
+  
 
   const confirmarSalida = (confirmado: boolean) => {
     setMostrarConfirmacionSalida(false);
@@ -477,7 +520,14 @@ export default function EventosIndex(props: Props) {
     const e: Record<string, string> = {};
     const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
 
+    // 🔥 FUNCIÓN GLOBAL PARA PARSEAR FECHAS (LOCAL)
+    const parseFechaLocal = (fecha: string) => {
+      const [year, month, day] = fecha.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     if (pasoActual === "general") {
+
       if (!formEvento.titulo.trim()) {
         e.titulo = "Título es obligatorio";
       } else if (formEvento.titulo.trim().length < 5) {
@@ -501,18 +551,42 @@ export default function EventosIndex(props: Props) {
       if (!formEvento.id_modalidad) {
         e.id_modalidad = "Modalidad es obligatoria";
       }
+
     } else if (pasoActual === "detalles") {
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const maxDate = new Date(new Date().getFullYear() + 2, 11, 31);
+
+      // 🔥 VALIDAR FECHA EVENTO
       if (!formEvento.fecha_evento) {
         e.fecha_evento = "Fecha del evento es obligatoria";
       } else {
-        const selectedDate = new Date(formEvento.fecha_evento);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const maxDate = new Date(`${new Date().getFullYear() + 2}-12-31`);
-        if (selectedDate < today) {
+        const fechaEvento = parseFechaLocal(formEvento.fecha_evento);
+
+        if (fechaEvento < today) {
           e.fecha_evento = "La fecha debe ser hoy o posterior";
-        } else if (selectedDate > maxDate) {
+        } else if (fechaEvento > maxDate) {
           e.fecha_evento = "La fecha debe ser como máximo a dos años";
+        }
+      }
+
+      // 🔥 VALIDAR FECHA LÍMITE (CORRECTO)
+      if (formEvento.fecha_limite_inscripcion) {
+
+        const fechaLimite = parseFechaLocal(formEvento.fecha_limite_inscripcion);
+
+        if (fechaLimite < today) {
+          e.fecha_limite_inscripcion = "La fecha límite debe ser hoy o posterior";
+        }
+
+        if (formEvento.fecha_evento) {
+          const fechaEvento = parseFechaLocal(formEvento.fecha_evento);
+
+          if (fechaLimite > fechaEvento) {
+            e.fecha_limite_inscripcion = "No puede ser posterior a la fecha del evento";
+          }
         }
       }
 
@@ -531,7 +605,9 @@ export default function EventosIndex(props: Props) {
       if (!formEvento.id_ubicacion) {
         e.id_ubicacion = "Cantón es obligatorio";
       }
+
     } else if (pasoActual === "publicacion") {
+
       if (!formEvento.carrerasInvitadas.length) {
         e.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
       }
@@ -581,7 +657,21 @@ export default function EventosIndex(props: Props) {
     const errores: Record<string, string> = {};
     const textoValido = /^[\p{L}\p{N}\s.,;:()"'¡!¿?%&@\/-]+$/u;
 
-    // Validar PASO GENERAL
+    // 🔥 Parseo correcto de fecha (evita bug de timezone)
+    const parseFechaLocal = (fecha: string) => {
+      const [year, month, day] = fecha.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const maxDate = new Date(new Date().getFullYear() + 2, 11, 31);
+
+    // =========================
+    // GENERAL
+    // =========================
+
     if (!formEvento.titulo.trim()) {
       errores.titulo = "Título es obligatorio";
     } else if (formEvento.titulo.trim().length < 5) {
@@ -606,18 +696,37 @@ export default function EventosIndex(props: Props) {
       errores.id_modalidad = "Modalidad es obligatoria";
     }
 
-    // Validar PASO DETALLES
+    // =========================
+    // DETALLES
+    // =========================
+
     if (!formEvento.fecha_evento) {
       errores.fecha_evento = "Fecha del evento es obligatoria";
     } else {
-      const selectedDate = new Date(formEvento.fecha_evento);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const maxDate = new Date(`${new Date().getFullYear() + 2}-12-31`);
-      if (selectedDate < today) {
+      const fechaEvento = parseFechaLocal(formEvento.fecha_evento);
+
+      if (fechaEvento < today) {
         errores.fecha_evento = "La fecha debe ser hoy o posterior";
-      } else if (selectedDate > maxDate) {
+      } else if (fechaEvento > maxDate) {
         errores.fecha_evento = "La fecha debe ser como máximo a dos años";
+      }
+    }
+
+    // 🔥 VALIDACIÓN FECHA LÍMITE
+    if (formEvento.fecha_limite_inscripcion) {
+
+      const fechaLimite = parseFechaLocal(formEvento.fecha_limite_inscripcion);
+
+      if (fechaLimite < today) {
+        errores.fecha_limite_inscripcion = "La fecha límite debe ser hoy o posterior";
+      }
+
+      if (formEvento.fecha_evento) {
+        const fechaEvento = parseFechaLocal(formEvento.fecha_evento);
+
+        if (fechaLimite > fechaEvento) {
+          errores.fecha_limite_inscripcion = "No puede ser posterior a la fecha del evento";
+        }
       }
     }
 
@@ -637,7 +746,10 @@ export default function EventosIndex(props: Props) {
       errores.id_ubicacion = "Cantón es obligatorio";
     }
 
-    // Validar PASO PUBLICACIÓN
+    // =========================
+    // PUBLICACIÓN
+    // =========================
+
     if (!formEvento.carrerasInvitadas.length) {
       errores.carrerasInvitadas = "Debe seleccionar al menos una carrera invitada";
     }
@@ -653,6 +765,7 @@ export default function EventosIndex(props: Props) {
         errores.otras_observaciones = "Máximo 500 caracteres";
       }
     }
+
     if (formEvento.cupos) {
       const cuposNum = Number(formEvento.cupos);
 
@@ -664,6 +777,7 @@ export default function EventosIndex(props: Props) {
         errores.cupos = "Máximo permitido: 10000";
       }
     }
+
     setErroresForm(errores);
     return Object.keys(errores).length === 0;
   };
@@ -682,7 +796,7 @@ export default function EventosIndex(props: Props) {
       // Navegar al primer paso con errores
       if (Object.keys(erroresForm).some(key => ["titulo", "descripcion", "id_modalidad"].includes(key))) {
         setPasoActual("general");
-      } else if (Object.keys(erroresForm).some(key => ["fecha_evento", "hora_evento", "id_ubicacion"].includes(key))) {
+      } else if (Object.keys(erroresForm).some(key => ["fecha_evento", "fecha_limite_inscripcion", "hora_evento", "id_ubicacion"].includes(key))) {
         setPasoActual("detalles");
       } else if (Object.keys(erroresForm).some(key => ["carrerasInvitadas", "rolesInteresados", "otras_observaciones"].includes(key))) {
         setPasoActual("publicacion");
@@ -695,11 +809,12 @@ export default function EventosIndex(props: Props) {
     try {
       const payload = {
         ...formEvento,
+        fecha_limite_inscripcion: formEvento.fecha_limite_inscripcion || null,
         id_modalidad: formEvento.id_modalidad || null,
         id_ubicacion: formEvento.id_ubicacion || null,
         hora_evento: normalizarHoraEvento(formEvento.hora_evento),
         carreras_invitadas: formEvento.carrerasInvitadas.map(Number),
-        roles_interesados: formEvento.rolesInteresados.map(Number),
+        roles_interesados: formEvento.rolesInteresados.filter((id) => id !== "").map(Number),
         otras_observaciones: formEvento.otras_observaciones.trim() || null,
         cupos: formEvento.cupos.trim() === "" ? null : Number(formEvento.cupos),
       };
@@ -729,7 +844,7 @@ export default function EventosIndex(props: Props) {
         mensaje: "Operación realizada correctamente",
       });
 
-      cerrarFormularioEvento();
+      cerrarDirecto();
 
     } catch (error: any) {
 
@@ -1038,7 +1153,7 @@ export default function EventosIndex(props: Props) {
                             </div>
 
                             <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                              {evento.descripcion ?? "Sin descripciÓn disponible para este evento."}
+                              {evento.descripcion ?? "Sin descripción disponible para este evento."}
                             </p>
 
                             <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4">
@@ -1331,7 +1446,21 @@ export default function EventosIndex(props: Props) {
                               min={new Date().toISOString().split('T')[0]}
                               value={formEvento.fecha_evento}
                               onChange={(e) => {
-                                setFormEvento((prev) => ({ ...prev, fecha_evento: e.target.value }));
+                                const nuevaFecha = e.target.value;
+                                setFormEvento(prev => {
+                                  let nuevaFechaLimite = prev.fecha_limite_inscripcion;
+
+                                  if (nuevaFechaLimite && nuevaFechaLimite > nuevaFecha) {
+                                    nuevaFechaLimite = "";
+                                  }
+
+                                  return {
+                                    ...prev,
+                                    fecha_evento: nuevaFecha,
+                                    fecha_limite_inscripcion: nuevaFechaLimite
+                                  };
+                                });
+
                                 limpiarErroresEvento("fecha_evento");
                               }}
                               // 1. Bloquea el teclado
@@ -1341,6 +1470,39 @@ export default function EventosIndex(props: Props) {
                               className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_evento ? "border-[#CD1719]" : "border-slate-300"}`}
                             />
                             {erroresForm.fecha_evento && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_evento}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                              Fecha límite de inscripción
+                            </label>
+
+                            <input
+                              type="date"
+                              min={new Date().toISOString().split('T')[0]}
+                              max={formEvento.fecha_evento || undefined} // 🔥 CLAVE
+                              value={formEvento.fecha_limite_inscripcion}
+                              onChange={(e) => {
+                                setFormEvento((prev) => ({
+                                  ...prev,
+                                  fecha_limite_inscripcion: e.target.value
+                                }));
+                                limpiarErroresEvento("fecha_limite_inscripcion");
+                              }}
+                              onKeyDown={(e) => e.preventDefault()}
+                              onClick={(e) => e.currentTarget.showPicker()}
+                              className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 
+                              focus:ring-2 focus:ring-blue-100 outline-none transition-all 
+                              ${erroresForm.fecha_limite_inscripcion 
+                                ? "border-[#CD1719]" 
+                                : "border-slate-300"}`}
+                            />
+
+                            {erroresForm.fecha_limite_inscripcion && (
+                              <p className="text-xs text-[#CD1719] mt-1.5 font-medium">
+                                {erroresForm.fecha_limite_inscripcion}
+                              </p>
+                            )}
                           </div>
 
                           <div>
@@ -1630,26 +1792,32 @@ export default function EventosIndex(props: Props) {
         {/* MODAL CONFIRMACIÓN SALIDA */}
         {mostrarConfirmacionSalida && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-              <div className="bg-amber-50 p-6 border-b border-amber-200">
-                <h2 className="font-bold text-lg text-amber-900">Confirmar salida</h2>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+              
+              {/* HEADER ROJO UNA */}
+              <div className="bg-[#CD1719] p-4 text-center">
+                <h2 className="font-bold text-lg text-white">Confirmar salida</h2>
               </div>
-              <div className="p-6 space-y-4">
-                <p className="text-slate-700">
-                  Está seguro que desea salir, se perderán todos los datos ingresados.
+
+              <div className="p-8 space-y-6 text-center">
+                <p className="text-slate-700 leading-relaxed">
+                  ¿Está seguro que desea salir? <br /> 
+                  <span className="font-medium text-slate-900">Se perderán todos los cambios realizados.</span>
                 </p>
-                <div className="flex gap-3 justify-end pt-4">
+
+                {/* BOTONES ALINEADOS AL CENTRO UNO AL LADO DEL OTRO */}
+                <div className="flex flex-row gap-3 justify-center pt-2">
                   <Button
                     variant="outline"
                     onClick={() => confirmarSalida(false)}
-                    className="border-slate-300"
+                    className="flex-1 max-w-[120px] border-slate-300 hover:bg-slate-50 transition-colors"
                   >
                     Cancelar
                   </Button>
                   <Button
                     variant="destructive"
                     onClick={() => confirmarSalida(true)}
-                    className="bg-[#CD1719] hover:bg-red-700"
+                    className="flex-1 max-w-[150px] bg-[#CD1719] hover:bg-red-800 text-white shadow-md transition-colors"
                   >
                     Salir sin guardar
                   </Button>

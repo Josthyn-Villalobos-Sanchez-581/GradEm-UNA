@@ -15,6 +15,7 @@ class Evento extends Model
         'titulo',
         'descripcion',
         'fecha_evento',
+        'fecha_limite_inscripcion',
         'hora_evento',
         'id_ubicacion',
         'id_modalidad',
