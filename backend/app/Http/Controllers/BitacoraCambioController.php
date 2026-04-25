@@ -16,7 +16,7 @@ class BitacoraCambioController extends Controller
     {
         $request->validate([
             'tabla_afectada' => 'nullable|string|max:100',
-            'operacion' => 'nullable|in:crear,actualizar,eliminar,estado,asignar,desasignar',
+            'operacion' => 'nullable|string|max:50',
             'busqueda'       => 'nullable|string|max:255',
             'fecha_inicio'   => 'nullable|date',
             'fecha_fin'      => 'nullable|date',
@@ -97,14 +97,29 @@ class BitacoraCambioController extends Controller
         ESTADÍSTICAS
         ========================= */
 
+        $operacionesPrincipales = ['crear', 'actualizar', 'eliminar'];
+
+        $estadisticasPorOperacion = BitacoraCambio::selectRaw('operacion, COUNT(*) as total')
+            ->groupBy('operacion')
+            ->pluck('total', 'operacion');
+
         $estadisticas = [
             'total' => BitacoraCambio::count(),
-            'insert' => BitacoraCambio::where('operacion', 'crear')->count(),
-            'update' => BitacoraCambio::where('operacion', 'actualizar')->count(),
-            'delete' => BitacoraCambio::where('operacion', 'eliminar')->count(),
             'hoy' => BitacoraCambio::whereDate('fecha_cambio', now()->toDateString())->count(),
-            'otros' => BitacoraCambio::whereNotIn('operacion', ['crear', 'actualizar', 'eliminar'])->count(),
+            'por_operacion' => [
+                'crear' => $estadisticasPorOperacion['crear'] ?? 0,
+                'actualizar' => $estadisticasPorOperacion['actualizar'] ?? 0,
+                'eliminar' => $estadisticasPorOperacion['eliminar'] ?? 0,
+                'otros' => collect($estadisticasPorOperacion)
+                    ->except($operacionesPrincipales)
+                    ->sum(),
+            ],
         ];
+
+        $operaciones = BitacoraCambio::select('operacion')
+            ->distinct()
+            ->orderBy('operacion')
+            ->pluck('operacion');
 
         return Inertia::render('Bitacora/Index', [
             'bitacora' => $bitacora,
@@ -117,6 +132,7 @@ class BitacoraCambioController extends Controller
                 'por_pagina',
             ]),
             'estadisticas' => $estadisticas,
+            'operaciones' => $operaciones,
             'userPermisos' => getUserPermisos(),
         ]);
     }

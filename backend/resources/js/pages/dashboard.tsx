@@ -1,18 +1,19 @@
 import React from "react";
 import PpLayout from "@/layouts/PpLayout";
 import { Head, Link, usePage } from "@inertiajs/react";
-import { 
-  FileText, 
-  Briefcase, 
-  BookOpen, 
-  Users, 
-  Calendar, 
-  BarChart3, 
-  AlertCircle, 
+import {
+  FileText,
+  Briefcase,
+  BookOpen,
+  Users,
+  Calendar,
+  BarChart3,
+  AlertCircle,
   ArrowRight,
   Sparkles,
   ChevronRight,
-  Bookmark
+  Bookmark,
+  PlusCircle
 } from "lucide-react";
 
 /* =========================
@@ -27,47 +28,150 @@ export default function Dashboard() {
   const permisos = userPermisos ?? [];
   const rol = userRol ?? "Sin rol";
 
+  /* =========================
+     ACCIONES SEGÚN PERMISOS
+  ========================= */
   const acciones = [
-    permisos.includes(2) && { title: "GENERAR CV", desc: "Diseña tu currículum profesional con sello UNA.", href: "/curriculum/generar", icon: FileText, color: "text-[#034991]", bg: "bg-blue-50", borderColor: "hover:border-blue-200" },
-    permisos.includes(5) && { title: "OFERTAS EMPLEO", desc: "Vinculación laboral directa para graduados.", href: "/ofertas", icon: Briefcase, color: "text-[#CD1719]", bg: "bg-red-50", borderColor: "hover:border-red-200" },
-    (permisos.includes(8) || permisos.includes(9)) && {
-      title: "FORMACIÓN",
-      desc: "Cursos de actualización y educación continua.",
-      href: permisos.includes(8) ? "/cursos" : "/cursos/inscripcion",
+
+    // CV
+    permisos.includes(2) && {
+      title: "GENERAR CV",
+      desc: "Diseña tu currículum profesional con sello UNA.",
+      href: "/curriculum/generar",
+      icon: FileText,
+      color: "text-[#034991]",
+      bg: "bg-blue-50",
+      borderColor: "hover:border-blue-200"
+    },
+
+    // EMPRESA / ADMIN → gestionar ofertas
+    permisos.includes(5) && {
+      title: "GESTIONAR OFERTAS",
+      desc: "Cree, edite y administre sus ofertas laborales.",
+      href: "/empresa/ofertas",
+      icon: Briefcase,
+      color: "text-[#CD1719]",
+      bg: "bg-red-50",
+      borderColor: "hover:border-red-200"
+    },
+
+    // Crear oferta
+    permisos.includes(5) && {
+      title: "CREAR OFERTA",
+      desc: "Publica una nueva oportunidad laboral.",
+      href: "/empresa/ofertas/crear",
+      icon: PlusCircle,
+      color: "text-black",
+      bg: "bg-green-100",
+      borderColor: "hover:border-red-300"
+    },
+
+
+    // ESTUDIANTE / EGRESADO → ver y postular
+    permisos.includes(6) && {
+      title: "OFERTAS EMPLEO",
+      desc: "Explora ofertas y postúlate fácilmente.",
+      href: "/ofertas",
+      icon: Briefcase,
+      color: "text-[#CD1719]",
+      bg: "bg-red-50",
+      borderColor: "hover:border-red-200"
+    },
+
+    // CURSOS ADMIN
+    permisos.includes(8) && {
+      title: "GESTIONAR CURSOS",
+      desc: "Administre cursos y capacitaciones.",
+      href: "/cursos",
       icon: BookOpen,
       color: "text-emerald-700",
       bg: "bg-emerald-50",
       borderColor: "hover:border-emerald-200"
     },
-    permisos.includes(10) && { title: "EVENTOS UNA", desc: "Encuentros, congresos y vida estudiantil.", href: "/eventos", icon: Calendar, color: "text-amber-700", bg: "bg-amber-50", borderColor: "hover:border-amber-200" },
-    permisos.includes(12) && { title: "USUARIOS", desc: "Administración de accesos institucionales.", href: "/usuarios/perfiles", icon: Users, color: "text-indigo-700", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" },
-    permisos.includes(14) && { title: "REPORTES", desc: "Estadísticas de empleabilidad y seguimiento.", href: "/reportes-egresados", icon: BarChart3, color: "text-slate-700", bg: "bg-slate-100", borderColor: "hover:border-slate-300" },
-  ].filter(Boolean) as any[];
+
+    // CURSOS USUARIO
+    permisos.includes(9) && {
+      title: "FORMACIÓN",
+      desc: "Inscríbete en cursos disponibles.",
+      href: "/cursos/inscripcion",
+      icon: BookOpen,
+      color: "text-emerald-700",
+      bg: "bg-emerald-50",
+      borderColor: "hover:border-emerald-200"
+    },
+
+    // EVENTOS ADMIN
+    permisos.includes(10) && {
+      title: "GESTIONAR EVENTOS",
+      desc: "Administre los eventos institucionales.",
+      href: "/eventos",
+      icon: Calendar,
+      color: "text-amber-700",
+      bg: "bg-amber-50",
+      borderColor: "hover:border-amber-200"
+    },
+
+    // EVENTOS USUARIO
+    permisos.includes(11) && {
+      title: "EVENTOS UNA",
+      desc: "Inscríbete en actividades y eventos.",
+      href: "/eventos/inscripcion",
+      icon: Calendar,
+      color: "text-amber-700",
+      bg: "bg-amber-50",
+      borderColor: "hover:border-amber-200"
+    },
+
+    // USUARIOS (ADMIN)
+    permisos.includes(12) && {
+      title: "USUARIOS",
+      desc: "Administración de accesos.",
+      href: "/usuarios",
+      icon: Users,
+      color: "text-indigo-700",
+      bg: "bg-indigo-50",
+      borderColor: "hover:border-indigo-200"
+    },
+
+    // REPORTES
+    permisos.includes(14) && {
+      title: "REPORTES",
+      desc: "Visualice estadísticas del sistema.",
+      href: "/reportes-egresados",
+      icon: BarChart3,
+      color: "text-slate-700",
+      bg: "bg-slate-100",
+      borderColor: "hover:border-slate-300"
+    }
+
+  ].filter(Boolean);
 
   return (
     <>
       <Head title="Dashboard Institucional" />
 
       <div className="max-w-7xl mx-auto px-4 py-10 md:py-16 space-y-12">
-        
+
         {/* ============================== BIENVENIDA (HERO PREMIUM) ============================== */}
         <section className="relative overflow-hidden bg-white border border-gray-100 rounded-[3rem] shadow-2xl shadow-blue-900/10 transition-all duration-500 hover:shadow-blue-900/20">
           {/* Franja de Identidad UNA */}
           <div className="absolute top-0 left-0 w-2 h-full bg-[#CD1719]" />
-          
+
           {/* Decoración de Fondo (Gradiente Institucional) */}
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#034991]/5 rounded-full blur-3xl" />
-          
+
           <div className="relative z-10 p-8 md:p-14 flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="space-y-5 text-center md:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#034991]/10 text-[#034991] text-[11px] font-black tracking-[0.2em] uppercase">
                 <Bookmark className="w-3.5 h-3.5 fill-[#034991]" /> Universidad Nacional de Costa Rica
               </div>
-              
+
               <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] italic tracking-tighter">
-                PANEL <span className="text-[#034991] uppercase">ADMINISTRATIVO</span>
+                PANEL <span>
+                  {rol === "Administrador" ? "ADMINISTRATIVO" : "USUARIO"}
+                </span>
               </h1>
-              
+
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                 <span className="px-4 py-1.5 bg-[#CD1719] text-white text-[11px] font-black rounded-xl tracking-widest uppercase shadow-lg shadow-red-500/20">
                   {rol}
@@ -80,19 +184,19 @@ export default function Dashboard() {
 
             {/* Resumen Rápido Estilo Glassmorphism */}
             <div className="bg-gray-50/50 backdrop-blur-sm border border-gray-100 p-6 rounded-[2rem] min-w-[240px] text-center md:text-right">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Estado del Sistema</p>
-                <div className="flex items-center gap-3 justify-center md:justify-end mb-4">
-                  <span className="text-lg font-black text-[#034991] uppercase italic">GradEm-UNA</span>
-                  <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
-                </div>
-                <div className="h-px bg-gray-200 w-full mb-4" />
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Sistema de Vinculación y Empleabilidad</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Estado del Sistema</p>
+              <div className="flex items-center gap-3 justify-center md:justify-end mb-4">
+                <span className="text-lg font-black text-[#034991] uppercase italic">GradEm-UNA</span>
+                <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
+              </div>
+              <div className="h-px bg-gray-200 w-full mb-4" />
+              <p className="text-[10px] font-bold text-gray-400 uppercase">Sistema de Vinculación y Empleabilidad</p>
             </div>
           </div>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
+
           {/* ============================== ACCESOS RÁPIDOS ============================== */}
           <div className="lg:col-span-2 space-y-8">
             <div className="flex items-center gap-4 px-2">
@@ -123,7 +227,7 @@ export default function Dashboard() {
                   <div className="mt-auto pt-4 flex items-center justify-between">
                     <span className="text-[10px] font-black text-gray-300 group-hover:text-[#CD1719] transition-colors duration-300 uppercase tracking-[0.2em]">Acceder ahora</span>
                     <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-[#CD1719] group-hover:text-white transition-all duration-300">
-                        <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
                 </Link>
@@ -176,9 +280,9 @@ export default function Dashboard() {
                 </div>
                 {/* Patrón de líneas decorativo */}
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <div className="grid grid-cols-2 gap-2">
-                        {[...Array(4)].map((_, i) => <div key={i} className="w-1 h-1 bg-white rounded-full" />)}
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[...Array(4)].map((_, i) => <div key={i} className="w-1 h-1 bg-white rounded-full" />)}
+                  </div>
                 </div>
               </div>
             )}
@@ -190,7 +294,7 @@ export default function Dashboard() {
 }
 
 Dashboard.layout = (page: any) => (
-  <PpLayout 
+  <PpLayout
     userPermisos={page.props.userPermisos}
   >
     {page}

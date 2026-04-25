@@ -493,13 +493,29 @@ class EventoRepository
             ->count();
     }
 
-    /**
-     * Crear inscripción
-     */
-    public function crearInscripcion(array $data): void
-    {
+/**
+ * Crear inscripción
+ */
+public function crearInscripcion(array $data): void
+{
+    $existente = DB::table('inscripciones_evento')
+        ->where('id_evento', $data['id_evento'])
+        ->where('id_usuario', $data['id_usuario'])
+        ->first();
+
+    if ($existente) {
+        // Reactivar inscripción cancelada
+        DB::table('inscripciones_evento')
+            ->where('id_evento', $data['id_evento'])
+            ->where('id_usuario', $data['id_usuario'])
+            ->update([
+                'estado_id' => 1,
+                'fecha_inscripcion' => $data['fecha_inscripcion'],
+            ]);
+    } else {
         DB::table('inscripciones_evento')->insert($data);
     }
+}
 
     /**
      * Obtener inscripción puntual (para cancelar)
