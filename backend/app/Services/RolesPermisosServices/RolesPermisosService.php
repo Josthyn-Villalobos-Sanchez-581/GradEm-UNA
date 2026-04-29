@@ -3,6 +3,7 @@
 namespace App\Services\RolesPermisosServices;
 
 use App\Repositories\RolesPermisosRepositories\RolesPermisosRepository;
+use App\Services\BitacoraServices\BitacoraService;
 use Illuminate\Support\Facades\Auth;
 
 class RolesPermisosService
@@ -44,15 +45,22 @@ class RolesPermisosService
     {
         $rol = $this->rolesPermisosRepository->obtenerRolPorId($rolId);
 
-        // Sincronizar permisos tal como en el controlador original
         $this->rolesPermisosRepository->sincronizarPermisosRol($rol, $permisosIds);
 
-        // Registrar en bitácora
+        $permisos = $this->rolesPermisosRepository
+            ->obtenerPermisosPorIds($permisosIds);
+
+        $nombresPermisos = $permisos->pluck('nombre')->implode(', ');
+
         $this->rolesPermisosRepository->registrarBitacora(
             tabla: 'roles_permisos',
             operacion: 'asignar',
-            descripcion: "Permisos actualizados rol ID {$rolId}: " . implode(',', $permisosIds),
-            usuarioId: Auth::id()
+            usuarioId: Auth::id(),
+            descripcion:
+                'Permisos actualizados rol "' .
+                $rol->nombre_rol .
+                '" (ID ' . $rolId . '): ' .
+                $nombresPermisos
         );
     }
 }

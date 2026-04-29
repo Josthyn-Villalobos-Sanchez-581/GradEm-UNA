@@ -77,73 +77,73 @@ class EventoRepository
      * Obtener evento con relaciones (para detalle/modal)
      */
     public function obtenerEventoCompleto(int $idEvento)
-{
-    $evento = DB::table('eventos')
-        ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
-        ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
-        ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
-        ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
-        ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
+    {
+        $evento = DB::table('eventos')
+            ->leftJoin('usuarios', 'usuarios.id_usuario', '=', 'eventos.usuario_id')
+            ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
+            ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
+            ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
+            ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
 
-        ->where('eventos.id_evento', $idEvento)
+            ->where('eventos.id_evento', $idEvento)
 
-        ->select(
-            'eventos.*',
-            'usuarios.nombre_completo as creador_nombre',
-            'modalidades.nombre as modalidad_nombre',
+            ->select(
+                'eventos.*',
+                'usuarios.nombre_completo as creador_nombre',
+                'modalidades.nombre as modalidad_nombre',
 
-            // 🔥 NOMBRES
-            'cantones.nombre as canton_nombre',
-            'provincias.nombre as provincia_nombre',
-            'paises.nombre as pais_nombre',
+                // 🔥 NOMBRES
+                'cantones.nombre as canton_nombre',
+                'provincias.nombre as provincia_nombre',
+                'paises.nombre as pais_nombre',
 
-            // 🔥 IDS (CLAVE PARA FRONTEND)
-            'cantones.id_canton',
-            'provincias.id_provincia',
-            'paises.id_pais',
+                // 🔥 IDS (CLAVE PARA FRONTEND)
+                'cantones.id_canton',
+                'provincias.id_provincia',
+                'paises.id_pais',
 
-            // ✅ SUBQUERY (SOLUCIÓN CORRECTA)
-            DB::raw('(
+                // ✅ SUBQUERY (SOLUCIÓN CORRECTA)
+                DB::raw('(
                 SELECT COUNT(*)
                 FROM inscripciones_evento ie
                 WHERE ie.id_evento = eventos.id_evento
                 AND ie.estado_id = 1
             ) as inscritos_count')
-        )
+            )
 
-        ->first();
+            ->first();
 
-    if ($evento) {
+        if ($evento) {
 
-        // CUPOS DISPONIBLES
-        $evento->cupos_disponibles = is_null($evento->cupos)
-            ? null
-            : max(0, $evento->cupos - $evento->inscritos_count);
+            // CUPOS DISPONIBLES
+            $evento->cupos_disponibles = is_null($evento->cupos)
+                ? null
+                : max(0, $evento->cupos - $evento->inscritos_count);
 
-        // RELACIONES
-        $evento->carreras_invitadas = DB::table('evento_carrera')
-            ->where('id_evento', $idEvento)
-            ->pluck('id_carrera')
-            ->toArray();
+            // RELACIONES
+            $evento->carreras_invitadas = DB::table('evento_carrera')
+                ->where('id_evento', $idEvento)
+                ->pluck('id_carrera')
+                ->toArray();
 
-        $evento->roles_interesados = DB::table('evento_rol')
-            ->where('id_evento', $idEvento)
-            ->pluck('id_rol')
-            ->toArray();
+            $evento->roles_interesados = DB::table('evento_rol')
+                ->where('id_evento', $idEvento)
+                ->pluck('id_rol')
+                ->toArray();
 
-        $evento->carreras = DB::table('evento_carrera')
-            ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
-            ->where('evento_carrera.id_evento', $idEvento)
-            ->pluck('carreras.nombre');
+            $evento->carreras = DB::table('evento_carrera')
+                ->join('carreras', 'carreras.id_carrera', '=', 'evento_carrera.id_carrera')
+                ->where('evento_carrera.id_evento', $idEvento)
+                ->pluck('carreras.nombre');
 
-        $evento->roles = DB::table('evento_rol')
-            ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
-            ->where('evento_rol.id_evento', $idEvento)
-            ->pluck('roles.nombre_rol');
+            $evento->roles = DB::table('evento_rol')
+                ->join('roles', 'roles.id_rol', '=', 'evento_rol.id_rol')
+                ->where('evento_rol.id_evento', $idEvento)
+                ->pluck('roles.nombre_rol');
+        }
+
+        return $evento;
     }
-
-    return $evento;
-}
 
     /**
      * Obtener modalidades (para filtros frontend)
@@ -458,13 +458,6 @@ class EventoRepository
                 })
                 ->update(['estado_id' => 4]);
 
-            DB::table('bitacora_cambios')->insert([
-                'tabla_afectada' => 'eventos',
-                'operacion' => 'FINALIZAR',
-                'usuario_responsable' => null,
-                'fecha_cambio' => now(),
-                'descripcion_cambio' => 'Eventos finalizados automáticamente por sistema',
-            ]);
         });
     }
 
@@ -493,29 +486,29 @@ class EventoRepository
             ->count();
     }
 
-/**
- * Crear inscripción
- */
-public function crearInscripcion(array $data): void
-{
-    $existente = DB::table('inscripciones_evento')
-        ->where('id_evento', $data['id_evento'])
-        ->where('id_usuario', $data['id_usuario'])
-        ->first();
-
-    if ($existente) {
-        // Reactivar inscripción cancelada
-        DB::table('inscripciones_evento')
+    /**
+     * Crear inscripción
+     */
+    public function crearInscripcion(array $data): void
+    {
+        $existente = DB::table('inscripciones_evento')
             ->where('id_evento', $data['id_evento'])
             ->where('id_usuario', $data['id_usuario'])
-            ->update([
-                'estado_id' => 1,
-                'fecha_inscripcion' => $data['fecha_inscripcion'],
-            ]);
-    } else {
-        DB::table('inscripciones_evento')->insert($data);
+            ->first();
+
+        if ($existente) {
+            // Reactivar inscripción cancelada
+            DB::table('inscripciones_evento')
+                ->where('id_evento', $data['id_evento'])
+                ->where('id_usuario', $data['id_usuario'])
+                ->update([
+                    'estado_id' => 1,
+                    'fecha_inscripcion' => $data['fecha_inscripcion'],
+                ]);
+        } else {
+            DB::table('inscripciones_evento')->insert($data);
+        }
     }
-}
 
     /**
      * Obtener inscripción puntual (para cancelar)
@@ -529,37 +522,37 @@ public function crearInscripcion(array $data): void
             ->first();
     }
     public function obtenerEventoParaInscripcionPorId(int $idEvento)
-{
-    return DB::table('eventos')
-        ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
-        ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
-        ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
-        ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
+    {
+        return DB::table('eventos')
+            ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
+            ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
+            ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
+            ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
 
-        ->where('eventos.id_evento', $idEvento)
+            ->where('eventos.id_evento', $idEvento)
 
-        ->select(
-            'eventos.id_evento',
-            'eventos.titulo',
-            'eventos.descripcion',
-            'eventos.fecha_evento',
-            'eventos.fecha_limite_inscripcion',
-            'eventos.hora_evento',
-            'eventos.cupos',
-            'modalidades.nombre as modalidad_nombre',
-            'cantones.nombre as canton_nombre',
-            'provincias.nombre as provincia_nombre',
-            'paises.nombre as pais_nombre',
+            ->select(
+                'eventos.id_evento',
+                'eventos.titulo',
+                'eventos.descripcion',
+                'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
+                'eventos.hora_evento',
+                'eventos.cupos',
+                'modalidades.nombre as modalidad_nombre',
+                'cantones.nombre as canton_nombre',
+                'provincias.nombre as provincia_nombre',
+                'paises.nombre as pais_nombre',
 
-            DB::raw('(
+                DB::raw('(
                 SELECT COUNT(*)
                 FROM inscripciones_evento ie
                 WHERE ie.id_evento = eventos.id_evento
                 AND ie.estado_id = 1
             ) as inscritos_count')
-        )
-        ->first();
-}
+            )
+            ->first();
+    }
     /**
      * Actualizar estado de inscripción (cancelar, etc.)
      */
@@ -600,58 +593,58 @@ public function crearInscripcion(array $data): void
      * Obtener eventos activos filtrados por carrera y rol del usuario
      */
     public function obtenerEventosActivosParaInscripcion(int $idCarrera, int $idRol): array
-{
-    return DB::table('eventos')
-        ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
-        ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
-        ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
-        ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
+    {
+        return DB::table('eventos')
+            ->leftJoin('modalidades', 'modalidades.id_modalidad', '=', 'eventos.id_modalidad')
+            ->leftJoin('cantones', 'cantones.id_canton', '=', 'eventos.id_ubicacion')
+            ->leftJoin('provincias', 'provincias.id_provincia', '=', 'cantones.id_provincia')
+            ->leftJoin('paises', 'paises.id_pais', '=', 'provincias.id_pais')
 
-        ->where('eventos.estado_id', 1)
+            ->where('eventos.estado_id', 1)
 
-        // FILTRO POR CARRERA (SIN DUPLICAR)
-        ->whereExists(function ($query) use ($idCarrera) {
-            $query->select(DB::raw(1))
-                ->from('evento_carrera')
-                ->whereColumn('evento_carrera.id_evento', 'eventos.id_evento')
-                ->where('evento_carrera.id_carrera', $idCarrera);
-        })
+            // FILTRO POR CARRERA (SIN DUPLICAR)
+            ->whereExists(function ($query) use ($idCarrera) {
+                $query->select(DB::raw(1))
+                    ->from('evento_carrera')
+                    ->whereColumn('evento_carrera.id_evento', 'eventos.id_evento')
+                    ->where('evento_carrera.id_carrera', $idCarrera);
+            })
 
-        // FILTRO POR ROL (SIN DUPLICAR)
-        ->whereExists(function ($query) use ($idRol) {
-            $query->select(DB::raw(1))
-                ->from('evento_rol')
-                ->whereColumn('evento_rol.id_evento', 'eventos.id_evento')
-                ->where('evento_rol.id_rol', $idRol);
-        })
+            // FILTRO POR ROL (SIN DUPLICAR)
+            ->whereExists(function ($query) use ($idRol) {
+                $query->select(DB::raw(1))
+                    ->from('evento_rol')
+                    ->whereColumn('evento_rol.id_evento', 'eventos.id_evento')
+                    ->where('evento_rol.id_rol', $idRol);
+            })
 
-        ->select(
-            'eventos.id_evento',
-            'eventos.titulo',
-            'eventos.descripcion',
-            'eventos.fecha_evento',
-            'eventos.fecha_limite_inscripcion',
-            'eventos.hora_evento',
-            'eventos.estado_id',
-            'eventos.cupos',
-            'modalidades.nombre as modalidad_nombre',
-            'cantones.nombre as canton_nombre',
-            'provincias.nombre as provincia_nombre',
-            'paises.nombre as pais_nombre',
+            ->select(
+                'eventos.id_evento',
+                'eventos.titulo',
+                'eventos.descripcion',
+                'eventos.fecha_evento',
+                'eventos.fecha_limite_inscripcion',
+                'eventos.hora_evento',
+                'eventos.estado_id',
+                'eventos.cupos',
+                'modalidades.nombre as modalidad_nombre',
+                'cantones.nombre as canton_nombre',
+                'provincias.nombre as provincia_nombre',
+                'paises.nombre as pais_nombre',
 
-            // COUNT SIN GROUP BY
-            DB::raw('(
+                // COUNT SIN GROUP BY
+                DB::raw('(
                 SELECT COUNT(*)
                 FROM inscripciones_evento ie
                 WHERE ie.id_evento = eventos.id_evento
                 AND ie.estado_id = 1
             ) as inscritos_count')
-        )
+            )
 
-        ->orderBy('eventos.fecha_evento', 'asc')
-        ->get()
-        ->toArray();
-}
+            ->orderBy('eventos.fecha_evento', 'asc')
+            ->get()
+            ->toArray();
+    }
 
     /**
      * Obtener eventos inscritos del usuario con datos completos
@@ -684,5 +677,16 @@ public function crearInscripcion(array $data): void
             ->orderBy('eventos.fecha_evento', 'asc')
             ->get()
             ->toArray();
+    }
+
+    public function registrarBitacora(string $tabla, string $operacion, string $descripcion, ?int $usuarioId): void
+    {
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada'     => $tabla,
+            'operacion'          => $operacion,
+            'usuario_responsable'=> $usuarioId,
+            'descripcion_cambio' => $descripcion,
+            'fecha_cambio'       => now(),
+        ]);
     }
 }
