@@ -22,8 +22,16 @@ class EventoService
         $this->eventoRepository = $eventoRepository;
     }
 
-    public function finalizarEventosAutomaticamente(){
+    public function finalizarEventosAutomaticamente()
+    {
         $this->eventoRepository->finalizarEventosAutomaticamente();
+
+        $this->eventoRepository->registrarBitacora(
+            'eventos',
+            'FINALIZAR',
+            'Eventos finalizados automáticamente por el sistema.',
+            null
+        );
     }
 
     /**
@@ -99,11 +107,18 @@ class EventoService
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
                 'cupos' => $request->cupos ?? null,
-                'estado_id' => 7,//7 es borrador
+                'estado_id' => 7, //7 es borrador
                 'usuario_id' => $usuario?->id_usuario,
             ];
 
             $evento = $this->eventoRepository->crearEvento($data);
+
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'CREAR',
+                'Evento creado: "' . $evento->titulo . '" (ID ' . $evento->id_evento . ')',
+                $usuario->id_usuario
+            );
 
             if ($request->carreras_invitadas) {
                 $this->eventoRepository->sincronizarCarrerasEvento($evento->id_evento, $request->carreras_invitadas);
@@ -182,10 +197,10 @@ class EventoService
                         $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
                         $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
                         break;
-case 'cupos':
-    $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
-    $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
-    break;
+                    case 'cupos':
+                        $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
+                        $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
+                        break;
                     default:
                         $valorOriginal = $valorOriginal !== null ? trim((string)$valorOriginal) : null;
                         $valorNuevo = $valorNuevo !== null ? trim((string)$valorNuevo) : null;
@@ -202,6 +217,15 @@ case 'cupos':
             // Solo se envían correos cuando otros datos críticos del evento cambian.
             $this->eventoRepository->actualizarEvento($evento, $data);
 
+            $cambiosTexto = implode(', ', array_keys($cambiosCriticos));
+
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'ACTUALIZAR',
+                'Evento actualizado: "' . $evento->titulo .
+                    '". Campos modificados: ' . $cambiosTexto,
+                Auth::id()
+            );
             if ($request->carreras_invitadas) {
                 $this->eventoRepository->sincronizarCarrerasEvento($idEvento, $request->carreras_invitadas);
             }
@@ -273,6 +297,13 @@ case 'cupos':
 
             $this->eventoRepository->publicarEvento($idEvento);
 
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'PUBLICAR',
+                'Evento publicado: "' . $evento->titulo . '" (ID ' . $idEvento . ')',
+                Auth::id()
+            );
+
             $eventoPublicado = $this->eventoRepository->obtenerEventoCompleto($idEvento);
             $destinatarios = $this->obtenerDestinatariosEvento($idEvento);
 
@@ -316,13 +347,12 @@ case 'cupos':
             $this->eventoRepository->inactivarEvento($idEvento);
 
             // BITÁCORA
-            DB::table('bitacora_cambios')->insert([
-                'tabla_afectada' => 'eventos',
-                'operacion' => 'INACTIVAR',
-                'usuario_responsable' => $usuario->id_usuario,
-                'fecha_cambio' => now(),
-                'descripcion_cambio' => 'Evento ID ' . $idEvento . ' inactivado. Motivo: ' . $motivo,
-            ]);
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'INACTIVAR',
+                'Evento inactivado: "' . $evento->titulo . '" (ID ' . $idEvento . '). Motivo: ' . $motivo,
+                $usuario->id_usuario
+            );
 
             // ENVIAR CORREOS
             foreach ($inscritos as $usuarioInscrito) {
@@ -418,6 +448,14 @@ case 'cupos':
                 throw new \Exception('La inscripción no existe.');
             }
 
+            $this->eventoRepository->registrarBitacora(
+                'inscripciones_evento',
+                'ELIMINAR',
+                'Se eliminó inscripción de "' . $inscrito->nombre_completo .
+                    '" del evento "' . $evento->titulo . '"',
+                Auth::id()
+            );
+
             if (!empty($inscrito->correo)) {
                 Mail::to($inscrito->correo)->queue(new DesinscripcionEventoMail(
                     [
@@ -490,6 +528,13 @@ case 'cupos':
             ]));
             $enviados++;
         }
+
+        $this->eventoRepository->registrarBitacora(
+            'eventos',
+            'RECORDATORIO',
+            'Se enviaron ' . $enviados . ' recordatorios del evento "' . $evento->titulo . '"',
+            Auth::id()
+        );
 
         return $enviados;
     }

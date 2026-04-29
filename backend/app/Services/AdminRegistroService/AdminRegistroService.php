@@ -52,10 +52,14 @@ class AdminRegistroService
 
         $this->repository->actualizarEstado($id, $nuevoEstado);
 
+        $accion = $nuevoEstado ? 'activada' : 'inactivada';
+
         $this->repository->registrarBitacora(
             'usuarios',
-            $nuevoEstado ? 'activar' : 'inactivar',
-            "Cambio estado usuario ID {$id}",
+            'estado',
+            'Cuenta ' . $accion . ' para ' .
+                $usuario->nombre_completo .
+                ' (ID ' . $usuario->id_usuario . ')',
             $usuarioActual->id_usuario
         );
 
@@ -80,7 +84,7 @@ class AdminRegistroService
             $this->repository->registrarBitacora(
                 'usuarios',
                 'crear',
-                "Usuario creado ID {$usuarioId}",
+                'Usuario creado: ' . $validated['nombre_completo'] . ' (ID ' . $usuarioId . ')',
                 Auth::user()->id_usuario
             );
 
@@ -114,10 +118,14 @@ class AdminRegistroService
 
             DB::commit();
 
+            $usuarioAnterior = $this->repository->obtenerUsuario($id);
+
             $this->repository->registrarBitacora(
                 'usuarios',
                 'actualizar',
-                "Usuario actualizado ID {$id}",
+                'Usuario actualizado: ' .
+                    $usuarioAnterior->nombre_completo .
+                    ' (ID ' . $id . ')',
                 Auth::user()->id_usuario
             );
 
@@ -144,10 +152,14 @@ class AdminRegistroService
         }
         $this->repository->eliminarUsuario($id);
 
+        $usuario = $this->repository->obtenerUsuario($id);
+
         $this->repository->registrarBitacora(
             'usuarios',
             'eliminar',
-            "Usuario eliminado ID {$id}",
+            'Usuario eliminado: ' .
+                $usuario->nombre_completo .
+                ' (ID ' . $usuario->id_usuario . ')',
             $usuarioActual->id_usuario
         );
 
