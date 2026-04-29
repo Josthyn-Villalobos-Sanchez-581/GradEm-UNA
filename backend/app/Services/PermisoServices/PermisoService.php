@@ -66,7 +66,7 @@ class PermisoService
         $this->permisoRepository->registrarBitacora(
             tabla: 'permisos',
             operacion: 'crear',
-            descripcion: "Permiso creado ID {$permiso->id_permiso}",
+            descripcion: 'Permiso creado: ' . $permiso->nombre . ' (ID ' . $permiso->id_permiso . ')',
             usuarioId: Auth::id()
         );
     }
@@ -78,6 +78,8 @@ class PermisoService
     {
         $permiso = $this->permisoRepository->buscarPermisoPorId($idPermiso);
 
+        $nombreAnterior = $permiso->nombre;
+
         $this->permisoRepository->actualizarPermiso($permiso, [
             'nombre' => $nombre,
         ]);
@@ -85,7 +87,13 @@ class PermisoService
         $this->permisoRepository->registrarBitacora(
             tabla: 'permisos',
             operacion: 'actualizar',
-            descripcion: "Permiso actualizado ID {$idPermiso}",
+            descripcion: 'Permiso actualizado: "' .
+                $nombreAnterior .
+                '" → "' .
+                $nombre .
+                '" (ID ' .
+                $idPermiso .
+                ')',
             usuarioId: Auth::id()
         );
     }
@@ -99,14 +107,24 @@ class PermisoService
     {
         $permiso = $this->permisoRepository->obtenerPermisoConRoles($idPermiso);
 
-        // Misma lógica que en el controlador original
         if ($permiso->roles()->exists()) {
             return "No se puede eliminar el permiso '{$permiso->nombre}' porque está asignado a uno o más roles.";
         }
 
+        $nombrePermiso = $permiso->nombre;
+
         $this->permisoRepository->eliminarPermiso($permiso);
 
-        // Nota: en el código original NO se registraba bitácora al eliminar, mantenemos el comportamiento
+        $this->permisoRepository->registrarBitacora(
+            tabla: 'permisos',
+            operacion: 'eliminar',
+            descripcion: 'Permiso eliminado: ' .
+                $nombrePermiso .
+                ' (ID ' .
+                $idPermiso .
+                ')',
+            usuarioId: Auth::id()
+        );
 
         return null;
     }

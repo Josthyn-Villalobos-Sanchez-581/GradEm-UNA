@@ -77,7 +77,7 @@ class RolService
         $this->rolRepository->registrarBitacora(
             tabla: 'roles',
             operacion: 'crear',
-            descripcion: 'Rol creado ID ' . $rol->id_rol,
+            descripcion: 'Rol creado: ' . $rol->nombre_rol . ' (ID ' . $rol->id_rol . ')',
             usuarioId: Auth::id()
         );
     }
@@ -86,18 +86,20 @@ class RolService
      * Actualizar rol y registrar bitácora.
      */
     public function actualizarRol(int $idRol, string $nombreRol): void
-    {
-        $rol = $this->rolRepository->buscarRolPorId($idRol);
+{
+    $rol = $this->rolRepository->buscarRolPorId($idRol);
 
-        $this->rolRepository->actualizarRol($rol, $nombreRol);
+    $nombreAnterior = $rol->nombre_rol;
 
-        $this->rolRepository->registrarBitacora(
-            tabla: 'roles',
-            operacion: 'actualizar',
-            descripcion: "Nombre del rol actualizado ID {$rol->id_rol}",
-            usuarioId: Auth::id()
-        );
-    }
+    $this->rolRepository->actualizarRol($rol, $nombreRol);
+
+    $this->rolRepository->registrarBitacora(
+        tabla: 'roles',
+        operacion: 'actualizar',
+        descripcion: 'Rol actualizado: "' . $nombreAnterior . '" → "' . $nombreRol . '" (ID ' . $rol->id_rol . ')',
+        usuarioId: Auth::id()
+    );
+}
 
     /**
      * Eliminar rol (desasignando permisos si corresponde) y registrar bitácora.
@@ -113,7 +115,7 @@ class RolService
             $this->rolRepository->registrarBitacora(
                 tabla: 'roles',
                 operacion: 'desasignar',
-                descripcion: "Permisos desasignados antes de eliminar rol ID {$rol->id_rol}: " . implode(',', $permisosDesasignados),
+                descripcion: 'Permisos desasignados del rol "' . $rol->nombre_rol . '" (ID ' . $rol->id_rol . '): ' . implode(', ', $permisosDesasignados),
                 usuarioId: Auth::id()
             );
         }
@@ -124,7 +126,7 @@ class RolService
         $this->rolRepository->registrarBitacora(
             tabla: 'roles',
             operacion: 'eliminar',
-            descripcion: "Rol eliminado ID {$idRol}",
+            descripcion: 'Rol eliminado: ' . $rol->nombre_rol . ' (ID ' . $rol->id_rol   . ')',
             usuarioId: Auth::id()
         );
     }
