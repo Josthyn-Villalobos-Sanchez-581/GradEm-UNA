@@ -63,8 +63,8 @@ class UsuariosConsultaController extends Controller
 
         // Registrar en bitácora
         $descripcion = $nuevoEstado == 1
-            ? "Cuenta activada para el usuario ID {$usuario->id_usuario}"
-            : "Cuenta inactivada para el usuario ID {$usuario->id_usuario}";
+            ? "Cuenta activada para el usuario {$usuario->nombre_completo} (ID: {$usuario->id_usuario})"
+            : "Cuenta inactivada para el usuario {$usuario->nombre_completo} (ID: {$usuario->id_usuario})";
 
         $this->registrarBitacora('usuarios', 'estado', $descripcion);
 
