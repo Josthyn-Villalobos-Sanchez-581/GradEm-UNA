@@ -9,6 +9,7 @@ import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
 import axios from "axios";
 import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+import { GraduationCap, Zap, CheckCircle2, AlertTriangle } from "lucide-react";
 
 
 // -------------------------
@@ -968,89 +969,106 @@ export default function EditarEgresado({
                   )}
                 </div>
               )}
+{/* CAMBIO DE ROL A ESTUDIANTE */}
+{activeSection === "condicion" && (
+  /* Cambio 1: max-w-none para que ocupe todo el ancho del contenedor padre.
+     Cambio 2: w-full asegura que se extienda.
+  */
+  <div className="w-full max-w-none space-y-6">
 
-              {/* CAMBIO DE ROL A ESTUDIANTE */}
-              {activeSection === "condicion" && (
-                <div className="w-full max-w-none space-y-6">
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    {/* TARJETA PRINCIPAL */}
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
 
-                    {/* HEADER */}
-                    <div className="flex items-center gap-3 px-5 py-4 bg-yellow-50 border-b">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-yellow-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M12 20.5C7.305 20.5 3.5 16.695 3.5 12S7.305 3.5 12 3.5 20.5 7.305 20.5 12 16.695 20.5 12 20.5z"
-                        />
-                      </svg>
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-5 border-b border-gray-100">
+        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-yellow-100 flex items-center justify-center">
+          <GraduationCap className="w-5 h-5 text-yellow-700" />
+        </div>
+        <div>
+          <p className="text-base sm:text-lg font-semibold text-gray-900">
+            Cambio de condición académica
+          </p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 font-medium">
+            Egresado <span className="text-gray-300 mx-1">→</span> Estudiante
+          </p>
+        </div>
+      </div>
 
-                      <h4 className="text-lg font-semibold text-yellow-800">
-                        Cambio de condición académica
-                      </h4>
-                    </div>
+      {/* BODY */}
+      <div className="px-6 py-6 space-y-6">
 
-                    {/* BODY */}
-                    <div className="px-8 py-6 space-y-6 text-lg text-gray-700">
-                      <p className="leading-relaxed">
-                        Esta opción está destinada a usuarios que, por error, registraron su
-                        condición académica como <strong>Egresado</strong> cuando en realidad
-                        aún mantienen la condición de <strong>Estudiante</strong>.
-                      </p>
+        {/* Descripción */}
+        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+          Esta opción está destinada a usuarios que, por error, registraron su
+          condición como{" "}
+          <span className="font-semibold text-gray-900">Egresado</span> cuando en
+          realidad aún mantienen la condición de{" "}
+          <span className="font-semibold text-gray-900">Estudiante</span>.
+        </p>
 
-                      {/* DESPLEGABLE */}
-                      <details className="group">
-                        <summary className="cursor-pointer font-semibold text-red-700 flex items-center gap-2 text-lg">
-                          <span>¿Qué implica realizar este cambio?</span>
-                          <span className="transition-transform group-open:rotate-180">▼</span>
-                        </summary>
+        {/* CONTENEDOR RESPONSIVO PARA ALERTAS (En laptop pueden ir lado a lado si prefieres, o seguir en stack) */}
+        <div className="grid grid-cols-1 gap-4">
+          
+          {/* Implicaciones */}
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-4 h-4 text-yellow-700" />
+              <p className="text-sm font-bold text-yellow-800 uppercase tracking-wider">
+                ¿Qué implica este cambio?
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                "Su perfil será actualizado a condición Estudiante.",
+                "La información exclusiva de egresado será eliminada.",
+                "Las funcionalidades disponibles se ajustarán automáticamente.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-yellow-900 leading-tight font-medium">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-                        <div className="mt-4 pl-6 space-y-2 text-gray-700 text-lg">
-                          <ul className="list-disc list-inside space-y-1">
-                            <li>Su perfil será actualizado a condición <strong>Estudiante</strong>.</li>
-                            <li>La información exclusiva de egresado será eliminada.</li>
-                            <li>
-                              Las funcionalidades y beneficios disponibles se ajustarán
-                              automáticamente según la nueva condición.
-                            </li>
-                          </ul>
-                        </div>
-                      </details>
+          {/* Advertencia */}
+          <div className="border-l-4 border-red-500 bg-red-50 rounded-r-xl px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              <p className="text-sm font-bold text-red-700">
+                Advertencia institucional
+              </p>
+            </div>
+            <p className="text-xs sm:text-sm text-red-700 leading-relaxed opacity-90">
+              La información registrada en el sistema debe ser real, veraz y
+              actualizada. Los datos recopilados serán utilizados para análisis
+              estadísticos y estudios institucionales que contribuyen a la mejora
+              continua, planificación académica y toma de decisiones de la
+              universidad.
+            </p>
+          </div>
+        </div>
 
-                      {/* ADVERTENCIA INSTITUCIONAL */}
-                      <div className="p-5 rounded-md bg-red-50 border-l-4 border-red-600">
-                        <p className="text-base text-red-700 leading-relaxed">
-                          <strong>Advertencia:</strong><br />
-                          La información registrada en el sistema debe ser real, veraz y
-                          actualizada. Los datos recopilados serán utilizados para análisis
-                          estadísticos y estudios institucionales que contribuyen a la mejora
-                          continua, planificación académica y toma de decisiones de la universidad.
-                        </p>
-                      </div>
+      </div>
+    </div>
 
-                    </div>
-                  </div>
+    {/* BOTÓN - Centrado en desktop, full width en mobile */}
+    <div className="flex justify-center pt-2">
+      <Button
+        type="button"
+        variant="destructive"
+        onClick={handleCambioEgresadoAEstudiante}
+        className="flex items-center gap-2 w-full sm:w-auto sm:px-8 py-2.5"
+      >
+        <GraduationCap className="w-5 h-5" />
+        Cambiar condición a Estudiante
+      </Button>
+    </div>
 
-                  {/* BOTÓN */}
-                  <div className="flex justify-center">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={handleCambioEgresadoAEstudiante}
-                      className="px-6 py-2 text-sm w-auto"
-                    >
-                      Cambiar condición a Estudiante
-                    </Button>
-                  </div>
-
-                </div>
-              )}
+  </div>
+)}
             </form>
           </div>
         </div>
