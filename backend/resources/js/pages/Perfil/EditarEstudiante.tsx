@@ -9,6 +9,7 @@ import IconoEdicion from "@/assets/IconoEdicion.png";
 import { Inertia } from "@inertiajs/inertia";
 import axios from "axios";
 import CorreoVerificacion from "@/pages/Perfil/CorreoVerificacion";
+import { GraduationCap, Zap, CheckCircle2, AlertTriangle } from "lucide-react";
 
 
 // -------------------------
@@ -932,87 +933,95 @@ export default function EditarEstudiante({
 
 
                             {/* CAMBIO DE ROL A EGRESADO */}
-                            {activeSection === "condicion" && (
-                                <div className="w-full max-w-none space-y-6">
-                                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+{activeSection === "condicion" && (
+  <div className="w-full space-y-4">
 
-                                        {/* HEADER */}
-                                        <div className="flex items-center gap-3 px-5 py-4 bg-yellow-50 border-b">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-6 w-6 text-yellow-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M13 16h-1v-4h-1m1-4h.01M12 20.5C7.305 20.5 3.5 16.695 3.5 12S7.305 3.5 12 3.5 20.5 7.305 20.5 12 16.695 20.5 12 20.5z"
-                                                />
-                                            </svg>
+    {/* TARJETA PRINCIPAL */}
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
 
-                                            <h4 className="text-lg font-semibold text-yellow-800">
-                                                Cambio de condición académica
-                                            </h4>
-                                        </div>
+      {/* HEADER */}
+      <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-yellow-100 flex items-center justify-center">
+          <GraduationCap className="w-5 h-5 text-yellow-700" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            Cambio de condición académica
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">Estudiante → Egresado</p>
+        </div>
+      </div>
 
-                                        {/* BODY */}
-                                        <div className="px-8 py-6 space-y-6 text-lg text-gray-700">
-                                            <p className="leading-relaxed">
-                                                Esta opción está destinada a usuarios que han finalizado su proceso
-                                                académico y cumplen con la condición de <strong>Egresado</strong>.
-                                                Al realizar este cambio, su perfil dejará de ser clasificado como{" "}
-                                                <strong>Estudiante</strong>.
-                                            </p>
+      {/* BODY */}
+      <div className="px-6 py-5 space-y-4">
 
-                                            {/* DESPLEGABLE */}
-                                            <details className="group">
-                                                <summary className="cursor-pointer font-semibold text-red-700 flex items-center gap-2 text-lg">
-                                                    <span>¿Qué implica realizar este cambio?</span>
-                                                    <span className="transition-transform group-open:rotate-180">▼</span>
-                                                </summary>
+        {/* Descripción */}
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Esta opción está destinada a usuarios que han finalizado su proceso
+          académico y cumplen con la condición de{" "}
+          <span className="font-medium text-gray-900">Egresado</span>. Al
+          realizar este cambio, su perfil dejará de ser clasificado como{" "}
+          <span className="font-medium text-gray-900">Estudiante</span>.
+        </p>
 
-                                                <div className="mt-4 pl-6 space-y-2 text-gray-700 text-lg">
-                                                    <ul className="list-disc list-inside space-y-1">
-                                                        <li>Su perfil será actualizado a condición <strong>Egresado</strong>.</li>
-                                                        <li>Se habilitarán las funcionalidades y beneficios exclusivos para egresados.</li>
-                                                        <li>
-                                                            La información académica y laboral será utilizada para análisis
-                                                            institucionales y procesos de seguimiento.
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </details>
+        {/* Implicaciones */}
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-4 h-4 text-yellow-700" />
+            <p className="text-xs font-semibold text-yellow-800">
+              ¿Qué implica este cambio?
+            </p>
+          </div>
+          <ul className="space-y-2">
+            {[
+              "Su perfil será actualizado a condición Egresado.",
+              "Se habilitarán funcionalidades y beneficios exclusivos para egresados.",
+              "La información académica y laboral será utilizada para análisis institucionales y procesos de seguimiento.",
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <span className="text-xs text-yellow-800 leading-relaxed">
+                  {item}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-                                            {/* ADVERTENCIA INSTITUCIONAL */}
-                                            <div className="p-5 rounded-md bg-red-50 border-l-4 border-red-600">
-                                                <p className="text-base text-red-700 leading-relaxed">
-                                                    <strong>Advertencia:</strong><br />
-                                                    La información registrada en el sistema debe ser real, veraz y
-                                                    actualizada. Los datos recopilados serán
-                                                    utilizados para análisis estadísticos, estudios de seguimiento
-                                                    académico y procesos de mejora continua que apoyan la toma de
-                                                    decisiones de la universidad.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+        {/* Advertencia */}
+        <div className="border-l-4 border-red-500 bg-red-50 rounded-r-xl px-4 py-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <p className="text-xs font-semibold text-red-700">
+              Advertencia institucional
+            </p>
+          </div>
+          <p className="text-xs text-red-700 leading-relaxed">
+            La información registrada en el sistema debe ser real, veraz y
+            actualizada. Los datos recopilados serán utilizados para análisis
+            estadísticos, estudios de seguimiento académico y procesos de mejora
+            continua que apoyan la toma de decisiones de la universidad.
+          </p>
+        </div>
 
-                                    {/* BOTÓN */}
-                                    <div className="flex justify-center">
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            onClick={handleCambioEstudianteAEgresado}
-                                            className="px-6 py-2 text-sm w-auto"
-                                        >
-                                            Cambiar condición a Egresado
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+        {/* BOTÓN centrado dentro de la card */}
+        <div className="flex justify-center pt-2">
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleCambioEstudianteAEgresado}
+            className="flex items-center gap-2 w-full sm:w-auto sm:px-8 py-2.5"
+          >
+            <GraduationCap className="w-4 h-4" />
+            Cambiar condición a Egresado
+          </Button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+)}
 
 
                         </form>
