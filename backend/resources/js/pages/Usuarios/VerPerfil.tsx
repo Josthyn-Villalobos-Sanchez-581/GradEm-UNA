@@ -143,7 +143,6 @@ export default function VerPerfil({ usuario, plataformas = [], origen, ofertaId 
         throw new Error('Formato de respuesta inválido');
       }
     } catch (error) {
-      console.error('Error al cargar adjuntos:', error);
       modal.alerta({
         titulo: "Error",
         mensaje: "No se pudieron cargar los documentos adjuntos. Por favor, intente nuevamente.",
