@@ -165,7 +165,6 @@ class AdminRegistroService
 
         $mensaje = $e->getMessage();
 
-        
         if (str_contains($mensaje, 'Integrity constraint') ||
             str_contains($mensaje, 'foreign key')) {
 
@@ -175,7 +174,6 @@ class AdminRegistroService
             ], 500);
         }
 
-       
         return response()->json([
             'success' => false,
             'message' => 'Error al eliminar el usuario.'
