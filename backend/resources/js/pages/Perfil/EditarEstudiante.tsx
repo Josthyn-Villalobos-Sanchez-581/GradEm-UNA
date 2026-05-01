@@ -933,95 +933,95 @@ export default function EditarEstudiante({
 
 
                             {/* CAMBIO DE ROL A EGRESADO */}
-{activeSection === "condicion" && (
-  <div className="w-full space-y-4">
+                            {activeSection === "condicion" && (
+                                <div className="w-full space-y-4">
 
-    {/* TARJETA PRINCIPAL */}
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                                    {/* TARJETA PRINCIPAL */}
+                                    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
 
-      {/* HEADER */}
-      <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
-        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-yellow-100 flex items-center justify-center">
-          <GraduationCap className="w-5 h-5 text-yellow-700" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900">
-            Cambio de condición académica
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">Estudiante → Egresado</p>
-        </div>
-      </div>
+                                        {/* HEADER */}
+                                        <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                                            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-yellow-100 flex items-center justify-center">
+                                                <GraduationCap className="w-5 h-5 text-yellow-700" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    Cambio de condición académica
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">Estudiante → Egresado</p>
+                                            </div>
+                                        </div>
 
-      {/* BODY */}
-      <div className="px-6 py-5 space-y-4">
+                                        {/* BODY */}
+                                        <div className="px-6 py-5 space-y-4">
 
-        {/* Descripción */}
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Esta opción está destinada a usuarios que han finalizado su proceso
-          académico y cumplen con la condición de{" "}
-          <span className="font-medium text-gray-900">Egresado</span>. Al
-          realizar este cambio, su perfil dejará de ser clasificado como{" "}
-          <span className="font-medium text-gray-900">Estudiante</span>.
-        </p>
+                                            {/* Descripción */}
+                                            <p className="text-sm text-gray-600 leading-relaxed">
+                                                Esta opción está destinada a usuarios que han finalizado su proceso
+                                                académico y cumplen con la condición de{" "}
+                                                <span className="font-medium text-gray-900">Egresado</span>. Al
+                                                realizar este cambio, su perfil dejará de ser clasificado como{" "}
+                                                <span className="font-medium text-gray-900">Estudiante</span>.
+                                            </p>
 
-        {/* Implicaciones */}
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Zap className="w-4 h-4 text-yellow-700" />
-            <p className="text-xs font-semibold text-yellow-800">
-              ¿Qué implica este cambio?
-            </p>
-          </div>
-          <ul className="space-y-2">
-            {[
-              "Su perfil será actualizado a condición Egresado.",
-              "Se habilitarán funcionalidades y beneficios exclusivos para egresados.",
-              "La información académica y laboral será utilizada para análisis institucionales y procesos de seguimiento.",
-            ].map((item, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                <span className="text-xs text-yellow-800 leading-relaxed">
-                  {item}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+                                            {/* Implicaciones */}
+                                            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Zap className="w-4 h-4 text-yellow-700" />
+                                                    <p className="text-xs font-semibold text-yellow-800">
+                                                        ¿Qué implica este cambio?
+                                                    </p>
+                                                </div>
+                                                <ul className="space-y-2">
+                                                    {[
+                                                        "Su perfil será actualizado a condición Egresado.",
+                                                        "Se habilitarán funcionalidades y beneficios exclusivos para egresados.",
+                                                        "La información académica y laboral será utilizada para análisis institucionales y procesos de seguimiento.",
+                                                    ].map((item, i) => (
+                                                        <li key={i} className="flex items-start gap-2">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                                            <span className="text-xs text-yellow-800 leading-relaxed">
+                                                                {item}
+                                                            </span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
 
-        {/* Advertencia */}
-        <div className="border-l-4 border-red-500 bg-red-50 rounded-r-xl px-4 py-3">
-          <div className="flex items-center gap-2 mb-1.5">
-            <AlertTriangle className="w-4 h-4 text-red-600" />
-            <p className="text-xs font-semibold text-red-700">
-              Advertencia institucional
-            </p>
-          </div>
-          <p className="text-xs text-red-700 leading-relaxed">
-            La información registrada en el sistema debe ser real, veraz y
-            actualizada. Los datos recopilados serán utilizados para análisis
-            estadísticos, estudios de seguimiento académico y procesos de mejora
-            continua que apoyan la toma de decisiones de la universidad.
-          </p>
-        </div>
+                                            {/* Advertencia */}
+                                            <div className="border-l-4 border-red-500 bg-red-50 rounded-r-xl px-4 py-3">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                                                    <p className="text-xs font-semibold text-red-700">
+                                                        Advertencia institucional
+                                                    </p>
+                                                </div>
+                                                <p className="text-xs text-red-700 leading-relaxed">
+                                                    La información registrada en el sistema debe ser real, veraz y
+                                                    actualizada. Los datos recopilados serán utilizados para análisis
+                                                    estadísticos, estudios de seguimiento académico y procesos de mejora
+                                                    continua que apoyan la toma de decisiones de la universidad.
+                                                </p>
+                                            </div>
 
-        {/* BOTÓN centrado dentro de la card */}
-        <div className="flex justify-center pt-2">
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleCambioEstudianteAEgresado}
-            className="flex items-center gap-2 w-full sm:w-auto sm:px-8 py-2.5"
-          >
-            <GraduationCap className="w-4 h-4" />
-            Cambiar condición a Egresado
-          </Button>
-        </div>
+                                            {/* BOTÓN centrado dentro de la card */}
+                                            <div className="flex justify-center pt-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    onClick={handleCambioEstudianteAEgresado}
+                                                    className="flex items-center gap-2 w-full sm:w-auto sm:px-8 py-2.5"
+                                                >
+                                                    <GraduationCap className="w-4 h-4" />
+                                                    Cambiar condición a Egresado
+                                                </Button>
+                                            </div>
 
-      </div>
-    </div>
+                                        </div>
+                                    </div>
 
-  </div>
-)}
+                                </div>
+                            )}
 
 
                         </form>
