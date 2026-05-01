@@ -35,6 +35,7 @@ use App\Http\Controllers\CursoController;
 use App\Http\Controllers\CursoInscripcionController;
 use App\Http\Controllers\InscripcionCursoController;
 use App\Http\Controllers\BitacoraCambioController;
+use App\Http\Controllers\RiesgoController;
 
 use App\Http\Controllers\InscripcionEventoController;
 
@@ -668,6 +669,30 @@ Route::middleware(['auth', 'permiso:11'])->prefix('eventos')->group(function () 
     // 14 - Reportes de Egresados
     // 15 - Reportes de Ofertas y Postulaciones
     // 17 - Integraciones externas
+});
+
+// ==========================================
+// 18 - Gestión de Matriz de Riesgos
+// ==========================================
+Route::middleware(['auth'])->prefix('riesgos')->group(function () {
+
+    Route::get('/', [RiesgoController::class, 'index'])
+        ->name('riesgos.index');
+
+    Route::get('/crear', [RiesgoController::class, 'create'])
+        ->name('riesgos.create');
+
+    Route::post('/', [RiesgoController::class, 'store'])
+        ->name('riesgos.store');
+
+    Route::get('/{id}/editar', [RiesgoController::class, 'edit'])
+        ->name('riesgos.edit');
+
+    Route::put('/{id}', [RiesgoController::class, 'update'])
+        ->name('riesgos.update');
+
+    Route::delete('/{id}', [RiesgoController::class, 'destroy'])
+        ->name('riesgos.destroy');
 });
 
 // cosas de plataforma externa 
