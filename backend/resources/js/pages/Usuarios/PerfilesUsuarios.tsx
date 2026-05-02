@@ -86,7 +86,11 @@ export default function PerfilesUsuarios(props: Props) {
         normalizeSearchText(u.correo).includes(texto)
       );
     })
-    .filter((u) => (filtroRol !== "todos" ? normalizeSearchText(u.rol?.nombre_rol) === filtroRol.toLowerCase() : true))
+    .filter((u) =>
+      filtroRol !== "todos"
+        ? normalizeSearchText(u.rol?.nombre_rol) === filtroRol.toLowerCase()
+        : true
+    )
     .filter((u) => {
       if (filtroEstado === "activos") return u.estado_id === 1;
       if (filtroEstado === "inactivos") return u.estado_id !== 1;
@@ -103,7 +107,14 @@ export default function PerfilesUsuarios(props: Props) {
         return normalizeSearchText(u.carrera?.nombre) === filtroCarrera;
       }
       return true;
-    });
+    })
+
+    // filtra alfabeticamente
+    .sort((a, b) =>
+      a.nombre_completo.localeCompare(b.nombre_completo, "es", {
+        sensitivity: "base",
+      })
+    );
 
 
   const totalPaginas = Math.ceil(usuariosFiltrados.length / itemsPorPagina);
@@ -113,7 +124,7 @@ export default function PerfilesUsuarios(props: Props) {
     <>
       <Head title="Perfiles de Usuarios" />
 
-      <div className="max-full w-full mx-auto px-6 py-6 text-[#000000]">
+      <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-6 text-[#000000]">
 
         {/* HEADER */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -137,7 +148,7 @@ export default function PerfilesUsuarios(props: Props) {
           </Button>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className={`flex flex-col lg:flex-row gap-8 ${!mostrarFiltros ? "lg:gap-0" : ""}`}>
 
           {/* SIDEBAR FILTROS */}
           {mostrarFiltros && (
@@ -264,219 +275,320 @@ export default function PerfilesUsuarios(props: Props) {
             </aside>
           )}
 
-          {/* TABLA DE CONTENIDO */}
-          <section className="flex-1 min-w-0">
-            <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-50 bg-slate-50/30">
+          {/* MOBILE */}
+          <div className="md:hidden space-y-4">
+            {usuariosPaginados.map((u) => (
+              <div key={u.id_usuario} className="bg-white p-4 rounded-xl shadow border">
 
-                      {columnasVisibles.nombre_completo && (
-                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Usuario
-                        </th>
-                      )}
+                <div className="font-bold text-[#034991]">
+                  {displayValue(u.nombre_completo)}
+                </div>
 
-                      {(columnasVisibles.universidad || columnasVisibles.carrera) && (
-                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Académico
-                        </th>
-                      )}
+                <div className="text-sm text-gray-500">
+                  {displayValue(u.correo)}
+                </div>
 
-                      {columnasVisibles.correo && (
-                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Contacto
-                        </th>
-                      )}
+                <div className="text-xs mt-1">
+                  {displayValue(u.rol?.nombre_rol)}
+                </div>
 
-                      {columnasVisibles.identificacion && (
-                        <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Identificación
-                        </th>
-                      )}
-
-                      {columnasVisibles.rol && (
-                        <th className="p-5 text-center font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Rol
-                        </th>
-                      )}
-
-                      {columnasVisibles.acciones && (
-                        <th className="p-5 text-right font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
-                          Gestión
-                        </th>
-                      )}
-
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {usuariosPaginados.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="p-10 text-center text-slate-400 italic">
-                          No se encontraron usuarios con los filtros aplicados.
-                        </td>
-                      </tr>
-                    ) : (
-                      usuariosPaginados.map((u) => (
-                        <tr key={u.id_usuario} className="group hover:bg-[#F4F7FA]/50 transition-all">
-                          {columnasVisibles.nombre_completo && (
-                            <td className="py-4 px-5">
-                              <div className="flex flex-col">
-                                <span className="font-extrabold text-[#034991] text-base uppercase leading-tight truncate">
-                                  {displayValue(u.nombre_completo)}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-wider">
-                                </span>
-                              </div>
-                            </td>
-                          )}
-                          {(columnasVisibles.universidad || columnasVisibles.carrera) && (
-                            <td className="py-4 px-5">
-
-                              {columnasVisibles.universidad && (
-                                <div className="text-sm text-slate-700 font-semibold">
-                                  {displayValue(u.universidad?.sigla)}
-                                </div>
-                              )}
-
-                              {columnasVisibles.carrera && (
-                                <div className="text-sm text-slate-500">
-                                  {displayValue(u.carrera?.nombre)}
-                                </div>
-                              )}
-
-                            </td>
-                          )}
-                          <td className="py-4 px-5">
-                            <div className="text-sm text-slate-700 font-semibold">
-                              {displayValue(u.correo)}
-                            </div>
-
-                            {columnasVisibles.telefono && (
-                              <div className="text-sm text-slate-500">
-                                {displayValue(u.telefono)}
-                              </div>
-                            )}
-                          </td>
-                          {columnasVisibles.identificacion && (
-                            <td className="py-4 px-5 text-slate-500 font-semibold">{displayValue(u.identificacion)}</td>
-                          )}
-                          {columnasVisibles.rol && (
-                            <td className="py-4 px-5 text-center">
-                              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100">
-                                {displayValue(u.rol?.nombre_rol)}
-                              </span>
-                            </td>
-                          )}
-                          {columnasVisibles.acciones && (
-                            <td className="py-4 px-5 text-right">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button
-                                    variant="default"
-                                    size="icon"
-                                    title="Ver Perfil"
-                                    onClick={async (e) => {
-                                      e.preventDefault();
-                                      try {
-                                        await axios.get(route("usuarios.ver", { id: u.id_usuario }));
-                                        window.location.href = route("usuarios.ver", { id: u.id_usuario });
-                                      } catch (err: any) {
-                                        modal.alerta({
-                                          titulo: err.response?.status === 403 ? "Acceso denegado" : "Error",
-                                          mensaje: err.response?.data?.mensaje || "Error al acceder al perfil.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <Eye className="size-5" />
-                                  </Button>
-
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    title={u.estado_id === 1 ? "Inactivar" : "Activar"}
-                                    className={`${u.estado_id === 1
-                                      ? "text-red-500 hover:bg-red-50"
-                                      : "text-green-600 hover:bg-green-50"
-                                      }`}
-                                    onClick={async () => {
-                                      const confirmado = await modal.confirmacion({
-                                        titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
-                                        mensaje: `¿Desea cambiar el estado de ${u.nombre_completo}?`,
-                                      });
-                                      if (!confirmado) return;
-
-                                      try {
-                                        const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
-                                        modal.alerta({ titulo: "Éxito", mensaje: res.data.message });
-
-                                        setUsuarios(
-                                          usuarios.map((usr) =>
-                                            usr.id_usuario === u.id_usuario
-                                              ? { ...usr, estado_id: res.data.nuevo_estado }
-                                              : usr
-                                          )
-                                        );
-                                      } catch {
-                                        modal.alerta({ titulo: "Error", mensaje: "No se pudo actualizar." });
-                                      }
-                                    }}
-                                  >
-                                    <UserCog className="size-5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* PAGINACIÓN LOCAL */}
-              {totalPaginas > 1 && (
-                <div className="flex justify-center items-center gap-2 py-6 border-t border-slate-50 bg-slate-50/10">
+                <div className="flex gap-2 mt-3">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={paginaActual === 1}
-                    onClick={() => setPaginaActual(prev => prev - 1)}
-                    className="rounded-full"
+                    size="icon"
+                    onClick={() => window.location.href = route("usuarios.ver", { id: u.id_usuario })}
                   >
-                    <ChevronLeft className="size-4 mr-1" /> Anterior
+                    <Eye className="size-5" />
                   </Button>
 
-                  <div className="flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className={u.estado_id === 1 ? "text-red-500" : "text-green-600"}
+                    onClick={async () => {
+                      const confirmado = await modal.confirmacion({
+                        titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
+                        mensaje: `¿Desea cambiar el estado de ${u.nombre_completo}?`,
+                      });
+                      if (!confirmado) return;
+
+                      try {
+                        const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
+
+                        setUsuarios(
+                          usuarios.map((usr) =>
+                            usr.id_usuario === u.id_usuario
+                              ? { ...usr, estado_id: res.data.nuevo_estado }
+                              : usr
+                          )
+                        );
+                      } catch {
+                        modal.alerta({ titulo: "Error", mensaje: "No se pudo actualizar." });
+                      }
+                    }}
+                  >
+                    <UserCog className="size-5" />
+                  </Button>
+                </div>
+
+              </div>
+            ))}
+            {totalPaginas > 1 && (
+              <div className="flex flex-col items-center gap-3 mt-6">
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={paginaActual === 1}
+                    onClick={() => setPaginaActual(prev => prev - 1)}
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+
+                  <span className="text-sm font-semibold">
+                    Página {paginaActual} de {totalPaginas}
+                  </span>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={paginaActual === totalPaginas}
+                    onClick={() => setPaginaActual(prev => prev + 1)}
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+          {/* DESKTOP */}
+          <div className={`hidden md:block flex-1 min-w-0 ${!mostrarFiltros ? "w-full" : ""}`}>
+            <section className={`flex-1 min-w-0 w-full`}>
+              <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-slate-100">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px] text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-50 bg-slate-50/30">
+
+                        {columnasVisibles.nombre_completo && (
+                          <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Usuario
+                          </th>
+                        )}
+
+                        {(columnasVisibles.universidad || columnasVisibles.carrera) && (
+                          <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Académico
+                          </th>
+                        )}
+
+                        {(columnasVisibles.correo || columnasVisibles.telefono) && (
+                          <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Contacto
+                          </th>
+                        )}
+                        {columnasVisibles.identificacion && (
+                          <th className="p-5 font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Identificación
+                          </th>
+                        )}
+
+                        {columnasVisibles.rol && (
+                          <th className="p-5 text-center font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Rol
+                          </th>
+                        )}
+
+                        {columnasVisibles.acciones && (
+                          <th className="p-5 text-right font-black text-slate-400 uppercase text-[10px] tracking-[0.2em]">
+                            Gestión
+                          </th>
+                        )}
+
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {usuariosPaginados.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="p-10 text-center text-slate-400 italic">
+                            No se encontraron usuarios con los filtros aplicados.
+                          </td>
+                        </tr>
+                      ) : (
+                        usuariosPaginados.map((u) => (
+                          <tr key={u.id_usuario} className="group relative hover:bg-[#F4F7FA]/50 transition-all">
+                            {columnasVisibles.nombre_completo && (
+                              <td className="py-4 px-5 max-w-[180px] truncate">
+                                <div className="flex flex-col">
+                                  <span className="font-extrabold text-[#034991] text-base uppercase leading-tight truncate">
+                                    {displayValue(u.nombre_completo)}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-wider">
+                                  </span>
+                                </div>
+                              </td>
+                            )}
+                            {(columnasVisibles.universidad || columnasVisibles.carrera) && (
+                              <td className="py-4 px-5 max-w-[180px] truncate">
+
+                                {columnasVisibles.universidad && (
+                                  <div className="text-sm text-slate-700 font-semibold">
+                                    {displayValue(u.universidad?.sigla)}
+                                  </div>
+                                )}
+
+                                {columnasVisibles.carrera && (
+                                  <div className="text-sm text-slate-500">
+                                    {displayValue(u.carrera?.nombre)}
+                                  </div>
+                                )}
+
+                              </td>
+                            )}
+                            {(columnasVisibles.correo || columnasVisibles.telefono) && (
+                              <td className="py-4 px-5 max-w-[150px] truncate">
+                                {columnasVisibles.correo && (
+                                  <div className="text-sm text-slate-700 font-semibold max-w-[200px] truncate">
+                                    {displayValue(u.correo)}
+                                  </div>
+                                )}
+                                {columnasVisibles.telefono && (
+                                  <div className="text-sm text-slate-500">
+                                    {displayValue(u.telefono)}
+                                  </div>
+                                )}
+                              </td>
+                            )}
+                            {columnasVisibles.identificacion && (
+                              <td className="py-4 px-5 text-slate-500 font-semibold max-w-[140px] truncate">
+                                {displayValue(u.identificacion)}
+                              </td>
+                            )}
+                            {columnasVisibles.rol && (
+                              <td className="py-4 px-5 text-center">
+                                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100">
+                                  {displayValue(u.rol?.nombre_rol)}
+                                </span>
+                              </td>
+                            )}
+                            {columnasVisibles.acciones && (
+                              <td className="py-4 px-5 text-right">
+                                <div className="
+                                  flex items-center justify-end gap-2 
+                                  opacity-100 md:opacity-0 md:group-hover:opacity-100 
+                                  transition-opacity
+                                ">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant="default"
+                                      size="icon"
+                                      title="Ver Perfil"
+                                      onClick={async (e) => {
+                                        e.preventDefault();
+                                        try {
+                                          await axios.get(route("usuarios.ver", { id: u.id_usuario }));
+                                          window.location.href = route("usuarios.ver", { id: u.id_usuario });
+                                        } catch (err: any) {
+                                          modal.alerta({
+                                            titulo: err.response?.status === 403 ? "Acceso denegado" : "Error",
+                                            mensaje: err.response?.data?.mensaje || "Error al acceder al perfil.",
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <Eye className="size-5" />
+                                    </Button>
+
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      title={u.estado_id === 1 ? "Inactivar" : "Activar"}
+                                      className={`${u.estado_id === 1
+                                        ? "text-red-500 hover:bg-red-50"
+                                        : "text-green-600 hover:bg-green-50"
+                                        }`}
+                                      onClick={async () => {
+                                        const confirmado = await modal.confirmacion({
+                                          titulo: u.estado_id === 1 ? "Inactivar cuenta" : "Activar cuenta",
+                                          mensaje: `¿Desea cambiar el estado de ${u.nombre_completo}?`,
+                                        });
+                                        if (!confirmado) return;
+
+                                        try {
+                                          const res = await axios.put(`/usuarios/${u.id_usuario}/toggle-estado`);
+                                          modal.alerta({ titulo: "Éxito", mensaje: res.data.message });
+
+                                          setUsuarios(
+                                            usuarios.map((usr) =>
+                                              usr.id_usuario === u.id_usuario
+                                                ? { ...usr, estado_id: res.data.nuevo_estado }
+                                                : usr
+                                            )
+                                          );
+                                        } catch {
+                                          modal.alerta({ titulo: "Error", mensaje: "No se pudo actualizar." });
+                                        }
+                                      }}
+                                    >
+                                      <UserCog className="size-5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* PAGINACIÓN LOCAL */}
+                {totalPaginas > 1 && (
+                  <div className="flex justify-center mt-6 space-x-2 pb-6">
+
+                    {/* ANTERIOR */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      disabled={paginaActual === 1}
+                      onClick={() => setPaginaActual(prev => prev - 1)}
+                    >
+                      Anterior
+                    </Button>
+
+                    {/* NUMÉRICOS */}
                     {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(p => (
                       <Button
                         key={p}
-                        variant={paginaActual === p ? "default" : "outline"}
+                        type="button"
                         size="sm"
+                        variant={paginaActual === p ? "destructive" : "outline"}
                         onClick={() => setPaginaActual(p)}
-                        className={`size-8 p-0 rounded-full ${paginaActual === p ? 'bg-[#034991]' : ''}`}
                       >
                         {p}
                       </Button>
                     ))}
-                  </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={paginaActual === totalPaginas}
-                    onClick={() => setPaginaActual(prev => prev + 1)}
-                    className="rounded-full"
-                  >
-                    Siguiente <ChevronRight className="size-4 ml-1" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </section>
+                    {/* SIGUIENTE */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      disabled={paginaActual === totalPaginas}
+                      onClick={() => setPaginaActual(prev => prev + 1)}
+                    >
+                      Siguiente
+                    </Button>
+
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </>
