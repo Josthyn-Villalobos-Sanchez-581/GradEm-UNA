@@ -22,8 +22,16 @@ class EventoService
         $this->eventoRepository = $eventoRepository;
     }
 
-    public function finalizarEventosAutomaticamente(){
+    public function finalizarEventosAutomaticamente()
+    {
         $this->eventoRepository->finalizarEventosAutomaticamente();
+
+        $this->eventoRepository->registrarBitacora(
+            'eventos',
+            'FINALIZAR',
+            'Eventos finalizados automáticamente por el sistema.',
+            null
+        );
     }
 
     /**
@@ -93,16 +101,24 @@ class EventoService
                 'titulo' => $request->titulo ?? null,
                 'descripcion' => $request->descripcion ?? null,
                 'fecha_evento' => $request->fecha_evento ?? null,
+                'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'hora_evento' => $request->hora_evento ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'id_ubicacion' => $request->id_ubicacion ?? null,
                 'otras_observaciones' => $request->otras_observaciones ?? null,
                 'cupos' => $request->cupos ?? null,
-                'estado_id' => 7,//7 es borrador
+                'estado_id' => 7, //7 es borrador
                 'usuario_id' => $usuario?->id_usuario,
             ];
 
             $evento = $this->eventoRepository->crearEvento($data);
+
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'CREAR',
+                'Evento creado: "' . $evento->titulo . '" (ID ' . $evento->id_evento . ')',
+                $usuario->id_usuario
+            );
 
             if ($request->carreras_invitadas) {
                 $this->eventoRepository->sincronizarCarrerasEvento($evento->id_evento, $request->carreras_invitadas);
@@ -134,6 +150,7 @@ class EventoService
                 'descripcion' => $evento->descripcion,
                 'fecha_evento' => $evento->fecha_evento,
                 'hora_evento' => $evento->hora_evento,
+                'fecha_limite_inscripcion' => $evento->fecha_limite_inscripcion,
                 'id_modalidad' => $evento->id_modalidad,
                 'id_ubicacion' => $evento->id_ubicacion,
                 'otras_observaciones' => $evento->otras_observaciones,
@@ -144,6 +161,7 @@ class EventoService
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
                 'fecha_evento' => $request->fecha_evento,
+                'fecha_limite_inscripcion' => $request->fecha_limite_inscripcion ?? null,
                 'hora_evento' => $request->hora_evento,
                 'id_modalidad' => $request->id_modalidad,
                 'id_ubicacion' => $request->id_ubicacion,
@@ -164,6 +182,11 @@ class EventoService
                         $valorNuevo = $valorNuevo ? date('Y-m-d', strtotime($valorNuevo)) : null;
                         break;
 
+                    case 'fecha_limite_inscripcion':
+                        $valorOriginal = $valorOriginal ? date('Y-m-d', strtotime($valorOriginal)) : null;
+                        $valorNuevo = $valorNuevo ? date('Y-m-d', strtotime($valorNuevo)) : null;
+                        break;
+
                     case 'hora_evento':
                         $valorOriginal = $valorOriginal ? substr($valorOriginal, 0, 5) : null;
                         $valorNuevo = $valorNuevo ? substr($valorNuevo, 0, 5) : null;
@@ -174,10 +197,10 @@ class EventoService
                         $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
                         $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
                         break;
-case 'cupos':
-    $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
-    $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
-    break;
+                    case 'cupos':
+                        $valorOriginal = $valorOriginal !== null ? (int)$valorOriginal : null;
+                        $valorNuevo = $valorNuevo !== null ? (int)$valorNuevo : null;
+                        break;
                     default:
                         $valorOriginal = $valorOriginal !== null ? trim((string)$valorOriginal) : null;
                         $valorNuevo = $valorNuevo !== null ? trim((string)$valorNuevo) : null;
@@ -194,6 +217,15 @@ case 'cupos':
             // Solo se envían correos cuando otros datos críticos del evento cambian.
             $this->eventoRepository->actualizarEvento($evento, $data);
 
+            $cambiosTexto = implode(', ', array_keys($cambiosCriticos));
+
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'ACTUALIZAR',
+                'Evento actualizado: "' . $evento->titulo .
+                    '". Campos modificados: ' . $cambiosTexto,
+                Auth::id()
+            );
             if ($request->carreras_invitadas) {
                 $this->eventoRepository->sincronizarCarrerasEvento($idEvento, $request->carreras_invitadas);
             }
@@ -252,6 +284,7 @@ case 'cupos':
             if (!$evento->titulo) $faltantes[] = 'Título';
             if (!$evento->descripcion) $faltantes[] = 'Descripción';
             if (!$evento->fecha_evento) $faltantes[] = 'Fecha del evento';
+            if (!$evento->fecha_limite_inscripcion) $faltantes[] = 'Fecha límite de inscripción';
             if (!$evento->hora_evento) $faltantes[] = 'Hora del evento';
             if (!$evento->id_modalidad) $faltantes[] = 'Modalidad';
             if (!$evento->id_ubicacion) $faltantes[] = 'Ubicación';
@@ -263,6 +296,13 @@ case 'cupos':
             }
 
             $this->eventoRepository->publicarEvento($idEvento);
+
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'PUBLICAR',
+                'Evento publicado: "' . $evento->titulo . '" (ID ' . $idEvento . ')',
+                Auth::id()
+            );
 
             $eventoPublicado = $this->eventoRepository->obtenerEventoCompleto($idEvento);
             $destinatarios = $this->obtenerDestinatariosEvento($idEvento);
@@ -307,13 +347,12 @@ case 'cupos':
             $this->eventoRepository->inactivarEvento($idEvento);
 
             // BITÁCORA
-            DB::table('bitacora_cambios')->insert([
-                'tabla_afectada' => 'eventos',
-                'operacion' => 'INACTIVAR',
-                'usuario_responsable' => $usuario->id_usuario,
-                'fecha_cambio' => now(),
-                'descripcion_cambio' => 'Evento ID ' . $idEvento . ' inactivado. Motivo: ' . $motivo,
-            ]);
+            $this->eventoRepository->registrarBitacora(
+                'eventos',
+                'INACTIVAR',
+                'Evento inactivado: "' . $evento->titulo . '" (ID ' . $idEvento . '). Motivo: ' . $motivo,
+                $usuario->id_usuario
+            );
 
             // ENVIAR CORREOS
             foreach ($inscritos as $usuarioInscrito) {
@@ -409,6 +448,14 @@ case 'cupos':
                 throw new \Exception('La inscripción no existe.');
             }
 
+            $this->eventoRepository->registrarBitacora(
+                'inscripciones_evento',
+                'ELIMINAR',
+                'Se eliminó inscripción de "' . $inscrito->nombre_completo .
+                    '" del evento "' . $evento->titulo . '"',
+                Auth::id()
+            );
+
             if (!empty($inscrito->correo)) {
                 Mail::to($inscrito->correo)->queue(new DesinscripcionEventoMail(
                     [
@@ -481,6 +528,13 @@ case 'cupos':
             ]));
             $enviados++;
         }
+
+        $this->eventoRepository->registrarBitacora(
+            'eventos',
+            'RECORDATORIO',
+            'Se enviaron ' . $enviados . ' recordatorios del evento "' . $evento->titulo . '"',
+            Auth::id()
+        );
 
         return $enviados;
     }

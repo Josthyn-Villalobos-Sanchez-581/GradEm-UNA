@@ -71,6 +71,7 @@ class EventoController extends Controller
             'titulo' => ['required', 'string', 'min:5', 'max:100', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()\"\'¡!¿?%&@\/\-\s]+$/u'],
             'descripcion' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:()\"\'¡!¿?%&@\/\-\s]+$/u'],
             'fecha_evento' => ['required', 'date'],
+            'fecha_limite_inscripcion' => ['nullable', 'date', 'before_or_equal:fecha_evento'],
             'hora_evento' => ['required', 'regex:/^(?:[01]\d|2[0-3]):[0-5]\d(?:\:[0-5]\d)?$/'],
             'id_modalidad' => ['required', 'integer', 'exists:modalidades,id_modalidad'],
             'id_ubicacion' => ['required', 'integer', 'exists:cantones,id_canton'],
@@ -102,13 +103,14 @@ class EventoController extends Controller
             'titulo' => ['nullable', 'string', 'min:5', 'max:100', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:\(\)"\'¡!¿?%&@\/\-\s]+$/u'],
             'descripcion' => ['nullable', 'string', 'min:10', 'max:500', 'regex:/^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúñ.,;:\(\)"\'¡!¿?%&@\/\-\s]+$/u'],
             'fecha_evento' => ['nullable', 'date'],
+            'fecha_limite_inscripcion' => ['nullable', 'date', 'before_or_equal:fecha_evento'],
             'hora_evento' => ['nullable', 'regex:/^(?:[01]\d|2[0-3]):[0-5]\d(?:\:[0-5]\d)?$/'],
             'id_modalidad' => ['nullable', 'integer', 'exists:modalidades,id_modalidad'],
             'id_ubicacion' => ['nullable', 'integer', 'exists:cantones,id_canton'],
             'carreras_invitadas' => ['required', 'array', 'min:1'],
             'carreras_invitadas.*' => ['integer', 'exists:carreras,id_carrera'],
             'roles_interesados' => ['required', 'array', 'min:1'],
-            'roles_interesados.*' => ['integer', Rule::in([6, 7])],
+            'roles_interesados.*' => ['required','integer','exists:roles,id_rol',Rule::in([6, 7])],
             'otras_observaciones' => ['nullable', 'string', 'min:10', 'max:500'],
             'cupos' => ['nullable', 'integer', 'min:1'],
         ];
@@ -200,11 +202,8 @@ class EventoController extends Controller
                 'evento' => $evento,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 403);
-        }
+    dd($e->getMessage());
+}
     }
 
     /**
