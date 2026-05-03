@@ -161,7 +161,6 @@ export default function PpLayout({
       title: "Ofertas",
       icon: Briefcase,
       subMenu: [
-        { title: "Crear Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
         { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
         { title: "Postularme", route: "/ofertas", permisoId: 6 },
         { title: "Mis postulaciones", route: "/misPostulaciones", permisoId: 6 },

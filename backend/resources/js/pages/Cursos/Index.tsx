@@ -5,7 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap, Filter, FilterX, AlertCircle } from "lucide-react";
+import { BookOpen, Play, Hourglass, Plus, Edit3, Trash2, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft, Calendar, CalendarClock, Clock, User, GraduationCap, Filter, FilterX, AlertCircle, X } from "lucide-react";
 
 /* =======================
    Tipos
@@ -534,11 +534,11 @@ export default function CursosIndex(props: Props) {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[#034991]">
-              {view === "list" ? "Gestión de Cursos" : 
-              formMode === 'create' ? 'Registrar Curso' : 'Editar Curso'}
+              {view === "list" ? "Gestión de Cursos" :
+                formMode === 'create' ? 'Registrar Curso' : 'Editar Curso'}
             </h1>
             <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-              {view === "list" 
+              {view === "list"
                 ? "Administra los cursos, publica, edita y consulta información rápidamente."
                 : formMode === 'create'
                   ? "Crea un nuevo curso completando los campos del formulario."
@@ -547,46 +547,46 @@ export default function CursosIndex(props: Props) {
           </div>
 
           {/* Contenedor de acciones a la derecha */}
-            <div className="flex items-center gap-3">
-              {view === "list" && puedeGestionar && (
-                <>
-                  {/* Botón Dashboard - Ahora condicionado a la lista */}
-                  <Button
-                    variant="outline"
-                    className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
-                    onClick={() => window.location.href = route("dashboard")}
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Button>
+          <div className="flex items-center gap-3">
+            {view === "list" && puedeGestionar && (
+              <>
+                {/* Botón Dashboard - Ahora condicionado a la lista */}
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                  onClick={() => window.location.href = route("dashboard")}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
 
-                  {/* Botón de Filtros - Ajustado a h-10 y rounded-full */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] h-10 px-5 text-md font-semibold transition-all"
-                    onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                  >
-                    {mostrarFiltros ? (
-                      <><FilterX className="w-4 h-4 mr-2" /> Ocultar filtros</>
-                    ) : (
-                      <><Filter className="w-4 h-4 mr-2" /> Mostrar filtros</>
-                    )}
-                  </Button>
+                {/* Botón de Filtros - Ajustado a h-10 y rounded-full */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] h-10 px-5 text-md font-semibold transition-all"
+                  onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                >
+                  {mostrarFiltros ? (
+                    <><FilterX className="w-4 h-4 mr-2" /> Ocultar filtros</>
+                  ) : (
+                    <><Filter className="w-4 h-4 mr-2" /> Mostrar filtros</>
+                  )}
+                </Button>
 
-                  {/* Botón Registrar - Ajustado a h-10 y rounded-full */}
-                  <Button 
-                    onClick={() => abrirFormularioCurso("create")}
-                    className="bg-[#034991] hover:bg-[#023165] text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
-                  >
-                    <Plus className="w-4 h-4 mr-2" /> Registrar curso
-                  </Button>
-                </>
-              )}
+                {/* Botón Registrar - Ajustado a h-10 y rounded-full */}
+                <Button
+                  onClick={() => abrirFormularioCurso("create")}
+                  className="bg-[#034991] hover:bg-[#023165] text-white rounded-full h-10 px-5 text-md font-semibold shadow-sm transition-all"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Registrar curso
+                </Button>
+              </>
+            )}
 
             {view === "form" && (
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-none shadow-sm transition-all"
                 onClick={cerrarFormularioCurso}
               >
@@ -599,7 +599,7 @@ export default function CursosIndex(props: Props) {
         {/* VISTA DE LISTADO CON GRID DINÁMICO */}
         {view === "list" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
+
             {/* ASIDE: Solo se renderiza si mostrarFiltros es true */}
             {mostrarFiltros && (
               <aside className="lg:col-span-3 transition-all duration-300">
@@ -678,7 +678,7 @@ export default function CursosIndex(props: Props) {
                       <div className="flex flex-col gap-2 pt-2">
                         <Button
                           className="w-full bg-[#034991] hover:bg-[#023165] text-white font-semibold rounded-full py-2"
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           Aplicar filtros
                         </Button>
@@ -705,7 +705,7 @@ export default function CursosIndex(props: Props) {
 
             {/* MAIN: Expansión dinámica de col-span-9 a col-span-12 */}
             <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
-              
+
               {/* KPIs dinámicos */}
               <div className={`grid grid-cols-1 md:grid-cols-3 gap-3`}>
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
@@ -741,7 +741,7 @@ export default function CursosIndex(props: Props) {
                   <div className="flex gap-2 flex-wrap">
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{cursosFiltrados.length} cursos</span>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      {filtroModalidad !== 'todos' ? `Modalidad: ${props.modalidades.find(m=>String(m.id_modalidad)===filtroModalidad)?.nombre ?? 'Todas'}` : 'Modalidad: Todas'}
+                      {filtroModalidad !== 'todos' ? `Modalidad: ${props.modalidades.find(m => String(m.id_modalidad) === filtroModalidad)?.nombre ?? 'Todas'}` : 'Modalidad: Todas'}
                     </span>
                     <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
                       {filtroEstado === 'publicado' ? 'Publicado' : filtroEstado === 'borrador' ? 'Borrador' : 'Todos'}
@@ -763,67 +763,68 @@ export default function CursosIndex(props: Props) {
                           curso.cupos != null ? Math.max(0, curso.cupos - inscritos) : null;
 
                         return (
-                        <div key={curso.id_curso} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p
-                                  className="text-lg font-semibold text-slate-900 line-clamp-1 cursor-pointer hover:text-blue-600"
-                                  onClick={() => verInscritos(curso)}
-                                  title="Ver inscritos"
-                                >
-                                  {curso.titulo}
-                                </p>
-                                <p className="text-sm text-slate-500 mt-1 line-clamp-2">{displayValue(curso.descripcion)}</p>
+                          <div key={curso.id_curso} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p
+                                    className="text-lg font-semibold text-slate-900 line-clamp-1 cursor-pointer hover:text-blue-600"
+                                    onClick={() => verInscritos(curso)}
+                                    title="Ver inscritos"
+                                  >
+                                    {curso.titulo}
+                                  </p>
+                                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{displayValue(curso.descripcion)}</p>
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${curso.estado_id === 1 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                                  {curso.estado_id === 1 ? "Publicado" : "Borrador"}
+                                </span>
                               </div>
-                              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${curso.estado_id === 1 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
-                                {curso.estado_id === 1 ? "Publicado" : "Borrador"}
-                              </span>
+
+                              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Mod:</span> {displayValue(curso.modalidad?.nombre)}</div>
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inst:</span> {displayValue(curso.nombreInstructor)}</div>
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inicio:</span> {curso.fecha_inicio ?? "NA"}</div>
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Límite:</span> {curso.fecha_limite_inscripcion ?? "NA"}</div>
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Cupos:</span> {curso.cupos != null ? curso.cupos : "Sin límite"}</div>
+                                <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Disp.:</span> {cuposDisponibles != null ? cuposDisponibles : "Sin límite"}</div>
+                              </div>
                             </div>
 
-                            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Mod:</span> {displayValue(curso.modalidad?.nombre)}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inst:</span> {displayValue(curso.nombreInstructor)}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Inicio:</span> {curso.fecha_inicio ?? "NA"}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Límite:</span> {curso.fecha_limite_inscripcion ?? "NA"}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Cupos:</span> {curso.cupos != null ? curso.cupos : "Sin límite"}</div>
-                              <div className="rounded-lg bg-slate-50 p-2"><span className="font-semibold">Disp.:</span> {cuposDisponibles != null ? cuposDisponibles : "Sin límite"}</div>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
-                            {/* Botón Inscritos: Solo visible si el curso está publicado (estado_id === 1) */}
+                            <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
+                              {/* Botón Inscritos: Solo visible si el curso está publicado (estado_id === 1) */}
                               {curso.estado_id === 1 && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 text-xs text-[#034991] hover:bg-blue-50" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-xs text-[#034991] hover:bg-blue-50"
                                   onClick={() => verInscritos(curso)}
                                 >
                                   <User className="w-3 h-3 mr-1" /> Inscritos
                                 </Button>
                               )}
-                            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => abrirDetalleCurso(curso)}>
-                              <Eye className="w-3 h-3 mr-1" /> Detalle
-                            </Button>
-                            {puedeGestionar && curso.estado_id !== 1 && (
-                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => publicarCurso(curso)}>
-                                Publicar
+                              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => abrirDetalleCurso(curso)}>
+                                <Eye className="w-3 h-3 mr-1" /> Detalle
                               </Button>
-                            )}
-                            {puedeGestionar && (
-                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => editarCurso(curso)}>
-                                <Edit3 className="w-3 h-3 mr-1" /> Editar
-                              </Button>
-                            )}
-                            {puedeGestionar && (
-                              <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={() => eliminarCurso(curso)}>
-                                <Trash2 className="w-3 h-3 mr-1" />
-                              </Button>
-                            )}
+                              {puedeGestionar && curso.estado_id !== 1 && (
+                                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => publicarCurso(curso)}>
+                                  Publicar
+                                </Button>
+                              )}
+                              {puedeGestionar && (
+                                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => editarCurso(curso)}>
+                                  <Edit3 className="w-3 h-3 mr-1" /> Editar
+                                </Button>
+                              )}
+                              {puedeGestionar && (
+                                <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={() => eliminarCurso(curso)}>
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )})}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -847,266 +848,264 @@ export default function CursosIndex(props: Props) {
 
       {view === "form" && (
         <div className="w-full -mt-8 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div className="grid grid-cols-12">
-                    
-                    {/* SIDEBAR INFORMATIVO (Estilo Ofertas) */}
-                    <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8 flex flex-col items-center">
-                        <div className="flex flex-col items-center text-center mb-10">
-                            <div className="relative p-4 bg-white rounded-full shadow-md mb-4 text-[#034991]">
-                                {/* Icono de sombrero de graduado en lugar de FotoXDefecto */}
-                                <GraduationCap className="w-16 h-16" />
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                                Gestión Académica
-                            </h3>
-                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">
-                                Módulo de Cursos
-                            </span>
-                        </div>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="grid grid-cols-12">
 
-                        <div className="hidden md:block space-y-4">
-                            <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                <p className="text-xs text-[#034991] font-medium leading-relaxed">
-                                    {formMode === 'create' 
-                                        ? "Estás registrando un nuevo curso en el sistema. Asegúrate de definir las fechas correctamente."
-                                        : "Estás editando la información de un curso existente. Los cambios se reflejarán inmediatamente."}
-                                </p>
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* CUERPO DEL FORMULARIO */}
-                    <section className="col-span-12 md:col-span-9 p-6 md:p-10 flex flex-col">
-                        <div className="flex-grow space-y-6">
-                            {/* Encabezado interno */}
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-800">
-                                    {formMode === 'create' ? "Información General del Curso" : "Modificar Información"}
-                                </h2>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    {formMode === 'create' 
-                                        ? "Complete los campos obligatorios para dar de alta el nuevo curso."
-                                        : "Actualice los detalles del curso seleccionado."}
-                                </p>
-                            </div>
-
-                            {/* Grid de campos */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
-                                
-                                {/* Título e Instructor */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Título del curso <span className="text-[#CD1719]">*</span>
-                                    </label>
-                                    <input
-                                        value={formCurso.titulo}
-                                        onChange={(e) => {
-                                          setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }));
-                                          limpiarErroresCurso("titulo");
-                                        }}
-                                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
-                                        placeholder="Ej: Fundamentos de React"
-                                    />
-                                    {erroresForm.titulo && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.titulo}</p>}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Instructor asignado <span className="text-[#CD1719]">*</span>
-                                    </label>
-                                    <input
-                                        value={formCurso.nombreInstructor}
-                                        onChange={(e) => {
-                                          setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }));
-                                          limpiarErroresCurso("nombreInstructor");
-                                        }}
-                                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.nombreInstructor ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
-                                        placeholder="Ej: María López"
-                                    />
-                                    {erroresForm.nombreInstructor && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.nombreInstructor}</p>}
-                                </div>
-
-                                {/* Descripción */}
-                                <div className="md:col-span-3">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Descripción detallada <span className="text-[#CD1719]">*</span>
-                                    </label>
-                                    <textarea
-                                        value={formCurso.descripcion}
-                                        onChange={(e) => {
-                                          setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }));
-                                          limpiarErroresCurso("descripcion");
-                                        }}
-                                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                                        rows={2}
-                                        placeholder="Describa los objetivos del curso..."
-                                    />
-                                </div>
-
-                                {/* Modalidad y Fecha Inicio */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Modalidad <span className="text-[#CD1719]">*</span>
-                                    </label>
-                                    <select
-                                        value={formCurso.id_modalidad}
-                                        onChange={(e) => {
-                                          setFormCurso((prev) => ({ ...prev, id_modalidad: e.target.value }));
-                                          limpiarErroresCurso("id_modalidad");
-                                        }}
-                                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                                    >
-                                        <option value="">Seleccione</option>
-                                        {(props.modalidades ?? []).map((m) => (
-                                            <option key={m.id_modalidad} value={m.id_modalidad}>{m.nombre}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                      Fecha de inicio <span className="text-[#CD1719]">*</span>
-                                  </label>
-                                  <input
-                                      type="date"
-                                      min={minGlobal}
-                                      max={maxGlobal}
-                                      value={formCurso.fecha_inicio}
-                                      onChange={(e) => {
-                                        setFormCurso((prev) => ({ ...prev, fecha_inicio: e.target.value }));
-                                        limpiarErroresCurso("fecha_inicio");
-                                      }}
-                                      onKeyDown={(e) => e.preventDefault()} 
-                                      onClick={(e) => e.currentTarget.showPicker()}
-                                      className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_inicio ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
-                                  />
-                                  {erroresForm.fecha_inicio && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_inicio}</p>}
-                                </div>
-
-                                {/* Duración */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Duración estimada {formMode === 'edit' && <span className="text-[#CD1719]">*</span>}
-                                    </label>
-                                    <input
-                                        value={formCurso.duracion}
-                                        onChange={(e) => {
-                                          setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }));
-                                          limpiarErroresCurso("duracion");
-                                        }}
-                                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                                        placeholder="Ej: 4 semanas"
-                                    />
-                                    {formMode === 'create' && (
-                                        <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                      Límite de cupos
-                                  </label>
-                                  <input
-                                      type="number"
-                                      min={1}
-                                      step={1}
-                                      value={formCurso.cupos}
-                                      onChange={(e) => {
-                                        setFormCurso((prev) => ({
-                                          ...prev,
-                                          cupos: e.target.value.replace(/\D/g, ""),
-                                        }));
-                                        limpiarErroresCurso("cupos");
-                                      }}
-                                      className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
-                                        erroresForm.cupos ? "border-[#CD1719] ring-red-50" : "border-slate-300"
-                                      }`}
-                                      placeholder="Ej: 30"
-                                  />
-                                  {erroresForm.cupos ? (
-                                      <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.cupos}</p>
-                                  ) : (
-                                      <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Déjelo vacío para cursos sin límite.</p>
-                                  )}
-                                </div>
-
-                                {/* Fecha Fin y Fecha Límite */}
-                                <div>
-                                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                      Fecha de finalización {formMode === 'edit' && <span className="text-[#CD1719]">*</span>}
-                                  </label>
-                                  <input
-                                      type="date"
-                                      // No puede ser antes de la fecha de inicio seleccionada
-                                      min={formCurso.fecha_inicio || minGlobal} 
-                                      max={maxGlobal}
-                                      value={formCurso.fecha_fin}
-                                      onChange={(e) => {
-                                        setFormCurso((prev) => ({ ...prev, fecha_fin: e.target.value }));
-                                        limpiarErroresCurso("fecha_fin");
-                                      }}
-                                      onKeyDown={(e) => e.preventDefault()} 
-                                      onClick={(e) => e.currentTarget.showPicker()}
-                                      className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_fin ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
-                                  />
-                                  {erroresForm.fecha_fin && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_fin}</p>}
-                                  {formMode === 'create' && !erroresForm.fecha_fin && (
-                                      <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
-                                  )}
-                                </div>
-
-                                <div>
-                                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                      Límite de inscripción <span className="text-[#CD1719]">*</span>
-                                  </label>
-                                  <input
-                                      type="date"
-                                      min={minGlobal}
-                                      // Permite seleccionar hasta la fecha de inicio o el tope de 3 años
-                                      max={formCurso.fecha_inicio || maxGlobal} 
-                                      value={formCurso.fecha_limite_inscripcion}
-                                      onChange={(e) => {
-                                        setFormCurso((prev) => ({ ...prev, fecha_limite_inscripcion: e.target.value }));
-                                        limpiarErroresCurso("fecha_limite_inscripcion");
-                                      }}
-                                      onKeyDown={(e) => e.preventDefault()} 
-                                      onClick={(e) => e.currentTarget.showPicker()}
-                                      className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white ${
-                                          erroresForm.fecha_limite_inscripcion ? "border-[#CD1719] ring-red-50" : "border-slate-300"
-                                      }`}
-                                  />
-                                  {erroresForm.fecha_limite_inscripcion && (
-                                      <p className="text-xs text-[#CD1719] mt-1.5 font-medium">
-                                          {erroresForm.fecha_limite_inscripcion}
-                                      </p>
-                                  )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* FOOTER DE BOTONES */}
-                        <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end gap-3">
-                            <Button 
-                                variant="ghost" 
-                                onClick={cerrarFormularioCurso}
-                                className="text-slate-500 hover:bg-slate-100 px-8 rounded-full transition-colors font-medium"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button 
-                                onClick={submitFormularioCurso}
-                                disabled={isSubmitting}
-                                className="bg-[#034991] hover:bg-blue-800 text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold"
-                            >
-                                {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar curso" : "Guardar cambios"}
-                            </Button>
-                        </div>
-                    </section>
+              {/* SIDEBAR INFORMATIVO (Estilo Ofertas) */}
+              <aside className="col-span-12 md:col-span-3 bg-gray-50/50 border-r border-gray-100 p-8 flex flex-col items-center">
+                <div className="flex flex-col items-center text-center mb-10">
+                  <div className="relative p-4 bg-white rounded-full shadow-md mb-4 text-[#034991]">
+                    {/* Icono de sombrero de graduado en lugar de FotoXDefecto */}
+                    <GraduationCap className="w-16 h-16" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                    Gestión Académica
+                  </h3>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">
+                    Módulo de Cursos
+                  </span>
                 </div>
+
+                <div className="hidden md:block space-y-4">
+                  <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <p className="text-xs text-[#034991] font-medium leading-relaxed">
+                      {formMode === 'create'
+                        ? "Estás registrando un nuevo curso en el sistema. Asegúrate de definir las fechas correctamente."
+                        : "Estás editando la información de un curso existente. Los cambios se reflejarán inmediatamente."}
+                    </p>
+                  </div>
+                </div>
+              </aside>
+
+              {/* CUERPO DEL FORMULARIO */}
+              <section className="col-span-12 md:col-span-9 p-6 md:p-10 flex flex-col">
+                <div className="flex-grow space-y-6">
+                  {/* Encabezado interno */}
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800">
+                      {formMode === 'create' ? "Información General del Curso" : "Modificar Información"}
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {formMode === 'create'
+                        ? "Complete los campos obligatorios para dar de alta el nuevo curso."
+                        : "Actualice los detalles del curso seleccionado."}
+                    </p>
+                  </div>
+
+                  {/* Grid de campos */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+
+                    {/* Título e Instructor */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Título del curso <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <input
+                        value={formCurso.titulo}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, titulo: filtrarTextoCurso(e.target.value, 100) }));
+                          limpiarErroresCurso("titulo");
+                        }}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.titulo ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
+                        placeholder="Ej: Fundamentos de React"
+                      />
+                      {erroresForm.titulo && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.titulo}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Instructor asignado <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <input
+                        value={formCurso.nombreInstructor}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, nombreInstructor: filtrarTextoCurso(e.target.value, 100) }));
+                          limpiarErroresCurso("nombreInstructor");
+                        }}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.nombreInstructor ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
+                        placeholder="Ej: María López"
+                      />
+                      {erroresForm.nombreInstructor && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.nombreInstructor}</p>}
+                    </div>
+
+                    {/* Descripción */}
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Descripción detallada <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <textarea
+                        value={formCurso.descripcion}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, descripcion: filtrarTextoCurso(e.target.value, 500) }));
+                          limpiarErroresCurso("descripcion");
+                        }}
+                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                        rows={2}
+                        placeholder="Describa los objetivos del curso..."
+                      />
+                    </div>
+
+                    {/* Modalidad y Fecha Inicio */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Modalidad <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <select
+                        value={formCurso.id_modalidad}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, id_modalidad: e.target.value }));
+                          limpiarErroresCurso("id_modalidad");
+                        }}
+                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                      >
+                        <option value="">Seleccione</option>
+                        {(props.modalidades ?? []).map((m) => (
+                          <option key={m.id_modalidad} value={m.id_modalidad}>{m.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Fecha de inicio <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        min={minGlobal}
+                        max={maxGlobal}
+                        value={formCurso.fecha_inicio}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, fecha_inicio: e.target.value }));
+                          limpiarErroresCurso("fecha_inicio");
+                        }}
+                        onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => e.currentTarget.showPicker()}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_inicio ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
+                      />
+                      {erroresForm.fecha_inicio && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_inicio}</p>}
+                    </div>
+
+                    {/* Duración */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Duración estimada {formMode === 'edit' && <span className="text-[#CD1719]">*</span>}
+                      </label>
+                      <input
+                        value={formCurso.duracion}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, duracion: filtrarTextoCurso(e.target.value, 20) }));
+                          limpiarErroresCurso("duracion");
+                        }}
+                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                        placeholder="Ej: 4 semanas"
+                      />
+                      {formMode === 'create' && (
+                        <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Límite de cupos
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={formCurso.cupos}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({
+                            ...prev,
+                            cupos: e.target.value.replace(/\D/g, ""),
+                          }));
+                          limpiarErroresCurso("cupos");
+                        }}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.cupos ? "border-[#CD1719] ring-red-50" : "border-slate-300"
+                          }`}
+                        placeholder="Ej: 30"
+                      />
+                      {erroresForm.cupos ? (
+                        <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.cupos}</p>
+                      ) : (
+                        <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Déjelo vacío para cursos sin límite.</p>
+                      )}
+                    </div>
+
+                    {/* Fecha Fin y Fecha Límite */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Fecha de finalización {formMode === 'edit' && <span className="text-[#CD1719]">*</span>}
+                      </label>
+                      <input
+                        type="date"
+                        // No puede ser antes de la fecha de inicio seleccionada
+                        min={formCurso.fecha_inicio || minGlobal}
+                        max={maxGlobal}
+                        value={formCurso.fecha_fin}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, fecha_fin: e.target.value }));
+                          limpiarErroresCurso("fecha_fin");
+                        }}
+                        onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => e.currentTarget.showPicker()}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all ${erroresForm.fecha_fin ? "border-[#CD1719] ring-red-50" : "border-slate-300"}`}
+                      />
+                      {erroresForm.fecha_fin && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.fecha_fin}</p>}
+                      {formMode === 'create' && !erroresForm.fecha_fin && (
+                        <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Límite de inscripción <span className="text-[#CD1719]">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        min={minGlobal}
+                        // Permite seleccionar hasta la fecha de inicio o el tope de 3 años
+                        max={formCurso.fecha_inicio || maxGlobal}
+                        value={formCurso.fecha_limite_inscripcion}
+                        onChange={(e) => {
+                          setFormCurso((prev) => ({ ...prev, fecha_limite_inscripcion: e.target.value }));
+                          limpiarErroresCurso("fecha_limite_inscripcion");
+                        }}
+                        onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => e.currentTarget.showPicker()}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white ${erroresForm.fecha_limite_inscripcion ? "border-[#CD1719] ring-red-50" : "border-slate-300"
+                          }`}
+                      />
+                      {erroresForm.fecha_limite_inscripcion && (
+                        <p className="text-xs text-[#CD1719] mt-1.5 font-medium">
+                          {erroresForm.fecha_limite_inscripcion}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* FOOTER DE BOTONES */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end gap-3">
+                  <Button
+                    variant="ghost"
+                    onClick={cerrarFormularioCurso}
+                    className="text-slate-500 hover:bg-slate-100 px-8 rounded-full transition-colors font-medium"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={submitFormularioCurso}
+                    disabled={isSubmitting}
+                    className="bg-[#034991] hover:bg-blue-800 text-white px-10 rounded-full shadow-lg transition-all active:scale-95 font-semibold"
+                  >
+                    {isSubmitting ? 'Procesando...' : formMode === "create" ? "Registrar curso" : "Guardar cambios"}
+                  </Button>
+                </div>
+              </section>
             </div>
+          </div>
         </div>
-    )}
+      )}
 
       {detalleCurso && (
         <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-slate-900/50 p-4">
@@ -1182,35 +1181,49 @@ export default function CursosIndex(props: Props) {
         </div>
       )}
 
-      {/* MODAL CONFIRMACIÓN SALIDA CON DATOS - CURSOS */}
+      {/* MODAL CONFIRMACIÓN SALIDA */}
       {mostrarConfirmacionSalida && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
-            
-            {/* HEADER ROJO UNA */}
-            <div className="bg-[#CD1719] p-4 text-center">
-              <h2 className="font-bold text-lg text-white">Confirmar salida</h2>
+          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95">
+
+            {/* BOTÓN CERRAR (X) */}
+            <button
+              onClick={() => confirmarSalidaCurso(false)}
+              className="absolute top-3 right-3 p-1.5 rounded-full text-white hover:bg-white/20 transition-colors"
+            >
+              <X className="w-5 h-5 hover:text-[#CD1719]" />
+            </button>
+
+            {/* HEADER AZUL UNA */}
+            <div className="bg-[#034991] px-6 py-4 text-center">
+              <h2 className="font-semibold text-lg text-white">
+                Confirmar salida
+              </h2>
             </div>
 
-            <div className="p-8 space-y-6 text-center">
-              <p className="text-slate-700 leading-relaxed">
-                ¿Está seguro que desea salir? <br /> 
-                <span className="font-medium text-slate-900">Se perderán todos los cambios realizados.</span>
+            <div className="p-6 space-y-6 text-center">
+              <p className="text-slate-600 text-sm leading-relaxed">
+                ¿Está seguro que desea salir?
               </p>
 
-              {/* BOTONES ALINEADOS AL CENTRO UNO AL LADO DEL OTRO */}
-              <div className="flex flex-row gap-3 justify-center pt-2">
+              <p className="text-sm font-medium text-slate-800">
+                Se perderán todos los cambios realizados.
+              </p>
+
+              {/* BOTONES */}
+              <div className="flex gap-3 justify-center pt-2">
                 <Button
                   variant="outline"
                   onClick={() => confirmarSalidaCurso(false)}
-                  className="flex-1 max-w-[120px] border-slate-300 hover:bg-slate-50 transition-colors"
+                  className="w-full max-w-[130px]"
                 >
                   Cancelar
                 </Button>
+
                 <Button
                   variant="destructive"
                   onClick={() => confirmarSalidaCurso(true)}
-                  className="flex-1 max-w-[150px] bg-[#CD1719] hover:bg-red-800 text-white shadow-md transition-colors"
+                  className="w-full max-w-[160px]"
                 >
                   Salir sin guardar
                 </Button>

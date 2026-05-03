@@ -33,7 +33,8 @@ import {
   Link as LinkIcon,
   Info,
   ChevronDown,
-  Loader2
+  Loader2,
+  X
 } from "lucide-react";
 
 /* =======================
@@ -1795,42 +1796,56 @@ export default function EventosIndex(props: Props) {
       </div>
 
       {/* MODAL CONFIRMACIÓN SALIDA */}
-      {mostrarConfirmacionSalida && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            {mostrarConfirmacionSalida && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                    <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95">
 
-            {/* HEADER ROJO UNA */}
-            <div className="bg-[#CD1719] p-4 text-center">
-              <h2 className="font-bold text-lg text-white">Confirmar salida</h2>
-            </div>
+                        {/* BOTÓN CERRAR (X) */}
+                        <button
+                            onClick={() => confirmarSalida(false)}
+                            className="absolute top-3 right-3 p-1.5 rounded-full text-white hover:bg-white/20 transition-colors"
+                        >
+                            <X className="w-5 h-5 hover:text-[#CD1719]" />
+                        </button>
 
-            <div className="p-8 space-y-6 text-center">
-              <p className="text-slate-700 leading-relaxed">
-                ¿Está seguro que desea salir? <br />
-                <span className="font-medium text-slate-900">Se perderán todos los cambios realizados.</span>
-              </p>
+                        {/* HEADER AZUL UNA */}
+                        <div className="bg-[#034991] px-6 py-4 text-center">
+                            <h2 className="font-semibold text-lg text-white">
+                                Confirmar salida
+                            </h2>
+                        </div>
 
-              {/* BOTONES ALINEADOS AL CENTRO UNO AL LADO DEL OTRO */}
-              <div className="flex flex-row gap-3 justify-center pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => confirmarSalida(false)}
-                  className="flex-1 max-w-[120px] border-slate-300 hover:bg-slate-50 transition-colors"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => confirmarSalida(true)}
-                  className="flex-1 max-w-[150px] bg-[#CD1719] hover:bg-red-800 text-white shadow-md transition-colors"
-                >
-                  Salir sin guardar
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                        <div className="p-6 space-y-6 text-center">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                ¿Está seguro que desea salir?
+                            </p>
+
+                            <p className="text-sm font-medium text-slate-800">
+                                Se perderán todos los cambios realizados.
+                            </p>
+
+                            {/* BOTONES */}
+                            <div className="flex gap-3 justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => confirmarSalida(false)}
+                                    className="w-full max-w-[130px]"
+                                >
+                                    Cancelar
+                                </Button>
+
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => confirmarSalida(true)}
+                                    className="w-full max-w-[160px]"
+                                >
+                                    Salir sin guardar
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
       {/* MODAL DETALLE (OVERLAY ESTILO CURSOS) */}
       {detalle && (

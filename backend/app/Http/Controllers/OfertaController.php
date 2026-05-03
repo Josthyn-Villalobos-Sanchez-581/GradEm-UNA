@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Curriculum;
+use Illuminate\Support\Facades\DB;
 
 class OfertaController extends Controller
 {
@@ -21,8 +22,11 @@ class OfertaController extends Controller
      * HU-25 + HU-27
      * Listar ofertas (estudiantes / egresados)
      */
+
     public function listar(Request $request)
     {
+        $this->desactivarOfertasVencidas();
+
         $consulta = Oferta::with([
             'empresa.usuario.fotoPerfil',
             'pais',
@@ -291,12 +295,14 @@ class OfertaController extends Controller
      */
     public function indexEmpresa(Request $request)
     {
+        $this->desactivarOfertasVencidas();
+
         $usuario = $request->user();
         $empresa = $usuario->empresa; // null si es admin/superadmin
 
         $request->validate([
             'id_modalidad' => 'nullable|integer|exists:modalidades,id_modalidad',
-            'estado'       => 'nullable|integer|in:1,2',
+            'estado' => 'nullable|integer|in:1,2,3,4',
             'fecha_inicio' => 'nullable|date',
             'fecha_fin'    => 'nullable|date',
             'per_page'     => 'nullable|integer|min:5|max:100',
@@ -321,8 +327,8 @@ class OfertaController extends Controller
             'empresa.usuario.fotoPerfil',
             'modalidad',
         ])
-            ->withCount('postulaciones') // 👈 AQUÍ VA
-            ->where('estado_id', '!=', 3);
+            ->withCount('postulaciones')
+            ->where('estado_id', '!=', Oferta::ESTADO_INACTIVA);
 
         /**
          * 🔐 Visibilidad
@@ -648,5 +654,45 @@ class OfertaController extends Controller
         ]);
 
         return back()->with('success', 'Estado de la oferta actualizado.');
+    }
+
+    private function registrarBitacora(string $tabla, string $operacion, string $descripcion, ?int $usuarioId): void
+    {
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada'      => $tabla,
+            'operacion'           => $operacion,
+            'usuario_responsable' => $usuarioId,
+            'descripcion_cambio'  => $descripcion,
+            'fecha_cambio'        => now(),
+        ]);
+    }
+
+    private function desactivarOfertasVencidas(): void
+    {
+        $usuarioId = Auth::id(); // puede ser null
+
+        // Obtener IDs de ofertas a vencer (solo una consulta ligera)
+        $idsOfertas = Oferta::where('estado_id', Oferta::ESTADO_ACTIVA)
+            ->whereDate('fecha_limite', '<', now())
+            ->pluck('id_oferta');
+
+        //Si no hay ofertas, salir rápido (optimización)
+        if ($idsOfertas->isEmpty()) {
+            return;
+        }
+
+        //Update masivo (UNA sola query)
+        Oferta::whereIn('id_oferta', $idsOfertas)
+            ->update([
+                'estado_id' => Oferta::ESTADO_VENCIDA
+            ]);
+
+        //Un solo registro en bitácora
+        $this->registrarBitacora(
+            'ofertas',
+            'FINALIZAR',
+            'Ofertas desactivadas automáticamente por vencimiento. IDs: ' . $idsOfertas->implode(', '),
+            $usuarioId
+        );
     }
 }
