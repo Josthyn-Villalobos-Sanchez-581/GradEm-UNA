@@ -5,6 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
+import EventoDetalleModal from "@/components/modal/EventoDetalleModal"; 
 import {
   Search,
   Calendar,
@@ -16,6 +17,9 @@ import {
   CalendarCheck,
   CheckCircle2,
   XCircle,
+  Eye,
+  EyeOff,
+  LayoutDashboard,
 } from "lucide-react";
 
 // =======================
@@ -35,6 +39,7 @@ interface Evento {
   provincia_nombre?: string;
   pais_nombre?: string;
   fecha_inscripcion?: string;
+  inscritos_count?: number;
 }
 
 interface Props {
@@ -52,10 +57,13 @@ export default function MisEventosIndex(props: Props) {
 
   const [eventos, setEventos] = useState<Evento[]>(props.eventos);
   const [cancelando, setCancelando] = useState<Set<number>>(new Set());
+  const [ocultosManual, setOcultosManual] = useState<Set<number>>(new Set());
+  const [detalle, setDetalle] = useState<Evento | null>(null);
 
   // Filtros
   const [busqueda, setBusqueda] = useState("");
   const [filtroModalidad, setFiltroModalidad] = useState("todos");
+  const [ocultarFinalizados, setOcultarFinalizados] = useState(false);
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
   const [paginaActual, setPaginaActual] = useState(1);
 
@@ -74,12 +82,17 @@ export default function MisEventosIndex(props: Props) {
   // =======================
 
   const eventosFiltrados = eventos
+   .filter((e) => !ocultosManual.has(e.id_evento))
     .filter((e) =>
       e.titulo.toLowerCase().includes(busqueda.toLowerCase())
     )
     .filter((e) => {
       if (filtroModalidad === "todos") return true;
       return e.modalidad_nombre === filtroModalidad;
+    })
+    .filter((e) => {
+      if (!ocultarFinalizados) return true;
+      return !eventoPasado(e.fecha_evento);
     });
 
   const totalPaginas = Math.ceil(eventosFiltrados.length / itemsPorPagina);
@@ -93,9 +106,29 @@ export default function MisEventosIndex(props: Props) {
   // KPIs
   // =======================
 
-  const totalInscritos = eventos.length;
-  const proximos = eventos.filter((e) => !eventoPasado(e.fecha_evento)).length;
-  const pasados = eventos.filter((e) => eventoPasado(e.fecha_evento)).length;
+  const totalInscritos = eventos.filter((e) => !ocultosManual.has(e.id_evento)).length;
+  const proximos = eventos.filter((e) => !ocultosManual.has(e.id_evento) && !eventoPasado(e.fecha_evento)).length;
+  const pasados = eventos.filter((e) => !ocultosManual.has(e.id_evento) && eventoPasado(e.fecha_evento)).length;
+
+  // =======================
+  // VER DETALLE
+  // =======================
+
+  const verDetalle = async (evento: Evento) => {
+    try {
+      const res = await axios.get(
+        route("eventos.inscripcion.show", evento.id_evento)
+      );
+      if (res.data.success) {
+        setDetalle(res.data.evento);
+      }
+    } catch {
+      modal.alerta({
+        titulo: "Error",
+        mensaje: "No se pudo cargar el detalle del evento.",
+      });
+    }
+  };
 
   // =======================
   // CANCELAR
@@ -155,10 +188,22 @@ export default function MisEventosIndex(props: Props) {
     }
   };
 
+  // =======================
+  // OCULTAR MANUAL
+  // =======================
+
+  const ocultarEvento = (idEvento: number) => {
+    setOcultosManual((prev) => new Set(prev).add(idEvento));
+    setPaginaActual(1);
+  };
+
   const limpiarFiltros = () => {
     setBusqueda("");
     setFiltroModalidad("todos");
+    setOcultarFinalizados(false);
+    setOcultosManual(new Set());
     setPaginaActual(1);
+  
   };
 
   // =======================
@@ -184,9 +229,7 @@ export default function MisEventosIndex(props: Props) {
             <Button
               variant="outline"
               className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
-              onClick={() =>
-                router.visit(route("eventos.inscripcion.index"))
-              }
+              onClick={() => router.visit(route("eventos.inscripcion.index"))}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Inscribirse a Eventos
@@ -198,15 +241,9 @@ export default function MisEventosIndex(props: Props) {
               onClick={() => setMostrarFiltros((prev) => !prev)}
             >
               {mostrarFiltros ? (
-                <>
-                  <FilterX className="w-4 h-4 mr-2" />
-                  Ocultar filtros
-                </>
+                <><FilterX className="w-4 h-4 mr-2" />Ocultar filtros</>
               ) : (
-                <>
-                  <Filter className="w-4 h-4 mr-2" />
-                  Mostrar filtros
-                </>
+                <><Filter className="w-4 h-4 mr-2" />Mostrar filtros</>
               )}
             </Button>
           </div>
@@ -226,9 +263,7 @@ export default function MisEventosIndex(props: Props) {
                   <div className="space-y-4 text-sm">
 
                     <div className="flex flex-col">
-                      <label className="font-semibold mb-1 text-slate-700">
-                        Buscar
-                      </label>
+                      <label className="font-semibold mb-1 text-slate-700">Buscar</label>
                       <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                         <input
@@ -244,9 +279,7 @@ export default function MisEventosIndex(props: Props) {
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="font-semibold mb-1 text-slate-700">
-                        Modalidad
-                      </label>
+                      <label className="font-semibold mb-1 text-slate-700">Modalidad</label>
                       <select
                         value={filtroModalidad}
                         onChange={(e) => {
@@ -264,6 +297,25 @@ export default function MisEventosIndex(props: Props) {
                       </select>
                     </div>
 
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="ocultarFinalizados"
+                        checked={ocultarFinalizados}
+                        onChange={(e) => {
+                          setOcultarFinalizados(e.target.checked);
+                          setPaginaActual(1);
+                        }}
+                        className="w-4 h-4 accent-[#034991] cursor-pointer"
+                      />
+                      <label
+                        htmlFor="ocultarFinalizados"
+                        className="font-semibold text-slate-700 cursor-pointer select-none"
+                      >
+                        Ocultar eventos finalizados
+                      </label>
+                    </div>
+
                     <Button
                       variant="outline"
                       className="w-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB] rounded-full"
@@ -271,6 +323,17 @@ export default function MisEventosIndex(props: Props) {
                     >
                       Limpiar filtros
                     </Button>
+                    {ocultosManual.size > 0 && (
+  <Button
+    className="w-full bg-[#034991] hover:bg-[#023165] text-white rounded-full"
+    onClick={() => {
+      setOcultosManual(new Set());
+      setPaginaActual(1);
+    }}
+  >
+    Mostrar eventos ocultos
+  </Button>
+)}
                   </div>
                 </div>
               </div>
@@ -278,11 +341,8 @@ export default function MisEventosIndex(props: Props) {
           )}
 
           {/* MAIN */}
-          <main
-            className={`${
-              mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"
-            } space-y-4`}
-          >
+          <main className={`${mostrarFiltros ? "lg:col-span-9" : "lg:col-span-12"} space-y-4`}>
+
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3">
@@ -290,12 +350,8 @@ export default function MisEventosIndex(props: Props) {
                   <CalendarCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                    Total inscripciones
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {totalInscritos}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Total inscripciones</p>
+                  <p className="text-2xl font-bold text-slate-900">{totalInscritos}</p>
                 </div>
               </div>
 
@@ -304,12 +360,8 @@ export default function MisEventosIndex(props: Props) {
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                    Próximos
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {proximos}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Próximos</p>
+                  <p className="text-2xl font-bold text-slate-900">{proximos}</p>
                 </div>
               </div>
 
@@ -318,24 +370,14 @@ export default function MisEventosIndex(props: Props) {
                   <XCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                    Ya realizados
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {pasados}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Ya realizados</p>
+                  <p className="text-2xl font-bold text-slate-900">{pasados}</p>
                 </div>
               </div>
             </div>
 
             {/* GRID DE EVENTOS */}
-            <div
-              className={`grid grid-cols-1 ${
-                mostrarFiltros
-                  ? "md:grid-cols-2"
-                  : "md:grid-cols-2 lg:grid-cols-3"
-              } gap-4`}
-            >
+            <div className={`grid grid-cols-1 ${mostrarFiltros ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"} gap-3`}>
               {eventosPaginados.length > 0 ? (
                 eventosPaginados.map((evento) => {
                   const pasado = eventoPasado(evento.fecha_evento);
@@ -343,93 +385,105 @@ export default function MisEventosIndex(props: Props) {
                   return (
                     <div
                       key={evento.id_evento}
-                      className={`bg-white border rounded-2xl p-5 shadow-sm flex flex-col transition-colors duration-200 ${
-                        pasado
-                          ? "border-slate-200 opacity-70"
-                          : "border-slate-200 hover:border-blue-300 hover:bg-blue-50"
-                      }`}
+                      className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200"
                     >
-                      {/* Título y badge */}
-                      <div className="flex justify-between items-start mb-2">
-                        <h2 className="font-bold text-lg text-slate-800 line-clamp-1">
-                          {evento.titulo}
-                        </h2>
-                        <span
-                          className={`px-2 py-1 rounded text-[10px] font-bold uppercase shrink-0 ml-2 ${
+                      <div>
+                        {/* Título y badge */}
+                        <div className="flex justify-between items-start mb-2">
+                          <h2 className="font-bold text-lg text-slate-800 line-clamp-1">
+                            {evento.titulo}
+                          </h2>
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shrink-0 ml-2 ${
                             pasado
                               ? "bg-slate-100 text-slate-500"
                               : "bg-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          {pasado ? "Realizado" : "Próximo"}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                        {evento.descripcion}
-                      </p>
-
-                      {/* Modalidad */}
-                      {evento.modalidad_nombre && (
-                        <span className="inline-block mb-3 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-semibold w-fit">
-                          {evento.modalidad_nombre}
-                        </span>
-                      )}
-
-                      {/* Fecha, hora y ubicación */}
-                      <div className="text-xs text-gray-600 mb-4 space-y-1">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 shrink-0" />
-                          <span>
-                            {evento.fecha_evento ?? "Fecha por definir"}
-                            {evento.hora_evento && ` — ${evento.hora_evento}`}
+                          }`}>
+                            {pasado ? "Realizado" : "Próximo"}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 shrink-0" />
-                          <span className="truncate">
-                            {[
-                              evento.canton_nombre,
-                              evento.provincia_nombre,
-                              evento.pais_nombre,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
+
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                          {evento.descripcion ?? "Sin descripción disponible."}
+                        </p>
+
+                        {evento.modalidad_nombre && (
+                          <span className="inline-block mb-3 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-semibold w-fit">
+                            {evento.modalidad_nombre}
                           </span>
-                        </div>
-                        {evento.fecha_inscripcion && (
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <Clock className="w-3 h-3 shrink-0" />
-                            <span>
-                              Inscrito el{" "}
-                              {new Date(
-                                evento.fecha_inscripcion
-                              ).toLocaleDateString("es-CR")}
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-2">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                            {evento.fecha_evento ?? "Por definir"}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-red-500" />
+                            <span className="truncate">
+                              {[evento.canton_nombre, evento.provincia_nombre]
+                                .filter(Boolean)
+                                .join(", ")}
                             </span>
                           </div>
-                        )}
+                          {evento.hora_evento && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              {evento.hora_evento}
+                            </div>
+                          )}
+                          {evento.fecha_inscripcion && (
+                            <div className="flex items-center gap-1 text-slate-400 col-span-2">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span>
+                                Inscrito el{" "}
+                                {new Date(evento.fecha_inscripcion).toLocaleDateString("es-CR")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* BOTÓN CANCELAR */}
-                      <div className="mt-auto">
-                        {!pasado ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="w-full rounded-full"
-                            disabled={cancelando.has(evento.id_evento)}
-                            onClick={() => cancelarInscripcion(evento)}
-                          >
-                            {cancelando.has(evento.id_evento)
-                              ? "Procesando..."
-                              : "Cancelar inscripción"}
-                          </Button>
-                        ) : (
-                          <p className="text-center text-xs text-slate-400 italic">
-                            Este evento ya se realizó
-                          </p>
-                        )}
-                      </div>
+                      {/* BOTONES — misma estructura que gestión */}
+                     <div className="mt-auto pt-4 border-t flex gap-2 flex-wrap">
+
+  {/* Botón Ver */}
+  <button
+    title="Ver detalle del evento"
+    onClick={() => verDetalle(evento)}
+    className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-[#034991] text-[#034991] hover:bg-[#034991] hover:text-white transition-all py-2 text-sm font-semibold"
+  >
+    <Eye className="w-4 h-4" />
+    <span>Ver</span>
+  </button>
+
+  {/* Botón Cancelar */}
+  {!pasado ? (
+    <button
+      title="Cancelar tu inscripción a este evento"
+      disabled={cancelando.has(evento.id_evento)}
+      onClick={() => cancelarInscripcion(evento)}
+      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-all py-2 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {cancelando.has(evento.id_evento) ? (
+        <span>Procesando...</span>
+      ) : (
+        <>
+          <XCircle className="w-4 h-4" />
+          <span>Cancelar</span>
+        </>
+      )}
+    </button>
+  ) : (
+    <button
+      title="No mostrar más este evento en la lista"
+      onClick={() => ocultarEvento(evento.id_evento)}
+      className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-[#034991] text-[#034991] hover:bg-[#034991] hover:text-white transition-all duration-200 py-2 text-sm font-semibold"
+    >
+      <EyeOff className="w-4 h-4" />
+      <span>No mostrar</span>
+    </button>
+  )}
+</div>
                     </div>
                   );
                 })
@@ -445,8 +499,7 @@ export default function MisEventosIndex(props: Props) {
             {/* PAGINACIÓN */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
               <div>
-                Mostrando {eventosPaginados.length} de{" "}
-                {eventosFiltrados.length} eventos
+                Mostrando {eventosPaginados.length} de {eventosFiltrados.length} eventos
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -464,9 +517,7 @@ export default function MisEventosIndex(props: Props) {
                   size="sm"
                   variant="outline"
                   onClick={() => setPaginaActual((p) => p + 1)}
-                  disabled={
-                    paginaActual === totalPaginas || totalPaginas === 0
-                  }
+                  disabled={paginaActual === totalPaginas || totalPaginas === 0}
                 >
                   Siguiente
                 </Button>
@@ -475,6 +526,14 @@ export default function MisEventosIndex(props: Props) {
           </main>
         </div>
       </div>
+
+      {/* MODAL DETALLE — mismo estilo que gestión de eventos */}
+   {detalle && (
+  <EventoDetalleModal
+    detalle={detalle}
+    onClose={() => setDetalle(null)}
+  />
+)}
     </>
   );
 }

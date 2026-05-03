@@ -188,7 +188,7 @@ export default function ActualizarAdmin({ usuario, userPermisos }: Props) {
     
   });
 
-    //console.log("USUARIO EDIT:", usuario); 
+
   const [universidades, setUniversidades] = useState<Universidad[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [loadingUnis, setLoadingUnis] = useState(false);
@@ -291,7 +291,7 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         : [];
       setCarreras(filtered);
     } catch (err) {
-      console.error(err);
+  
       setCarreras([]);
     } finally {
       setLoadingCarreras(false);
@@ -332,7 +332,7 @@ const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           await loadCarrerasForUni(uniActual.id_universidad);
         }
       } catch (e) {
-        console.error(e);
+  
       } finally {
         if (mounted) setLoadingUnis(false);
       }
@@ -455,9 +455,6 @@ const submit = async (e: React.FormEvent) => {
   });
 
   if (!confirmado) return;
-console.log("USUARIO COMPLETO:", usuario);
-console.log("ID:", usuario.id);
-console.log("ID ENVIADO A ZIGGY:", usuario.id);
   put(route("admin.actualizar", { id: usuario.id }), {
     
     preserveScroll: true,
