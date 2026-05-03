@@ -5,6 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import axios from "axios";
 import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
+import EventoDetalleModal from "@/components/modal/EventoDetalleModal"; 
 import {
   Search,
   Calendar,
@@ -527,83 +528,12 @@ export default function MisEventosIndex(props: Props) {
       </div>
 
       {/* MODAL DETALLE — mismo estilo que gestión de eventos */}
-      {detalle && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 text-black">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-
-            <div className="bg-[#034991] p-4 text-white flex justify-between items-center">
-              <h2 className="font-bold text-lg">Detalles del Evento</h2>
-              <button
-                onClick={() => setDetalle(null)}
-                className="hover:bg-white/20 rounded-full p-1"
-              >
-                <ArrowLeft className="w-5 h-5 rotate-90" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <h3 className="text-2xl font-bold text-slate-800">
-                {detalle.titulo}
-              </h3>
-
-              <p className="text-slate-600 leading-relaxed">
-                {detalle.descripcion || "Sin descripción detallada."}
-              </p>
-
-              <div className="bg-slate-50 p-4 rounded-xl border space-y-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-[#034991]" />
-                  <span>
-                    <strong>Fecha:</strong> {detalle.fecha_evento || "No definida"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-amber-500" />
-                  <span>
-                    <strong>Hora:</strong> {detalle.hora_evento || "No definida"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-red-500" />
-                  <span>
-                    <strong>Ubicación:</strong>{" "}
-                    {[detalle.canton_nombre, detalle.provincia_nombre, detalle.pais_nombre]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-
-                {detalle.modalidad_nombre && (
-                  <div className="flex items-center gap-3">
-                    <LayoutDashboard className="w-5 h-5 text-blue-500" />
-                    <span>
-                      <strong>Modalidad:</strong> {detalle.modalidad_nombre}
-                    </span>
-                  </div>
-                )}
-
-                {detalle.cupos != null && (
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    <span>
-                      <strong>Cupos:</strong> {detalle.inscritos_count ?? 0} / {detalle.cupos}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <Button
-                className="w-full bg-[#034991] hover:bg-[#023165]"
-                onClick={() => setDetalle(null)}
-              >
-                Entendido
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+   {detalle && (
+  <EventoDetalleModal
+    detalle={detalle}
+    onClose={() => setDetalle(null)}
+  />
+)}
     </>
   );
 }

@@ -167,7 +167,7 @@ class AdminRegistroService
 
         if (str_contains($mensaje, 'Integrity constraint') ||
             str_contains($mensaje, 'foreign key')) {
-
+                 
             return response()->json([
                 'success' => false,
                 'message' => 'No se puede eliminar porque el usuario tiene registros en la bitácora'

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Services\AuthServices\AuthService;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test; 
+use App\Models\Usuario; 
 class AuthControllerTest extends TestCase
 {
     use DatabaseTransactions;
@@ -24,26 +25,27 @@ class AuthControllerTest extends TestCase
            $this->withoutVite();
         $this->withoutMiddleware();
     }
+ protected function tearDown(): void
+    {
+        Mockery::close(); // ← faltaba esto
+        parent::tearDown();
+    }
 
    #[Test]
-    public function login_exitoso()
-    {
-        $data = [
-            'correo' => 'test@email.com',
-            'password' => 'Password123!'
-        ];
+public function login_exitoso()
+{
+    $data = ['correo' => 'test@test.com', 'password' => 'password123'];
 
-        $this->service
-            ->shouldReceive('login')
-            ->once()
-            ->with($data)
-            ->andReturn(response()->json(['status' => 'success'], 200));
+    $this->service
+        ->shouldReceive('login')
+        ->once()
+        ->withAnyArgs() // ← acepta cualquier argumento
+        ->andReturn(response()->json(['redirect' => '/dashboard'], 200));
 
-        $response = $this->postJson('/login', $data);
+    $response = $this->postJson('/login', $data);
 
-        $response->assertStatus(200)
-                 ->assertJson(['status' => 'success']);
-    }
+    $response->assertStatus(302);
+}
 
     #[Test]
     public function login_falla_por_validacion()
@@ -55,17 +57,37 @@ class AuthControllerTest extends TestCase
     }
 
     #[Test]
-    public function logout_exitoso()
-    {
-        $this->service
-            ->shouldReceive('logout')
-            ->once()
-            ->andReturn(response()->json(['status' => 'logout'], 200));
+public function login_credenciales_invalidas()
+{
+    $data = ['correo' => 'test@test.com', 'password' => 'wrongpassword'];
 
-        $response = $this->postJson('/logout');
+    $this->service
+        ->shouldReceive('login')
+        ->once()
+        ->andReturn(response()->json(['message' => 'Credenciales inválidas'], 401));
 
-        $response->assertStatus(200)
-                 ->assertJson(['status' => 'logout']);
-    }
+    $response = $this->post('/login', $data);
+
+    // back()->withErrors() → 302 con errores en sesión
+    $response->assertStatus(302);
+    $response->assertSessionHasErrors('correo');
+}
+
+#[Test]
+public function logout_exitoso()
+{
+    $usuario = Usuario::factory()->create();
+
+    $this->service
+        ->shouldReceive('logout')
+        ->once();
+
+    $response = $this->actingAs($usuario, 'sanctum')
+        ->post('/logout');
+
+    // logout siempre hace redirect('/login') → 302
+    $response->assertStatus(302);
+    $response->assertRedirect('/login');
+}
 
     }

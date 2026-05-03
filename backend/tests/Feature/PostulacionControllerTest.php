@@ -39,47 +39,25 @@ class PostulacionControllerTest extends TestCase
 
         return [$usuarioEmpresa, $empresa];
     }
+private function crearCurriculumValido(int $idUsuario): void
+{
+    \App\Models\Curriculum::create([
+        'id_usuario'        => $idUsuario,
+        'generado_sistema'  => true,
+    ]);
+}
 
     // ─────────────────────────────────────────
     // postular
     // ─────────────────────────────────────────
 
     #[Test]
-    public function test_postular_correctamente()
-    {
-        $usuario = Usuario::factory()->create();
-
-        [, $empresa] = $this->crearEmpresaConUsuario();
-
-        $oferta = Oferta::create([
-            'id_empresa'        => $empresa->id_empresa,
-            'titulo'            => 'Oferta Test',
-            'descripcion'       => 'Descripción test',
-            'requisitos'        => json_encode([]),
-            'tipo_oferta'       => 'Tiempo completo',
-            'estado_id'         => 1,
-            'fecha_publicacion' => now(),
-            'fecha_limite'      => now()->addDays(30),
-        ]);
-
-        $response = $this->actingAs($usuario, 'sanctum')
-                         ->postJson("/ofertas/{$oferta->id_oferta}/postular", [
-                             'mensaje' => 'Me interesa esta oferta'
-                         ]);
-
-        $response->assertRedirect();
-
-        $this->assertDatabaseHas('postulaciones', [
-            'id_usuario' => $usuario->id_usuario,
-            'id_oferta'  => $oferta->id_oferta,
-            'estado_id'  => 1,
-        ]);
-    }
-
-   #[Test]
-public function test_postular_falla_si_ya_existe_postulacion()
+public function test_postular_correctamente()
 {
     $usuario = Usuario::factory()->create();
+
+    
+    $this->crearCurriculumValido($usuario->id_usuario);
 
     [, $empresa] = $this->crearEmpresaConUsuario();
 
@@ -94,6 +72,42 @@ public function test_postular_falla_si_ya_existe_postulacion()
         'fecha_limite'      => now()->addDays(30),
     ]);
 
+    $response = $this->actingAs($usuario, 'sanctum')
+                     ->postJson("/ofertas/{$oferta->id_oferta}/postular", [
+                         'mensaje' => 'Me interesa esta oferta'
+                     ]);
+
+    $response->assertRedirect();
+
+    $this->assertDatabaseHas('postulaciones', [
+        'id_usuario' => $usuario->id_usuario,
+        'id_oferta'  => $oferta->id_oferta,
+        'estado_id'  => 1,
+    ]);
+}
+
+   #[Test]
+public function test_postular_falla_si_ya_existe_postulacion()
+{
+    $usuario = Usuario::factory()->create();
+
+   
+    $this->crearCurriculumValido($usuario->id_usuario);
+
+    [, $empresa] = $this->crearEmpresaConUsuario();
+
+    $oferta = Oferta::create([
+        'id_empresa'        => $empresa->id_empresa,
+        'titulo'            => 'Oferta Test',
+        'descripcion'       => 'Descripción test',
+        'requisitos'        => json_encode([]),
+        'tipo_oferta'       => 'Tiempo completo',
+        'estado_id'         => 1,
+        'fecha_publicacion' => now(),
+        'fecha_limite'      => now()->addDays(30),
+    ]);
+
+    
     Postulacion::create([
         'id_usuario'        => $usuario->id_usuario,
         'id_oferta'         => $oferta->id_oferta,
@@ -108,7 +122,7 @@ public function test_postular_falla_si_ya_existe_postulacion()
                      ]);
 
     $response->assertStatus(302);
-    $response->assertSessionHasErrors('msg');
+    $response->assertSessionHasErrors('msg'); 
 }
 
     // ─────────────────────────────────────────
