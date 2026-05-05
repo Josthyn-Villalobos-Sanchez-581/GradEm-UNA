@@ -10,57 +10,39 @@ use App\Models\Modalidad;
 use App\Models\Postulacion;
 use App\Models\AreaLaboral;
 use App\Models\Carrera;
+use App\Models\Curriculum;
+use App\Services\OfertaServices\OfertaService;
+use App\Repositories\OfertaRepositories\OfertaRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use App\Models\Curriculum;
-use Illuminate\Support\Facades\DB;
 
 class OfertaController extends Controller
 {
-    /**
-     * HU-25 + HU-27
-     * Listar ofertas (estudiantes / egresados)
-     */
+    protected $ofertaService;
+    protected $ofertaRepo;
+
+    public function __construct(OfertaService $ofertaService, OfertaRepository $ofertaRepo)
+    {
+        $this->ofertaService = $ofertaService;
+        $this->ofertaRepo = $ofertaRepo;
+    }
 
     public function listar(Request $request)
     {
-        $this->desactivarOfertasVencidas();
+        $this->ofertaService->desactivarOfertasVencidas();
 
-        $consulta = Oferta::with([
-            'empresa.usuario.fotoPerfil',
-            'pais',
-            'provincia',
-            'canton',
-            'modalidad',
-            'areaLaboral',
-        ])
+        $consulta = $this->ofertaRepo->obtenerConsultaBase()
             ->where('estado_id', 1)
             ->whereDate('fecha_limite', '>=', now());
 
-        if ($request->filled('tipo_oferta')) {
-            $consulta->where('tipo_oferta', $request->tipo_oferta);
-        }
-
-        if ($request->filled('id_pais')) {
-            $consulta->where('id_pais', $request->id_pais);
-        }
-
-        if ($request->filled('id_provincia')) {
-            $consulta->where('id_provincia', $request->id_provincia);
-        }
-
-        if ($request->filled('id_canton')) {
-            $consulta->where('id_canton', $request->id_canton);
-        }
-
-        if ($request->filled('id_area_laboral')) {
-            $consulta->where('id_area_laboral', $request->id_area_laboral);
-        }
-
-        if ($request->filled('id_modalidad')) {
-            $consulta->where('id_modalidad', $request->id_modalidad);
-        }
+        // --- Filtros (Misma lógica original) ---
+        if ($request->filled('tipo_oferta')) $consulta->where('tipo_oferta', $request->tipo_oferta);
+        if ($request->filled('id_pais')) $consulta->where('id_pais', $request->id_pais);
+        if ($request->filled('id_provincia')) $consulta->where('id_provincia', $request->id_provincia);
+        if ($request->filled('id_canton')) $consulta->where('id_canton', $request->id_canton);
+        if ($request->filled('id_area_laboral')) $consulta->where('id_area_laboral', $request->id_area_laboral);
+        if ($request->filled('id_modalidad')) $consulta->where('id_modalidad', $request->id_modalidad);
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -71,60 +53,17 @@ class OfertaController extends Controller
             });
         }
 
-        if ($request->filled('fecha_inicio')) {
-            $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
-        }
+        if ($request->filled('fecha_inicio')) $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
+        if ($request->filled('fecha_fin')) $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
 
-        if ($request->filled('fecha_fin')) {
-            $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
-        }
+        $ordenarPor = $request->get('ordenar_por', 'fecha_publicacion');
+        $direccion  = $request->get('direccion', 'desc');
+        if (!in_array($ordenarPor, ['fecha_publicacion', 'fecha_limite', 'titulo'])) $ordenarPor = 'fecha_publicacion';
+        if (!in_array($direccion, ['asc', 'desc'])) $direccion = 'desc';
 
-        $ordenarPor = $request->get('ordenar_por');
-        $direccion  = $request->get('direccion');
+        $ofertas = $consulta->orderBy($ordenarPor, $direccion)->paginate(9)->withQueryString();
 
-        $columnasPermitidas = ['fecha_publicacion', 'fecha_limite', 'titulo'];
-
-        if (!in_array($ordenarPor, $columnasPermitidas)) {
-            $ordenarPor = 'fecha_publicacion';
-        }
-
-        if (!in_array($direccion, ['asc', 'desc'])) {
-            $direccion = 'desc';
-        }
-
-        $consulta->orderBy($ordenarPor, $direccion);
-
-        $ofertas = $consulta
-            ->paginate(9)
-            ->withQueryString();
-
-        $ofertas->getCollection()->transform(function ($oferta) {
-
-            if (
-                $oferta->empresa &&
-                $oferta->empresa->usuario &&
-                $oferta->empresa->usuario->fotoPerfil
-            ) {
-
-                $foto = $oferta->empresa->usuario->fotoPerfil;
-
-                $url = is_array($foto)
-                    ? ($foto['url'] ?? null)
-                    : ($foto->ruta_imagen ? asset($foto->ruta_imagen) : null);
-
-                $oferta->empresa->usuario->fotoPerfil = $url
-                    ? ['url' => $url]
-                    : null;
-            } else {
-                // si la empresa o el usuario no existen, evitamos acceder para prevenir el error
-                if ($oferta->empresa && $oferta->empresa->usuario) {
-                    $oferta->empresa->usuario->fotoPerfil = null;
-                }
-            }
-
-            return $oferta;
-        });
-
+        $ofertas->getCollection()->transform(fn($o) => $this->ofertaService->normalizarFotoPerfil($o));
 
         return Inertia::render('Ofertas/OfertasIndex', [
             'ofertas'        => $ofertas,
@@ -138,59 +77,21 @@ class OfertaController extends Controller
         ]);
     }
 
-    /**
-     * HU-24
-     * Detalle de oferta
-     */
     public function mostrar(Oferta $oferta)
     {
-        $oferta->load([
-            'empresa.usuario.fotoPerfil',
-            'pais',
-            'provincia',
-            'canton',
-            'modalidad',
-            'areaLaboral',
-            'carrera',
-        ]);
-
+        $oferta->load(['empresa.usuario.fotoPerfil', 'pais', 'provincia', 'canton', 'modalidad', 'areaLaboral', 'carrera']);
         $usuario = Auth::user();
 
-        $yaPostulado = $usuario
-            ? Postulacion::where('id_usuario', $usuario->id_usuario)
-            ->where('id_oferta', $oferta->id_oferta)
-            ->exists()
-            : false;
+        $yaPostulado = $usuario ? Postulacion::where('id_usuario', $usuario->id_usuario)->where('id_oferta', $oferta->id_oferta)->exists() : false;
 
-        if (
-            $oferta->empresa &&
-            $oferta->empresa->usuario &&
-            $oferta->empresa->usuario->fotoPerfil
-        ) {
-            $foto = $oferta->empresa->usuario->fotoPerfil;
-
-            $url = $foto->ruta_imagen
-                ? asset('storage/' . $foto->ruta_imagen)
-                : null;
-
-            $oferta->empresa->usuario->fotoPerfil = $url
-                ? ['url' => $url]
-                : null;
-        } else {
-            if ($oferta->empresa && $oferta->empresa->usuario) {
-                $oferta->empresa->usuario->fotoPerfil = null;
-            }
-        }
+        $this->ofertaService->normalizarFotoPerfil($oferta);
 
         $tieneCvValido = false;
-
         if ($usuario) {
             $tieneCvValido = Curriculum::where('id_usuario', $usuario->id_usuario)
                 ->where(function ($query) {
-                    $query->where('generado_sistema', true)
-                        ->orWhereNotNull('ruta_archivo_pdf');
-                })
-                ->exists();
+                    $query->where('generado_sistema', true)->orWhereNotNull('ruta_archivo_pdf');
+                })->exists();
         }
 
         return Inertia::render('Ofertas/OfertaDetallePagina', [
@@ -201,18 +102,12 @@ class OfertaController extends Controller
         ]);
     }
 
-    /**
-     * HU-23
-     * Formulario crear oferta (empresa/admin/permiso5)
-     */
     public function crear()
     {
         $usuario = Auth::user();
         $empresa = $usuario->empresa;
 
-        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
-            abort(403, 'No autorizado.');
-        }
+        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) abort(403, 'No autorizado.');
 
         return Inertia::render('Ofertas/CrearOferta', [
             'empresa'        => optional($empresa)->load('usuario.fotoPerfil'),
@@ -226,196 +121,73 @@ class OfertaController extends Controller
         ]);
     }
 
-    /**
-     * Guardar nueva oferta
-     */
     public function guardar(Request $request)
     {
         $usuario = Auth::user();
         $empresa = $usuario->empresa;
 
-        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
-            abort(403, 'No autorizado.');
-        }
+        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) abort(403, 'No autorizado.');
 
         $datos = $request->validate([
-            'titulo'           => 'required|string|max:100',
-            'descripcion'      => 'required|string',
-            'requisitos'       => 'nullable|array',
-            'requisitos.*'     => 'string|max:255',
-            'tipo_oferta'      => 'required|string|max:50',
-            'categoria'        => 'required|string|max:50',
-            'id_area_laboral'  => 'required|integer',
-            'id_carrera'       => 'required|integer',
-            'id_pais'          => 'required|integer',
-            'id_provincia'     => 'required|integer',
-            'id_canton'        => 'required|integer',
-            'id_modalidad'     => 'required|integer',
-            'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date|after_or_equal:today',
-            'estado_id'        => 'required|integer',
+            'titulo' => 'required|string|max:100',
+            'descripcion' => 'required|string',
+            'requisitos' => 'nullable|array',
+            'requisitos.*' => 'string|max:255',
+            'tipo_oferta' => 'required|string|max:50',
+            'categoria' => 'required|string|max:50',
+            'id_area_laboral' => 'required|integer',
+            'id_carrera' => 'required|integer',
+            'id_pais' => 'required|integer',
+            'id_provincia' => 'required|integer',
+            'id_canton' => 'required|integer',
+            'id_modalidad' => 'required|integer',
+            'horario' => 'required|string|max:255',
+            'fecha_limite' => 'required|date|after_or_equal:today',
+            'estado_id' => 'nullable|integer|in:1,2',
         ]);
 
-        if ($empresa) {
-            $datos['id_empresa'] = $empresa->id_empresa;
-        }
-
+        if ($empresa) $datos['id_empresa'] = $empresa->id_empresa;
         $datos['fecha_publicacion'] = now();
         $datos['requisitos'] = json_encode($request->requisitos);
 
-        Oferta::create($datos);
+        $this->ofertaRepo->crear($datos);
 
-        return redirect()
-            ->route('empresa.ofertas.index')
-            ->with('success', 'Oferta creada correctamente.');
+        return redirect()->route('empresa.ofertas.index')->with('success', 'Oferta creada correctamente.');
     }
 
-    /**
-     * Borrado lógico de oferta
-     */
     public function eliminar(Oferta $oferta)
     {
         $usuario = Auth::user();
-        $empresa = $usuario->empresa;
+        if (!$usuario->empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) abort(403, 'No autorizado.');
 
-        if (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) {
-            abort(403, 'No autorizado.');
-        }
-
-        $oferta->update([
-            'estado_id' => 3, // DESACTIVADA
-        ]);
-
+        $this->ofertaRepo->actualizar($oferta, ['estado_id' => 3]);
         return back()->with('success', 'Oferta desactivada correctamente.');
     }
 
-
-    /**
-     * Listar ofertas de la empresa (empresa/admin/permiso5)
-     */
     public function indexEmpresa(Request $request)
     {
-        $this->desactivarOfertasVencidas();
-
+        $this->ofertaService->desactivarOfertasVencidas();
         $usuario = $request->user();
-        $empresa = $usuario->empresa; // null si es admin/superadmin
 
-        $request->validate([
-            'id_modalidad' => 'nullable|integer|exists:modalidades,id_modalidad',
-            'estado' => 'nullable|integer|in:1,2,3,4',
-            'fecha_inicio' => 'nullable|date',
-            'fecha_fin'    => 'nullable|date',
-            'per_page'     => 'nullable|integer|min:5|max:100',
-        ]);
+        if (!$usuario) abort(403, 'No autorizado.');
 
-        // 🔒 Seguridad básica
-        if (!$usuario) {
-            abort(403, 'No autorizado.');
-        }
-
-        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
-            if ($request->fecha_inicio > $request->fecha_fin) {
-                abort(422, 'La fecha inicio no puede ser mayor que la fecha fin.');
-            }
-        }
-
-        /**
-         * 📝 Consulta base
-         * ⚠️ OJO: cargamos TODA la cadena necesaria para el frontend
-         */
-        $consulta = Oferta::with([
-            'empresa.usuario.fotoPerfil',
-            'modalidad',
-        ])
+        $consulta = Oferta::with(['empresa.usuario.fotoPerfil', 'modalidad'])
             ->withCount('postulaciones')
             ->where('estado_id', '!=', Oferta::ESTADO_INACTIVA);
 
-        /**
-         * 🔐 Visibilidad
-         * - Empresa → solo sus ofertas
-         * - Admin/Superadmin → todas
-         */
-        if ($usuario->empresa) {
-            $consulta->where('id_empresa', $usuario->empresa->id_empresa);
-        }
+        if ($usuario->empresa) $consulta->where('id_empresa', $usuario->empresa->id_empresa);
+        if ($request->filled('buscar')) $consulta->where('titulo', 'like', '%' . $request->buscar . '%');
+        if ($request->filled('id_modalidad')) $consulta->where('id_modalidad', (int) $request->id_modalidad);
+        if ($request->filled('estado')) $consulta->where('estado_id', $request->estado);
+        if ($request->filled('fecha_inicio')) $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
+        if ($request->filled('fecha_fin')) $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
 
-        // 🔍 Búsqueda
-        if ($request->filled('buscar')) {
-            $consulta->where('titulo', 'like', '%' . $request->buscar . '%');
-        }
-
-        // 🎯 Modalidad
-        if ($request->has('id_modalidad') && $request->id_modalidad !== null && $request->id_modalidad !== '') {
-            $consulta->where('id_modalidad', (int) $request->id_modalidad);
-        }
-
-        // 🟢 Estado
-        if ($request->filled('estado')) {
-            $consulta->where('estado_id', $request->estado);
-        }
-
-        // 📅 Fechas
-        if ($request->filled('fecha_inicio')) {
-            $consulta->whereDate('fecha_publicacion', '>=', $request->fecha_inicio);
-        }
-
-        if ($request->filled('fecha_fin')) {
-            $consulta->whereDate('fecha_publicacion', '<=', $request->fecha_fin);
-        }
-
-        // 📄 Paginación
-        $perPage = (int) $request->get('per_page', 10);
-
-        $ofertas = $consulta
-            ->orderByDesc('fecha_publicacion')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        /**
-         * 🖼️ Normalizar foto de perfil (igual que listar / mostrar)
-         */
-        $ofertas->getCollection()->transform(function ($oferta) {
-
-            if (
-                $oferta->empresa &&
-                $oferta->empresa->usuario &&
-                $oferta->empresa->usuario->fotoPerfil
-            ) {
-                $foto = $oferta->empresa->usuario->fotoPerfil;
-
-                // 🧠 Si ya viene como array (ya transformado)
-                if (is_array($foto)) {
-                    $url = $foto['url'] ?? null;
-                }
-                // 🧠 Si viene como modelo Eloquent
-                else {
-                    $url = $foto->ruta_imagen
-                        ? asset('storage/' . $foto->ruta_imagen)
-                        : null;
-                }
-
-                $oferta->empresa->usuario->fotoPerfil = $url
-                    ? ['url' => $url]
-                    : null;
-            } else {
-                if ($oferta->empresa && $oferta->empresa->usuario) {
-                    $oferta->empresa->usuario->fotoPerfil = null;
-                }
-            }
-
-            return $oferta;
-        });
-
+        $ofertas = $consulta->orderByDesc('fecha_publicacion')->paginate($request->get('per_page', 10))->withQueryString();
+        $ofertas->getCollection()->transform(fn($o) => $this->ofertaService->normalizarFotoPerfil($o));
 
         return Inertia::render('Ofertas/EmpresaOfertasIndex', [
-            'ofertas'      => $ofertas,
-            'filtros'      => $request->only([
-                'buscar',
-                'fecha_inicio',
-                'fecha_fin',
-                'estado',
-                'per_page',
-            ]),
+            'ofertas' => $ofertas,
+            'filtros' => $request->only(['buscar', 'fecha_inicio', 'fecha_fin', 'estado', 'per_page']),
             'userPermisos' => getUserPermisos(),
         ]);
     }
@@ -425,274 +197,128 @@ class OfertaController extends Controller
         $usuario = Auth::user();
         $empresa = $usuario->empresa;
 
-        // 🔒 Seguridad
-        if (
-            (!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
+        if ((!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
             ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
         ) {
             abort(403, 'No autorizado.');
         }
 
-        // 🔎 Cargar relaciones de la oferta
-        $oferta->load([
-            'empresa.usuario.fotoPerfil',
-            'modalidad',
-            'areaLaboral',
-            'carrera',
-            'pais',
-            'provincia',
-            'canton',
-        ]);
+        $oferta->load(['empresa.usuario.fotoPerfil', 'modalidad', 'areaLaboral', 'carrera', 'pais', 'provincia', 'canton']);
+        $this->ofertaService->normalizarFotoPerfil($oferta);
 
-        if (
-            $oferta->empresa &&
-            $oferta->empresa->usuario &&
-            $oferta->empresa->usuario->fotoPerfil
-        ) {
-            $foto = $oferta->empresa->usuario->fotoPerfil;
+        $consulta = Postulacion::with(['usuario.fotoPerfil', 'usuario.curriculum'])->where('id_oferta', $oferta->id_oferta);
+        if ($request->estado) $consulta->where('estado_id', $request->estado);
 
-            $oferta->empresa->usuario->fotoPerfil = [
-                'url' => asset(ltrim($foto->ruta_imagen, '/'))
-            ];
-        } else {
-            if ($oferta->empresa && $oferta->empresa->usuario) {
-                $oferta->empresa->usuario->fotoPerfil = null;
-            }
-        }
-
-        // 🔎 Filtro por estado
-        $estado = $request->estado;
-
-        $consulta = Postulacion::with([
-            'usuario.fotoPerfil',
-            'usuario.curriculum'
-        ])
-            ->where('id_oferta', $oferta->id_oferta);
-
-        if ($estado) {
-            $consulta->where('estado_id', $estado);
-        }
-
-        // 📄 Paginación SIN through
-        $postulaciones = $consulta
-            ->orderByDesc('fecha_postulacion')
-            ->paginate(10)
-            ->withQueryString();
-
-        // 🔄 Transformar colección correctamente
-        $postulaciones->getCollection()->transform(function ($postulacion) {
-
+        $postulaciones = $consulta->orderByDesc('fecha_postulacion')->paginate(10)->withQueryString();
+        $postulaciones->getCollection()->transform(function ($p) {
             return [
-                'id_postulacion' => $postulacion->id_postulacion,
-                'mensaje' => $postulacion->mensaje,
-                'fecha_postulacion' => $postulacion->fecha_postulacion,
-                'estado_id' => $postulacion->estado_id,
-
-                'usuario' => $postulacion->usuario ? [
-                    'id_usuario' => $postulacion->usuario->id_usuario,
-                    'nombre' => $postulacion->usuario->nombre_completo,
-
-                    'fotoPerfil' => $postulacion->usuario->fotoPerfil
-                        ? [
-                            'url' => asset(ltrim($postulacion->usuario->fotoPerfil->ruta_imagen, '/'))
-                        ]
-                        : null,
-
-                    'curriculum' => $postulacion->usuario->curriculum
-                        ? [
-                            'ruta_archivo_pdf' => asset(ltrim($postulacion->usuario->curriculum->ruta_archivo_pdf, '/'))
-                        ]
-                        : null,
+                'id_postulacion' => $p->id_postulacion,
+                'mensaje' => $p->mensaje,
+                'fecha_postulacion' => $p->fecha_postulacion,
+                'estado_id' => $p->estado_id,
+                'usuario' => $p->usuario ? [
+                    'id_usuario' => $p->usuario->id_usuario,
+                    'nombre' => $p->usuario->nombre_completo,
+                    'fotoPerfil' => $p->usuario->fotoPerfil ? ['url' => asset(ltrim($p->usuario->fotoPerfil->ruta_imagen, '/'))] : null,
+                    'curriculum' => $p->usuario->curriculum ? ['ruta_archivo_pdf' => asset(ltrim($p->usuario->curriculum->ruta_archivo_pdf, '/'))] : null,
                 ] : null,
             ];
         });
 
-        // 📊 Estadísticas optimizadas
-        $estadisticas = Postulacion::selectRaw("
-        COUNT(*) as total,
-        SUM(estado_id = 1) as espera,
-        SUM(estado_id = 2) as aceptado,
-        SUM(estado_id = 3) as negado,
-        SUM(estado_id = 4) as revision
-    ")
-            ->where('id_oferta', $oferta->id_oferta)
-            ->first();
-
         return Inertia::render('Ofertas/GestionOferta', [
             'oferta'        => $oferta,
             'postulaciones' => $postulaciones,
-            'estadisticas'  => $estadisticas,
-            'filtroEstado'  => $estado,
+            'estadisticas'  => $this->ofertaRepo->obtenerEstadisticasPostulaciones($oferta->id_oferta),
+            'filtroEstado'  => $request->estado,
             'userPermisos'  => getUserPermisos(),
         ]);
     }
 
-
-    /**
-     * Formulario editar oferta
-     */
     public function editar(Oferta $oferta)
     {
         $usuario = Auth::user();
-
-        // 🔹 Empresa asociada (empresa dueña o admin)
         $empresa = $usuario->empresa ?? $oferta->empresa;
 
-        // 🔒 Seguridad
-        if (
-            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
+        if ((!$empresa && !($usuario->es_admin || in_array(5, getUserPermisos()))) ||
             ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
         ) {
             abort(403, 'No autorizado.');
         }
 
         return Inertia::render('Ofertas/EditarOferta', [
-            // 🧾 Oferta SIN empresa anidada
             'oferta' => $oferta,
-
-            // 🏢 Empresa IGUAL que CrearOferta
             'empresa' => optional($empresa)->load('usuario.fotoPerfil'),
-
-            // 📦 Catálogos
-            'areasLaborales' => AreaLaboral::orderBy('nombre')->get([
-                'id_area_laboral as id',
-                'nombre',
-            ]),
-            'modalidades' => Modalidad::orderBy('nombre')->get([
-                'id_modalidad as id',
-                'nombre',
-            ]),
-            'paises' => Pais::orderBy('nombre')->get([
-                'id_pais as id',
-                'nombre',
-            ]),
-            'provincias' => Provincia::orderBy('nombre')->get([
-                'id_provincia as id',
-                'nombre',
-                'id_pais',
-            ]),
-            'cantones' => Canton::orderBy('nombre')->get([
-                'id_canton as id',
-                'nombre',
-                'id_provincia',
-            ]),
-            'carreras' => Carrera::orderBy('nombre')->get([
-                'id_carrera as id',
-                'nombre',
-            ]),
-
-            // 🔐 Permisos
+            'areasLaborales' => AreaLaboral::orderBy('nombre')->get(['id_area_laboral as id', 'nombre']),
+            'modalidades' => Modalidad::orderBy('nombre')->get(['id_modalidad as id', 'nombre']),
+            'paises' => Pais::orderBy('nombre')->get(['id_pais as id', 'nombre']),
+            'provincias' => Provincia::orderBy('nombre')->get(['id_provincia as id', 'nombre', 'id_pais']),
+            'cantones' => Canton::orderBy('nombre')->get(['id_canton as id', 'nombre', 'id_provincia']),
+            'carreras' => Carrera::orderBy('nombre')->get(['id_carrera as id', 'nombre']),
             'userPermisos' => getUserPermisos(),
         ]);
     }
 
-
-    /**
-     * Actualizar oferta
-     */
     public function actualizar(Request $request, Oferta $oferta)
     {
         $usuario = Auth::user();
-        $empresa = $usuario->empresa;
-
         if (
-            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
-            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
+            !$usuario->es_admin &&
+            !in_array(5, getUserPermisos()) &&
+            (!$usuario->empresa || $oferta->id_empresa !== $usuario->empresa->id_empresa)
         ) {
             abort(403, 'No autorizado.');
         }
 
         $datos = $request->validate([
-            'titulo'           => 'required|string|max:100',
-            'descripcion'      => 'required|string',
-            'requisitos'       => 'nullable|array',
-            'requisitos.*'     => 'string|max:255',
-            'tipo_oferta'      => 'required|string|max:50',
-            'categoria'        => 'required|string|max:50',
-            'id_area_laboral'  => 'required|integer',
-            'id_carrera'       => 'required|integer',
-            'id_pais'          => 'required|integer',
-            'id_provincia'     => 'required|integer',
-            'id_canton'        => 'required|integer',
-            'id_modalidad'     => 'required|integer',
-            'horario'          => 'required|string|max:255',
-            'fecha_limite'     => 'required|date|after_or_equal:today',
-            'estado_id'        => 'required|integer',
+            'titulo' => 'required|string|max:100',
+            'descripcion' => 'required|string',
+            'requisitos' => 'nullable|array',
+            'requisitos.*' => 'string|max:255',
+            'tipo_oferta' => 'required|string|max:50',
+            'categoria' => 'required|string|max:50',
+            'id_area_laboral' => 'required|integer',
+            'id_carrera' => 'required|integer',
+            'id_pais' => 'required|integer',
+            'id_provincia' => 'required|integer',
+            'id_canton' => 'required|integer',
+            'id_modalidad' => 'required|integer',
+            'horario' => 'required|string|max:255',
+            'fecha_limite' => 'required|date|after_or_equal:today',
+            'estado_id' => 'required|integer',
         ]);
+
+        // 🔥 DETECTAR CAMBIO DE FECHA
+        $fechaOriginal = $oferta->fecha_limite->format('Y-m-d');
+        $fechaNueva = $request->fecha_limite;
+
+        $fechaCambio = $fechaOriginal !== $fechaNueva;
+
+        // 🔥 REGLA DE NEGOCIO
+        if ($fechaCambio && !$request->filled('estado_id')) {
+            return back()->withErrors([
+                'estado_id' => 'Debes seleccionar el estado de la oferta al modificar la fecha de inscripción.'
+            ])->withInput();
+        }
 
         $datos['requisitos'] = json_encode($request->requisitos);
 
-        $oferta->update($datos);
+        $this->ofertaRepo->actualizar($oferta, $datos);
 
         return redirect()
             ->route('empresa.ofertas.index')
             ->with('success', 'Oferta actualizada correctamente.');
     }
 
-    /**
-     * Cambiar estado de la oferta (Publicada ↔ Borrador)
-     */
     public function cambiarEstado(Request $request, Oferta $oferta)
     {
         $usuario = Auth::user();
-        $empresa = $usuario->empresa;
-
-        // Seguridad
-        if (
-            !$empresa && !($usuario->es_admin || in_array(5, getUserPermisos())) ||
-            ($empresa && $oferta->id_empresa !== $empresa->id_empresa && !($usuario->es_admin || in_array(5, getUserPermisos())))
-        ) {
+        if (!$usuario->es_admin && !in_array(5, getUserPermisos()) && (!$usuario->empresa || $oferta->id_empresa !== $usuario->empresa->id_empresa)) {
             abort(403, 'No autorizado.');
         }
 
-        $request->validate([
-            'estado_id' => 'required|in:1,2',
-        ]);
-
-        $oferta->update([
-            'estado_id' => $request->estado_id,
-        ]);
+        $request->validate(['estado_id' => 'required|in:1,2']);
+        $this->ofertaRepo->actualizar($oferta, ['estado_id' => $request->estado_id]);
 
         return back()->with('success', 'Estado de la oferta actualizado.');
-    }
-
-    private function registrarBitacora(string $tabla, string $operacion, string $descripcion, ?int $usuarioId): void
-    {
-        DB::table('bitacora_cambios')->insert([
-            'tabla_afectada'      => $tabla,
-            'operacion'           => $operacion,
-            'usuario_responsable' => $usuarioId,
-            'descripcion_cambio'  => $descripcion,
-            'fecha_cambio'        => now(),
-        ]);
-    }
-
-    private function desactivarOfertasVencidas(): void
-    {
-        $usuarioId = Auth::id(); // puede ser null
-
-        // Obtener IDs de ofertas a vencer (solo una consulta ligera)
-        $idsOfertas = Oferta::where('estado_id', Oferta::ESTADO_ACTIVA)
-            ->whereDate('fecha_limite', '<', now())
-            ->pluck('id_oferta');
-
-        //Si no hay ofertas, salir rápido (optimización)
-        if ($idsOfertas->isEmpty()) {
-            return;
-        }
-
-        //Update masivo (UNA sola query)
-        Oferta::whereIn('id_oferta', $idsOfertas)
-            ->update([
-                'estado_id' => Oferta::ESTADO_VENCIDA
-            ]);
-
-        //Un solo registro en bitácora
-        $this->registrarBitacora(
-            'ofertas',
-            'FINALIZAR',
-            'Ofertas desactivadas automáticamente por vencimiento. IDs: ' . $idsOfertas->implode(', '),
-            $usuarioId
-        );
     }
 }

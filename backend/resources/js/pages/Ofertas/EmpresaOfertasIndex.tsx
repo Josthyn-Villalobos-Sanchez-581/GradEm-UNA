@@ -66,15 +66,26 @@ interface Props {
 const ToggleEstado = ({
   activo,
   onChange,
+  disabled = false,
 }: {
   activo: boolean;
   onChange: () => void;
+  disabled?: boolean;
 }) => (
   <button
-    onClick={onChange}
-    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${activo ? "bg-green-500" : "bg-gray-400"
-      }`}
-    title={activo ? "Publicada" : "Borrador"}
+    onClick={!disabled ? onChange : undefined}
+    disabled={disabled}
+    className={`w-12 h-6 flex items-center rounded-full p-1 transition 
+      ${activo ? "bg-green-500" : "bg-gray-400"} 
+      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+    `}
+    title={
+      disabled
+        ? "Oferta vencida"
+        : activo
+          ? "Publicada"
+          : "Borrador"
+    }
   >
     <div
       className={`bg-white w-4 h-4 rounded-full shadow transition ${activo ? "translate-x-6" : ""
@@ -96,6 +107,14 @@ const BadgeEstado = ({ estadoId }: { estadoId: number }) => {
     return (
       <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
         Borrador
+      </span>
+    );
+  }
+
+  if (estadoId === 4) {
+    return (
+      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-300 text-gray-700">
+        Vencida
       </span>
     );
   }
@@ -442,6 +461,7 @@ export default function EmpresaOfertasIndex({
                             <ToggleEstado
                               activo={oferta.estado_id === 1}
                               onChange={() => cambiarEstado(oferta)}
+                              disabled={oferta.estado_id === 4}
                             />
                           </div>
                         </td>

@@ -6,7 +6,7 @@ import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
 import { Button } from "@/components/ui/button";
 import fotoXDefecto from "@/assets/FotoXDefecto.png";
-import axios from "axios"; 
+import axios from "axios";
 import {
     Users,
     Filter,
@@ -51,8 +51,8 @@ export default function Index(props: IndexProps) {
     const { confirmacion } = useModal();
     const [usuarios, setUsuarios] = useState(props.users.data);
     useEffect(() => {
-    setUsuarios(props.users.data);
-}, [props.users.data]);
+        setUsuarios(props.users.data);
+    }, [props.users.data]);
     const [mostrarFiltros, setMostrarFiltros] = useState(true);
     const [searchInput, setSearchInput] = useState(props.filters?.search ?? "");
     const searchTimer = useRef<number | null>(null);
@@ -87,82 +87,85 @@ export default function Index(props: IndexProps) {
     };
 
     // Handler para inactivar (Funcionalidad que pediste mantener)
-const handleToggleEstado = (u: UsuarioItem) => {
-    const accion = u.estado_id === 1 ? "inactivar" : "activar";
+    const handleToggleEstado = (u: UsuarioItem) => {
+        const accion = u.estado_id === 1 ? "inactivar" : "activar";
 
-    modal.confirmacion({
-        titulo: `${accion.charAt(0).toUpperCase() + accion.slice(1)} Usuario`,
-        mensaje: `¿Estás seguro de que deseas ${accion} a ${u.nombre_completo}?`,
-    }).then(async (ok) => {
-        if (!ok) return;
+        modal.confirmacion({
+            titulo: `${accion.charAt(0).toUpperCase() + accion.slice(1)} Usuario`,
+            mensaje: `¿Estás seguro de que deseas ${accion} a ${u.nombre_completo}?`,
+        }).then(async (ok) => {
+            if (!ok) return;
 
-        try {
-            const response = await axios.put(
-                route("usuarios.toggle-estado", { id: u.id_usuario })
-            );
+            try {
+                const response = await axios.put(
+                    route("usuarios.toggle-estado", { id: u.id_usuario })
+                );
 
-            modal.alerta({
-                titulo: "Éxito",
-                mensaje: response.data.message,
-            });
+                modal.alerta({
+                    titulo: "Éxito",
+                    mensaje: response.data.message,
+                });
 
-            // 🔥 actualizar UI sin recargar
-            setUsuarios((prev) =>
-                prev.map((user) =>
-                    user.id_usuario === u.id_usuario
-                        ? { ...user, estado_id: response.data.nuevo_estado }
-                        : user
-                )
-            );
+                // 🔥 actualizar UI sin recargar
+                setUsuarios((prev) =>
+                    prev.map((user) =>
+                        user.id_usuario === u.id_usuario
+                            ? { ...user, estado_id: response.data.nuevo_estado }
+                            : user
+                    )
+                );
 
-        } catch (error) {
-            modal.alerta({
-                titulo: "Error",
-                mensaje: "No se pudo cambiar el estado",
-            });
-        }
-    });
-};
-const handleEliminar = (u: UsuarioItem) => {
-    confirmacion({
-        titulo: "Eliminar Usuario",
-        mensaje: `¿Estás seguro de eliminar a ${u.nombre_completo}?`,
-    }).then(async (ok) => {
+            } catch (error) {
+                modal.alerta({
+                    titulo: "Error",
+                    mensaje: "No se pudo cambiar el estado",
+                });
+            }
+        });
+    };
+    const handleEliminar = (u: UsuarioItem) => {
+        confirmacion({
+            titulo: "Eliminar Usuario",
+            mensaje: `¿Estás seguro de eliminar a ${u.nombre_completo}?`,
+        }).then(async (ok) => {
 
-        if (!ok) return;
+            if (!ok) return;
 
-        try {
-            const response = await axios.delete(
-                route("admin.eliminar", { id: u.id_usuario })
-            );
+            try {
+                const response = await axios.delete(
+                    route("admin.eliminar", { id: u.id_usuario })
+                );
 
-        
-            modal.alerta({
-                titulo: "Éxito",
-                mensaje: response.data.message,
-            });
+                modal.alerta({
+                    titulo: "Éxito",
+                    mensaje: response.data.message,
+                });
 
-        } catch (error: any) {
+                // 🔥 ELIMINAR DE LA TABLA SIN RECARGAR
+                setUsuarios(prev =>
+                    prev.filter(user => user.id_usuario !== u.id_usuario)
+                );
 
-            let mensaje =
-                error.response?.data?.message ||
-                "No se pudo eliminar el usuario";
+            } catch (error: any) {
 
-           
-           if (
-    mensaje.includes("Integrity constraint") ||
-    mensaje.includes("foreign key")
-) {
-    mensaje = "No se puede eliminar porque el usuario tiene registros asociados.";
-}
+                let mensaje =
+                    error.response?.data?.message ||
+                    "No se pudo eliminar el usuario";
 
-            modal.alerta({
-                titulo: "Error",
-                mensaje: mensaje,
-            });
-        }
-    });
-};
+                if (
+                    mensaje.includes("Integrity constraint") ||
+                    mensaje.includes("foreign key")
+                ) {
+                    mensaje = "No se puede eliminar porque el usuario tiene registros asociados.";
+                }
+
+                modal.alerta({
+                    titulo: "Error",
+                    mensaje: mensaje,
+                });
+            }
+        });
+    };
     return (
         <>
             <Head title="Gestión de Usuarios" />
@@ -362,7 +365,7 @@ const handleEliminar = (u: UsuarioItem) => {
                                                                     </Button>
                                                                 </Link>
 
-                                                                {auth?.user?.id_usuario !== u.id_usuario && puedeGestionar &&  (
+                                                                {auth?.user?.id_usuario !== u.id_usuario && puedeGestionar && (
                                                                     <Button variant="outline" size="icon" className="text-slate-400 hover:text-red-600 hover:bg-red-50" title="Eliminar" onClick={() => handleEliminar(u)}>
                                                                         <Trash2 className="size-4" />
                                                                     </Button>
