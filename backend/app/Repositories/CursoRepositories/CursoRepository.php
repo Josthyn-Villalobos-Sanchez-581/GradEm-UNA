@@ -5,7 +5,9 @@ namespace App\Repositories\CursoRepositories;
 use App\Models\Curso;
 use App\Models\Modalidad;
 use Illuminate\Support\Facades\DB;
-use App\Models\InscripcionCurso; 
+use App\Models\InscripcionCurso;
+use Illuminate\Support\Facades\Auth;
+ 
 class CursoRepository
 {
     /**
@@ -158,13 +160,14 @@ class CursoRepository
     {
         $curso->estado_id = 2; // 2 = inactivo
         $curso->save();
+        $usuarioId = Auth::id();
 
         // Registro en bitácora
         DB::table('bitacora_cambios')->insert([
             'tabla_afectada' => 'cursos',
             'operacion' => 'INACTIVAR',
-            'usuario_responsable' => auth()->id(),
-            'descripcion_cambio' => 'Curso inactivado. Motivo: ' . $motivo,
+            'usuario_responsable' => $usuarioId,
+            'descripcion_cambio' => 'Curso ' . $curso->titulo . ' inactivado. (ID: ' . $curso->id_curso . ') Motivo: ' . $motivo,
             'fecha_cambio' => now(),
         ]);
 
