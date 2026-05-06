@@ -326,38 +326,6 @@ const MisPostulaciones: React.FC<Props> = ({
 
                                                 )}
 
-                                                {post.estado_id === 5 && (
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            router.post(
-                                                                `/ofertas/${post.oferta.id_oferta}/postular`,
-                                                                { mensaje: "" },
-                                                                {
-                                                                    preserveScroll: true,
-                                                                    onSuccess: () => {
-                                                                        modal.alerta({
-                                                                            titulo: "Postulación reactivada",
-                                                                            mensaje: "Te has postulado nuevamente correctamente.",
-                                                                        });
-                                                                    },
-                                                                    onError: () => {
-                                                                        modal.alerta({
-                                                                            titulo: "Error",
-                                                                            mensaje: "No se pudo reactivar la postulación.",
-                                                                        });
-                                                                    }
-                                                                }
-                                                            );
-                                                        }}
-                                                    >
-                                                        Volver a postularse
-                                                    </Button>
-
-                                                )}
-
                                             </div>
 
                                         </div>

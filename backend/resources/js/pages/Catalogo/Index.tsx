@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Head } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
-import { PlusCircle } from "lucide-react";
+import { ArrowLeft, PlusCircle } from "lucide-react";
 import PpLayout from "@/layouts/PpLayout";
 import { useModal } from "@/hooks/useModal";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-
+import { route } from "ziggy-js";
 
 interface Item {
   id: number;
@@ -229,6 +229,7 @@ export default function CatalogoIndex({
 
     // ========================= RENDER TABLA =========================
     return (
+      
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4">
         <div
           className="flex justify-between items-center p-5 cursor-pointer bg-[#F6F8FA] hover:bg-[#EAF2FB] rounded-t-2xl transition-colors"
@@ -507,6 +508,25 @@ export default function CatalogoIndex({
   return (
     <>
       <Head title="Gestión de Catálogos" />
+      {/* HEADER */}
+        <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-[#034991]">
+              Gestión de Catálogos
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Administra las diferentes secciones del catálogo para mantener la información actualizada y consistente en la plataforma.
+            </p>
+          </div>
+          <Button
+                  variant="outline"
+                  className="h-10 rounded-full border-[#034991] text-[#034991] hover:bg-[#E6F2FB]"
+                  onClick={() => window.location.href = route("dashboard")}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+        </header>
       <div className="w-full max-w-[1600px] mx-auto px-8 py-6 space-y-6 text-[#000000]" style={{ fontFamily: "Open Sans, sans-serif" }}>
         {/* ========================================= */}
         {/* SELECCIÓN DE SECCIONES */}
