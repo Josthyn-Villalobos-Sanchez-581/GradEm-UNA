@@ -240,10 +240,17 @@ export default function CursosIndex(props: Props) {
   };
 
   const cerrarFormularioCurso = () => {
+
+     if (isSubmitting) return;
+
     if (formularioModificado) {
       setMostrarConfirmacionSalida(true);
       return;
     }
+
+    cerrarDirectoCurso();
+  };
+  const cerrarDirectoCurso = () => {
     setView("list");
     setCursoSeleccionado(null);
     setErroresForm({});
@@ -322,55 +329,81 @@ export default function CursosIndex(props: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitFormularioCurso = async () => {
-    if (isSubmitting) return;
-    if (!validarFormularioCurso()) return;
+  if (isSubmitting) return;
+  if (!validarFormularioCurso()) return;
 
-    setIsSubmitting(true);
-    try {
-      if (formMode === "create") {
-        const payload = {
-          ...formCurso,
-          id_modalidad: formCurso.id_modalidad || null,
-          fecha_fin: formCurso.fecha_fin || null,
-          cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
-        };
-        const response = await axios.post(route("cursos.store"), payload);
-        setCursos((prev) => [response.data.curso, ...prev]);
-        await modal.alerta({ titulo: "Curso registrado", mensaje: "El curso fue registrado en estado BORRADOR." });
-      } else if (cursoSeleccionado) {
-        const payload = {
-          ...formCurso,
-          id_modalidad: Number(formCurso.id_modalidad),
-          fecha_fin: formCurso.fecha_fin || null,
-          cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
-        };
-        await axios.put(route("cursos.update", { idCurso: cursoSeleccionado.id_curso }), payload);
-        setCursos((prev) => prev.map((c) => c.id_curso === cursoSeleccionado.id_curso ? {
-          ...c,
-          titulo: formCurso.titulo,
-          descripcion: formCurso.descripcion,
-          fecha_inicio: formCurso.fecha_inicio,
-          fecha_fin: formCurso.fecha_fin,
-          fecha_limite_inscripcion: formCurso.fecha_limite_inscripcion,
-          duracion: formCurso.duracion,
-          cupos: formCurso.cupos.trim() === "" ? undefined : Number(formCurso.cupos),
-          nombreInstructor: formCurso.nombreInstructor,
-          modalidad: props.modalidades.find((m) => m.id_modalidad === Number(formCurso.id_modalidad)),
-        } : c));
-        await modal.alerta({ titulo: "Curso actualizado", mensaje: "Los cambios fueron guardados correctamente." });
-      }
-      cerrarFormularioCurso();
-    } catch (error: any) {
-      await modal.alerta({
-        titulo: "Error",
-        mensaje:
-          error.response?.data?.message ??
-          "Ocurrió un error al guardar el curso. Intente nuevamente.",
-      });
-    } finally {
-      setIsSubmitting(false);
+  setIsSubmitting(true);
+
+  try {
+    if (formMode === "create") {
+      const payload = {
+        ...formCurso,
+        id_modalidad: formCurso.id_modalidad || null,
+        fecha_fin: formCurso.fecha_fin || null,
+        cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
+      };
+
+      const response = await axios.post(route("cursos.store"), payload);
+
+      setCursos((prev) => [response.data.curso, ...prev]);
+
+    } else if (cursoSeleccionado) {
+
+      const payload = {
+        ...formCurso,
+        id_modalidad: Number(formCurso.id_modalidad),
+        fecha_fin: formCurso.fecha_fin || null,
+        cupos: formCurso.cupos.trim() === "" ? null : Number(formCurso.cupos),
+      };
+
+      await axios.put(
+        route("cursos.update", { idCurso: cursoSeleccionado.id_curso }),
+        payload
+      );
+
+      setCursos((prev) =>
+        prev.map((c) =>
+          c.id_curso === cursoSeleccionado.id_curso
+            ? {
+                ...c,
+                titulo: formCurso.titulo,
+                descripcion: formCurso.descripcion,
+                fecha_inicio: formCurso.fecha_inicio,
+                fecha_fin: formCurso.fecha_fin,
+                fecha_limite_inscripcion: formCurso.fecha_limite_inscripcion,
+                duracion: formCurso.duracion,
+                cupos: formCurso.cupos.trim() === "" ? undefined : Number(formCurso.cupos),
+                nombreInstructor: formCurso.nombreInstructor,
+                modalidad: props.modalidades.find(
+                  (m) => m.id_modalidad === Number(formCurso.id_modalidad)
+                ),
+              }
+            : c
+        )
+      );
     }
-  };
+
+    // 🔥 EXACTAMENTE como Eventos
+    modal.alerta({
+      titulo: "Éxito",
+      mensaje: "Acción realizada correctamente.",
+    });
+
+    cerrarDirectoCurso();
+
+  } catch (error: any) {
+
+    modal.alerta({
+      titulo: "Error",
+      mensaje:
+        error.response?.data?.message ??
+        "Ocurrió un error al guardar el curso.",
+    });
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   /* =======================
      Acciones
@@ -397,23 +430,23 @@ export default function CursosIndex(props: Props) {
     let motivo = "";
 
     const confirmado = await modal.confirmacion({
-      titulo: "Eliminar curso",
+      titulo: "Inactivar curso",
       contenido: (
         <div className="flex flex-col gap-3">
           <p>
-            ¿Seguro que desea eliminar el curso{" "}
+            ¿Seguro que desea inactivar el curso{" "}
             <strong>{curso.titulo}</strong>?
           </p>
 
           <textarea
             className="border rounded-md p-2 w-full"
-            placeholder="Indique el motivo de eliminación (mínimo 10 caracteres)"
+            placeholder="Indique el motivo de inactivación (mínimo 10 caracteres)"
             rows={3}
             onChange={(e) => (motivo = e.target.value)}
           />
         </div>
       ),
-      textoAceptar: "Eliminar",
+      textoAceptar: "Inactivar",
       textoCancelar: "Cancelar",
     });
 
@@ -423,7 +456,7 @@ export default function CursosIndex(props: Props) {
       await modal.alerta({
         titulo: "Motivo requerido",
         mensaje:
-          "Debe indicar un motivo válido (mínimo 10 caracteres) para eliminar el curso.",
+          "Debe indicar un motivo válido (mínimo 10 caracteres) para inactivar el curso.",
       });
       return;
     }
@@ -437,8 +470,8 @@ export default function CursosIndex(props: Props) {
       );
 
       await modal.alerta({
-        titulo: "Curso eliminado",
-        mensaje: "El curso ha sido eliminado con éxito.",
+        titulo: "Curso inactivado",
+        mensaje: "El curso ha sido inactivado con éxito.",
       });
 
       setCursos((prev) =>
@@ -448,7 +481,7 @@ export default function CursosIndex(props: Props) {
       await modal.alerta({
         titulo: "Error",
         mensaje:
-          "Ocurrió un error al eliminar el curso. Inténtelo nuevamente.",
+          "Ocurrió un error al inactivar el curso. Inténtelo nuevamente.",
       });
     }
   };

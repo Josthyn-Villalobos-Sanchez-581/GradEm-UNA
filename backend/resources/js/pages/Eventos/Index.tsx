@@ -831,7 +831,7 @@ export default function EventosIndex(props: Props) {
 
       modal.alerta({
         titulo: "Éxito",
-        mensaje: "Operación realizada correctamente",
+        mensaje: "Acción realizada correctamente.",
       });
 
       cerrarDirecto();
@@ -1751,6 +1751,7 @@ export default function EventosIndex(props: Props) {
                             rows={2}
                             placeholder="Dirección exacta, enlaces de reunión o requisitos adicionales..."
                           />
+                          {erroresForm.otras_observaciones && <p className="text-xs text-[#CD1719] mt-1.5 font-medium">{erroresForm.otras_observaciones}</p>}
                           {formMode === 'create' && (
                             <p className="text-gray-400 text-[11px] mt-1 italic font-medium">Puede definirse luego</p>
                           )}

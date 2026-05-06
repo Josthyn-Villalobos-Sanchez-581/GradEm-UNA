@@ -110,7 +110,7 @@ class CursoService
                 'cupos' => $request->cupos ?? null,
                 'id_modalidad' => $request->id_modalidad ?? null,
                 'nombreInstructor' => $request->nombreInstructor ?? null,
-                'estado_id' => 2,
+                'estado_id' => 7,
             ];
 
             $curso = $this->cursoRepository->crearCurso($data);
@@ -272,11 +272,7 @@ class CursoService
                 throw new \Exception('Curso no encontrado.');
             }
 
-            // 📌 Extraer datos necesarios ANTES de eliminar
-            $cursoData = [
-                'titulo' => $curso->titulo,
-            ];
-
+            // Notificar inscritos
             $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
 
             foreach ($inscritos as $inscrito) {
@@ -288,9 +284,11 @@ class CursoService
                 );
             }
 
-            $this->cursoRepository->eliminarCurso($curso);
+            // 🔥 CAMBIO CLAVE
+            $this->cursoRepository->inactivarCurso($curso, $motivo);
 
             DB::commit();
+
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

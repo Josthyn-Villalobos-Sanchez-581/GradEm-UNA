@@ -246,7 +246,7 @@ class CursoController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'El curso fue eliminado con éxito',
+            'message' => 'El curso fue inactivado con éxito',
         ]);
     }
 

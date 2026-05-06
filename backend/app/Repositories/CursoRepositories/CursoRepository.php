@@ -15,64 +15,53 @@ class CursoRepository
     {
         $query = Curso::with('modalidad');
 
-        // 🔒 Control por rol
-        // Solo Admin / Coordinador ven borradores
+        // 1. REGLA BASE: Nunca inactivos
+        $query->where('estado_id', '!=', 2);
+
+        // 2. CONTROL DE VISIBILIDAD POR ROL
+        // Si NO es administrativo, forzamos que solo vea lo publicado (ID 1)
         if (!in_array($usuario->id_rol, [1, 2])) {
-            $query->where('estado_id', 1); // publicado
+            $query->where('estado_id', 1);
         }
 
-        // 🔍 Búsqueda general
-        if ($request->filled('buscar')) {
+        // 3. BÚSQUEDA GENERAL (Mejoramos la validación)
+        if ($request->filled('buscar') && $request->buscar != '') {
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
                 $q->where('titulo', 'like', "%{$buscar}%")
-                  ->orWhere('descripcion', 'like', "%{$buscar}%");
+                ->orWhere('descripcion', 'like', "%{$buscar}%");
             });
         }
 
-        // 🎓 Modalidad
-        if ($request->filled('modalidad')) {
+        // 4. FILTRO DE MODALIDAD (Validar que no sea 'todos')
+        if ($request->filled('modalidad') && $request->modalidad !== 'todos') {
             $query->where('id_modalidad', $request->modalidad);
         }
 
-        // 📌 Estado
-        if ($request->filled('estado')) {
+        // 5. FILTRO DE ESTADO (Aquí es donde fallaba)
+        // Solo filtramos si el usuario seleccionó algo específico que no sea "todos"
+        if ($request->filled('estado') && $request->estado !== 'todos') {
             if ($request->estado === 'publicado') {
                 $query->where('estado_id', 1);
-            }
-            if ($request->estado === 'borrador') {
+            } elseif ($request->estado === 'borrador') {
+                // Importante: No uses whereNotIn([1, 2]) aquí porque el 2 ya está excluido arriba.
+                // Simplemente pide todo lo que NO sea 1.
                 $query->where('estado_id', '!=', 1);
             }
         }
 
-        // 👨‍🏫 Instructor (solo admins)
-        if (
-            in_array($usuario->id_rol, [1, 2]) &&
-            $request->filled('instructor')
-        ) {
-            $query->where(
-                'nombreInstructor',
-                'like',
-                '%' . $request->instructor . '%'
-            );
+        // 6. INSTRUCTOR
+        if (in_array($usuario->id_rol, [1, 2]) && $request->filled('instructor') && $request->instructor != '') {
+            $query->where('nombreInstructor', 'like', '%' . $request->instructor . '%');
         }
 
-        // 📅 Rango de fecha de inscripción
-        // (Campo REAL de la BD)
-        if ($request->filled('fecha_inicio')) {
-            $query->whereDate(
-                'fecha_limite_inscripcion',
-                '>=',
-                $request->fecha_inicio
-            );
+        // 7. FECHAS (Validación estricta para evitar que filtros vacíos rompan la query)
+        if ($request->filled('fecha_inicio') && $request->fecha_inicio != '') {
+            $query->whereDate('fecha_limite_inscripcion', '>=', $request->fecha_inicio);
         }
 
-        if ($request->filled('fecha_fin')) {
-            $query->whereDate(
-                'fecha_limite_inscripcion',
-                '<=',
-                $request->fecha_fin
-            );
+        if ($request->filled('fecha_fin') && $request->fecha_fin != '') {
+            $query->whereDate('fecha_limite_inscripcion', '<=', $request->fecha_fin);
         }
 
         return $query
@@ -165,9 +154,21 @@ class CursoRepository
     /**
      * Eliminar curso
      */
-    public function eliminarCurso(Curso $curso)
+    public function inactivarCurso(Curso $curso, string $motivo)
     {
-        return $curso->delete();
+        $curso->estado_id = 2; // 2 = inactivo
+        $curso->save();
+
+        // Registro en bitácora
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada' => 'cursos',
+            'operacion' => 'INACTIVAR',
+            'usuario_responsable' => auth()->id(),
+            'descripcion_cambio' => 'Curso inactivado. Motivo: ' . $motivo,
+            'fecha_cambio' => now(),
+        ]);
+
+        return $curso;
     }
 
     public function eliminarInscripcionCurso(int $idCurso, int $idUsuario): bool
