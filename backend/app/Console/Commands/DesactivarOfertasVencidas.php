@@ -24,7 +24,7 @@ class DesactivarOfertasCommand extends Command
     {
         $ofertasActualizadas = DB::table('ofertas')
             ->where('estado_id', 1) // activas
-            ->whereDate('fecha_limite', '<', now())
+            ->where('fecha_limite', '<', now())
             ->update([
                 'estado_id' => 4 // INACTIVA
             ]);

@@ -13,25 +13,33 @@ class DashboardService
         $this->dashboardRepository = $dashboardRepository;
     }
 
-    /**
-     * Obtener toda la información necesaria para el Dashboard
-     * a partir del usuario autenticado.
-     */
     public function obtenerDatosDashboard($usuario): array
     {
-        // ⬇️ Obtener permisos según el ROL desde el repositorio
         $permisos = $this->dashboardRepository->obtenerPermisosPorRol($usuario->id_rol);
-
-        // ⬇️ Obtener nombre del rol (misma lógica que antes)
         $rolNombre = optional($usuario->rol)->nombre_rol ?? 'Sin rol asignado';
 
-        // ⬇️ Estructura EXACTAMENTE igual a la que usaba el controlador
+        // 🔥 Obtener ruta desde BD
+        $foto = $this->dashboardRepository->obtenerFotoPerfil($usuario->id_usuario);
+
+        // 🔥 NORMALIZAR (AQUÍ ESTÁ LA CLAVE)
+        $fotoPerfil = null;
+
+        if ($foto) {
+            // quitar "storage/" si ya viene en la BD
+            $rutaLimpia = ltrim(str_replace('storage/', '', $foto), '/');
+
+            $fotoPerfil = [
+                'url' => asset('storage/' . $rutaLimpia)
+            ];
+        }
+
         return [
             'auth' => [
                 'user' => [
                     'id'    => $usuario->id_usuario,
                     'name'  => $usuario->nombre_completo,
                     'email' => $usuario->correo,
+                    'fotoPerfil' => $fotoPerfil, // 👈 formato correcto
                 ],
             ],
             'userPermisos' => $permisos,

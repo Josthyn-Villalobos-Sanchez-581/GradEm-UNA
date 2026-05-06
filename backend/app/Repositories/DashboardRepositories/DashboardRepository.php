@@ -16,4 +16,14 @@ class DashboardRepository
             ->pluck('id_permiso')
             ->toArray();
     }
+
+    /**
+     * Obtener foto de perfil del usuario
+     */
+    public function obtenerFotoPerfil(int $idUsuario): ?string
+    {
+        return DB::table('fotos_perfil')
+            ->where('id_usuario', $idUsuario)
+            ->value('ruta_imagen'); // retorna string o null
+    }
 }

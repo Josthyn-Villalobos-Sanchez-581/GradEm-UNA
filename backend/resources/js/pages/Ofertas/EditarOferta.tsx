@@ -200,7 +200,7 @@ export default function EditarOferta({
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
 
-                const fechaSeleccionada = new Date(form.fecha_limite);
+                const fechaSeleccionada = new Date(form.fecha_limite + "T00:00:00");
                 fechaSeleccionada.setHours(0, 0, 0, 0);
 
                 if (fechaSeleccionada < hoy) {
@@ -287,6 +287,7 @@ export default function EditarOferta({
             route("empresa.ofertas.actualizar", oferta.id_oferta),
             {
                 ...form,
+                fecha_limite: form.fecha_limite + " 23:59:59",
                 id_area_laboral: Number(form.id_area_laboral),
                 id_modalidad: Number(form.id_modalidad),
                 id_carrera: Number(form.id_carrera),
