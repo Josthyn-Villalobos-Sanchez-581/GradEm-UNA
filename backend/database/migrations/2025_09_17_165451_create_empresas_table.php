@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('empresas')) {
+            return;
+        }
+
         Schema::create('empresas', function (Blueprint $table) {
             $table->id('id_empresa');
             $table->string('nombre_empresa')->unique();
@@ -20,7 +24,7 @@ return new class extends Migration
             $table->string('direccion')->nullable();
             $table->string('descripcion');
             $table->string('password');
-            $table->unsignedBigInteger('rol_id')->default(3); // Asume que el ID 3 es para el rol de empresa
+            $table->integer('rol_id')->default(3); // Debe coincidir con el tipo de roles.id_rol (INT)
             $table->rememberToken();
             $table->timestamps();
 
@@ -33,6 +37,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('empresas');
+        if (Schema::hasTable('empresas')) {
+            Schema::dropIfExists('empresas');
+        }
     }
 };
