@@ -129,4 +129,10 @@ class Oferta extends Model
     {
         return $this->hasMany(Postulacion::class, 'id_oferta');
     }
+
+    /*Estados de las ofertas*/
+    const ESTADO_ACTIVA = 1;
+    const ESTADO_BORRADOR = 2;
+    const ESTADO_INACTIVA = 3;
+    const ESTADO_VENCIDA = 4;
 }

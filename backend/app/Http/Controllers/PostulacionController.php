@@ -4,15 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Postulacion;
 use App\Models\Oferta;
+use App\Services\PostulacionServices\PostulacionService;
+use App\Repositories\PostulacionRepositories\PostulacionRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class PostulacionController extends Controller
 {
-    // ===========================================================
-    // POSTULARSE A UNA OFERTA (permiso 6)
-    // ===========================================================
+    protected $postulacionService;
+    protected $postulacionRepo;
+
+    public function __construct(PostulacionService $postulacionService, PostulacionRepository $postulacionRepo)
+    {
+        $this->postulacionService = $postulacionService;
+        $this->postulacionRepo = $postulacionRepo;
+    }
+
     public function postular(Request $request, $id_oferta)
     {
         $usuario = Auth::user();
@@ -21,75 +29,46 @@ class PostulacionController extends Controller
             abort(403, 'No autorizado.');
         }
 
-        $tieneCvValido = \App\Models\Curriculum::where('id_usuario', $usuario->id_usuario)
-            ->where(function ($query) {
-                $query->where('generado_sistema', true)
-                    ->orWhereNotNull('ruta_archivo_pdf');
-            })
-            ->exists();
-
-        if (!$tieneCvValido) {
+        if (!$this->postulacionRepo->tieneCvValido($usuario->id_usuario)) {
             return back()->withErrors([
                 'mensaje' => 'Debes crear o adjuntar tu currículum antes de postularte.'
             ]);
         }
 
-        // 🧾 Validación de request
         $request->validate([
             'mensaje' => 'nullable|string|max:1000',
         ]);
 
-        // 🔎 Validar existencia de oferta
         $oferta = Oferta::findOrFail($id_oferta);
 
-        // 🔎 Buscar postulación existente
-        $postulacion = Postulacion::where('id_usuario', $usuario->id_usuario)
-            ->where('id_oferta', $id_oferta)
-            ->first();
+        $postulacion = $this->postulacionRepo->buscarPorUsuarioYOferta($usuario->id_usuario, $id_oferta);
 
         if ($postulacion) {
-
-            // 🔁 Reactivar si estaba cancelada
-            if ($postulacion->estado_id == 5) {
-                $postulacion->update([
-                    'estado_id' => 1,
-                    'mensaje' => $request->mensaje,
-                    'fecha_postulacion' => now(),
-                ]);
-            } else {
-                return back()->withErrors([
-                    'msg' => 'Ya tienes una postulación activa para esta oferta.'
-                ]);
-            }
-        } else {
-
-            // 🆕 Crear nueva postulación
-            Postulacion::create([
-                'id_usuario'        => $usuario->id_usuario,
-                'id_oferta'         => $id_oferta,
-                'mensaje'           => $request->mensaje,
-                'fecha_postulacion' => now(),
-                'estado_id'         => 1,
+            return back()->withErrors([
+                'msg' => 'Ya has realizado una postulación para esta oferta.'
             ]);
         }
 
+        // Crear nueva postulación
+        $this->postulacionRepo->crear([
+            'id_usuario'        => $usuario->id_usuario,
+            'id_oferta'         => $id_oferta,
+            'mensaje'           => $request->mensaje,
+            'fecha_postulacion' => now(),
+            'estado_id'         => 1,
+        ]);
         return redirect()
             ->route('ofertas.mostrar', $id_oferta)
             ->with('success', 'Postulación enviada correctamente.');
     }
 
-    // ===========================================================
-    // CAMBIAR ESTADO DE POSTULACIÓN (permiso 7)
-    // 1 Espera | 2 Aceptado | 3 Negado
-    // ===========================================================
     public function cambiarEstado(Request $request, $id)
     {
         $request->validate([
             'estado_id' => 'required|in:1,2,3,4,5'
         ]);
 
-        $postulacion = Postulacion::with('oferta')->findOrFail($id);
-
+        $postulacion = $this->postulacionRepo->findOrFail($id, ['oferta']);
         $usuario = Auth::user();
 
         if (
@@ -101,44 +80,28 @@ class PostulacionController extends Controller
             abort(403, 'No autorizado.');
         }
 
-        $postulacion->update([
+        $this->postulacionRepo->actualizar($postulacion, [
             'estado_id' => $request->estado_id
         ]);
 
-        return back(); // 👈 IMPORTANTE
+        return back();
     }
 
-
-    // ===========================================================
-    // LISTAR POSTULACIONES DEL USUARIO LOGUEADO
-    // ===========================================================
     public function misPostulaciones(Request $request)
     {
         $usuario = Auth::user();
+        $query = $this->postulacionRepo->obtenerConsultaMisPostulaciones($usuario->id_usuario);
 
-        $query = Postulacion::with([
-            'oferta.empresa.usuario.fotoPerfil',
-            'oferta.pais',
-            'oferta.provincia',
-            'oferta.canton',
-            'oferta.modalidad',
-            'oferta.areaLaboral', // ✅ CORRECTO
-        ])
-            ->where('id_usuario', $usuario->id_usuario);
-
-        // 🔎 Buscar por título
         if ($request->filled('buscar')) {
             $query->whereHas('oferta', function ($q) use ($request) {
                 $q->where('titulo', 'like', '%' . $request->buscar . '%');
             });
         }
 
-        // 🎯 Filtrar por estado
         if ($request->filled('estado_id')) {
             $query->where('estado_id', $request->estado_id);
         }
 
-        // 🎯 Filtrar por tipo de oferta
         if ($request->filled('tipo_oferta')) {
             $query->whereHas('oferta', function ($q) use ($request) {
                 $q->where('tipo_oferta', $request->tipo_oferta);
@@ -151,35 +114,7 @@ class PostulacionController extends Controller
             ->withQueryString();
 
         $postulaciones->getCollection()->transform(function ($postulacion) {
-
-            if (
-                $postulacion->oferta &&
-                $postulacion->oferta->empresa &&
-                $postulacion->oferta->empresa->usuario &&
-                $postulacion->oferta->empresa->usuario->fotoPerfil
-            ) {
-
-                $foto = $postulacion->oferta->empresa->usuario->fotoPerfil;
-
-                $url = is_array($foto)
-                    ? ($foto['url'] ?? null)
-                    : ($foto->ruta_imagen ? asset($foto->ruta_imagen) : null);
-
-                $postulacion->oferta->empresa->usuario->fotoPerfil = $url
-                    ? ['url' => $url]
-                    : null;
-            } else {
-
-                if (
-                    $postulacion->oferta &&
-                    $postulacion->oferta->empresa &&
-                    $postulacion->oferta->empresa->usuario
-                ) {
-                    $postulacion->oferta->empresa->usuario->fotoPerfil = null;
-                }
-            }
-
-            return $postulacion;
+            return $this->postulacionService->normalizarFotoOferta($postulacion);
         });
 
         return Inertia::render('Ofertas/MisPostulaciones', [
@@ -192,10 +127,12 @@ class PostulacionController extends Controller
     public function cancelar($id)
     {
         $usuario = Auth::user();
+        $postulacion = $this->postulacionRepo->findOrFail($id);
 
-        $postulacion = Postulacion::where('id_postulacion', $id)
-            ->where('id_usuario', $usuario->id_usuario)
-            ->firstOrFail();
+        // Validación de propiedad
+        if ($postulacion->id_usuario !== $usuario->id_usuario) {
+            abort(403);
+        }
 
         if (!in_array($postulacion->estado_id, [1, 4])) {
             return back()->withErrors([
@@ -203,7 +140,7 @@ class PostulacionController extends Controller
             ]);
         }
 
-        $postulacion->update([
+        $this->postulacionRepo->actualizar($postulacion, [
             'estado_id' => 5
         ]);
 

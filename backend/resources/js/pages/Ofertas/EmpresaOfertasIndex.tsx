@@ -63,18 +63,29 @@ interface Props {
    TOGGLE ESTADO
 ========================= */
 
+const tieneInscritos = (oferta: Oferta) => {
+  return (oferta.postulaciones_count ?? 0) > 0;
+};
+
 const ToggleEstado = ({
   activo,
   onChange,
+  disabled = false,
+  tooltip,
 }: {
   activo: boolean;
   onChange: () => void;
+  disabled?: boolean;
+  tooltip: string;
 }) => (
   <button
-    onClick={onChange}
-    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${activo ? "bg-green-500" : "bg-gray-400"
-      }`}
-    title={activo ? "Publicada" : "Borrador"}
+    onClick={!disabled ? onChange : undefined}
+    disabled={disabled}
+    className={`w-12 h-6 flex items-center rounded-full p-1 transition 
+      ${activo ? "bg-green-500" : "bg-gray-400"} 
+      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+    `}
+    title={tooltip}
   >
     <div
       className={`bg-white w-4 h-4 rounded-full shadow transition ${activo ? "translate-x-6" : ""
@@ -82,6 +93,20 @@ const ToggleEstado = ({
     />
   </button>
 );
+
+const obtenerTooltipEstado = (oferta: Oferta): string => {
+  if (oferta.estado_id === 4) {
+    return "Oferta vencida";
+  }
+
+  if (tieneInscritos(oferta)) {
+    return "No se puede cambiar el estado porque tiene postulantes";
+  }
+
+  return oferta.estado_id === 1
+    ? "Publicada"
+    : "Borrador";
+};
 
 const BadgeEstado = ({ estadoId }: { estadoId: number }) => {
   if (estadoId === 1) {
@@ -96,6 +121,14 @@ const BadgeEstado = ({ estadoId }: { estadoId: number }) => {
     return (
       <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
         Borrador
+      </span>
+    );
+  }
+
+  if (estadoId === 4) {
+    return (
+      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-300 text-gray-700">
+        Vencida
       </span>
     );
   }
@@ -442,6 +475,8 @@ export default function EmpresaOfertasIndex({
                             <ToggleEstado
                               activo={oferta.estado_id === 1}
                               onChange={() => cambiarEstado(oferta)}
+                              disabled={oferta.estado_id === 4 || tieneInscritos(oferta)}
+                              tooltip={obtenerTooltipEstado(oferta)}
                             />
                           </div>
                         </td>

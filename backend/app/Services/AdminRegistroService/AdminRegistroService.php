@@ -52,17 +52,19 @@ class AdminRegistroService
 
         $this->repository->actualizarEstado($id, $nuevoEstado);
 
+        $accion = $nuevoEstado ? 'activada' : 'inactivada';
+
         $this->repository->registrarBitacora(
             'usuarios',
-            $nuevoEstado ? 'activar' : 'inactivar',
-            "Cambio estado usuario ID {$id}",
+            'estado',
+            'Cuenta ' . $accion . ' para ' .
+                $usuario->nombre_completo .
+                ' (ID ' . $usuario->id_usuario . ')',
             $usuarioActual->id_usuario
         );
 
-        return response()->json([
-            'message' => $nuevoEstado ? 'Usuario activado' : 'Usuario inactivado',
-            'nuevo_estado' => $nuevoEstado
-        ]);
+        return redirect()->route('usuarios.index')
+            ->with('success', $nuevoEstado ? 'Usuario activado' : 'Usuario inactivado');
     }
 
     /* ================= CREAR ================= */
@@ -80,7 +82,7 @@ class AdminRegistroService
             $this->repository->registrarBitacora(
                 'usuarios',
                 'crear',
-                "Usuario creado ID {$usuarioId}",
+                'Usuario creado: ' . $validated['nombre_completo'] . ' (ID ' . $usuarioId . ')',
                 Auth::user()->id_usuario
             );
 
@@ -114,10 +116,14 @@ class AdminRegistroService
 
             DB::commit();
 
+            $usuarioAnterior = $this->repository->obtenerUsuario($id);
+
             $this->repository->registrarBitacora(
                 'usuarios',
                 'actualizar',
-                "Usuario actualizado ID {$id}",
+                'Usuario actualizado: ' .
+                    $usuarioAnterior->nombre_completo .
+                    ' (ID ' . $id . ')',
                 Auth::user()->id_usuario
             );
 
@@ -134,29 +140,70 @@ class AdminRegistroService
     public function eliminarUsuario($usuarioActual, int $id)
     {
         if (!in_array($usuarioActual->id_rol, [1, 2])) {
-            return response()->json(['status' => 'error'], 403);
-        }
-        if ($usuarioActual->id_usuario == $id) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'No puedes eliminar tu propia cuenta'
+                'success' => false,
+                'message' => 'No tiene permisos para eliminar usuarios.'
             ], 403);
         }
-        $this->repository->eliminarUsuario($id);
 
-        $this->repository->registrarBitacora(
-            'usuarios',
-            'eliminar',
-            "Usuario eliminado ID {$id}",
-            $usuarioActual->id_usuario
-        );
+        if ($usuarioActual->id_usuario == $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No puedes eliminar tu propia cuenta.'
+            ], 403);
+        }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Usuario eliminado correctamente'
-        ]);
+        try {
+
+            // 🔍 Obtener usuario ANTES de eliminar
+            $usuario = $this->repository->obtenerUsuario($id);
+
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no encontrado.'
+                ], 404);
+            }
+
+            // 🗑️ Eliminar usuario
+            $this->repository->eliminarUsuario($id);
+
+            // 📝 Registrar bitácora
+            $this->repository->registrarBitacora(
+                'usuarios',
+                'eliminar',
+                'Usuario eliminado: ' .
+                    $usuario->nombre_completo .
+                    ' (ID ' . $usuario->id_usuario . ')',
+                $usuarioActual->id_usuario
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario eliminado correctamente.'
+            ]);
+        } catch (\Throwable $e) {
+
+            $mensaje = $e->getMessage();
+
+            if (
+                str_contains($mensaje, 'Integrity constraint') ||
+                str_contains($mensaje, 'foreign key')
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar porque el usuario tiene registros en la bitácora'
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el usuario.',
+                'error' => $mensaje // opcional para debug
+            ], 500);
+        }
     }
-
     /* ================= FORM ================= */
 
     public function mostrarFormularioCreacion($usuario)

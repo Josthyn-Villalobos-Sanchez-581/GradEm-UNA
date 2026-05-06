@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
   <head>
-      {{-- ✅ Rutas Ziggy (una sola vez) --}}
+    <meta charset="utf-8">
+      {{-- Rutas Ziggy (una sola vez) --}}
       @routes
-
-      <meta charset="utf-8">
+  
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
-      {{-- ✅ CSRF para Axios y formularios --}}
+      {{-- CSRF para Axios y formularios --}}
       <meta name="csrf-token" content="{{ csrf_token() }}">
 
       {{-- Inline script para aplicar dark mode del sistema lo antes posible --}}

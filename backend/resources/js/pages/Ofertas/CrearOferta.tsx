@@ -14,7 +14,7 @@ import {
     Calendar,
     ChevronRight,
     ChevronLeft,
-    Plus
+    Plus, X
 } from "lucide-react";
 
 /* =========================
@@ -108,6 +108,48 @@ export default function CrearOferta({
         });
     };
 
+    const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
+    const [rutaPendiente, setRutaPendiente] = useState<string | null>(null);
+
+    const hayCambios = () => {
+        return (
+            form.titulo ||
+            form.categoria ||
+            form.tipo_oferta ||
+            form.descripcion ||
+            form.horario ||
+            form.id_area_laboral ||
+            form.id_modalidad ||
+            form.id_carrera ||
+            form.id_pais ||
+            form.id_provincia ||
+            form.id_canton ||
+            form.fecha_limite ||
+            form.estado_id ||
+            form.requisitos.length > 0
+        );
+    };
+
+    const intentarSalir = (ruta: string) => {
+        if (!hayCambios()) {
+            router.visit(ruta);
+            return;
+        }
+
+        setRutaPendiente(ruta);
+        setMostrarConfirmacionSalida(true);
+    };
+
+    const confirmarSalida = (confirmado: boolean) => {
+        setMostrarConfirmacionSalida(false);
+
+        if (confirmado && rutaPendiente) {
+            router.visit(rutaPendiente);
+        }
+
+        setRutaPendiente(null);
+    };
+
     const validarPaso = (): boolean => {
         const e: Record<string, string> = {};
         if (paso === "general") {
@@ -134,7 +176,7 @@ export default function CrearOferta({
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
 
-                const fechaSeleccionada = new Date(form.fecha_limite);
+                const fechaSeleccionada = new Date(form.fecha_limite + "T00:00:00");
                 fechaSeleccionada.setHours(0, 0, 0, 0);
 
                 if (fechaSeleccionada < hoy) {
@@ -158,6 +200,10 @@ export default function CrearOferta({
 
         router.post(route("empresa.ofertas.guardar"), {
             ...form,
+            fecha_limite: form.fecha_limite
+            ? form.fecha_limite + " 23:59:59"
+            : null,
+
             id_area_laboral: Number(form.id_area_laboral),
             id_modalidad: Number(form.id_modalidad),
             id_carrera: Number(form.id_carrera),
@@ -200,10 +246,11 @@ export default function CrearOferta({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button asChild variant="secondary">
-                        <Link href={route("empresa.ofertas.index")}>
-                            Volver
-                        </Link>
+                    <Button
+                        variant="outline"
+                        onClick={() => intentarSalir(route("empresa.ofertas.index"))}
+                    >
+                        Volver
                     </Button>
                 </div>
             </header>
@@ -237,14 +284,14 @@ export default function CrearOferta({
                                         key={p}
                                         onClick={() => setPaso(p)}
                                         className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all group ${active
-                                                ? "bg-[#034991]/10 text-[#034991] shadow-sm"
-                                                : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
+                                            ? "bg-[#034991]/10 text-[#034991] shadow-sm"
+                                            : "text-gray-600 hover:bg-[#034991]/5 hover:text-gray-900"
                                             }`}
                                     >
                                         <div
                                             className={`mr-3 transition-colors ${active
-                                                    ? "text-[#034991]"
-                                                    : "text-gray-400 group-hover:text-[#034991]"
+                                                ? "text-[#034991]"
+                                                : "text-gray-400 group-hover:text-[#034991]"
                                                 }`}
                                         >
                                             {p === "general" && <Briefcase className="w-5 h-5" />}
@@ -581,6 +628,58 @@ export default function CrearOferta({
                     </section>
                 </div>
             </div>
+
+            {/* MODAL CONFIRMACIÓN SALIDA */}
+            {mostrarConfirmacionSalida && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                    <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95">
+
+                        {/* BOTÓN CERRAR (X) */}
+                        <button
+                            onClick={() => confirmarSalida(false)}
+                            className="absolute top-3 right-3 p-1.5 rounded-full text-white hover:bg-white/20 transition-colors"
+                        >
+                            <X className="w-5 h-5 hover:text-[#CD1719]" />
+                        </button>
+
+                        {/* HEADER AZUL UNA */}
+                        <div className="bg-[#034991] px-6 py-4 text-center">
+                            <h2 className="font-semibold text-lg text-white">
+                                Confirmar salida
+                            </h2>
+                        </div>
+
+                        <div className="p-6 space-y-6 text-center">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                ¿Está seguro que desea salir?
+                            </p>
+
+                            <p className="text-sm font-medium text-slate-800">
+                                Se perderán todos los cambios realizados.
+                            </p>
+
+                            {/* BOTONES */}
+                            <div className="flex gap-3 justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => confirmarSalida(false)}
+                                    className="w-full max-w-[130px]"
+                                >
+                                    Cancelar
+                                </Button>
+
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => confirmarSalida(true)}
+                                    className="w-full max-w-[160px]"
+                                >
+                                    Salir sin guardar
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

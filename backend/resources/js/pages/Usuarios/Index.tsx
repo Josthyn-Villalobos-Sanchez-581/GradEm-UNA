@@ -6,16 +6,17 @@ import { useModal } from "@/hooks/useModal";
 import { route } from 'ziggy-js';
 import { Button } from "@/components/ui/button";
 import fotoXDefecto from "@/assets/FotoXDefecto.png";
-import { 
-    Users, 
-    Filter, 
-    Search, 
-    UserPlus, 
-    Pencil, 
-    Trash2, 
-    UserCheck, 
+import axios from "axios";
+import {
+    Users,
+    Filter,
+    Search,
+    UserPlus,
+    Pencil,
+    Trash2,
+    UserCheck,
     UserX,
-    Settings2 
+    Settings2
 } from "lucide-react";
 
 interface UsuarioItem {
@@ -45,13 +46,17 @@ interface IndexProps {
 }
 
 export default function Index(props: IndexProps) {
+    const modal = useModal();
     const { auth } = usePage().props as any;
     const { confirmacion } = useModal();
     const [usuarios, setUsuarios] = useState(props.users.data);
+    useEffect(() => {
+        setUsuarios(props.users.data);
+    }, [props.users.data]);
     const [mostrarFiltros, setMostrarFiltros] = useState(true);
     const [searchInput, setSearchInput] = useState(props.filters?.search ?? "");
     const searchTimer = useRef<number | null>(null);
-    
+
     const [visibleCols, setVisibleCols] = useState<string[]>([
         "nombre", "correo", "rol", "acciones"
     ]);
@@ -84,22 +89,89 @@ export default function Index(props: IndexProps) {
     // Handler para inactivar (Funcionalidad que pediste mantener)
     const handleToggleEstado = (u: UsuarioItem) => {
         const accion = u.estado_id === 1 ? "inactivar" : "activar";
-        confirmacion({
+
+        modal.confirmacion({
             titulo: `${accion.charAt(0).toUpperCase() + accion.slice(1)} Usuario`,
             mensaje: `¿Estás seguro de que deseas ${accion} a ${u.nombre_completo}?`,
-            onConfirm: () => {
-                // Aquí iría tu router.patch o post para cambiar el estado
-                console.log(`Cambiando estado de ${u.id_usuario}`);
+        }).then(async (ok) => {
+            if (!ok) return;
+
+            try {
+                const response = await axios.put(
+                    route("usuarios.toggle-estado", { id: u.id_usuario })
+                );
+
+                modal.alerta({
+                    titulo: "Éxito",
+                    mensaje: response.data.message,
+                });
+
+                // 🔥 actualizar UI sin recargar
+                setUsuarios((prev) =>
+                    prev.map((user) =>
+                        user.id_usuario === u.id_usuario
+                            ? { ...user, estado_id: response.data.nuevo_estado }
+                            : user
+                    )
+                );
+
+            } catch (error) {
+                modal.alerta({
+                    titulo: "Error",
+                    mensaje: "No se pudo cambiar el estado",
+                });
             }
         });
     };
+    const handleEliminar = (u: UsuarioItem) => {
+        confirmacion({
+            titulo: "Eliminar Usuario",
+            mensaje: `¿Estás seguro de eliminar a ${u.nombre_completo}?`,
+        }).then(async (ok) => {
 
+            if (!ok) return;
+
+            try {
+                const response = await axios.delete(
+                    route("admin.eliminar", { id: u.id_usuario })
+                );
+
+                modal.alerta({
+                    titulo: "Éxito",
+                    mensaje: response.data.message,
+                });
+
+                // 🔥 ELIMINAR DE LA TABLA SIN RECARGAR
+                setUsuarios(prev =>
+                    prev.filter(user => user.id_usuario !== u.id_usuario)
+                );
+
+            } catch (error: any) {
+
+                let mensaje =
+                    error.response?.data?.message ||
+                    "No se pudo eliminar el usuario";
+
+                if (
+                    mensaje.includes("Integrity constraint") ||
+                    mensaje.includes("foreign key")
+                ) {
+                    mensaje = "No se puede eliminar porque el usuario tiene registros asociados.";
+                }
+
+                modal.alerta({
+                    titulo: "Error",
+                    mensaje: mensaje,
+                });
+            }
+        });
+    };
     return (
         <>
             <Head title="Gestión de Usuarios" />
 
             <div className="max-w-full mx-auto px-6 py-6 text-slate-900">
-                
+
                 {/* HEADER AL ESTILO EMPRESAS */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
@@ -113,15 +185,15 @@ export default function Index(props: IndexProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => setMostrarFiltros(!mostrarFiltros)}
                             className="rounded-xl"
                         >
                             <Filter className="size-4 mr-2" />
                             {mostrarFiltros ? "Ocultar Filtros" : "Mostrar Filtros"}
                         </Button>
-                        
+
                         <Link href={route("admin.crear")}>
                             <Button className="bg-[#034991] hover:bg-[#023165] rounded-xl">
                                 <UserPlus className="size-4 mr-2" />
@@ -132,12 +204,12 @@ export default function Index(props: IndexProps) {
                 </header>
 
                 <div className="flex flex-col lg:flex-row gap-8">
-                    
+
                     {/* SIDEBAR DE FILTROS Y COLUMNAS */}
                     {mostrarFiltros && (
                         <aside className="w-full lg:w-72 flex-shrink-0 animate-in fade-in slide-in-from-left-4 duration-300">
                             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-6">
-                                
+
                                 {/* Buscador */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -177,9 +249,9 @@ export default function Index(props: IndexProps) {
                                                     checked={visibleCols.includes(col.key)}
                                                     onChange={() =>
                                                         setVisibleCols(prev =>
-                                                            prev.includes(col.key) 
-                                                            ? prev.filter(c => c !== col.key) 
-                                                            : [...prev, col.key]
+                                                            prev.includes(col.key)
+                                                                ? prev.filter(c => c !== col.key)
+                                                                : [...prev, col.key]
                                                         )
                                                     }
                                                 />
@@ -226,13 +298,13 @@ export default function Index(props: IndexProps) {
                                         ) : (
                                             usuarios.map((u) => (
                                                 <tr key={u.id_usuario} className="group hover:bg-[#F4F7FA]/50 transition-all">
-                                                    
+
                                                     {visibleCols.includes("nombre") && (
                                                         <td className="py-3 px-5">
                                                             <div className="flex items-center gap-4">
                                                                 <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-slate-200">
-                                                                    <img 
-                                                                        src={u.foto_perfil?.url || fotoXDefecto} 
+                                                                    <img
+                                                                        src={u.foto_perfil?.url || fotoXDefecto}
                                                                         className="w-full h-full object-cover"
                                                                         alt="Avatar"
                                                                     />
@@ -288,13 +360,13 @@ export default function Index(props: IndexProps) {
                                                                 )}
 
                                                                 <Link href={route("admin.editar", { id: u.id_usuario })}>
-                                                                    <Button variant="outline" size="icon" className="text-blue-500 hover:bg-blue-50" title= "Editar">
+                                                                    <Button variant="outline" size="icon" className="text-blue-500 hover:bg-blue-50" title="Editar">
                                                                         <Pencil className="size-4" />
                                                                     </Button>
                                                                 </Link>
 
-                                                                {puedeGestionar && (
-                                                                    <Button variant="outline" size="icon" className="text-slate-400 hover:text-red-600 hover:bg-red-50" title= "Eliminar">
+                                                                {auth?.user?.id_usuario !== u.id_usuario && puedeGestionar && (
+                                                                    <Button variant="outline" size="icon" className="text-slate-400 hover:text-red-600 hover:bg-red-50" title="Eliminar" onClick={() => handleEliminar(u)}>
                                                                         <Trash2 className="size-4" />
                                                                     </Button>
                                                                 )}
@@ -320,7 +392,7 @@ export default function Index(props: IndexProps) {
                                     >
                                         Anterior
                                     </Button>
-                                    
+
                                     <div className="flex gap-1">
                                         {Array.from({ length: props.users.last_page }, (_, i) => (
                                             <Button

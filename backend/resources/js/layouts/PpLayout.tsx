@@ -20,7 +20,6 @@ import {
   LogOut,
   User,
   Info,
-  X
 } from "lucide-react";
 
 interface PpLayoutProps {
@@ -161,7 +160,6 @@ export default function PpLayout({
       title: "Ofertas",
       icon: Briefcase,
       subMenu: [
-        { title: "Crear Oferta", route: "/empresa/ofertas/crear", permisoId: 5 },
         { title: "Gestionar Ofertas", route: "/empresa/ofertas", permisoId: 7 },
         { title: "Postularme", route: "/ofertas", permisoId: 6 },
         { title: "Mis postulaciones", route: "/misPostulaciones", permisoId: 6 },
@@ -182,7 +180,7 @@ export default function PpLayout({
       subMenu: [
         { title: "Gestión de Eventos", route: "/eventos", permisoId: 10 },
         { title: "Inscribirse a Eventos", route: "/eventos/inscripcion", permisoId: 11 },
-         { title: "Mis Eventos", route: "/eventos/inscripcion/mis-eventos", permisoId: 11 },
+        { title: "Mis Eventos", route: "/eventos/inscripcion/mis-eventos", permisoId: 11 },
       ],
     },
     {
@@ -273,15 +271,15 @@ export default function PpLayout({
         {/* Overlay real */}
         <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
 
-        <button className="text-white md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        <button className="text-white md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Abrir menú">
           <Menu size={30} />
         </button>
 
         <div className="flex items-center gap-3 ml-1">
-          <Link href="https://www.una.ac.cr/" target="_blank" className="flex items-center gap-3">
-            <img src={logoUnaUrl} className="h-14 translate-x-[-6px]" />
+          <Link href="https://www.una.ac.cr/" target="_blank" className="flex items-center gap-3" aria-label="Visitar sitio de la Universidad Nacional">
+            <img src={logoUnaUrl} className="h-14 translate-x-[-6px]" alt="Logo Universidad Nacional" />
           </Link>
-          <img src={logoGradEmUrl} className="h-14" />
+          <img src={logoGradEmUrl} className="h-14" alt="Logo GradEm" />
         </div>
 
         <button
@@ -291,6 +289,7 @@ export default function PpLayout({
             bg-white/10 text-white px-4 py-2 rounded-full text-sm 
             hover:bg-white/20 transition
           "
+          aria-label="Información del sistema"
         >
           <Info size={16} />
           Acerca de
@@ -326,6 +325,7 @@ export default function PpLayout({
     z-[9999]
   "
           style={{ right: "-20px" }}
+          aria-label="Colapsar menú"
         >
           {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -390,6 +390,7 @@ export default function PpLayout({
                         : "hover:bg-white/10"
                     }
           `}
+                  aria-label="Navegar"
                 >
                   <span className="flex items-center gap-3">
                     <Icon
@@ -448,6 +449,7 @@ export default function PpLayout({
                               : "text-gray-200 hover:bg-white/10"
                             }
                   `}
+                          aria-label={`Navegar a ${sub.title}`}
                         >
                           {/* Indicador lateral */}
                           {isSubItemActive && (
@@ -489,6 +491,7 @@ export default function PpLayout({
                   : "hover:bg-white/10"
                 }
               `}
+              aria-label="Mi Perfil"
             >
               <User
                 size={18}
@@ -511,6 +514,7 @@ export default function PpLayout({
                 flex items-center gap-2 px-3 py-2 rounded-lg 
                 hover:bg-white/10 transition text-[15px]
               "
+              aria-label="Cerrar Sesión"
             >
               <LogOut
                 size={18}
@@ -571,11 +575,15 @@ export default function PpLayout({
                 <span key={i} className="flex items-center gap-1">
                   {i < breadcrumbs.length - 1 ? (
                     <>
-                      <Link href={b.href}>{b.title}</Link>
-                      <span className="text-gray-400">›</span>
+                      <Link href={b.href} aria-label={`Ir a ${b.title}`}>
+                        {b.title}
+                      </Link>
+                      <span className="text-gray-700">›</span>
                     </>
                   ) : (
-                    <span className="font-medium text-gray-700">{b.title}</span>
+                    <span className="font-medium text-gray-700" aria-label="Página actual">
+                      {b.title}
+                    </span>
                   )}
                 </span>
               ))}

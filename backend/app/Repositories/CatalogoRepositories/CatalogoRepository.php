@@ -11,6 +11,7 @@ use App\Models\CatalogoEstado;
 use App\Models\Modalidad;
 use App\Models\IdiomaCatalogo;
 use App\Models\AreaLaboral;
+use Illuminate\Support\Facades\DB;
 
 class CatalogoRepository
 {
@@ -61,11 +62,59 @@ class CatalogoRepository
         return AreaLaboral::orderBy('id_area_laboral')->get();
     }
 
+    // ========================= OBTENER POR ID =========================
+
+    public function obtenerPaisPorId(int $id): ?Pais
+    {
+        return Pais::find($id);
+    }
+
+    public function obtenerProvinciaPorId(int $id): ?Provincia
+    {
+        return Provincia::find($id);
+    }
+
+    public function obtenerCantonPorId(int $id): ?Canton
+    {
+        return Canton::find($id);
+    }
+
+    public function obtenerUniversidadPorId(int $id): ?Universidad
+    {
+        return Universidad::find($id);
+    }
+
+    public function obtenerCarreraPorId(int $id): ?Carrera
+    {
+        return Carrera::find($id);
+    }
+
+    public function obtenerEstadoPorId(int $id): ?CatalogoEstado
+    {
+        return CatalogoEstado::find($id);
+    }
+
+    public function obtenerModalidadPorId(int $id): ?Modalidad
+    {
+        return Modalidad::find($id);
+    }
+
+    public function obtenerIdiomaPorId(int $id): ?IdiomaCatalogo
+    {
+        return IdiomaCatalogo::find($id);
+    }
+
+    public function obtenerAreaLaboralPorId(int $id): ?AreaLaboral
+    {
+        return AreaLaboral::find($id);
+    }
+
+
     // ========================= PAISES =========================
 
-    public function guardarPais(?int $id, string $nombre): void
+    public function guardarPais(?int $id, string $nombre): Pais
     {
-        Pais::updateOrCreate(
+        return Pais::updateOrCreate(
             ['id_pais' => $id],
             ['nombre' => $nombre]
         );
@@ -83,12 +132,12 @@ class CatalogoRepository
 
     // ========================= PROVINCIAS =========================
 
-    public function guardarProvincia(?int $id, string $nombre, int $idPais): void
+    public function guardarProvincia(?int $id, string $nombre, int $idPais): Provincia
     {
-        Provincia::updateOrCreate(
+        return Provincia::updateOrCreate(
             ['id_provincia' => $id],
             [
-                'nombre'  => $nombre,
+                'nombre' => $nombre,
                 'id_pais' => $idPais,
             ]
         );
@@ -106,12 +155,12 @@ class CatalogoRepository
 
     // ========================= CANTONES =========================
 
-    public function guardarCanton(?int $id, string $nombre, int $idProvincia): void
+    public function guardarCanton(?int $id, string $nombre, int $idProvincia): Canton
     {
-        Canton::updateOrCreate(
+        return Canton::updateOrCreate(
             ['id_canton' => $id],
             [
-                'nombre'       => $nombre,
+                'nombre' => $nombre,
                 'id_provincia' => $idProvincia,
             ]
         );
@@ -124,13 +173,13 @@ class CatalogoRepository
 
     // ========================= UNIVERSIDADES =========================
 
-    public function guardarUniversidad(?int $id, string $nombre, string $sigla): void
+    public function guardarUniversidad(?int $id, string $nombre, string $sigla): Universidad
     {
-        Universidad::updateOrCreate(
+        return Universidad::updateOrCreate(
             ['id_universidad' => $id],
             [
                 'nombre' => $nombre,
-                'sigla'  => $sigla,
+                'sigla' => $sigla,
             ]
         );
     }
@@ -142,13 +191,13 @@ class CatalogoRepository
 
     // ========================= CARRERAS =========================
 
-    public function guardarCarrera(?int $id, string $nombre, int $idUniversidad): void
+    public function guardarCarrera(?int $id, string $nombre, int $idUniversidad): Carrera
     {
-        Carrera::updateOrCreate(
+        return Carrera::updateOrCreate(
             ['id_carrera' => $id],
             [
-                'nombre'        => $nombre,
-                'id_universidad'=> $idUniversidad,
+                'nombre' => $nombre,
+                'id_universidad' => $idUniversidad,
             ]
         );
     }
@@ -160,9 +209,9 @@ class CatalogoRepository
 
     // ========================= ESTADOS =========================
 
-    public function guardarEstado(?int $id, string $nombreEstado): void
+    public function guardarEstado(?int $id, string $nombreEstado): CatalogoEstado
     {
-        CatalogoEstado::updateOrCreate(
+        return CatalogoEstado::updateOrCreate(
             ['id_estado' => $id],
             ['nombre_estado' => $nombreEstado]
         );
@@ -175,9 +224,9 @@ class CatalogoRepository
 
     // ========================= MODALIDADES =========================
 
-    public function guardarModalidad(?int $id, string $nombre): void
+    public function guardarModalidad(?int $id, string $nombre): Modalidad
     {
-        Modalidad::updateOrCreate(
+        return Modalidad::updateOrCreate(
             ['id_modalidad' => $id],
             ['nombre' => $nombre]
         );
@@ -190,9 +239,9 @@ class CatalogoRepository
 
     // ========================= IDIOMAS =========================
 
-    public function guardarIdioma(?int $id, string $nombre): void
+    public function guardarIdioma(?int $id, string $nombre): IdiomaCatalogo
     {
-        IdiomaCatalogo::updateOrCreate(
+        return IdiomaCatalogo::updateOrCreate(
             ['id_idioma_catalogo' => $id],
             ['nombre' => $nombre]
         );
@@ -205,9 +254,9 @@ class CatalogoRepository
 
     // ========================= ÁREAS LABORALES =========================
 
-    public function guardarAreaLaboral(?int $id, string $nombre): void
+    public function guardarAreaLaboral(?int $id, string $nombre): AreaLaboral
     {
-        AreaLaboral::updateOrCreate(
+        return AreaLaboral::updateOrCreate(
             ['id_area_laboral' => $id],
             ['nombre' => $nombre]
         );
@@ -216,5 +265,19 @@ class CatalogoRepository
     public function eliminarAreaLaboral(int $idAreaLaboral): void
     {
         AreaLaboral::findOrFail($idAreaLaboral)->delete();
+    }
+
+    /**
+     * Registrar un cambio en la bitácora.
+     */
+    public function registrarBitacora(string $tabla, string $operacion, string $descripcion, ?int $usuarioId): void
+    {
+        DB::table('bitacora_cambios')->insert([
+            'tabla_afectada'     => $tabla,
+            'operacion'          => $operacion,
+            'usuario_responsable' => $usuarioId,
+            'descripcion_cambio' => $descripcion,
+            'fecha_cambio'       => now(),
+        ]);
     }
 }

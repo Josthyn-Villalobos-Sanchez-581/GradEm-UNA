@@ -3,7 +3,7 @@ import { Head, router } from "@inertiajs/react";
 import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
 import { route } from "ziggy-js";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
 
 /* =========================
    TIPOS
@@ -86,6 +86,8 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros, operaci
     const [fechaFin, setFechaFin] = useState(filtros.fecha_fin ?? "");
     const [mostrarFiltros, setMostrarFiltros] = useState(true);
     const [porPagina, setPorPagina] = useState(filtros.por_pagina ?? 10);
+    const [modalAbierto, setModalAbierto] = useState(false);
+    const [registroSeleccionado, setRegistroSeleccionado] = useState<Bitacora | null>(null);
 
     /* =========================
        FILTROS
@@ -125,6 +127,134 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros, operaci
     };
 
     const LIMITE_BUSQUEDA = 100;
+
+    const abrirDetalle = (registro: Bitacora) => {
+        setRegistroSeleccionado(registro);
+        setModalAbierto(true);
+    };
+
+    const cerrarDetalle = () => {
+        setModalAbierto(false);
+        setRegistroSeleccionado(null);
+    };
+
+    /* =========================
+    MODAL DETALLE BITÁCORA
+    ========================= */
+    /* =========================
+   MODAL DETALLE BITÁCORA
+========================= */
+    function ModalDetalleBitacora({
+        abierto,
+        onClose,
+        registro,
+    }: {
+        abierto: boolean;
+        onClose: () => void;
+        registro: Bitacora | null;
+    }) {
+        if (!abierto || !registro) return null;
+
+        return (
+            <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+                onClick={onClose}
+            >
+                <div
+                    className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+                    onClick={(e) => e.stopPropagation()}
+                >
+
+                    {/* HEADER */}
+                    <div className="flex items-center justify-between px-6 py-4 bg-[#034991] text-white">
+                        <div>
+                            <h2 className="text-xl font-bold">
+                                Detalle de Bitácora
+                            </h2>
+
+                            <p className="text-sm text-blue-100">
+                                Registro #{registro.id_cambio}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-full transition-all text-gray-300 hover:text-red-500 hover:bg-white/10"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* BODY */}
+                    <div className="p-6 space-y-5 text-sm">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                            <div>
+                                <label className="text-xs text-slate-500 uppercase font-bold">
+                                    Tabla afectada
+                                </label>
+
+                                <p className="font-semibold text-slate-700">
+                                    {registro.tabla_afectada}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-slate-500 uppercase font-bold">
+                                    Operación
+                                </label>
+
+                                <p className="font-semibold text-slate-700">
+                                    {registro.operacion}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-slate-500 uppercase font-bold">
+                                    Usuario
+                                </label>
+
+                                <p className="font-semibold text-slate-700">
+                                    {registro.nombre_usuario || "Sistema"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-slate-500 uppercase font-bold">
+                                    Fecha
+                                </label>
+
+                                <p className="font-semibold text-slate-700">
+                                    {new Date(registro.fecha_cambio).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase font-bold">
+                                Descripción completa
+                            </label>
+
+                            <div className="mt-2 p-4 rounded-xl bg-slate-50 border text-slate-700 whitespace-pre-line">
+                                {registro.descripcion_cambio}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="px-6 py-4 border-t flex justify-end">
+                        <Button
+                            onClick={onClose}
+                            className="bg-[#034991] hover:bg-[#023165]"
+                        >
+                            Cerrar
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     /* =========================
        RENDER
@@ -393,7 +523,8 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros, operaci
                                         {data.map((item) => (
                                             <tr
                                                 key={item.id_cambio}
-                                                className="group hover:bg-[#F4F7FA]/50 transition-all"
+                                                onClick={() => abrirDetalle(item)}
+                                                className="group hover:bg-[#F4F7FA]/50 transition-all cursor-pointer"
                                             >
                                                 <td className="py-3 px-5 font-extrabold text-[#034991] uppercase">
                                                     {item.tabla_afectada}
@@ -484,6 +615,11 @@ export default function BitacoraIndex({ bitacora, estadisticas, filtros, operaci
                     </section>
                 </div>
             </div>
+            <ModalDetalleBitacora
+                abierto={modalAbierto}
+                onClose={cerrarDetalle}
+                registro={registroSeleccionado}
+            />
         </>
     );
 }

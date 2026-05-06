@@ -17,7 +17,7 @@ class RolesPermisosRepository
         return Rol::with('permisos')
             ->when($searchRol, function ($q) use ($searchRol) {
                 $q->where('nombre_rol', 'LIKE', "%{$searchRol}%")
-                  ->orWhere('id_rol', is_numeric($searchRol) ? $searchRol : 0);
+                    ->orWhere('id_rol', is_numeric($searchRol) ? $searchRol : 0);
             })
             ->get();
     }
@@ -28,9 +28,9 @@ class RolesPermisosRepository
     public function obtenerPermisosFiltrados(?string $searchPermiso)
     {
         return Permiso::when($searchPermiso, function ($q) use ($searchPermiso) {
-                $q->where('nombre', 'LIKE', "%{$searchPermiso}%")
-                  ->orWhere('id_permiso', is_numeric($searchPermiso) ? $searchPermiso : 0);
-            })
+            $q->where('nombre', 'LIKE', "%{$searchPermiso}%")
+                ->orWhere('id_permiso', is_numeric($searchPermiso) ? $searchPermiso : 0);
+        })
             ->get();
     }
 
@@ -81,5 +81,10 @@ class RolesPermisosRepository
             'descripcion_cambio'  => $descripcion,
             'fecha_cambio'        => now(),
         ]);
+    }
+
+    public function obtenerPermisosPorIds(array $ids)
+    {
+        return Permiso::whereIn('id_permiso', $ids)->get();
     }
 }

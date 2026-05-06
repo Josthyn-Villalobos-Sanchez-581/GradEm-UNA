@@ -9,6 +9,7 @@ use App\Models\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use Illuminate\Http\JsonResponse; 
 
 class AdminRegistroServiceTest extends TestCase
 {
@@ -26,11 +27,9 @@ class AdminRegistroServiceTest extends TestCase
     }
 
    #[Test]
-    public function un_admin_puede_cambiar_estado_de_usuario()
+public function un_admin_puede_cambiar_estado_de_usuario()
 {
-    $admin = Usuario::factory()->create([
-        'id_rol' => 1
-    ]);
+    $admin = Usuario::factory()->create(['id_rol' => 1]);
 
     $usuario = new Usuario();
     $usuario->id_usuario = 5;
@@ -52,7 +51,8 @@ class AdminRegistroServiceTest extends TestCase
 
     $response = $this->service->cambiarEstado($admin, 5);
 
-    $this->assertEquals(200, $response->status());
+    // cambiarEstado devuelve redirect(), no JsonResponse → status 302
+    $this->assertEquals(302, $response->getStatusCode());
 }
 
     #[Test]
@@ -79,12 +79,10 @@ class AdminRegistroServiceTest extends TestCase
         $this->assertEquals(403, $response->status());
     }
 
-    #[Test]
-    public function puede_eliminar_usuario()
+  #[Test]
+public function puede_eliminar_usuario()
 {
-    $admin = Usuario::factory()->create([
-        'id_rol' => 1
-    ]);
+    $admin = Usuario::factory()->create(['id_rol' => 1]);
 
     $this->repository
         ->shouldReceive('eliminarUsuario')
@@ -97,7 +95,10 @@ class AdminRegistroServiceTest extends TestCase
 
     $response = $this->service->eliminarUsuario($admin, 5);
 
-    $this->assertEquals('success', $response->getData()->status);
+    $this->assertInstanceOf(JsonResponse::class, $response);
+    $this->assertEquals(200, $response->getStatusCode());
+    // ✅ el campo correcto es 'success', no 'status'
+    $this->assertTrue($response->getData()->success);
 }
 
     #[Test]
