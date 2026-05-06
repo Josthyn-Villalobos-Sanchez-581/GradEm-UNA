@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('codigos_verificacion')) {
+            return;
+        }
+
         Schema::create('codigos_verificacion', function (Blueprint $table) {
             $table->id();
             $table->string('correo')->unique();
@@ -26,6 +30,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('codigos_verificacion');
+        if (Schema::hasTable('codigos_verificacion')) {
+            Schema::dropIfExists('codigos_verificacion');
+        }
     }
 };

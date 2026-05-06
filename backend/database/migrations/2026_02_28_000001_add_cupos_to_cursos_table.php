@@ -8,15 +8,27 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('cursos', function (Blueprint $table) {
-            $table->unsignedInteger('cupos')->nullable()->after('nombreInstructor');
-        });
+        if (!Schema::hasTable('cursos')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('cursos', 'cupos')) {
+            Schema::table('cursos', function (Blueprint $table) {
+                $table->unsignedInteger('cupos')->nullable()->after('nombreInstructor');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('cursos', function (Blueprint $table) {
-            $table->dropColumn('cupos');
-        });
+        if (!Schema::hasTable('cursos')) {
+            return;
+        }
+
+        if (Schema::hasColumn('cursos', 'cupos')) {
+            Schema::table('cursos', function (Blueprint $table) {
+                $table->dropColumn('cupos');
+            });
+        }
     }
 };
