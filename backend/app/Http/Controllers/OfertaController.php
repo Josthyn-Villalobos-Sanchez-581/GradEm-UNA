@@ -34,7 +34,7 @@ class OfertaController extends Controller
 
         $consulta = $this->ofertaRepo->obtenerConsultaBase()
             ->where('estado_id', 1)
-            ->whereDate('fecha_limite', '>=', now());
+            ->where('fecha_limite', '>=', now());
 
         // --- Filtros (Misma lógica original) ---
         if ($request->filled('tipo_oferta')) $consulta->where('tipo_oferta', $request->tipo_oferta);

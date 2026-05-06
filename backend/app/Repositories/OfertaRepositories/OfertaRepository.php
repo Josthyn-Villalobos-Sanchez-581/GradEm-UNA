@@ -21,11 +21,14 @@ class OfertaRepository
     }
 
     public function obtenerOfertasVencidasIds()
-    {
-        return Oferta::where('estado_id', Oferta::ESTADO_ACTIVA)
-            ->whereDate('fecha_limite', '<', now())
-            ->pluck('id_oferta');
-    }
+{
+    return Oferta::whereIn('estado_id', [
+            Oferta::ESTADO_ACTIVA,
+            Oferta::ESTADO_BORRADOR
+        ])
+        ->where('fecha_limite', '<', now())
+        ->pluck('id_oferta');
+}
 
     public function actualizarEstadosMasivo(array $ids, int $nuevoEstado)
     {
