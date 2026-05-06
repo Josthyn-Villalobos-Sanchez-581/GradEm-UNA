@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
 import PpLayout from "@/layouts/PpLayout";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/hooks/useModal";
-
 import KpiResumen from "@/components/reportes/KPIEgresados";
 import TablaEgresados from "@/components/reportes/TablaEgresados";
-import GraficoBarrasCarrera from "@/components/reportes/GraficoBarrasCarrera";
-import GraficoPie from "@/components/reportes/GraficoPie";
-import GraficoBarras from "@/components/reportes/GraficoBarras";
 import ReportesFiltros from "@/components/reportes/ReportesFiltros";
-import GraficoGenero from "@/components/reportes/GraficoGenero";
-
 import { useParametrosReporte } from "@/hooks/useParametrosReporte";
+
+const GraficoBarrasCarrera = lazy(() => import("@/components/reportes/GraficoBarrasCarrera"));
+const GraficoPie = lazy(() => import("@/components/reportes/GraficoPie"));
+const GraficoBarras = lazy(() => import("@/components/reportes/GraficoBarras"));
+const GraficoGenero = lazy(() => import("@/components/reportes/GraficoGenero"));
 
 // ------------------------------------------------------
 // TIPOS
@@ -164,15 +163,6 @@ const etiquetasFiltros: Record<string, string> = {
 // ------------------------------------------------------
 // RESOLVER ID -> NOMBRE DESDE CATÁLOGOS
 // ------------------------------------------------------
-const resolverNombre = (
-  catalogo: { id: any; nombre: string }[],
-  valor: any
-) => {
-  const item = catalogo.find((c) => String(c.id) === String(valor));
-  return item ? item.nombre : valor;
-};
-
-
 interface Props {
   userPermisos: number[];
   catalogosIniciales: Catalogo;
@@ -228,6 +218,22 @@ export default function ReporteEgresados({
     fechaInicio: null,
     fechaFin: null,
   };
+
+  const mapaCatalogo = React.useMemo(() => {
+    const map: Record<string, Record<string, string>> = {};
+
+    Object.entries(catalogoPorFiltro).forEach(([campo, catalogo]) => {
+      if (catalogo) {
+        map[campo] = {};
+        catalogo.forEach((c) => {
+          map[campo][String(c.id)] = c.nombre;
+        });
+      }
+    });
+
+    return map;
+  }, [catalogos]);
+
 
 
   const {
@@ -316,13 +322,9 @@ export default function ReporteEgresados({
   const filtrosLegibles = Object.entries(filtros)
     .filter(([_, valor]) => valor !== null && valor !== "")
     .map(([campo, valor]) => {
-      const catalogo = catalogoPorFiltro[campo];
-
       return {
-        campo: etiquetasFiltros[campo] ?? campo, // 👈 AQUÍ
-        valor: catalogo
-          ? resolverNombre(catalogo, valor)
-          : valor,
+        campo: etiquetasFiltros[campo] ?? campo,
+        valor: mapaCatalogo[campo]?.[String(valor)] ?? valor,
       };
     });
 
@@ -359,31 +361,43 @@ export default function ReporteEgresados({
       let carrera: any[] = [];
       let genero: GraficoGenero | null = null;
 
-      if (reportesSeleccionados.includes("tabla")) {
-        const r = await axios.get("/reportes/egresados", { params });
-        tabla = r.data?.data ?? [];
-      }
+      const requests: Promise<any>[] = [];
+
+      if (reportesSeleccionados.includes("tabla"))
+        requests.push(axios.get("/reportes/egresados", { params }));
+
+      if (reportesSeleccionados.includes("carrera"))
+        requests.push(axios.get("/reportes/grafico-por-carrera", { params }));
+
+      if (reportesSeleccionados.includes("pie"))
+        requests.push(axios.get("/reportes/grafico-empleo", { params }));
+
+      if (reportesSeleccionados.includes("barras"))
+        requests.push(axios.get("/reportes/grafico-anual", { params }));
+
+      if (reportesSeleccionados.includes("genero"))
+        requests.push(axios.get("/reportes/grafico-genero", { params }));
+
+      const responses = await Promise.all(requests);
+
+      let idx = 0;
+
+      if (reportesSeleccionados.includes("tabla"))
+        tabla = responses[idx++]?.data?.data ?? [];
 
       if (reportesSeleccionados.includes("carrera")) {
-        const r = await axios.get("/reportes/grafico-por-carrera", { params });
-        carrera = r.data?.data ?? [];
+        carrera = responses[idx++]?.data?.data ?? [];
         setGraficoCarrera(carrera);
       }
 
-      if (reportesSeleccionados.includes("pie")) {
-        const r = await axios.get("/reportes/grafico-empleo", { params });
-        pie = r.data?.data ?? null;
-      }
+      if (reportesSeleccionados.includes("pie"))
+        pie = responses[idx++]?.data?.data ?? null;
 
-      if (reportesSeleccionados.includes("barras")) {
-        const r = await axios.get("/reportes/grafico-anual", { params });
-        barras = r.data?.data ?? [];
-      }
+      if (reportesSeleccionados.includes("barras"))
+        barras = responses[idx++]?.data?.data ?? [];
 
-      if (reportesSeleccionados.includes("genero")) {
-        const r = await axios.get("/reportes/grafico-genero", { params });
-        genero = r.data?.data ?? null;
-      }
+      if (reportesSeleccionados.includes("genero"))
+        genero = responses[idx++]?.data?.data ?? null;
 
 
 
@@ -494,39 +508,43 @@ export default function ReporteEgresados({
       graficoGenero.mujeres +
       graficoGenero.no_especificado) > 0;
 
-  const graficos = [];
+  const graficos = React.useMemo(() => {
+    const lista: any[] = [];
 
-  if (reportesSeleccionados.includes("barras") && graficoAnual?.length > 0) {
-    graficos.push(<GraficoBarras key="barras" filas={graficoAnual} />);
-  }
+    if (reportesSeleccionados.includes("barras") && graficoAnual?.length > 0) {
+      lista.push(
+        <div key="barras" className="min-h-[320px]">
+          <GraficoBarras filas={graficoAnual} />
+        </div>
+      );
+    }
 
-  if (reportesSeleccionados.includes("genero") && generoTieneDatos) {
-    graficos.push(
-      <GraficoGenero
-        key="genero"
-        datos={datosGenero}
-        total={graficoGenero.total_egresados}
-      />
-    );
-  }
+    if (reportesSeleccionados.includes("genero") && generoTieneDatos) {
+      lista.push(
+        <div key="genero" className="min-h-[320px]">
+          <GraficoGenero datos={datosGenero} total={graficoGenero.total_egresados} />
+        </div>
+      );
+    }
 
-  if (reportesSeleccionados.includes("pie") && graficoEmpleo) {
-    graficos.push(
-      <GraficoPie
-        key="empleo"
-        datos={datosPie}
-      />
-    );
-  }
+    if (reportesSeleccionados.includes("pie") && graficoEmpleo) {
+      lista.push(
+        <div key="empleo" className="min-h-[320px]">
+          <GraficoPie datos={datosPie} />
+        </div>
+      );
+    }
 
-  if (reportesSeleccionados.includes("carrera") && graficoCarrera?.length > 0) {
-    graficos.push(
-      <GraficoBarrasCarrera
-        key="carrera"
-        filas={graficoCarrera}
-      />
-    );
-  }
+    if (reportesSeleccionados.includes("carrera") && graficoCarrera?.length > 0) {
+      lista.push(
+        <div key="carrera" className="min-h-[320px]">
+          <GraficoBarrasCarrera filas={graficoCarrera} />
+        </div>
+      );
+    }
+
+    return lista;
+  }, [reportesSeleccionados, graficoAnual, graficoGenero, graficoEmpleo, graficoCarrera]);
 
   useEffect(() => {
     // Solo al montar
@@ -540,6 +558,7 @@ export default function ReporteEgresados({
   return (
     <>
       <Head title="Reportes de Egresados" />
+      <meta name="description" content="Consulta y genera reportes de egresados por carrera, género, empleabilidad y más." />
 
       <div className="min-h-screen py-10 text-black">
         <div className="w-full px-6 space-y-6 text-black">
@@ -581,10 +600,8 @@ export default function ReporteEgresados({
 
                   {/* Flecha tipo select */}
                   <svg
-                    className={`
-                                w-4 h-4 text-gray-500 transition-transform
-                                ${panelAbierto ? "rotate-180" : ""}
-                              `}
+                    aria-hidden="true"
+                    className={`w-4 h-4 text-gray-500 transition-transform ${panelAbierto ? "rotate-180" : ""}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -623,6 +640,7 @@ export default function ReporteEgresados({
                       className="flex items-center gap-3 cursor-pointer"
                     >
                       <input
+                        aria-label={opcion.label}
                         type="checkbox"
                         checked={
                           opcion.id === "todos"
@@ -661,6 +679,7 @@ export default function ReporteEgresados({
               {/* Botones */}
               <div className="flex gap-3 w-full sm:w-auto">
                 <Button
+                  aria-label="Generar reporte"
                   onClick={fetchReportes}
                   disabled={reportesSeleccionados.length === 0 || hayErrores || loading}
                   className="w-full sm:w-auto h-[42px] flex items-center justify-center gap-2"
@@ -678,6 +697,7 @@ export default function ReporteEgresados({
 
                 {hayResultados && (
                   <Button
+                    aria-label="Descargar reporte en PDF"
                     variant="destructive"
                     onClick={descargarPdf}
                     disabled={cooldownPdf}
@@ -714,6 +734,7 @@ export default function ReporteEgresados({
               >
 
                 <button
+                  aria-label={filtersCollapsed ? "Expandir filtros" : "Colapsar filtros"}
                   onClick={toggleFilters}
                   className="
                               absolute
@@ -796,9 +817,9 @@ export default function ReporteEgresados({
                     : "grid-cols-1 xl:grid-cols-2"
                     }`}
                 >
-
-                  {graficos}
-
+                  <Suspense fallback={<p className="text-center text-gray-500">Cargando gráficos...</p>}>
+                    {graficos}
+                  </Suspense>
                 </section>
               )}
 
@@ -809,7 +830,12 @@ export default function ReporteEgresados({
                       <h2 className="font-semibold mb-4">
                         Detalle de egresados
                       </h2>
-                      <TablaEgresados filas={resultados} />
+                      <TablaEgresados filas={resultados.slice(0, 100)} />
+                      {resultados.length > 100 && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Mostrando 100 de {resultados.length} registros. Descargá el PDF para ver el listado completo.
+                        </p>
+                      )}
                     </div>
                   </section>
                 )}
