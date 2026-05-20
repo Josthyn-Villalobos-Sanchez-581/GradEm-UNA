@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
     UserPlus, LogIn, Briefcase, GraduationCap, Calendar,
     Users, ChevronLeft, ChevronRight, Building2, Search,
-    FileText, BarChart3, Rocket, Menu, X, ArrowRight, CheckCircle2, Network
+    FileText, BarChart3, Rocket, Menu, X, ArrowRight, CheckCircle2, Network, FileUserIcon
 } from "lucide-react";
 
 // Imágenes del carrusel
@@ -131,61 +131,61 @@ const Welcome = () => {
             </nav>
 
             {/* Modal de Beneficios */}
-                {mostrarModalBeneficios && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            {mostrarModalBeneficios && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 
-                        <div className="bg-white w-full max-w-lg mx-4 rounded-3xl shadow-2xl p-8 relative animate-fadeIn">
+                    <div className="bg-white w-full max-w-lg mx-4 rounded-3xl shadow-2xl p-8 relative animate-fadeIn">
 
-                            {/* Cerrar */}
-                            <button
-                                onClick={() => setMostrarModalBeneficios(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-black"
-                            >
-                                <X size={24} />
-                            </button>
+                        {/* Cerrar */}
+                        <button
+                            onClick={() => setMostrarModalBeneficios(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-black"
+                        >
+                            <X size={24} />
+                        </button>
 
-                            {/* CONTENIDO */}
-                            <div className="text-center mb-6">
-                                <h3 className="text-2xl font-black text-[#CD1719] mb-2">
-                                    Beneficios de registrarte
-                                </h3>
-                                <p className="text-gray-500 text-sm">
-                                    Todo lo que obtienes al ser parte de GradEm
-                                </p>
-                            </div>
-
-                            {/* LISTA */}
-                            <div className="space-y-4">
-                                {[
-                                    "Acceso a bolsa de empleo exclusiva",
-                                    "Creación automática de currículum profesional",
-                                    "Postulación rápida a ofertas laborales",
-                                    "Acceso a cursos y capacitaciones",
-                                    "Participación en eventos y ferias",
-                                ].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className="bg-[#CD1719]/10 text-[#CD1719] p-2 rounded-lg">
-                                            <CheckCircle2 size={18} />
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-700">
-                                            {item}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* CTA */}
-                            <Button
-                                onClick={() => router.get("/registro")}
-                                className="w-full mt-6 bg-[#CD1719] hover:bg-[#A71315] text-white rounded-xl h-12 font-bold"
-                            >
-                                Crear mi cuenta
-                            </Button>
-
+                        {/* CONTENIDO */}
+                        <div className="text-center mb-6">
+                            <h3 className="text-2xl font-black text-[#CD1719] mb-2">
+                                Beneficios de registrarte
+                            </h3>
+                            <p className="text-gray-500 text-sm">
+                                Todo lo que obtienes al ser parte de GradEm
+                            </p>
                         </div>
+
+                        {/* LISTA */}
+                        <div className="space-y-4">
+                            {[
+                                "Acceso a bolsa de empleo exclusiva",
+                                "Creación automática de currículum profesional",
+                                "Postulación rápida a ofertas laborales",
+                                "Acceso a cursos y capacitaciones",
+                                "Participación en eventos y ferias",
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="bg-[#CD1719]/10 text-[#CD1719] p-2 rounded-lg">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-700">
+                                        {item}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* CTA */}
+                        <Button
+                            onClick={() => router.get("/registro")}
+                            className="w-full mt-6 bg-[#CD1719] hover:bg-[#A71315] text-white rounded-xl h-12 font-bold"
+                        >
+                            Crear mi cuenta
+                        </Button>
+
                     </div>
-                )
-                }
+                </div>
+            )
+            }
 
             {/* --- HERO SECTION --- */}
             <main className="pt-28 md:pt-40 pb-32 relative overflow-hidden">
@@ -211,9 +211,6 @@ const Welcome = () => {
                         <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center lg:justify-start">
                             <Button onClick={() => router.get("/login") /* generic login */} className="bg-[#CD1719] hover:bg-[#A71315] text-white px-8 md:px-10 py-6 md:py-7 text-lg md:text-xl rounded-[1.2rem] md:rounded-[1.5rem] shadow-xl font-bold">
                                 Comenzar ahora
-                            </Button>
-                            <Button variant="outline" className="border-[#A7A7A9] text-[#000000] px-8 md:px-10 py-6 md:py-7 text-lg md:text-xl rounded-[1.2rem] md:rounded-[1.5rem] hover:bg-[#F6F6F6] transition-all border-2 font-bold">
-                                Ver vacantes
                             </Button>
                         </div>
                     </div>
@@ -357,7 +354,12 @@ const Welcome = () => {
                                 <h3 className="text-2xl font-bold mb-2">¿Listo para empezar?</h3>
                                 <p className="opacity-90">Tu próximo gran reto profesional te está esperando.</p>
                             </div>
-                            <Button className="bg-white text-[#CD1719] hover:bg-gray-100 rounded-xl px-10 h-12 font-bold shrink-0">Registrar mi perfil</Button>
+                            <Button
+                                onClick={() => router.get("/registro")}
+                                className="bg-white text-[#CD1719] hover:bg-gray-100 rounded-xl px-10 h-12 font-bold shrink-0"
+                            >
+                                Registrar nuevo perfil
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -418,7 +420,6 @@ const Welcome = () => {
                                 </div>
                             ))}
                         </div>
-                        <Button className="mt-4 bg-[#1A1A1A] text-white hover:bg-black rounded-2xl h-12 px-8 font-bold">Crear mi Currículum</Button>
                     </div>
                 </div>
             </section>
@@ -438,7 +439,6 @@ const Welcome = () => {
                                 <h3 className="text-3xl font-bold mb-4">Capacitación Continua</h3>
                                 <p className="text-white/80 text-lg mb-8 max-w-md">Cursos técnicos, talleres de habilidades blandas y certificaciones avaladas por la UNA.</p>
                             </div>
-                            <Button className="bg-white text-[#CD1719] hover:bg-gray-100 rounded-xl w-fit font-bold relative z-10 px-8">Explorar Cursos</Button>
                             <div className="absolute bottom-0 right-0 translate-y-1/4 translate-x-1/4 opacity-10 group-hover:scale-110 transition-transform">
                                 <GraduationCap size={240} />
                             </div>
@@ -449,22 +449,10 @@ const Welcome = () => {
                                 <Calendar size={48} className="text-[#034991] mb-6" />
                                 <h3 className="text-3xl font-bold mb-4 text-[#1A1A1A]">Próximos Eventos</h3>
                                 <p className="text-gray-500 text-lg mb-8 max-w-md">Ferias de empleo, charlas de expertos y webinars.</p>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-sm font-bold text-[#034991]">
-                                        <div className="w-2 h-2 rounded-full bg-[#034991] animate-pulse" />
-                                        Proximanente...
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm font-bold text-[#034991]">
-                                        <div className="w-2 h-2 rounded-full bg-[#034991] animate-pulse" />
-                                        Proximanente...
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm font-bold text-[#034991]">
-                                        <div className="w-2 h-2 rounded-full bg-[#034991] animate-pulse" />
-                                        Proximanente...
-                                    </div>
-                                </div>
                             </div>
-                            <Button variant="outline" className="border-gray-300 rounded-xl w-fit font-bold mt-8 px-8">Ver Eventos</Button>
+                            <div className="absolute bottom-0 right-0 translate-y-1/4 translate-x-1/4 opacity-10 group-hover:scale-110 transition-transform">
+                                <Calendar size={240} />
+                            </div>  
                         </div>
                     </div>
                 </div>
@@ -492,8 +480,10 @@ const Welcome = () => {
                                     <p className="text-sm text-gray-500">Métricas avanzadas de tus procesos de selección.</p>
                                 </div>
                             </div>
-
-                            <Button className="bg-[#CD1719] hover:bg-[#A71315] rounded-2xl h-14 px-10 text-lg font-black transition-all hover:scale-105">
+                            <Button
+                                onClick={() => router.get("/registro")}
+                                className="bg-[#CD1719] hover:bg-[#A71315] rounded-2xl h-14 px-10 text-lg font-black transition-all hover:scale-105"
+                            >
                                 Registrar mi Empresa
                             </Button>
                         </div>
@@ -504,19 +494,29 @@ const Welcome = () => {
             {/* --- FOOTER --- */}
             <footer className="bg-white border-t border-[#A7A7A9]/20 py-12 md:py-16">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10 md:gap-12">
+
+                    {/* Lado Izquierdo: Logo y Copyright */}
                     <div className="flex flex-col items-center md:items-start text-center md:text-left">
                         <img src={grademLogoOficial} className="h-10 md:h-12 mb-4 opacity-80" alt="Footer Logo" />
                         <p className="text-[#A7A7A9] text-xs font-bold uppercase tracking-widest">© 2026 Universidad Nacional</p>
                     </div>
+
+                    {/* Lado Derecho: Info Institucional y Enlaces */}
                     <div className="text-center md:text-right space-y-2">
                         <p className="font-black text-[#000000] uppercase text-base md:text-lg tracking-tighter">Sede Interuniversitaria de Alajuela</p>
                         <p className="text-[#CD1719] text-sm font-bold italic">"La verdad nos hace libres"</p>
-                        <div className="flex justify-center md:justify-end gap-6 md:gap-8 mt-6 text-[#A7A7A9] text-[10px] font-black uppercase tracking-[0.2em]">
-                            <a href="#" className="hover:text-[#CD1719] transition-colors">Privacidad</a>
-                            <a href="#" className="hover:text-[#034991] transition-colors">Contacto</a>
-                            <a href="#" className="hover:text-[#CD1719] transition-colors">UNA.ac.cr</a>
+
+                        {/* Enlaces actualizados */}
+                        <div className="flex justify-center md:justify-end gap-6 md:gap-8 pt-4 text-[#A7A7A9] text-[10px] font-black uppercase tracking-[0.2em]">
+                            <a href="mailto:gradem.una@gmail.com" className="hover:text-[#034991] transition-colors flex items-center gap-1">
+                                Contacto: gradem.una@gmail.com
+                            </a>
+                            <a href="https://www.una.ac.cr" target="_blank" rel="noopener noreferrer" className="hover:text-[#CD1719] transition-colors">
+                                UNA.ac.cr
+                            </a>
                         </div>
                     </div>
+
                 </div>
             </footer>
         </div>
