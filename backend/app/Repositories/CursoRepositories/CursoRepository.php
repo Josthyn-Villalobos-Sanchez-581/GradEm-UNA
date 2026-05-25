@@ -165,9 +165,9 @@ class CursoRepository
         // Registro en bitácora
         DB::table('bitacora_cambios')->insert([
             'tabla_afectada' => 'cursos',
-            'operacion' => 'INACTIVAR',
+            'operacion' => 'FINALIZAR',
             'usuario_responsable' => $usuarioId,
-            'descripcion_cambio' => 'Curso ' . $curso->titulo . ' inactivado. (ID: ' . $curso->id_curso . ') Motivo: ' . $motivo,
+            'descripcion_cambio' => 'Curso ' . $curso->titulo . ' finalizado. (ID: ' . $curso->id_curso . ') Motivo: ' . $motivo,
             'fecha_cambio' => now(),
         ]);
 

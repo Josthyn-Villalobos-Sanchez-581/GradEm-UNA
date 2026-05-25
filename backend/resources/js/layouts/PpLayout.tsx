@@ -5,6 +5,7 @@ import axios from "axios";
 import { router } from "@inertiajs/react";
 import SystemInfoModal from "@/components/SystemInfoModal";
 import { useModal } from "@/hooks/useModal";
+import { useMessages } from "@/hooks/useMessages";
 import {
   ChevronDown,
   ChevronLeft,
@@ -20,6 +21,7 @@ import {
   LogOut,
   User,
   Info,
+  GraduationCap,
 } from "lucide-react";
 
 interface PpLayoutProps {
@@ -43,6 +45,12 @@ export default function PpLayout({
 }: PpLayoutProps) {
   const modal = useModal();
   const currentUrl = usePage().url;
+
+  const {
+  toast,
+  mostrarCreditos,
+  setMostrarCreditos,
+} = useMessages();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
@@ -171,7 +179,7 @@ export default function PpLayout({
       subMenu: [
         { title: "Gestión de Cursos", route: "/cursos", permisoId: 8 },
         { title: "Inscribirme", route: "/cursos/inscripcion", permisoId: 9 },
-        { title: "Mis Cursos", route: "/cursos/mis-cursos ", permisoId: 9 },
+        { title: "Mis Cursos", route: "/cursos/mis-cursos", permisoId: 9 },
       ],
     },
     {
@@ -535,6 +543,96 @@ export default function PpLayout({
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {toast && (
+        <div
+          className="
+            fixed top-6 left-1/2 -translate-x-1/2
+            z-[9999]
+            bg-[#034991]
+            text-white
+            px-5 py-2.5
+            rounded-full
+            shadow-2xl
+            text-sm
+            font-semibold
+            animate-pulse
+            pointer-events-none
+          "
+          aria-live="polite"
+        >
+          {toast}
+        </div>
+      )}
+
+      {mostrarCreditos && (
+        <div
+          className="
+            fixed inset-0 z-[9999]
+            flex items-center justify-center
+            bg-black/40 backdrop-blur-sm
+          "
+        >
+          <div
+            className="
+              bg-white
+              rounded-3xl
+              shadow-2xl
+              p-8
+              max-w-lg
+              w-full
+              border border-slate-200
+              text-center
+              animate-fade-in
+            "
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="mb-5">
+              <div className="flex justify-center mb-5">
+                <div
+                  className="
+                    w-20 h-20 rounded-full
+                    bg-[#034991]/10
+                    flex items-center justify-center
+                  "
+                >
+                  <GraduationCap
+                    size={42}
+                    className="text-[#034991]"
+                  />
+                </div>
+              </div>
+
+              <h2 className="text-2xl font-black text-[#034991] uppercase italic">
+                Sistema desarrollado por el equipo GradEm-SIUA
+              </h2>
+            </div>
+
+            <p className="text-slate-600 leading-relaxed font-medium">
+              Módulos de Registro de Usuarios, Carga de Documentos,
+              Cursos, Eventos y Reportes de Ofertas y Postulaciones
+              desarrollados por Gerald Huertas Rodríguez.
+            </p>
+
+            <button
+              onClick={() => setMostrarCreditos(false)}
+              className="
+                mt-8
+                px-6 py-2.5
+                rounded-full
+                bg-[#034991]
+                text-white
+                font-semibold
+                hover:opacity-90
+                transition
+              "
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* TOOLTIP */}
