@@ -21,6 +21,11 @@ export default function Dashboard() {
   const user = auth.user ?? { name: "Usuario", fotoPerfil: null };
   const permisos = userPermisos ?? [];
   const rol = userRol ?? "Sin rol";
+  const fechaActual = new Date();
+
+  const mostrarMensajeEspecial =
+  fechaActual.getDate() === 3 &&
+  fechaActual.getMonth() === 5;
 
   /* ==========================================================
      CATEGORIZACIÓN DE MÓDULOS (DINÁMICO POR PERMISOS)
@@ -96,10 +101,37 @@ export default function Dashboard() {
             <header className="border-b-2 border-slate-200 pb-8 flex justify-between items-center">
               <div className="space-y-1">
                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase italic flex items-center gap-4">
-                  <LayoutDashboard className="text-[#034991]" size={40} />
+                  <LayoutDashboard className={`
+                      text-[#034991]
+                      transition-all duration-500
+                    `}
+                    size={40}
+                  />
                   Dashboard
                 </h1>
                 <p className="text-slate-500 font-bold text-lg uppercase tracking-tighter">Bienvenido al ecosistema de vinculación institucional</p>
+                {mostrarMensajeEspecial && (
+                  <div
+                    className="
+                      mt-4
+                      inline-flex
+                      items-center
+                      gap-2
+                      px-4 py-2
+                      rounded-full
+                      bg-gradient-to-r
+                      from-[#034991]
+                      to-[#0466C8]
+                      text-white
+                      text-sm
+                      font-bold
+                      shadow-lg
+                      animate-pulse
+                    "
+                  >
+                    🎊 "Gracias por formar parte de GradEm-SIUA!!" 🎉
+                  </div>
+                )}
               </div>
             </header>
 
@@ -165,7 +197,18 @@ const DashboardCard = ({ item, isService = false }: any) => (
   <Link
     href={item.href}
     aria-label={`${item.title}: ${item.desc}`}
-    className={`group bg-white border-2 border-slate-100 rounded-[2.5rem] transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/60 hover:border-[#034991] flex flex-col p-8 h-full`}
+    className={`
+      group bg-white border-2 border-slate-100
+      rounded-[2.5rem]
+      transition-all duration-300
+      hover:shadow-2xl
+      hover:shadow-slate-200/60
+      hover:border-[#034991]
+      flex flex-col p-8 h-full
+
+      hover:-translate-y-1
+      hover:rotate-[0.2deg]
+    `}
   >
     <div className="flex justify-between items-start mb-6">
       <div className={`p-4 rounded-2xl ${item.bg} ${item.color} group-hover:scale-110 transition-transform duration-500`}>

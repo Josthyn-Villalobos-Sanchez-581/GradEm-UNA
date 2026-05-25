@@ -188,7 +188,7 @@ class CursoService
             // Disparar correos si hay cambios críticos
             if (!empty($cambiosCriticos) && $inscritos->count() > 0) {
                 foreach ($inscritos as $inscrito) {
-                    Mail::to($inscrito->correo)->send(
+                    Mail::to($inscrito->correo)->queue(
                         new CursoActualizadoMail($curso, $cambiosCriticos)
                     );
                 }
@@ -276,7 +276,7 @@ class CursoService
             $inscritos = $this->cursoRepository->obtenerInscritosCurso($idCurso);
 
             foreach ($inscritos as $inscrito) {
-                Mail::to($inscrito->correo)->send(
+                Mail::to($inscrito->correo)->queue(
                     new CursoCanceladoMail(
                         $curso->toArray(),
                         $motivo
@@ -353,7 +353,7 @@ public function eliminarInscripcionCurso(int $idCurso, int $idUsuario): void
                 throw new \Exception('La inscripción no existe.');
             }
  
-            Mail::to($usuario->correo)->send(
+            Mail::to($usuario->correo)->queue(
                 new DesinscripcionCursoMail(
                     $curso->load('modalidad'),
                     $usuario->nombre_completo

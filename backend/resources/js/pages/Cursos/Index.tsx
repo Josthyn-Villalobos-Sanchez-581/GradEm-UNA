@@ -106,6 +106,14 @@ export default function CursosIndex(props: Props) {
       if (filtroEstado === "borrador") return c.estado_id !== 1;
       return true;
     })
+    // ⏳ Excluir cursos publicados vencidos (mantener borradores)
+    .filter((c) => {
+      if (c.estado_id === 1 && c.fecha_fin) {
+        const hoy = new Date().toISOString().split("T")[0];
+        return hoy <= c.fecha_fin;
+      }
+      return true;
+    })
     // 👨‍🏫 Instructor (solo admins)
     .filter((c) => {
       if (puedeGestionar && filtroInstructor.trim()) {
@@ -176,6 +184,7 @@ export default function CursosIndex(props: Props) {
   }).length;
 
   const [loadingKpis, setLoadingKpis] = useState(false);
+  const [autoProcessing, setAutoProcessing] = useState(false);
 
   const [view, setView] = useState<"list" | "form">("list");
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -425,6 +434,46 @@ export default function CursosIndex(props: Props) {
 
   const minGlobal = hoy.toISOString().split('T')[0]; // Fecha de hoy
   const maxGlobal = `${anioActual + 1}-12-31`;
+
+  // Efecto: detectar cursos publicados vencidos y desactivarlos automáticamente.
+  useEffect(() => {
+    const revisarYDesactivar = async () => {
+      if (autoProcessing) return;
+      setAutoProcessing(true);
+
+      const hoyIso = new Date().toISOString().split("T")[0];
+
+      const vencidos = cursos.filter(
+        (c) => c.estado_id === 1 && c.fecha_fin && c.fecha_fin < hoyIso
+      );
+
+      if (vencidos.length === 0) {
+        setAutoProcessing(false);
+        return;
+      }
+
+      for (const curso of vencidos) {
+        try {
+          // Enviar motivo para que quede en la bitácora del servidor
+          await axios.delete(route("cursos.destroy", { id: curso.id_curso }), {
+            data: { motivo: "Inactivado automáticamente por vencimiento del curso" },
+          });
+
+          // Quitarlo del listado localmente sin mostrar modales
+          setCursos((prev) => prev.filter((c) => c.id_curso !== curso.id_curso));
+        } catch (error) {
+          // No interrumpir el proceso por errores individuales
+          console.error("Error al inactivar curso vencido:", curso.id_curso, error);
+        }
+      }
+
+      setAutoProcessing(false);
+    };
+
+    // Ejecutar al montar y cuando cambian los cursos iniciales
+    revisarYDesactivar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const eliminarCurso = async (curso: Curso) => {
     let motivo = "";
